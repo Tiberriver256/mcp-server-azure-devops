@@ -46,6 +46,6 @@
     "prettier": "^3.0.0",
     "ts-jest": "^29.0.0",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.8.2"
   }
 }

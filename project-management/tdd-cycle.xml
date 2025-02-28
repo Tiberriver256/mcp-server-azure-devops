@@ -1,0 +1,6 @@
+<tdd-cycle>
+    <red>Write a failing test for new functionality.</red>
+    <green>Implement minimal code to pass the test.</green>
+    <refactor>Refactor code, ensuring tests pass.</refactor>
+    <repeat>Repeat for each new test.</repeat>
+</tdd-cycle>

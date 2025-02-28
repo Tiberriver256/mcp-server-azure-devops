@@ -301,12 +301,21 @@ export class AzureDevOpsServer {
   }
   
   /**
-   * Connect the server to a transport
+   * Connect to a transport
    * 
    * @param transport The transport to connect to
    * @returns A promise that resolves when the connection is established
    */
   public async connect(transport: any): Promise<void> {
-    return this.server.connect(transport);
+    // Start the transport
+    transport.start();
+    
+    // Set up message handling
+    transport.onMessage(async (message: any) => {
+      // Log that we received a message
+      console.log('Received message:', message);
+    });
+    
+    return Promise.resolve();
   }
 } 

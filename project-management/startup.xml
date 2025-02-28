@@ -1,4 +1,6 @@
 <AiTaskAgent>
+  <GlobalRule alwaysApply="true">If an ANY point you get stuck, review troubleshooter.xml to help you troubleshoot the problem.</GlobalRule>
+  <GlobalRule alwaysApply="true">All new code creation should ALWAYS follow tdd-cycle.xml</GlobalRule>
   <InitialSetup order="1">
     <Step order="1">Read the dream team documentation at project-management/planning/the-dream-team.md to understand the team structure and roles</Step>
     <Step order="2">Read all files in the project-management/planning directory to understand the project architecture, features, and structure</Step>
@@ -12,7 +14,8 @@
     <Step order="4">Examine the current task list by viewing the project-management/task-management/ files todo.md and doing.md</Step>
     <Step order="5">If there is a task in doing.md move directly into TaskWorkflow. If not take the next task from todo.md and move it to doing.md, removing it from todo.md. After moving the task you should extend it with a phase property to be used in TaskWorkflow and a section for notes and sub-tasks.</Step>
     <Step order="6">Create a new branch for the current task, branching from the latest main branch. Use a descriptive name for the branch, related to the task, by running ./create_branch.sh &lt;branch_name&gt;.</Step>
-    <Step order="7">Start the research phase of TaskWorkflow.</Step>
+    <Step order="7">Read tdd-cycle.xml to understand the TDD cycle.</Step>
+    <Step order="8">Start the research phase of TaskWorkflow.</Step>
   </InitialSetup>
   
   <TaskWorkflow order="2">
