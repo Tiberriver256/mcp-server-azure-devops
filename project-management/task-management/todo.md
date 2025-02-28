@@ -2,157 +2,91 @@
 
 ### Task Structure
 - Each task is designed to take **one day or less** to complete.
-- Tool implementation is broken into **separate steps**: writing tests, coding, and documenting.
-- Tasks follow **TDD**: tests are written before code, followed by implementation and refactoring.
+- All tasks follow the TDD workflow naturally: writing failing tests, code until they pass, and refactoring are part of one continuous process.
+- Documentation is still handled as a separate step for clarity.
 - Tasks are prefixed with `[ ]` for tracking completion.
 
 ---
 
-- [ ] **Task 0.7**: Implement basic server structure (e.g., Express setup)  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 0.8**: Write unit tests for PAT-based authentication  
-  - **Role**: QA Engineer  
-- [ ] **Task 0.9**: Implement PAT-based authentication handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 0.10**: Write integration tests for authentication flow  
-  - **Role**: QA Engineer  
-- [ ] **Task 0.11**: Document project setup and authentication (README)  
-  - **Role**: Technical Writer  
-- [ ] **Task 1.1**: Write unit tests for `list_organizations`  
-  - **Role**: QA Engineer  
-- [ ] **Task 1.2**: Implement `list_organizations` using Axios  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 1.3**: Write unit tests for `list_projects`  
-  - **Role**: QA Engineer  
-- [ ] **Task 1.4**: Implement `list_projects` using WebApi  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 1.5**: Write unit tests for `list_repositories`  
-  - **Role**: QA Engineer  
-- [ ] **Task 1.6**: Implement `list_repositories` using WebApi  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 1.7**: Write integration tests for core navigation tools  
-  - **Role**: QA Engineer  
-- [ ] **Task 1.8**: Document core navigation tools (usage, parameters)  
-  - **Role**: Technical Writer  
-- [ ] **Task 2.1**: Write unit tests for `create_work_item`  
-  - **Role**: QA Engineer  
-- [ ] **Task 2.2**: Implement `create_work_item` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 2.3**: Write unit tests for `update_work_item`  
-  - **Role**: QA Engineer  
-- [ ] **Task 2.4**: Implement `update_work_item` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 2.5**: Write unit tests for `list_work_items`  
-  - **Role**: QA Engineer  
-- [ ] **Task 2.6**: Implement `list_work_items` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 2.7**: Write unit tests for `get_work_item`  
-  - **Role**: QA Engineer  
-- [ ] **Task 2.8**: Implement `get_work_item` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 2.9**: Write unit tests for `add_work_item_comment`  
-  - **Role**: QA Engineer  
-- [ ] **Task 2.10**: Implement `add_work_item_comment` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 2.11**: Write integration tests for work item creation and updates  
-  - **Role**: QA Engineer  
-- [ ] **Task 2.12**: Write integration tests for work item listing and comments  
-  - **Role**: QA Engineer  
-- [ ] **Task 2.13**: Refactor work item tools for consistency  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 2.14**: Document work item tools (usage, examples)  
-  - **Role**: Technical Writer  
-- [ ] **Task 2.15**: Conduct code review and address feedback  
-  - **Role**: Full-Stack Developer, QA Engineer  
-- [ ] **Task 3.1**: Write unit tests for `create_or_update_file`  
-  - **Role**: QA Engineer  
-- [ ] **Task 3.2**: Implement `create_or_update_file` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 3.3**: Write unit tests for `push_changes`  
-  - **Role**: QA Engineer  
-- [ ] **Task 3.4**: Implement `push_changes` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 3.5**: Write unit tests for `get_file_contents`  
-  - **Role**: QA Engineer  
-- [ ] **Task 3.6**: Implement `get_file_contents` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 3.7**: Write integration tests for repository operations  
-  - **Role**: QA Engineer  
-- [ ] **Task 3.8**: Document repository tools (usage, parameters)  
-  - **Role**: Technical Writer  
-- [ ] **Task 4.1**: Write unit tests for `create_branch`  
-  - **Role**: QA Engineer  
-- [ ] **Task 4.2**: Implement `create_branch` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 4.3**: Write unit tests for `create_pull_request`  
-  - **Role**: QA Engineer  
-- [ ] **Task 4.4**: Implement `create_pull_request` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 4.5**: Write unit tests for `merge_pull_request`  
-  - **Role**: QA Engineer  
-- [ ] **Task 4.6**: Implement `merge_pull_request` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 4.7**: Write unit tests for `get_pull_request`  
-  - **Role**: QA Engineer  
-- [ ] **Task 4.8**: Implement `get_pull_request` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 4.9**: Write unit tests for `list_pull_requests`  
-  - **Role**: QA Engineer  
-- [ ] **Task 4.10**: Implement `list_pull_requests` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 4.11**: Write unit tests for `add_pull_request_comment`  
-  - **Role**: QA Engineer  
-- [ ] **Task 4.12**: Implement `add_pull_request_comment` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 4.13**: Write unit tests for `get_pull_request_comments`  
-  - **Role**: QA Engineer  
-- [ ] **Task 4.14**: Implement `get_pull_request_comments` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 4.15**: Write integration tests for branch and PR workflow  
-  - **Role**: QA Engineer  
-- [ ] **Task 4.16**: Document branch and PR tools (usage, examples)  
-  - **Role**: Technical Writer  
-- [ ] **Task 4.17**: Conduct code review and address feedback  
-  - **Role**: Full-Stack Developer, QA Engineer  
-- [ ] **Task 5.1**: Write unit tests for `trigger_pipeline`  
-  - **Role**: QA Engineer  
-- [ ] **Task 5.2**: Implement `trigger_pipeline` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 5.3**: Write unit tests for `get_pipeline_status`  
-  - **Role**: QA Engineer  
-- [ ] **Task 5.4**: Implement `get_pipeline_status` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 5.5**: Write unit tests for `list_pipelines`  
-  - **Role**: QA Engineer  
-- [ ] **Task 5.6**: Implement `list_pipelines` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 5.7**: Write integration tests for pipeline tools  
-  - **Role**: QA Engineer  
-- [ ] **Task 5.8**: Document pipeline tools (usage, parameters)  
-  - **Role**: Technical Writer  
-- [ ] **Task 6.1**: Write unit tests for `search_code`  
-  - **Role**: QA Engineer  
-- [ ] **Task 6.2**: Implement `search_code` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 6.3**: Write unit tests for `search_work_items`  
-  - **Role**: QA Engineer  
-- [ ] **Task 6.4**: Implement `search_work_items` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 6.5**: Write unit tests for `search_wiki`  
-  - **Role**: QA Engineer  
-- [ ] **Task 6.6**: Implement `search_wiki` handler  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 6.7**: Write integration tests for search tools  
-  - **Role**: QA Engineer  
-- [ ] **Task 6.8**: Document search tools (usage, examples)  
-  - **Role**: Technical Writer  
-- [ ] **Task 7.1**: Write end-to-end tests for user story to pull request workflow  
-  - **Role**: QA Engineer  
-- [ ] **Task 7.2**: Conduct security testing (credential handling, errors)  
-  - **Role**: Security Specialist  
-- [ ] **Task 7.3**: Optimize performance and fix bugs  
-  - **Role**: Full-Stack Developer  
-- [ ] **Task 7.4**: Finalize all documentation (setup, usage, troubleshooting)  
-  - **Role**: Technical Writer  
-- [ ] **Task 7.5**: Tag version and prepare for release (GitHub/npm)  
-  - **Role**: Full-Stack Developer, Project Manager  
+- [ ] **Task 0.9**: Implement PAT-based authentication handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 0.11**: Document project setup and authentication (README)
+  - **Role**: Technical Writer
+- [ ] **Task 1.2**: Implement `list_organizations` using Axios with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 1.4**: Implement `list_projects` using WebApi with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 1.6**: Implement `list_repositories` using WebApi with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 1.8**: Document core navigation tools (usage, parameters)
+  - **Role**: Technical Writer
+- [ ] **Task 2.2**: Implement `create_work_item` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 2.4**: Implement `update_work_item` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 2.6**: Implement `list_work_items` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 2.8**: Implement `get_work_item` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 2.10**: Implement `add_work_item_comment` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 2.13**: Refactor work item tools for consistency (with regression tests)
+  - **Role**: Full-Stack Developer
+- [ ] **Task 2.14**: Document work item tools (usage, examples)
+  - **Role**: Technical Writer
+- [ ] **Task 2.15**: Conduct code review and address feedback
+  - **Role**: Full-Stack Developer
+- [ ] **Task 3.2**: Implement `create_or_update_file` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 3.4**: Implement `push_changes` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 3.6**: Implement `get_file_contents` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 3.8**: Document repository tools (usage, parameters)
+  - **Role**: Technical Writer
+- [ ] **Task 4.2**: Implement `create_branch` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 4.4**: Implement `create_pull_request` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 4.6**: Implement `merge_pull_request` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 4.8**: Implement `get_pull_request` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 4.10**: Implement `list_pull_requests` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 4.12**: Implement `add_pull_request_comment` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 4.14**: Implement `get_pull_request_comments` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 4.15**: Create integration tests for branch and PR workflow
+  - **Role**: Full-Stack Developer
+- [ ] **Task 4.16**: Document branch and PR tools (usage, examples)
+  - **Role**: Technical Writer
+- [ ] **Task 4.17**: Conduct code review and address feedback
+  - **Role**: Full-Stack Developer
+- [ ] **Task 5.2**: Implement `trigger_pipeline` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 5.4**: Implement `get_pipeline_status` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 5.6**: Implement `list_pipelines` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 5.8**: Document pipeline tools (usage, parameters)
+  - **Role**: Technical Writer
+- [ ] **Task 6.2**: Implement `search_code` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 6.4**: Implement `search_work_items` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 6.6**: Implement `search_wiki` handler with tests
+  - **Role**: Full-Stack Developer
+- [ ] **Task 6.8**: Document search tools (usage, examples)
+  - **Role**: Technical Writer
+- [ ] **Task 7.1**: Create end-to-end tests for user story to pull request workflow
+  - **Role**: Full-Stack Developer
+- [ ] **Task 7.2**: Conduct security testing (credential handling, errors)
+  - **Role**: Security Specialist
+- [ ] **Task 7.3**: Optimize performance and fix bugs
+  - **Role**: Full-Stack Developer
+- [ ] **Task 7.4**: Finalize all documentation (setup, usage, troubleshooting)
+  - **Role**: Technical Writer
+- [ ] **Task 7.5**: Tag version and prepare for release (GitHub/npm)
+  - **Role**: Full-Stack Developer, Project Manager

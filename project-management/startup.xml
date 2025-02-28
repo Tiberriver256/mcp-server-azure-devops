@@ -6,6 +6,7 @@
       - The server architecture and components from README.md
       - Configuration in package.json and tsconfig.json 
       - Implementation patterns in src/ directory
+      - Get a basic understanding of what we're trying to build by reviewing src/github/index.ts
       - Available tools and integrations
     </Step>
     <Step order="4">Examine the current task list by viewing the project-management/task-management/ files todo.md and doing.md</Step>
@@ -16,29 +17,29 @@
   
   <TaskWorkflow order="2">
     <Phase name="Research" order="1">
-      <Step>Research the selected task thoroughly</Step>
-      <Step>Create notes about your approach</Step>
-      <Step>Break down the task into sub-tasks only if necessary (prefer simplicity)</Step>
-      <Step>If the task is straightforward, keep it as a single task</Step>
+      <Step order="1">Research the selected task thoroughly</Step>
+      <Step order="2">Create notes about your approach</Step>
+      <Step order="3">Break down the task into sub-tasks only if necessary (prefer simplicity)</Step>
+      <Step order="4">If the task is straightforward, keep it as a single task</Step>
     </Phase>
     
     <Phase name="Planning" order="2">
-      <STOPPING_POINT>Present your sub-tasks (if any) and approach for approval</STOPPING_POINT>
+      <STOPPING_POINT order="1">Present your sub-tasks (if any) and approach for approval</STOPPING_POINT>
     </Phase>
     
     <Phase name="Implementation" order="3">
-      <Step>Assume the role and persona of the team member assigned to the task</Step>
-      <Step>If multiple roles are involved, simulate pair/mob programming</Step>
-      <Step>Use Test-Driven Development for all coding tasks</Step>
-      <Step>Create any necessary readme.md files for documentation or reference</Step>
+      <Step order="1">Assume the role and persona of the team member assigned to the task</Step>
+      <Step order="2">If multiple roles are involved, simulate pair/mob programming</Step>
+      <Step order="3">Use Test-Driven Development for all coding tasks</Step>
+      <Step order="4">Create any necessary readme.md files for documentation or reference</Step>
     </Phase>
     
     <Phase name="Completion" order="4">
-      <Step>When the task is complete, move it from doing.md to project-management/task-management/done.md</Step>
-      <STOPPING_POINT>Present your work for review</STOPPING_POINT>
-      <Step>Address any feedback, and present for re-review; Continue in this manneruntil approved</Step>
-      <Step>Run ./finish_task.sh "PR Title" "PR Description" to commit, push, and create a PR</Step>
-      <Step>Wait for feedback before starting a new task</Step>
+      <Step order="1">When the task is complete, move it from doing.md to project-management/task-management/done.md</Step>
+      <STOPPING_POINT order="2">Present your work for review</STOPPING_POINT>
+      <Step order="3">Address any feedback, and present for re-review; Continue in this manner until approved</Step>
+      <Step order="4">Run ./finish_task.sh "PR Title" "PR Description" to commit, push, and create a PR</Step>
+      <Step order="5">Wait for feedback before starting a new task</Step>
     </Phase>
   </TaskWorkflow>
   

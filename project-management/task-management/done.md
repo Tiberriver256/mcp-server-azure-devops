@@ -1,4 +1,21 @@
 ## Completed Tasks
+- [x] **Task 0.6**: Implement basic server structure following TDD (Express setup with tests)
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completion
+  - **Notes**:
+    - Implemented the basic server structure using TDD approach
+    - Followed the red-green-refactor methodology
+    - Built the server using the MCP Protocol SDK
+    - Integrated with the Azure DevOps Node API
+    - Created tests first, then implemented to make them pass
+    - Added integration tests for the server
+  - **Sub-tasks**:
+    - [x] Research MCP server structure requirements
+    - [x] Write failing tests for basic server functionality
+    - [x] Implement minimal code to make tests pass
+    - [x] Refactor code while keeping tests green
+    - [x] Document the server structure setup in README.md
+
 - [x] **Task 0.3**: Configure CI/CD pipeline with a basic build
   - **Role**: Full-Stack Developer
   - **Phase**: Implementation
