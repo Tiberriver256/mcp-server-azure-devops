@@ -1,6 +1,4 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { WebApi } from 'azure-devops-node-api';
 import { z } from 'zod';
 import * as dotenv from 'dotenv';
 
@@ -21,7 +19,7 @@ const server = new McpServer({
 server.tool(
   "echo",
   { message: z.string() },
-  async (args, extra) => {
+  async (args, _extra) => {
     return {
       content: [
         {
