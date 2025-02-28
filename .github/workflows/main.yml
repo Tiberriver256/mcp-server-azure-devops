@@ -19,6 +19,6 @@ jobs:
       - name: Install Dependencies
         run: npm install
       - name: Build
-        run: tsc
+        run: npm run build
       - name: Test
-        run: jest
+        run: npm run test
