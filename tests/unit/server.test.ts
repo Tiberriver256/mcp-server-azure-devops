@@ -8,7 +8,7 @@ describe('AzureDevOpsServer', () => {
     // Mock configuration for testing
     const config: AzureDevOpsConfig = {
       organizationUrl: 'https://dev.azure.com/testorg',
-      personalAccessToken: 'test-pat',
+      personalAccessToken: 'mock-pat-1234567890abcdef1234567890abcdef', // 40 characters
     };
     
     server = new AzureDevOpsServer(config);

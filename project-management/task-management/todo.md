@@ -10,6 +10,9 @@
 
 - [ ] **Task 0.9**: Implement PAT-based authentication handler with tests
   - **Role**: Full-Stack Developer
+- [ ] **Task 0.10**: Fix integration tests in CI environment
+  - **Role**: Full-Stack Developer
+  - **Description**: Configure integration tests to work in CI environment by properly handling credentials and environment setup
 - [ ] **Task 0.11**: Document project setup and authentication (README)
   - **Role**: Technical Writer
 - [ ] **Task 1.2**: Implement `list_organizations` using Axios with tests
