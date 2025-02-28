@@ -25,6 +25,23 @@
     - [x] Set up VS Code with recommended extensions
     - [x] Verified the development environment works correctly
 
+- [x] **Task 0.5**: Install project dependencies (e.g., azure-devops-node-api, @modelcontextprotocol/sdk)
+  - **Role**: Full-Stack Developer
+  - **Phase**: Implementation
+  - **Notes**:
+    - Successfully installed and configured the MCP Typescript SDK.
+    - Verified Azure DevOps Node API is properly installed and working.
+    - Added Zod for schema validation with the MCP SDK.
+    - Updated package.json with all required dependencies.
+    - Created a sample .env.example file for configuration.
+    - Updated README with detailed dependency information.
+    - Created test files to verify the dependencies are working correctly.
+  - **Sub-tasks**:
+    - [x] Installed and configured the MCP Typescript SDK
+    - [x] Verified Azure DevOps Node API is properly installed
+    - [x] Installed additional required dependencies (Zod)
+    - [x] Updated package.json with appropriate versions and scripts
+
 ### Task 0.1: Initialize Git repository and set up branch policies
 **Role**: Full-Stack Developer
 **Completed**: ✓
