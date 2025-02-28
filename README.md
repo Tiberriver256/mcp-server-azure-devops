@@ -29,9 +29,27 @@ cd azure-devops-mcp
 npm install
 ```
 
+## Dependencies
+
+This project relies on the following key dependencies:
+
+- **@modelcontextprotocol/sdk**: The official MCP SDK for TypeScript, providing the core functionality for creating MCP servers with tools, resources, and prompts.
+- **azure-devops-node-api**: The official Node.js client for Azure DevOps REST APIs, simplifying interactions with Azure DevOps services.
+- **zod**: A TypeScript-first schema validation library used for defining tool parameter schemas.
+- **dotenv**: For loading environment variables from a .env file.
+- **@azure/identity**: Facilitates Azure Active Directory (AAD) authentication.
+- **axios**: A promise-based HTTP client for making API requests not covered by the Azure DevOps Node API.
+
+Development dependencies include TypeScript, Jest for testing, ESLint and Prettier for code quality, and other tools to enhance the development experience.
+
 ## Configuration
 
-1. Create a `.env` file in the root directory:
+1. Copy the `.env.example` file to `.env` and update with your Azure DevOps credentials:
+```bash
+cp .env.example .env
+```
+
+2. Edit the `.env` file with your specific values:
 ```env
 AZURE_DEVOPS_PAT=your_pat_here
 AZURE_DEVOPS_ORG=your_organization

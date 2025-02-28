@@ -9,8 +9,6 @@
 ---
 
   
-- [ ] **Task 0.5**: Install project dependencies (e.g., azure-devops-node-api)  
-  - **Role**: Full-Stack Developer  
 - [ ] **Task 0.6**: Write startup test for basic server structure  
   - **Role**: QA Engineer  
 - [ ] **Task 0.7**: Implement basic server structure (e.g., Express setup)  
