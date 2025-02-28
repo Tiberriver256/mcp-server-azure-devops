@@ -1,7 +1,7 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import * as dotenv from 'dotenv';
 import { AzureDevOpsServer } from './server';
-import { AzureDevOpsConfigs } from './types/config';
+import { AzureDevOpsConfig } from './types/config';
 
 // Load environment variables
 dotenv.config();
