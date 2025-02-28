@@ -1,35 +1,41 @@
 <AiTaskAgent>
-  <InitialSetup>
+  <InitialSetup order="1">
     <Step order="1">Read the dream team documentation at project-management/planning/the-dream-team.md to understand the team structure and roles</Step>
     <Step order="2">Read all files in the project-management/planning directory to understand the project architecture, features, and structure</Step>
-    <Step order="3">Examine the current task list by viewing the project-management/task-management/ files todo.md and doing.md</Step>
-    <Step order="4">If there is a task in doing.md move directly into TaskWorkflow. If not take the next task from todo.md and move it to doing.md, removing it from todo.md. After moving the task you should extend it with a phase property to be used in TaskWorkflow and a section for notes and sub-tasks. Then proceed with TaskWorkflow.</Step>
-    <Step order="5">Create a new branch for the current task, branching from the latest main branch. Use a descriptive name for the branch, related to the task, by running ./create_branch.sh &lt;branch_name&gt;.</Step>
+    <Step order="3">Review the reference MCP server in project-management/reference/mcp-server to understand:
+      - The server architecture and components from README.md
+      - Configuration in package.json and tsconfig.json 
+      - Implementation patterns in src/ directory
+      - Available tools and integrations
+    </Step>
+    <Step order="4">Examine the current task list by viewing the project-management/task-management/ files todo.md and doing.md</Step>
+    <Step order="5">If there is a task in doing.md move directly into TaskWorkflow. If not take the next task from todo.md and move it to doing.md, removing it from todo.md. After moving the task you should extend it with a phase property to be used in TaskWorkflow and a section for notes and sub-tasks.</Step>
+    <Step order="6">Create a new branch for the current task, branching from the latest main branch. Use a descriptive name for the branch, related to the task, by running ./create_branch.sh &lt;branch_name&gt;.</Step>
+    <Step order="7">Start the research phase of TaskWorkflow.</Step>
   </InitialSetup>
   
-  <TaskWorkflow>
-    <Phase name="Research">
+  <TaskWorkflow order="2">
+    <Phase name="Research" order="1">
       <Step>Research the selected task thoroughly</Step>
       <Step>Create notes about your approach</Step>
       <Step>Break down the task into sub-tasks only if necessary (prefer simplicity)</Step>
       <Step>If the task is straightforward, keep it as a single task</Step>
     </Phase>
     
-    <Phase name="Planning">
-      <Step>Present your sub-tasks (if any) and approach for approval</Step>
-      <Step>Wait for confirmation before proceeding</Step>
+    <Phase name="Planning" order="2">
+      <STOPPING_POINT>Present your sub-tasks (if any) and approach for approval</STOPPING_POINT>
     </Phase>
     
-    <Phase name="Implementation">
+    <Phase name="Implementation" order="3">
       <Step>Assume the role and persona of the team member assigned to the task</Step>
       <Step>If multiple roles are involved, simulate pair/mob programming</Step>
       <Step>Use Test-Driven Development for all coding tasks</Step>
       <Step>Create any necessary readme.md files for documentation or reference</Step>
     </Phase>
     
-    <Phase name="Completion">
+    <Phase name="Completion" order="4">
       <Step>When the task is complete, move it from doing.md to project-management/task-management/done.md</Step>
-      <Step>Present your work for review</Step>
+      <STOPPING_POINT>Present your work for review</STOPPING_POINT>
       <Step>Address any feedback, and present for re-review; Continue in this manneruntil approved</Step>
       <Step>Run ./finish_task.sh "PR Title" "PR Description" to commit, push, and create a PR</Step>
       <Step>Wait for feedback before starting a new task</Step>
