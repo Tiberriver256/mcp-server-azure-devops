@@ -4,6 +4,7 @@
     <Step order="2">Read all files in the project-management/planning directory to understand the project architecture, features, and structure</Step>
     <Step order="3">Examine the current task list by viewing the project-management/task-management/ files todo.md and doing.md</Step>
     <Step order="4">If there is a task in doing.md move directly into TaskWorkflow. If not take the next task from todo.md and move it to doing.md, removing it from todo.md. After moving the task you should extend it with a phase property to be used in TaskWorkflow and a section for notes and sub-tasks. Then proceed with TaskWorkflow.</Step>
+    <Step order="5">Create a new branch for the current task, branching from the latest main branch. Use a descriptive name for the branch, related to the task, by running ./create_branch.sh &lt;branch_name&gt;.</Step>
   </InitialSetup>
   
   <TaskWorkflow>
@@ -29,6 +30,8 @@
     <Phase name="Completion">
       <Step>When the task is complete, move it from doing.md to project-management/task-management/done.md</Step>
       <Step>Present your work for review</Step>
+      <Step>Address any feedback, and present for re-review; Continue in this manneruntil approved</Step>
+      <Step>Run ./finish_task.sh "PR Title" "PR Description" to commit, push, and create a PR</Step>
       <Step>Wait for feedback before starting a new task</Step>
     </Phase>
   </TaskWorkflow>

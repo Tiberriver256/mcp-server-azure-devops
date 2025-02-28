@@ -26,7 +26,7 @@ The Model Context Protocol (MCP), introduced by Anthropic on November 24, 2024, 
 The Typescript SDK, hosted at [GitHub - modelcontextprotocol/typescript-sdk: Official Typescript SDK for building MCP servers and clients](https://github.com/modelcontextprotocol/typescript-sdk), simplifies server development. The README details that it provides a framework for defining and implementing MCP tools, which are specific operations the server offers to the AI client. To create a server, developers use the `getMcpServer` function, as seen in the example:
 
 ```ts
-import { getMcpServer } from '@modelcontextprotocol/typescript-sdk';
+import { getMcpServer } from '@modelcontextprotocol/sdk';
 
 const server = getMcpServer({
   name: 'azuredevops-server',

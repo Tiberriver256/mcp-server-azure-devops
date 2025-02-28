@@ -136,7 +136,7 @@ The core tools are the starting point for the end-to-end use case, ensuring the 
 1. **Finalize Toolset**: Confirm the 30–35 tools, ensuring all Azure DevOps areas are covered.  
 2. **Prototype**: Build a minimal server with core tools (e.g., `list_projects`, `create_work_item`) using this skeleton:
    ```typescript
-   import { getMcpServer } from '@modelcontextprotocol/typescript-sdk';
+   import { getMcpServer } from '@modelcontextprotocol/sdk';
    import { WebApi } from 'azure-devops-node-api';
 
    const server = getMcpServer({

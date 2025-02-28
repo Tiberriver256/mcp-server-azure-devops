@@ -9,8 +9,6 @@
 ---
 
   
-- [ ] **Task 0.4**: Set up development environment (Node.js, Typescript, VS Code)  
-  - **Role**: Full-Stack Developer  
 - [ ] **Task 0.5**: Install project dependencies (e.g., azure-devops-node-api)  
   - **Role**: Full-Stack Developer  
 - [ ] **Task 0.6**: Write startup test for basic server structure  

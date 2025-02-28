@@ -35,7 +35,7 @@ The GitHub MCP server, part of the [modelcontextprotocol/servers repository](htt
 The GitHub server is defined in `src/github/index.ts`, using the MCP Typescript SDK’s `getMcpServer` function to create the server instance. The structure is as follows:
 
 ```ts
-import { getMcpServer } from '@modelcontextprotocol/typescript-sdk';
+import { getMcpServer } from '@modelcontextprotocol/sdk';
 
 const server = getMcpServer({
   name: 'github',
