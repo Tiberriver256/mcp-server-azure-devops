@@ -25,7 +25,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/typescript-sdk": "^0.1.0",
     "azure-devops-node-api": "^12.0.0",
     "axios": "^1.6.0",
     "@azure/identity": "^4.0.0",
