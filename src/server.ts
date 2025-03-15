@@ -239,4 +239,4 @@ export async function testConnection(config: AzureDevOpsConfig): Promise<boolean
   } catch {
     return false;
   }
-} 
+}
