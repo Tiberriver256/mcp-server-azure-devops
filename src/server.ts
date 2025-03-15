@@ -21,6 +21,7 @@ import {
 import * as projects from './operations/projects';
 import * as workitems from './operations/workitems';
 import * as repositories from './operations/repositories';
+import * as organizations from './operations/organizations';
 
 /**
  * Create an Azure DevOps MCP Server
@@ -49,6 +50,12 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
       tools: [
+        // Organization tools
+        {
+          name: "list_organizations",
+          description: "List all Azure DevOps organizations accessible to the authenticated user",
+          inputSchema: zodToJsonSchema(organizations.ListOrganizationsSchema),
+        },
         // Project tools
         {
           name: "list_projects",
@@ -97,6 +104,16 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
       const connection = await getConnection(config);
 
       switch (request.params.name) {
+        // Organization tools
+        case 'list_organizations': {
+          // Parse arguments but they're not used since this tool doesn't have parameters
+          organizations.ListOrganizationsSchema.parse(request.params.arguments);
+          const result = await organizations.listOrganizations(config);
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        
         // Project tools
         case 'list_projects': {
           const args = projects.ListProjectsSchema.parse(request.params.arguments);

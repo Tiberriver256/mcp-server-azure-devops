@@ -8,8 +8,6 @@
 
 ---
 
-- [ ] **Task 1.2**: Implement `list_organizations` using Axios with tests
-  - **Role**: Full-Stack Developer
 - [ ] **Task 1.4**: Implement `list_projects` using WebApi with tests
   - **Role**: Full-Stack Developer
 - [ ] **Task 1.6**: Implement `list_repositories` using WebApi with tests
