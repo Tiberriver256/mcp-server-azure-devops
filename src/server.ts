@@ -3,7 +3,6 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { WebApi } from 'azure-devops-node-api';
 import { VERSION } from "./config/version";

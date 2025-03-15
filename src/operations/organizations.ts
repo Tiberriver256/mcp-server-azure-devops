@@ -40,6 +40,11 @@ export const ListOrganizationsSchema = z.object({});
  */
 export async function listOrganizations(config: AzureDevOpsConfig): Promise<Organization[]> {
   try {
+    // Ensure personalAccessToken is provided since this endpoint only supports PAT authentication
+    if (!config.personalAccessToken) {
+      throw new AzureDevOpsAuthenticationError('Personal Access Token (PAT) is required for listing organizations');
+    }
+    
     // Create authorization header
     const authHeader = createBasicAuthHeader(config.personalAccessToken);
 
