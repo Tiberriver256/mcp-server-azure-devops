@@ -82,6 +82,11 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           description: "List work items in a project",
           inputSchema: zodToJsonSchema(workitems.ListWorkItemsSchema),
         },
+        {
+          name: "create_work_item",
+          description: "Create a new work item in a project",
+          inputSchema: zodToJsonSchema(workitems.CreateWorkItemSchema),
+        },
         // Repository tools
         {
           name: "get_repository",
@@ -148,6 +153,26 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         case 'list_work_items': {
           const args = workitems.ListWorkItemsSchema.parse(request.params.arguments);
           const result = await workitems.listWorkItems(connection, args);
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        case 'create_work_item': {
+          const args = workitems.CreateWorkItemSchema.parse(request.params.arguments);
+          const result = await workitems.createWorkItem(
+            connection,
+            args.projectId,
+            args.workItemType,
+            {
+              title: args.title,
+              description: args.description,
+              assignedTo: args.assignedTo,
+              areaPath: args.areaPath,
+              iterationPath: args.iterationPath,
+              priority: args.priority,
+              additionalFields: args.additionalFields
+            }
+          );
           return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
           };

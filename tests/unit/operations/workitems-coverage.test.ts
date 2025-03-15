@@ -1,6 +1,7 @@
 import { WebApi } from 'azure-devops-node-api';
 import { WorkItem, WorkItemQueryResult, QueryType, WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import { AzureDevOpsAuthenticationError, AzureDevOpsResourceNotFoundError } from '../../../src/common/errors';
+import * as workitems from '../../../src/operations/workitems';
 
 describe('Work Items Operations Coverage Tests', () => {
   let mockConnection: WebApi;
@@ -18,6 +19,7 @@ describe('Work Items Operations Coverage Tests', () => {
       queryById: jest.fn(),
       queryByWiql: jest.fn(),
       getQueries: jest.fn(),
+      createWorkItem: jest.fn(),
     };
     
     mockCoreApi = {
@@ -228,6 +230,171 @@ describe('Work Items Operations Coverage Tests', () => {
       
       // Call getWorkItem
       await expect(getWorkItem(mockConnection, 123)).rejects.toThrow(AzureDevOpsAuthenticationError);
+    });
+  });
+
+  describe('createWorkItem', () => {
+    it('should create a work item with required fields', async () => {
+      // Mock work item response
+      const mockWorkItem: WorkItem = {
+        id: 123,
+        fields: {
+          'System.Title': 'Test Work Item',
+          'System.Description': 'This is a test work item',
+          'System.State': 'New',
+        },
+        url: 'https://dev.azure.com/testorg/testproject/_apis/wit/workItems/123',
+      };
+      
+      // Setup mock to return the work item
+      mockWorkItemTrackingApi.createWorkItem.mockResolvedValueOnce(mockWorkItem);
+      
+      // Call createWorkItem
+      const result = await workitems.createWorkItem(
+        mockConnection,
+        'testproject',
+        'Task',
+        {
+          title: 'Test Work Item',
+          description: 'This is a test work item',
+        }
+      );
+      
+      // Verify the result
+      expect(result).toEqual(mockWorkItem);
+      
+      // Verify the API was called correctly
+      expect(mockWorkItemTrackingApi.createWorkItem).toHaveBeenCalledTimes(1);
+      
+      // Verify the document structure
+      const document = mockWorkItemTrackingApi.createWorkItem.mock.calls[0][0];
+      expect(document).toBeInstanceOf(Array);
+      
+      // Verify title operation
+      const titleOperation = document.find((op: any) => op.path === '/fields/System.Title');
+      expect(titleOperation).toBeDefined();
+      expect(titleOperation?.op).toBe('add');
+      expect(titleOperation?.value).toBe('Test Work Item');
+      
+      // Verify description operation
+      const descriptionOperation = document.find((op: any) => op.path === '/fields/System.Description');
+      expect(descriptionOperation).toBeDefined();
+      expect(descriptionOperation?.op).toBe('add');
+      expect(descriptionOperation?.value).toBe('This is a test work item');
+    });
+    
+    it('should create a work item with all fields', async () => {
+      // Mock work item response
+      const mockWorkItem: WorkItem = {
+        id: 123,
+        fields: {
+          'System.Title': 'Test Work Item',
+          'System.Description': 'This is a test work item',
+          'System.State': 'New',
+          'System.AssignedTo': 'user@example.com',
+          'System.AreaPath': 'testproject\\Team A',
+          'System.IterationPath': 'testproject\\Sprint 1',
+          'Microsoft.VSTS.Common.Priority': 1,
+        },
+        url: 'https://dev.azure.com/testorg/testproject/_apis/wit/workItems/123',
+      };
+      
+      // Setup mock to return the work item
+      mockWorkItemTrackingApi.createWorkItem.mockResolvedValueOnce(mockWorkItem);
+      
+      // Call createWorkItem with all fields
+      const result = await workitems.createWorkItem(
+        mockConnection,
+        'testproject',
+        'Task',
+        {
+          title: 'Test Work Item',
+          description: 'This is a test work item',
+          assignedTo: 'user@example.com',
+          areaPath: 'testproject\\Team A',
+          iterationPath: 'testproject\\Sprint 1',
+          priority: 1,
+          additionalFields: {
+            'Custom.Field': 'Custom Value'
+          }
+        }
+      );
+      
+      // Verify the result
+      expect(result).toEqual(mockWorkItem);
+      
+      // Verify the API was called correctly
+      expect(mockWorkItemTrackingApi.createWorkItem).toHaveBeenCalledTimes(1);
+      
+      // Verify the document structure
+      const document = mockWorkItemTrackingApi.createWorkItem.mock.calls[0][0];
+      expect(document).toBeInstanceOf(Array);
+      
+      // Verify all operations
+      const titleOperation = document.find((op: any) => op.path === '/fields/System.Title');
+      expect(titleOperation?.value).toBe('Test Work Item');
+      
+      const descriptionOperation = document.find((op: any) => op.path === '/fields/System.Description');
+      expect(descriptionOperation?.value).toBe('This is a test work item');
+      
+      const assignedToOperation = document.find((op: any) => op.path === '/fields/System.AssignedTo');
+      expect(assignedToOperation?.value).toBe('user@example.com');
+      
+      const areaPathOperation = document.find((op: any) => op.path === '/fields/System.AreaPath');
+      expect(areaPathOperation?.value).toBe('testproject\\Team A');
+      
+      const iterationPathOperation = document.find((op: any) => op.path === '/fields/System.IterationPath');
+      expect(iterationPathOperation?.value).toBe('testproject\\Sprint 1');
+      
+      const priorityOperation = document.find((op: any) => op.path === '/fields/Microsoft.VSTS.Common.Priority');
+      expect(priorityOperation?.value).toBe(1);
+      
+      const customFieldOperation = document.find((op: any) => op.path === '/fields/Custom.Field');
+      expect(customFieldOperation?.value).toBe('Custom Value');
+    });
+    
+    it('should throw error when title is missing', async () => {
+      // Call createWorkItem with missing title
+      await expect(workitems.createWorkItem(
+        mockConnection,
+        'testproject',
+        'Task',
+        {
+          description: 'This is a test work item',
+        } as any // Type assertion to bypass TypeScript check
+      )).rejects.toThrow('Title is required');
+    });
+    
+    it('should throw error when createWorkItem API call fails', async () => {
+      // Setup mock to throw an error
+      mockWorkItemTrackingApi.createWorkItem.mockRejectedValueOnce(new Error('API call failed'));
+      
+      // Call createWorkItem and expect it to throw
+      await expect(workitems.createWorkItem(
+        mockConnection,
+        'testproject',
+        'Task',
+        {
+          title: 'Test Work Item',
+          description: 'This is a test work item',
+        }
+      )).rejects.toThrow('Failed to create work item');
+    });
+    
+    it('should throw error when work item is null', async () => {
+      // Setup mock to return null
+      mockWorkItemTrackingApi.createWorkItem.mockResolvedValueOnce(null);
+      
+      // Call createWorkItem and expect it to throw
+      await expect(workitems.createWorkItem(
+        mockConnection,
+        'testproject',
+        'Task',
+        {
+          title: 'Test Work Item',
+          description: 'This is a test work item',
+        }
+      )).rejects.toThrow('Failed to create work item');
     });
   });
 }); 

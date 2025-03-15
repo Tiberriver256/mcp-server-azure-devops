@@ -289,6 +289,20 @@
     - Added documentation in docs/tools/organizations.md
   - **Completed**: March 15, 2024
 
+- [x] **Task 2.2**: Implement `create_work_item` handler with tests
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completion
+  - **Description**: Implement the `create_work_item` tool for the Azure DevOps MCP server with tests.
+  - **Notes**:
+    - Designed and implemented the `CreateWorkItemSchema` with proper validation
+    - Created the `createWorkItem` function with comprehensive error handling
+    - Registered the tool in the server's tool registry
+    - Added unit tests achieving 97.53% statement coverage for workitems.ts
+    - Improved overall project test coverage to 93.97% 
+    - Created detailed documentation in docs/tools/work-items.md
+    - Updated the main documentation index to include work item tools
+  - **Completed**: March 15, 2024
+
 ### Task 0.1: Initialize Git repository and set up branch policies
 **Role**: Full-Stack Developer
 **Completed**: ✓

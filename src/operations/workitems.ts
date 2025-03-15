@@ -28,6 +28,21 @@ export const ListWorkItemsSchema = z.object({
 });
 
 /**
+ * Schema for creating a work item
+ */
+export const CreateWorkItemSchema = z.object({
+  projectId: z.string().describe('The ID or name of the project'),
+  workItemType: z.string().describe('The type of work item to create (e.g., "Task", "Bug", "User Story")'),
+  title: z.string().describe('The title of the work item'),
+  description: z.string().optional().describe('The description of the work item'),
+  assignedTo: z.string().optional().describe('The email or name of the user to assign the work item to'),
+  areaPath: z.string().optional().describe('The area path for the work item'),
+  iterationPath: z.string().optional().describe('The iteration path for the work item'),
+  priority: z.number().optional().describe('The priority of the work item'),
+  additionalFields: z.record(z.string(), z.any()).optional().describe('Additional fields to set on the work item'),
+});
+
+/**
  * Options for listing work items
  */
 export interface ListWorkItemsOptions {
@@ -37,6 +52,19 @@ export interface ListWorkItemsOptions {
   wiql?: string;
   top?: number;
   skip?: number;
+}
+
+/**
+ * Options for creating a work item
+ */
+export interface CreateWorkItemOptions {
+  title: string;
+  description?: string;
+  assignedTo?: string;
+  areaPath?: string;
+  iterationPath?: string;
+  priority?: number;
+  additionalFields?: Record<string, any>;
 }
 
 /**
@@ -173,6 +201,108 @@ export async function listWorkItems(
     }
     throw new Error(
       `Failed to list work items: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/**
+ * Create a work item
+ * 
+ * @param connection The Azure DevOps WebApi connection
+ * @param projectId The ID or name of the project
+ * @param workItemType The type of work item to create (e.g., "Task", "Bug", "User Story")
+ * @param options Options for creating the work item
+ * @returns The created work item
+ */
+export async function createWorkItem(
+  connection: WebApi,
+  projectId: string,
+  workItemType: string,
+  options: CreateWorkItemOptions
+): Promise<WorkItem> {
+  try {
+    if (!options.title) {
+      throw new Error('Title is required');
+    }
+
+    const witApi = await connection.getWorkItemTrackingApi();
+    
+    // Create the JSON patch document
+    const document = [];
+    
+    // Add required fields
+    document.push({
+      op: 'add',
+      path: '/fields/System.Title',
+      value: options.title
+    });
+    
+    // Add optional fields if provided
+    if (options.description) {
+      document.push({
+        op: 'add',
+        path: '/fields/System.Description',
+        value: options.description
+      });
+    }
+    
+    if (options.assignedTo) {
+      document.push({
+        op: 'add',
+        path: '/fields/System.AssignedTo',
+        value: options.assignedTo
+      });
+    }
+    
+    if (options.areaPath) {
+      document.push({
+        op: 'add',
+        path: '/fields/System.AreaPath',
+        value: options.areaPath
+      });
+    }
+    
+    if (options.iterationPath) {
+      document.push({
+        op: 'add',
+        path: '/fields/System.IterationPath',
+        value: options.iterationPath
+      });
+    }
+    
+    if (options.priority !== undefined) {
+      document.push({
+        op: 'add',
+        path: '/fields/Microsoft.VSTS.Common.Priority',
+        value: options.priority
+      });
+    }
+    
+    // Add any additional fields
+    if (options.additionalFields) {
+      for (const [key, value] of Object.entries(options.additionalFields)) {
+        document.push({
+          op: 'add',
+          path: `/fields/${key}`,
+          value: value
+        });
+      }
+    }
+    
+    // Create the work item
+    const workItem = await witApi.createWorkItem(document, {}, projectId, workItemType);
+    
+    if (!workItem) {
+      throw new Error('Failed to create work item');
+    }
+    
+    return workItem;
+  } catch (error) {
+    if (error instanceof AzureDevOpsError) {
+      throw error;
+    }
+    throw new Error(
+      `Failed to create work item: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }

@@ -45,6 +45,18 @@ const ListRepositoriesSchema = z.object({
   includeLinks: z.boolean().optional()
 });
 
+const CreateWorkItemSchema = z.object({
+  projectId: z.string(),
+  workItemType: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  assignedTo: z.string().optional(),
+  areaPath: z.string().optional(),
+  iterationPath: z.string().optional(),
+  priority: z.number().optional(),
+  additionalFields: z.record(z.string(), z.any()).optional()
+});
+
 // Import the mocked modules
 import * as projectsMock from '../../src/operations/projects';
 import * as workitemsMock from '../../src/operations/workitems';
@@ -82,8 +94,10 @@ jest.mock('../../src/operations/projects', () => ({
 jest.mock('../../src/operations/workitems', () => ({
   GetWorkItemSchema,
   ListWorkItemsSchema,
+  CreateWorkItemSchema,
   getWorkItem: jest.fn(),
-  listWorkItems: jest.fn()
+  listWorkItems: jest.fn(),
+  createWorkItem: jest.fn()
 }));
 
 jest.mock('../../src/operations/repositories', () => ({
@@ -117,7 +131,7 @@ import { AzureDevOpsConfig } from '../../src/types/config';
 import { IRequestHandler } from 'azure-devops-node-api/interfaces/common/VsoBaseInterfaces';
 import { createAzureDevOpsServer } from '../../src/server';
 import { getProject, listProjects } from '../../src/operations/projects';
-import { getWorkItem, listWorkItems } from '../../src/operations/workitems';
+import { getWorkItem, listWorkItems, createWorkItem } from '../../src/operations/workitems';
 import { getRepository, listRepositories } from '../../src/operations/repositories';
 
 describe('Server Coverage Tests', () => {
@@ -401,6 +415,43 @@ describe('Server Coverage Tests', () => {
       });
       
       expect(response.content[0].text).toContain('Error: Generic error');
+    });
+
+    it('should handle create_work_item tool call', async () => {
+      // Mock the workitems.createWorkItem function
+      const mockWorkItem = { id: 123, fields: { 'System.Title': 'Test Work Item' } };
+      (createWorkItem as jest.Mock).mockResolvedValueOnce(mockWorkItem);
+      
+      // Call the handler with create_work_item parameters
+      const request = {
+        params: {
+          name: 'create_work_item',
+          arguments: {
+            projectId: 'testproject',
+            workItemType: 'Task',
+            title: 'Test Work Item',
+            description: 'This is a test work item'
+          }
+        }
+      };
+      
+      const response = await callToolHandler(request as any);
+      
+      // Verify the response
+      expect(response).toEqual({
+        content: [{ type: 'text', text: JSON.stringify(mockWorkItem, null, 2) }]
+      });
+      
+      // Verify the createWorkItem function was called with the correct parameters
+      expect(createWorkItem).toHaveBeenCalledWith(
+        expect.anything(),
+        'testproject',
+        'Task',
+        {
+          title: 'Test Work Item',
+          description: 'This is a test work item'
+        }
+      );
     });
   });
 }); 

@@ -8,8 +8,6 @@
 
 ### Authentication Enhancements
 
-- [ ] **Task 2.2**: Implement `create_work_item` handler with tests
-  - **Role**: Full-Stack Developer
 - [ ] **Task 2.4**: Implement `update_work_item` handler with tests
   - **Role**: Full-Stack Developer
 - [ ] **Task 2.6**: Implement `list_work_items` handler with tests
