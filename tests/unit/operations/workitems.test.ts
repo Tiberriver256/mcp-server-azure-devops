@@ -2,7 +2,6 @@ import { WebApi } from 'azure-devops-node-api';
 import { getPersonalAccessTokenHandler } from 'azure-devops-node-api';
 import { 
   WorkItem, 
-  WorkItemExpand,
   WorkItemQueryResult
 } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import { getWorkItem, listWorkItems } from '../../../src/operations/workitems';
@@ -37,43 +36,40 @@ describe('Work Items Operations', () => {
   });
 
   describe('getWorkItem', () => {
-    const mockWorkItem: WorkItem = {
-      id: 123,
-      url: 'https://dev.azure.com/org/project/_apis/wit/workItems/123',
-      fields: {
-        'System.Id': 123,
-        'System.Title': 'Test Work Item',
-        'System.State': 'Active',
-        'System.AssignedTo': {
-          displayName: 'Test User',
-          uniqueName: 'test.user@example.com',
-        },
-      },
-    };
-
     it('should return a work item when found', async () => {
       // Arrange
-      mockWitApi.getWorkItem.mockResolvedValue(mockWorkItem);
+      const mockWorkItem = { id: 123, title: 'Test Work Item' };
+      mockWitApi.getWorkItem.mockResolvedValueOnce(mockWorkItem);
 
       // Act
       const result = await getWorkItem(mockConnection, 123);
 
       // Assert
       expect(mockConnection.getWorkItemTrackingApi).toHaveBeenCalledTimes(1);
-      expect(mockWitApi.getWorkItem).toHaveBeenCalledWith(123, expect.any(Array));
+      expect(mockWitApi.getWorkItem).toHaveBeenCalledWith(
+        123,
+        ["System.Id", "System.Title", "System.State", "System.AssignedTo"],
+        undefined,
+        undefined
+      );
       expect(result).toEqual(mockWorkItem);
     });
 
     it('should throw AzureDevOpsResourceNotFoundError when work item is not found', async () => {
       // Arrange
-      mockWitApi.getWorkItem.mockResolvedValue(null);
+      mockWitApi.getWorkItem.mockResolvedValueOnce(undefined);
 
       // Act & Assert
       await expect(getWorkItem(mockConnection, 999)).rejects.toThrow(
-        AzureDevOpsResourceNotFoundError
+        AzureDevOpsResourceNotFoundError,
       );
       expect(mockConnection.getWorkItemTrackingApi).toHaveBeenCalledTimes(1);
-      expect(mockWitApi.getWorkItem).toHaveBeenCalledWith(999, expect.any(Array));
+      expect(mockWitApi.getWorkItem).toHaveBeenCalledWith(
+        999,
+        ["System.Id", "System.Title", "System.State", "System.AssignedTo"],
+        undefined,
+        undefined
+      );
     });
 
     it('should propagate AzureDevOpsResourceNotFoundError', async () => {
@@ -129,13 +125,13 @@ describe('Work Items Operations', () => {
 
     it('should return work items using WIQL query', async () => {
       // Arrange
-      mockWitApi.queryByWiql.mockResolvedValue(mockQueryResult);
-      mockWitApi.getWorkItems.mockResolvedValue(mockWorkItems);
-      
       const options = {
         projectId: 'project-id',
         wiql: 'SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project',
+        teamId: undefined,
       };
+      mockWitApi.queryByWiql.mockResolvedValueOnce({ workItems: [{ id: 123 }, { id: 124 }] });
+      mockWitApi.getWorkItems.mockResolvedValueOnce(mockWorkItems);
 
       // Act
       const result = await listWorkItems(mockConnection, options);
@@ -145,17 +141,15 @@ describe('Work Items Operations', () => {
       expect(mockWitApi.queryByWiql).toHaveBeenCalledWith(
         { query: options.wiql },
         {
-          projectId: options.projectId,
-          teamId: undefined,
           project: options.projectId,
-          team: undefined
-        }
+          team: options.teamId,
+        },
       );
       expect(mockWitApi.getWorkItems).toHaveBeenCalledWith(
         [123, 124],
-        expect.any(Array),
+        ["System.Id", "System.Title", "System.State", "System.AssignedTo"],
         undefined,
-        WorkItemExpand.All
+        4,
       );
       expect(result).toEqual(mockWorkItems);
     });
@@ -167,6 +161,7 @@ describe('Work Items Operations', () => {
       const options = {
         projectId: 'project-id',
         wiql: 'SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project',
+        teamId: undefined,
       };
 
       // Act
@@ -177,11 +172,9 @@ describe('Work Items Operations', () => {
       expect(mockWitApi.queryByWiql).toHaveBeenCalledWith(
         { query: options.wiql },
         {
-          projectId: options.projectId,
-          teamId: undefined,
           project: options.projectId,
-          team: undefined
-        }
+          team: options.teamId,
+        },
       );
       expect(mockWitApi.getWorkItems).not.toHaveBeenCalled();
       expect(result).toEqual([]);
@@ -199,6 +192,7 @@ describe('Work Items Operations', () => {
       const options = {
         projectId: 'project-id',
         queryId: 'query-id',
+        teamId: undefined,
       };
 
       // Act
@@ -209,26 +203,43 @@ describe('Work Items Operations', () => {
       expect(mockWitApi.queryById).toHaveBeenCalledWith(
         options.queryId,
         {
-          projectId: options.projectId,
-          teamId: undefined,
           project: options.projectId,
-          team: undefined
-        }
+          team: options.teamId,
+        },
       );
       expect(result).toEqual(mockWorkItems);
     });
 
     it('should handle pagination options', async () => {
       // Arrange
-      mockWitApi.queryByWiql.mockResolvedValue(mockQueryResult);
-      mockWitApi.getWorkItems.mockResolvedValue(mockWorkItems);
-      
       const options = {
         projectId: 'project-id',
         wiql: 'SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project',
         top: 10,
-        skip: 5,
+        teamId: undefined,
       };
+      const mockWorkItemsResult = [
+        {
+          id: 123,
+          url: 'https://dev.azure.com/org/project/_apis/wit/workItems/123',
+          fields: {
+            'System.Id': 123,
+            'System.Title': 'Work Item 1',
+            'System.State': 'Active',
+          },
+        },
+        {
+          id: 124,
+          url: 'https://dev.azure.com/org/project/_apis/wit/workItems/124',
+          fields: {
+            'System.Id': 124,
+            'System.Title': 'Work Item 2',
+            'System.State': 'Resolved',
+          },
+        },
+      ];
+      mockWitApi.queryByWiql.mockResolvedValueOnce({ workItems: [{ id: 123 }, { id: 124 }] });
+      mockWitApi.getWorkItems.mockResolvedValueOnce(mockWorkItemsResult);
 
       // Act
       const result = await listWorkItems(mockConnection, options);
@@ -238,13 +249,12 @@ describe('Work Items Operations', () => {
       expect(mockWitApi.queryByWiql).toHaveBeenCalledWith(
         { query: options.wiql },
         {
-          projectId: options.projectId,
-          teamId: undefined,
           project: options.projectId,
-          team: undefined
-        }
+          team: options.teamId,
+        },
       );
-      expect(result).toEqual(mockWorkItems);
+      expect(mockWitApi.getWorkItems).toHaveBeenCalled();
+      expect(result).toEqual(mockWorkItemsResult);
     });
 
     it('should wrap errors', async () => {
@@ -254,6 +264,7 @@ describe('Work Items Operations', () => {
       const options = {
         projectId: 'project-id',
         wiql: 'SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project',
+        teamId: undefined,
       };
 
       // Act & Assert

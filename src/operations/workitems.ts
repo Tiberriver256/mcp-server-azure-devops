@@ -3,10 +3,10 @@ import { WebApi } from 'azure-devops-node-api';
 import {
   WorkItem,
   WorkItemExpand,
-  Wiql,
+  WorkItemReference,
 } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import { TeamContext } from 'azure-devops-node-api/interfaces/CoreInterfaces';
-import { AzureDevOpsResourceNotFoundError } from '../common/errors';
+import { AzureDevOpsResourceNotFoundError, AzureDevOpsError } from '../common/errors';
 
 /**
  * Schema for getting a work item
@@ -28,16 +28,45 @@ export const ListWorkItemsSchema = z.object({
 });
 
 /**
+ * Options for listing work items
+ */
+export interface ListWorkItemsOptions {
+  projectId: string;
+  teamId?: string;
+  queryId?: string;
+  wiql?: string;
+  top?: number;
+  skip?: number;
+}
+
+/**
+ * Constructs the default WIQL query for listing work items
+ * @param projectId The project ID
+ * @param teamId Optional team ID
+ * @returns The default WIQL query
+ */
+function constructDefaultWiql(projectId: string, teamId?: string): string {
+  let query = `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '${projectId}'`;
+  if (teamId) {
+    query += ` AND [System.TeamId] = '${teamId}'`;
+  }
+  query += ' ORDER BY [System.Id]';
+  return query;
+}
+
+/**
  * Get a work item by ID
  *
  * @param connection The Azure DevOps WebApi connection
  * @param workItemId The ID of the work item
+ * @param expand Optional expansion options
  * @returns The work item details
  * @throws {AzureDevOpsResourceNotFoundError} If the work item is not found
  */
 export async function getWorkItem(
   connection: WebApi,
   workItemId: number,
+  expand?: WorkItemExpand,
 ): Promise<WorkItem> {
   try {
     const witApi = await connection.getWorkItemTrackingApi();
@@ -47,7 +76,7 @@ export async function getWorkItem(
       'System.State',
       'System.AssignedTo',
     ];
-    const workItem = await witApi.getWorkItem(workItemId, fields);
+    const workItem = await witApi.getWorkItem(workItemId, fields, undefined, expand);
 
     if (!workItem) {
       throw new AzureDevOpsResourceNotFoundError(
@@ -57,7 +86,7 @@ export async function getWorkItem(
 
     return workItem;
   } catch (error) {
-    if (error instanceof AzureDevOpsResourceNotFoundError) {
+    if (error instanceof AzureDevOpsError) {
       throw error;
     }
     throw new Error(
@@ -70,101 +99,52 @@ export async function getWorkItem(
  * List work items in a project
  *
  * @param connection The Azure DevOps WebApi connection
- * @param options Parameters for listing work items
+ * @param options Options for listing work items
  * @returns Array of work items
  */
 export async function listWorkItems(
   connection: WebApi,
-  options: z.infer<typeof ListWorkItemsSchema>,
+  options: ListWorkItemsOptions,
 ): Promise<WorkItem[]> {
   try {
     const witApi = await connection.getWorkItemTrackingApi();
-    const teamContext: TeamContext = {
-      projectId: options.projectId,
-      teamId: options.teamId,
-      project: options.projectId,
-      team: options.teamId,
-    };
+    const { projectId, teamId, queryId, wiql } = options;
 
-    // If a WIQL query is provided, use that
-    if (options.wiql) {
-      const wiql: Wiql = {
-        query: options.wiql,
+    let workItemRefs: WorkItemReference[] = [];
+
+    if (queryId) {
+      const teamContext: TeamContext = {
+        project: projectId,
+        team: teamId
       };
-      const results = await witApi.queryByWiql(wiql, teamContext);
-
-      if (!results || !results.workItems) {
-        return [];
-      }
-
-      // Get full work item details for each result
-      const workItemIds = results.workItems
-        .map((wi) => wi.id)
-        .filter((id): id is number => id !== undefined);
-      if (workItemIds.length === 0) {
-        return [];
-      }
-
-      const fields = [
-        'System.Id',
-        'System.Title',
-        'System.State',
-        'System.AssignedTo',
-      ];
-      const workItems = await witApi.getWorkItems(
-        workItemIds,
-        fields,
-        undefined,
-        WorkItemExpand.All,
+      const queryResult = await witApi.queryById(queryId, teamContext);
+      workItemRefs = queryResult.workItems || [];
+    } else {
+      const query = wiql || constructDefaultWiql(projectId, teamId);
+      const teamContext: TeamContext = {
+        project: projectId,
+        team: teamId
+      };
+      const queryResult = await witApi.queryByWiql(
+        { query },
+        teamContext
       );
-      return workItems.filter((wi): wi is WorkItem => wi !== undefined);
+      workItemRefs = queryResult.workItems || [];
     }
 
-    // If a saved query ID is provided, use that
-    if (options.queryId) {
-      const results = await witApi.queryById(options.queryId, teamContext);
-
-      if (!results || !results.workItems) {
-        return [];
-      }
-
-      // Get full work item details for each result
-      const workItemIds = results.workItems
-        .map((wi) => wi.id)
-        .filter((id): id is number => id !== undefined);
-      if (workItemIds.length === 0) {
-        return [];
-      }
-
-      const fields = [
-        'System.Id',
-        'System.Title',
-        'System.State',
-        'System.AssignedTo',
-      ];
-      const workItems = await witApi.getWorkItems(
-        workItemIds,
-        fields,
-        undefined,
-        WorkItemExpand.All,
-      );
-      return workItems.filter((wi): wi is WorkItem => wi !== undefined);
+    // Apply pagination in memory
+    const { top, skip } = options;
+    if (skip !== undefined) {
+      workItemRefs = workItemRefs.slice(skip);
+    }
+    if (top !== undefined) {
+      workItemRefs = workItemRefs.slice(0, top);
     }
 
-    // Default to getting all work items in the project
-    const wiql: Wiql = {
-      query: `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project ORDER BY [System.Id]`,
-    };
-    const results = await witApi.queryByWiql(wiql, teamContext);
-
-    if (!results || !results.workItems) {
-      return [];
-    }
-
-    // Get full work item details for each result
-    const workItemIds = results.workItems
-      .map((wi) => wi.id)
+    const workItemIds = workItemRefs
+      .map((ref) => ref.id)
       .filter((id): id is number => id !== undefined);
+
     if (workItemIds.length === 0) {
       return [];
     }
@@ -181,8 +161,16 @@ export async function listWorkItems(
       undefined,
       WorkItemExpand.All,
     );
+
+    if (!workItems) {
+      return [];
+    }
+
     return workItems.filter((wi): wi is WorkItem => wi !== undefined);
   } catch (error) {
+    if (error instanceof AzureDevOpsError) {
+      throw error;
+    }
     throw new Error(
       `Failed to list work items: ${error instanceof Error ? error.message : String(error)}`,
     );
