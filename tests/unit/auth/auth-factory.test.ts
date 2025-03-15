@@ -114,5 +114,137 @@ describe('Authentication Factory', () => {
         (WebApi as unknown) = originalWebApi;
       }
     });
+
+    it('should create a client with Azure Identity authentication', async () => {
+      const config: AuthConfig = {
+        method: AuthenticationMethod.AzureIdentity,
+        organizationUrl: orgUrl
+      };
+
+      const client = await createAuthClient(config);
+      
+      expect(client).toBeInstanceOf(MockWebApi);
+      expect(WebApi).toHaveBeenCalledWith(orgUrl, expect.anything());
+    });
+
+    it('should create a client with Azure CLI authentication', async () => {
+      const config: AuthConfig = {
+        method: AuthenticationMethod.AzureCli,
+        organizationUrl: orgUrl
+      };
+
+      const client = await createAuthClient(config);
+      
+      expect(client).toBeInstanceOf(MockWebApi);
+      expect(WebApi).toHaveBeenCalledWith(orgUrl, expect.anything());
+    });
+
+    it('should throw an error for unsupported authentication method', async () => {
+      const config: AuthConfig = {
+        method: 'invalid-method' as AuthenticationMethod,
+        organizationUrl: orgUrl
+      };
+
+      await expect(createAuthClient(config)).rejects.toThrow(AzureDevOpsAuthenticationError);
+      await expect(createAuthClient(config)).rejects.toThrow(/Unsupported authentication method/);
+    });
+
+    it('should throw an error if Azure Identity token acquisition fails', async () => {
+      // Mock DefaultAzureCredential to throw an error
+      const mockDefaultAzureCredential = jest.fn().mockImplementationOnce(() => {
+        return {
+          getToken: jest.fn().mockRejectedValue(new Error('Token acquisition failed'))
+        };
+      });
+      const { DefaultAzureCredential } = require('@azure/identity');
+      const originalDefaultAzureCredential = DefaultAzureCredential;
+      (require('@azure/identity').DefaultAzureCredential as unknown) = mockDefaultAzureCredential;
+
+      const config: AuthConfig = {
+        method: AuthenticationMethod.AzureIdentity,
+        organizationUrl: orgUrl
+      };
+
+      try {
+        await expect(createAuthClient(config)).rejects.toThrow(AzureDevOpsAuthenticationError);
+        await expect(createAuthClient(config)).rejects.toThrow(/Failed to acquire Azure Identity token/);
+      } finally {
+        // Restore the original DefaultAzureCredential
+        (require('@azure/identity').DefaultAzureCredential as unknown) = originalDefaultAzureCredential;
+      }
+    });
+
+    it('should throw an error if Azure CLI token acquisition fails', async () => {
+      // Mock AzureCliCredential to throw an error
+      const mockAzureCliCredential = jest.fn().mockImplementationOnce(() => {
+        return {
+          getToken: jest.fn().mockRejectedValue(new Error('CLI token acquisition failed'))
+        };
+      });
+      const { AzureCliCredential } = require('@azure/identity');
+      const originalAzureCliCredential = AzureCliCredential;
+      (require('@azure/identity').AzureCliCredential as unknown) = mockAzureCliCredential;
+
+      const config: AuthConfig = {
+        method: AuthenticationMethod.AzureCli,
+        organizationUrl: orgUrl
+      };
+
+      try {
+        await expect(createAuthClient(config)).rejects.toThrow(AzureDevOpsAuthenticationError);
+        await expect(createAuthClient(config)).rejects.toThrow(/Failed to acquire Azure CLI token/);
+      } finally {
+        // Restore the original AzureCliCredential
+        (require('@azure/identity').AzureCliCredential as unknown) = originalAzureCliCredential;
+      }
+    });
+
+    it('should throw an error if Azure Identity returns a null token', async () => {
+      // Mock DefaultAzureCredential to return null token
+      const mockDefaultAzureCredential = jest.fn().mockImplementationOnce(() => {
+        return {
+          getToken: jest.fn().mockResolvedValue({ token: null })
+        };
+      });
+      const { DefaultAzureCredential } = require('@azure/identity');
+      const originalDefaultAzureCredential = DefaultAzureCredential;
+      (require('@azure/identity').DefaultAzureCredential as unknown) = mockDefaultAzureCredential;
+
+      const config: AuthConfig = {
+        method: AuthenticationMethod.AzureIdentity,
+        organizationUrl: orgUrl
+      };
+
+      try {
+        await expect(createAuthClient(config)).rejects.toThrow(AzureDevOpsAuthenticationError);
+      } finally {
+        // Restore the original DefaultAzureCredential
+        (require('@azure/identity').DefaultAzureCredential as unknown) = originalDefaultAzureCredential;
+      }
+    });
+    
+    it('should throw an error if Azure CLI returns a null token', async () => {
+      // Mock AzureCliCredential to return null token
+      const mockAzureCliCredential = jest.fn().mockImplementationOnce(() => {
+        return {
+          getToken: jest.fn().mockResolvedValue({ token: null })
+        };
+      });
+      const { AzureCliCredential } = require('@azure/identity');
+      const originalAzureCliCredential = AzureCliCredential;
+      (require('@azure/identity').AzureCliCredential as unknown) = mockAzureCliCredential;
+
+      const config: AuthConfig = {
+        method: AuthenticationMethod.AzureCli,
+        organizationUrl: orgUrl
+      };
+
+      try {
+        await expect(createAuthClient(config)).rejects.toThrow(AzureDevOpsAuthenticationError);
+      } finally {
+        // Restore the original AzureCliCredential
+        (require('@azure/identity').AzureCliCredential as unknown) = originalAzureCliCredential;
+      }
+    });
   });
 }); 

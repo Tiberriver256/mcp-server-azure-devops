@@ -1,4 +1,10 @@
 import { z } from 'zod';
+import { 
+  AzureDevOpsError, 
+  AzureDevOpsAuthenticationError, 
+  AzureDevOpsValidationError, 
+  AzureDevOpsResourceNotFoundError 
+} from '../../src/common/errors';
 
 // Define schema objects
 const ListProjectsSchema = z.object({
@@ -38,6 +44,10 @@ const ListRepositoriesSchema = z.object({
   projectId: z.string(),
   includeLinks: z.boolean().optional()
 });
+
+// Import the mocked modules
+import * as projectsMock from '../../src/operations/projects';
+import * as workitemsMock from '../../src/operations/workitems';
 
 // Define mock functions before imports
 const mockWebApiConstructor = jest.fn().mockImplementation((_url: string, _requestHandler: any) => {
@@ -109,12 +119,6 @@ import { createAzureDevOpsServer } from '../../src/server';
 import { getProject, listProjects } from '../../src/operations/projects';
 import { getWorkItem, listWorkItems } from '../../src/operations/workitems';
 import { getRepository, listRepositories } from '../../src/operations/repositories';
-import { 
-  AzureDevOpsError, 
-  AzureDevOpsAuthenticationError, 
-  AzureDevOpsResourceNotFoundError, 
-  AzureDevOpsValidationError 
-} from '../../src/common/errors';
 
 describe('Server Coverage Tests', () => {
   let mockServer: MockServerClass;
@@ -180,21 +184,25 @@ describe('Server Coverage Tests', () => {
   });
 
   describe('CallToolRequestSchema Handler', () => {
-    it('should throw error for unknown tool', async () => {
-      await expect(callToolHandler({
+    it('should handle unknown tool error', async () => {
+      const response = await callToolHandler({
         params: {
           name: 'unknown_tool',
           arguments: {}
         }
-      })).rejects.toThrow('Unknown tool: unknown_tool');
+      });
+      
+      expect(response.content[0].text).toContain('Unknown tool: unknown_tool');
     });
 
-    it('should throw error when arguments are missing', async () => {
-      await expect(callToolHandler({
+    it('should handle missing arguments error', async () => {
+      const response = await callToolHandler({
         params: {
           name: 'list_projects'
         }
-      })).rejects.toThrow('Arguments are required');
+      });
+      
+      expect(response.content[0].text).toContain('Arguments are required');
     });
 
     it('should handle list_projects tool call', async () => {
@@ -296,99 +304,103 @@ describe('Server Coverage Tests', () => {
       expect(listRepositories).toHaveBeenCalledWith(expect.anything(), { projectId: 'project1' });
     });
 
-    it('should handle ZodError and throw AzureDevOpsValidationError', async () => {
-      // Create a mock ZodError
-      const zodError = new z.ZodError([
-        {
-          code: 'invalid_type',
-          expected: 'number',
-          received: 'string',
-          path: ['workItemId'],
-          message: 'Expected number, received string'
-        }
-      ]);
-      
-      // Mock listProjects to throw the ZodError
-      (listProjects as jest.Mock).mockImplementationOnce(() => {
+    it('should handle ZodError and return validation error message', async () => {
+      // Mock a function to throw a ZodError
+      const zodError = new Error();
+      zodError.name = 'ZodError';
+      zodError.message = 'Expected number, received string';
+      workitemsMock.GetWorkItemSchema.parse = jest.fn().mockImplementation(() => {
         throw zodError;
       });
       
-      await expect(callToolHandler({
+      const response = await callToolHandler({
         params: {
-          name: 'list_projects',
-          arguments: { top: 10 }
+          name: 'get_work_item',
+          arguments: { workItemId: 'string-instead-of-number' }
         }
-      })).rejects.toThrow(/Invalid input/);
+      });
+      
+      expect(response.content[0].text).toContain('Expected number, received string');
     });
 
     it('should handle AzureDevOpsError and format the error message', async () => {
-      // Mock listProjects to throw an AzureDevOpsError
-      (listProjects as jest.Mock).mockImplementationOnce(() => {
+      // Make projects.listProjects throw an AzureDevOpsError
+      (projectsMock.listProjects as jest.Mock).mockImplementationOnce(() => {
         throw new AzureDevOpsError('Test error');
       });
       
-      await expect(callToolHandler({
+      const response = await callToolHandler({
         params: {
           name: 'list_projects',
           arguments: { top: 10 }
         }
-      })).rejects.toThrow('Azure DevOps API Error: Test error');
+      });
+      
+      expect(response.content[0].text).toContain('Azure DevOps API Error: Test error');
     });
 
     it('should handle AzureDevOpsValidationError and format the error message', async () => {
-      // Mock listProjects to throw an AzureDevOpsValidationError
-      (listProjects as jest.Mock).mockImplementationOnce(() => {
+      // Make projects.listProjects throw an AzureDevOpsValidationError
+      (projectsMock.listProjects as jest.Mock).mockImplementationOnce(() => {
         throw new AzureDevOpsValidationError('Validation failed');
       });
       
-      await expect(callToolHandler({
+      const response = await callToolHandler({
         params: {
           name: 'list_projects',
           arguments: { top: 10 }
         }
-      })).rejects.toThrow('Validation Error: Validation failed');
+      });
+      
+      expect(response.content[0].text).toContain('Validation Error: Validation failed');
     });
 
     it('should handle AzureDevOpsResourceNotFoundError and format the error message', async () => {
-      // Mock listProjects to throw an AzureDevOpsResourceNotFoundError
-      (listProjects as jest.Mock).mockImplementationOnce(() => {
+      // Make projects.listProjects throw an AzureDevOpsResourceNotFoundError
+      (projectsMock.listProjects as jest.Mock).mockImplementationOnce(() => {
         throw new AzureDevOpsResourceNotFoundError('Resource not found');
       });
       
-      await expect(callToolHandler({
+      const response = await callToolHandler({
         params: {
           name: 'list_projects',
           arguments: { top: 10 }
         }
-      })).rejects.toThrow('Not Found: Resource not found');
+      });
+      
+      expect(response.content[0].text).toContain('Not Found: Resource not found');
     });
 
     it('should handle AzureDevOpsAuthenticationError and format the error message', async () => {
-      // Mock listProjects to throw an AzureDevOpsAuthenticationError
-      (listProjects as jest.Mock).mockImplementationOnce(() => {
+      // Make projects.listProjects throw an AzureDevOpsAuthenticationError
+      (projectsMock.listProjects as jest.Mock).mockImplementationOnce(() => {
         throw new AzureDevOpsAuthenticationError('Authentication failed');
       });
       
-      await expect(callToolHandler({
+      const response = await callToolHandler({
         params: {
           name: 'list_projects',
           arguments: { top: 10 }
         }
-      })).rejects.toThrow('Authentication Failed: Authentication failed');
+      });
+      
+      expect(response.content[0].text).toContain('Authentication Failed: Authentication failed');
     });
 
-    it('should rethrow non-AzureDevOpsError errors', async () => {
-      // Mock listProjects to throw a generic Error
-      (listProjects as jest.Mock).mockImplementationOnce(() => {
+    it('should handle generic errors and format the error message', async () => {
+      // Make projects.listProjects throw a generic Error
+      (projectsMock.listProjects as jest.Mock).mockImplementationOnce(() => {
         throw new Error('Generic error');
       });
       
-      await expect(callToolHandler({
+      const response = await callToolHandler({
         params: {
           name: 'list_projects',
           arguments: { top: 10 }
         }
-      })).rejects.toThrow('Generic error');
+      });
+      
+      expect(response.content[0].text).toContain('Error: Generic error');
     });
   });
 }); 
