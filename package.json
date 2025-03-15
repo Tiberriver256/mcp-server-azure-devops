@@ -27,7 +27,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@azure/identity": "^4.0.0",
+    "@azure/identity": "^4.8.0",
     "@modelcontextprotocol/sdk": "^1.6.0",
     "axios": "^1.6.0",
     "azure-devops-node-api": "^12.0.0",
