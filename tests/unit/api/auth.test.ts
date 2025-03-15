@@ -1,6 +1,6 @@
 import { WebApi } from 'azure-devops-node-api';
 import { createAuthenticatedClient, isValidPatFormat } from '../../../src/api/auth';
-import { AzureDevOpsAuthenticationError } from '../../../src/api/errors';
+import { AzureDevOpsAuthenticationError } from '../../../src/common/errors';
 
 // Mock the azure-devops-node-api module
 jest.mock('azure-devops-node-api');

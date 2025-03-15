@@ -1,6 +1,6 @@
 ## Current Tasks In Progress
 
-- [ ] **Task 0.7**: Fix MCP Server Implementation
+- [x] **Task 0.7**: Fix MCP Server Implementation
   - **Role**: Full-Stack Developer
   - **Phase**: Research
   - **Description**: Fix the Azure DevOps MCP server implementation to correctly use the MCP SDK. Currently, the server is not properly implementing the MCP protocol, causing connection errors when trying to use it with the inspector.
@@ -27,11 +27,34 @@
       - Reference implementation in `project-management/reference/mcp-server/`
       - MCP SDK documentation
       - The specific schema structure shown in the GitHub reference
+
+    - **Specific Changes Required**:
+      1. Server Class Changes:
+         - Replace our custom `McpServer` usage with `Server` from SDK
+         - Remove our custom `connect()` method implementation
+         - Move Azure DevOps connection logic to tool handlers
+      
+      2. Tool Registration Changes:
+         - Replace our custom `tool()` method with proper request handlers
+         - Implement `ListToolsRequestSchema` handler to declare available tools
+         - Implement `CallToolRequestSchema` handler with switch/case for tool execution
+         - Move tool implementations into separate modules like GitHub's pattern
+      
+      3. Transport Handling:
+         - Remove custom transport handling code
+         - Let SDK handle transport via `server.connect(transport)`
+         - Ensure proper error handling and response formatting
+      
+      4. Configuration:
+         - Keep Azure DevOps config but integrate it with SDK server config
+         - Move tool-specific config into tool modules
+         - Ensure proper typing for all configurations
+
   - **Sub-tasks**:
-    - [ ] Research the MCP SDK Server and Transport interfaces
-    - [ ] Refactor AzureDevOpsServer class to properly extend/use the MCP SDK Server
-    - [ ] Implement correct request handlers for ListToolsRequestSchema and CallToolRequestSchema
-    - [ ] Properly convert our existing tool implementations to the SDK pattern
-    - [ ] Fix the connection logic to correctly use the transport
-    - [ ] Test the implementation with the MCP inspector
-    - [ ] Ensure all existing unit tests still pass
+    - [x] Research the MCP SDK Server and Transport interfaces
+    - [x] Refactor AzureDevOpsServer class to properly extend/use the MCP SDK Server
+    - [x] Implement correct request handlers for ListToolsRequestSchema and CallToolRequestSchema
+    - [x] Properly convert our existing tool implementations to the SDK pattern
+    - [x] Fix the connection logic to correctly use the transport
+    - [x] Test the implementation with the MCP inspector
+    - [x] Ensure all existing unit tests still pass

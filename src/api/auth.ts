@@ -1,5 +1,5 @@
 import { WebApi, getPersonalAccessTokenHandler } from 'azure-devops-node-api';
-import { AzureDevOpsAuthenticationError } from './errors';
+import { AzureDevOpsAuthenticationError } from '../common/errors';
 
 /**
  * Authentication configuration for Azure DevOps

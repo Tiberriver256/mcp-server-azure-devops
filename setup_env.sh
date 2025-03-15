@@ -1,6 +1,54 @@
 #!/bin/bash
 
-# Colors for better output
+# Global variable to track if an error has occurred
+ERROR_OCCURRED=0
+
+# Function to handle errors without exiting the shell when sourced
+handle_error() {
+    local message=$1
+    local reset_colors="\033[0m"
+    echo -e "\033[0;31m$message$reset_colors"
+    
+    # Set the error flag
+    ERROR_OCCURRED=1
+    
+    # If script is being sourced (. or source)
+    if [[ "${BASH_SOURCE[0]}" != "${0}" ]] || [[ -n "$ZSH_VERSION" && "$ZSH_EVAL_CONTEXT" == *:file:* ]]; then
+        echo "Script terminated with error. Returning to shell."
+        # Reset colors to ensure shell isn't affected
+        echo -e "$reset_colors"
+        # The return will be caught by the caller
+        return 1
+    else
+        # If script is being executed directly
+        exit 1
+    fi
+}
+
+# Function to check if we should continue after potential error points
+should_continue() {
+    if [ $ERROR_OCCURRED -eq 1 ]; then
+        # Reset colors to ensure shell isn't affected
+        echo -e "\033[0m"
+        return 1
+    fi
+    return 0
+}
+
+# Ensure script is running with a compatible shell
+if [ -z "$BASH_VERSION" ] && [ -z "$ZSH_VERSION" ]; then
+    handle_error "This script requires bash or zsh to run. Please run it with: bash $(basename "$0") or zsh $(basename "$0")"
+    return 1 2>/dev/null || exit 1
+fi
+
+# Set shell options for compatibility
+if [ -n "$ZSH_VERSION" ]; then
+    # ZSH specific settings
+    setopt SH_WORD_SPLIT
+    setopt KSH_ARRAYS
+fi
+
+# Colors for better output - ensure they're properly reset after use
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 RED='\033[0;31m'
@@ -18,10 +66,10 @@ fi
 
 # Check if Azure CLI is installed
 if ! command -v az &> /dev/null; then
-    echo -e "${RED}Error: Azure CLI is not installed.${NC}"
-    echo "Please install Azure CLI first: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli"
-    exit 1
+    handle_error "Error: Azure CLI is not installed.\nPlease install Azure CLI first: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli"
+    return 1 2>/dev/null || exit 1
 fi
+should_continue || return 1 2>/dev/null || exit 1
 
 # Check if Azure DevOps extension is installed
 echo -e "${YELLOW}Checking for Azure DevOps extension...${NC}"
@@ -30,34 +78,36 @@ if [ $? -ne 0 ]; then
     echo "Azure DevOps extension not found. Installing..."
     az extension add --name azure-devops
     if [ $? -ne 0 ]; then
-        echo -e "${RED}Failed to install Azure DevOps extension.${NC}"
-        exit 1
+        handle_error "Failed to install Azure DevOps extension."
+        return 1 2>/dev/null || exit 1
     else
         echo -e "${GREEN}Azure DevOps extension installed successfully.${NC}"
     fi
 else
     echo "Azure DevOps extension is already installed."
 fi
+should_continue || return 1 2>/dev/null || exit 1
 
 # Check if jq is installed
 if ! command -v jq &> /dev/null; then
-    echo -e "${RED}Error: jq is not installed.${NC}"
-    echo "Please install jq first. On Ubuntu/Debian: sudo apt-get install jq"
-    echo "On macOS: brew install jq"
-    exit 1
+    handle_error "Error: jq is not installed.\nPlease install jq first. On Ubuntu/Debian: sudo apt-get install jq\nOn macOS: brew install jq"
+    return 1 2>/dev/null || exit 1
 fi
+should_continue || return 1 2>/dev/null || exit 1
 
 # Check if already logged in
 echo -e "\n${YELLOW}Step 1: Checking Azure CLI authentication...${NC}"
 if ! az account show &> /dev/null; then
     echo "Not logged in. Initiating login..."
-    az login --allow-no-subscriptions || { 
-        echo -e "${RED}Failed to login to Azure CLI.${NC}" 
-        exit 1
-    }
+    az login --allow-no-subscriptions
+    if [ $? -ne 0 ]; then
+        handle_error "Failed to login to Azure CLI."
+        return 1 2>/dev/null || exit 1
+    fi
 else
     echo -e "${GREEN}Already logged in to Azure CLI.${NC}"
 fi
+should_continue || return 1 2>/dev/null || exit 1
 
 # Get Azure DevOps Organizations using REST API
 echo -e "\n${YELLOW}Step 2: Fetching your Azure DevOps organizations...${NC}"
@@ -82,7 +132,7 @@ else
     echo
     public_alias=$(echo "$profile_response" | jq -r '.publicAlias')
     
-    if [ "$public_alias" == "null" ] || [ -z "$public_alias" ]; then
+    if [ "$public_alias" = "null" ] || [ -z "$public_alias" ]; then
         echo -e "${RED}Failed to extract publicAlias from response.${NC}"
         echo "Full response was:"
         echo "$profile_response"
@@ -107,26 +157,38 @@ else
             i=1
             OLDIFS=$IFS
             IFS=$'\n'
-            orgs_array=($orgs)
+            # Create array in a shell-agnostic way
+            orgs_array=()
+            while IFS= read -r line; do
+                [ -n "$line" ] && orgs_array+=("$line")
+            done <<< "$orgs"
             IFS=$OLDIFS
             
-            for org in "${orgs_array[@]}"; do
-                echo "$i) $org"
-                ((i++))
-            done
-            
-            # Prompt for selection
-            read -p "Select an organization (1-${#orgs_array[@]}): " org_selection
-            
-            if [[ "$org_selection" =~ ^[0-9]+$ ]] && [ "$org_selection" -ge 1 ] && [ "$org_selection" -le "${#orgs_array[@]}" ]; then
-                org_name=${orgs_array[$((org_selection-1))]}
+            # Check if array is empty
+            if [ ${#orgs_array[@]} -eq 0 ]; then
+                echo -e "${RED}Failed to parse organizations list.${NC}"
+                echo "Manually provide your organization name instead."
+                read -p "Enter your Azure DevOps organization name: " org_name
             else
-                echo -e "${RED}Invalid selection. Please run the script again.${NC}"
-                exit 1
+                # Display organizations with explicit indexing
+                for ((idx=0; idx<${#orgs_array[@]}; idx++)); do
+                    echo "$((idx+1)) ${orgs_array[$idx]}"
+                done
+                
+                # Prompt for selection
+                read -p "Select an organization (1-${#orgs_array[@]}): " org_selection
+                
+                if [[ "$org_selection" =~ ^[0-9]+$ ]] && [ "$org_selection" -ge 1 ] && [ "$org_selection" -le "${#orgs_array[@]}" ]; then
+                    org_name=${orgs_array[$((org_selection-1))]}
+                else
+                    handle_error "Invalid selection. Please run the script again."
+                    return 1 2>/dev/null || exit 1
+                fi
             fi
         fi
     fi
 fi
+should_continue || return 1 2>/dev/null || exit 1
 
 org_url="https://dev.azure.com/$org_name"
 echo -e "${GREEN}Using organization URL: $org_url${NC}"
@@ -136,7 +198,7 @@ echo -e "\n${YELLOW}Step 3: Would you like to set a default project? (y/n)${NC}"
 read -p "Select option: " set_default_project
 
 default_project=""
-if [[ "$set_default_project" == "y" || "$set_default_project" == "Y" ]]; then
+if [[ "$set_default_project" = "y" || "$set_default_project" = "Y" ]]; then
     # Configure az devops to use the selected organization
     az devops configure --defaults organization=$org_url
     
@@ -150,27 +212,36 @@ if [[ "$set_default_project" == "y" || "$set_default_project" == "Y" ]]; then
     else
         # Display projects for selection
         echo -e "\nAvailable projects in $org_name:"
-        i=1
         OLDIFS=$IFS
         IFS=$'\n'
-        projects_array=($projects)
+        # Create array in a shell-agnostic way
+        projects_array=()
+        while IFS= read -r line; do
+            [ -n "$line" ] && projects_array+=("$line")
+        done <<< "$projects"
         IFS=$OLDIFS
         
-        for project in "${projects_array[@]}"; do
-            echo "$i) $project"
-            ((i++))
-        done
-        
-        echo "$i) Skip setting a default project"
-        
-        # Prompt for selection
-        read -p "Select a default project (1-$i): " project_selection
-        
-        if [[ "$project_selection" =~ ^[0-9]+$ ]] && [ "$project_selection" -ge 1 ] && [ "$project_selection" -lt "$i" ]; then
-            default_project=${projects_array[$((project_selection-1))]}
-            echo -e "${GREEN}Using default project: $default_project${NC}"
+        # Check if array is empty
+        if [ ${#projects_array[@]} -eq 0 ]; then
+            echo -e "${YELLOW}Failed to parse projects list.${NC}"
+            read -p "Enter a default project name (leave blank to skip): " default_project
         else
-            echo "No default project selected."
+            # Display projects with explicit indexing
+            for ((idx=0; idx<${#projects_array[@]}; idx++)); do
+                echo "$((idx+1)) ${projects_array[$idx]}"
+            done
+            
+            echo "$((${#projects_array[@]}+1)) Skip setting a default project"
+            
+            # Prompt for selection
+            read -p "Select a default project (1-$((${#projects_array[@]}+1))): " project_selection
+            
+            if [[ "$project_selection" =~ ^[0-9]+$ ]] && [ "$project_selection" -ge 1 ] && [ "$project_selection" -lt "$((${#projects_array[@]}+1))" ]; then
+                default_project=${projects_array[$((project_selection-1))]}
+                echo -e "${GREEN}Using default project: $default_project${NC}"
+            else
+                echo "No default project selected."
+            fi
         fi
     fi
 fi
@@ -186,11 +257,59 @@ read -p "Select option (1/2): " pat_method
 
 pat_token=""
 
-if [ "$pat_method" == "1" ]; then
+if [ "$pat_method" = "1" ]; then
     # Create temporary JSON file for PAT creation
     temp_pat_json=$(mktemp)
     # Calculate date 7 days from now in ISO format
-    expiry_date=$(date -u -d "+7 days" "+%Y-%m-%dT%H:%M:%S.000Z")
+    # Use a more compatible approach for date calculation
+    expiry_date=""
+    
+    # Try macOS style date command
+    if date -v+7d >/dev/null 2>&1; then
+        expiry_date=$(date -u -v+7d "+%Y-%m-%dT%H:%M:%S.000Z")
+    # Try GNU date style
+    elif date -d "+7 days" >/dev/null 2>&1; then
+        expiry_date=$(date -u -d "+7 days" "+%Y-%m-%dT%H:%M:%S.000Z")
+    # Fallback to a basic approach using current date + 7 days
+    else
+        # Get current date components
+        year=$(date -u +"%Y")
+        month=$(date -u +"%m")
+        day=$(date -u +"%d")
+        time=$(date -u +"%H:%M:%S")
+        
+        # Add 7 days (very simplistic, doesn't account for month/year boundaries)
+        day=$((day + 7))
+        # Simple adjustment for month end (not perfect but better than nothing)
+        if [ "$month" = "04" ] || [ "$month" = "06" ] || [ "$month" = "09" ] || [ "$month" = "11" ]; then
+            if [ "$day" -gt 30 ]; then
+                day=$((day - 30))
+                month=$((month + 1))
+            fi
+        elif [ "$month" = "02" ]; then
+            if [ "$day" -gt 28 ]; then
+                day=$((day - 28))
+                month=$((month + 1))
+            fi
+        else
+            if [ "$day" -gt 31 ]; then
+                day=$((day - 31))
+                month=$((month + 1))
+                if [ "$month" -gt 12 ]; then
+                    month=1
+                    year=$((year + 1))
+                fi
+            fi
+        fi
+        
+        # Format with leading zeros
+        if [ "$day" -lt 10 ]; then day="0$day"; fi
+        if [ "$month" -lt 10 ]; then month="0$month"; fi
+        
+        expiry_date="${year}-${month}-${day}T${time}.000Z"
+    fi
+    
+    echo "Setting PAT expiry date to: $expiry_date"
     cat > "$temp_pat_json" << EOF
 {
   "displayName": "MCP-Server-Integration",
@@ -223,7 +342,7 @@ EOF
         # Extract token from response using jq
         pat_token=$(echo "$pat_response" | jq -r '.patToken.token')
         
-        if [ "$pat_token" == "null" ] || [ -z "$pat_token" ]; then
+        if [ "$pat_token" = "null" ] || [ -z "$pat_token" ]; then
             echo -e "${RED}Failed to extract token from response.${NC}"
             echo "Full response was:"
             echo "$pat_response"
@@ -234,7 +353,7 @@ EOF
     fi
 fi
 
-if [ "$pat_method" == "2" ]; then
+if [ "$pat_method" = "2" ]; then
     # Open browser for manual PAT creation
     pat_url="https://dev.azure.com/$org_name/_usersSettings/tokens"
     
@@ -263,9 +382,10 @@ if [ "$pat_method" == "2" ]; then
 fi
 
 if [ -z "$pat_token" ]; then
-    echo -e "${RED}No PAT provided. Cannot continue.${NC}"
-    exit 1
+    handle_error "No PAT provided. Cannot continue."
+    return 1 2>/dev/null || exit 1
 fi
+should_continue || return 1 2>/dev/null || exit 1
 
 # Create .env file
 echo -e "\n${YELLOW}Step 5: Creating .env file...${NC}"
@@ -327,4 +447,7 @@ echo "You can now run your Azure DevOps MCP Server with:"
 echo "  npm run dev"
 echo
 echo "You can also run integration tests with:"
-echo "  npm run test:integration" 
+echo "  npm run test:integration"
+
+# At the end of the script, ensure colors are reset
+echo -e "${NC}" 

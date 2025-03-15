@@ -1,6 +1,6 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import * as dotenv from 'dotenv';
-import { AzureDevOpsServer } from './server';
+import { createAzureDevOpsServer, testConnection } from './server';
 import { AzureDevOpsConfig } from './types/config';
 
 // Load environment variables
@@ -30,13 +30,13 @@ if (!config.personalAccessToken) {
   process.exit(1);
 }
 
-// Create and initialize the server
-const server = new AzureDevOpsServer(config);
+// Create the server
+export const server = createAzureDevOpsServer(config);
 
 // Run the server
-async function runServer() {
+export async function runServer() {
   // Test the connection to Azure DevOps
-  const connectionSuccessful = await server.testConnection();
+  const connectionSuccessful = await testConnection(config);
   
   if (!connectionSuccessful) {
     console.error('Error: Failed to connect to Azure DevOps API');

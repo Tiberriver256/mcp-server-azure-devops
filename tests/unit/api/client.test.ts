@@ -1,6 +1,6 @@
 import { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsClient } from '../../../src/api/client';
-import { AzureDevOpsAuthenticationError, AzureDevOpsError } from '../../../src/api/errors';
+import { AzureDevOpsAuthenticationError, AzureDevOpsError } from '../../../src/common/errors';
 import * as auth from '../../../src/api/auth';
 
 // Mock the azure-devops-node-api module

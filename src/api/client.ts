@@ -7,7 +7,7 @@ import { ITestApi } from 'azure-devops-node-api/TestApi';
 import { IReleaseApi } from 'azure-devops-node-api/ReleaseApi';
 import { ITaskAgentApi } from 'azure-devops-node-api/TaskAgentApi';
 import { ITaskApi } from 'azure-devops-node-api/TaskApi';
-import { AzureDevOpsError, AzureDevOpsAuthenticationError } from './errors';
+import { AzureDevOpsError, AzureDevOpsAuthenticationError } from '../common/errors';
 import { createAuthenticatedClient } from './auth';
 
 export interface AzureDevOpsClientConfig {

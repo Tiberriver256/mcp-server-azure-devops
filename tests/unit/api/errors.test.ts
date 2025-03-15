@@ -7,7 +7,7 @@ import {
   AzureDevOpsRateLimitError,
   isAzureDevOpsError,
   formatAzureDevOpsError
-} from '../../../src/api/errors';
+} from '../../../src/common/errors';
 
 describe('Azure DevOps Errors', () => {
   describe('AzureDevOpsError', () => {
