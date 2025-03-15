@@ -8,11 +8,6 @@
 
 ### Authentication Enhancements
 
-- [ ] **Task A.2**: Create authentication abstraction layer
-  - **Role**: Full-Stack Developer
-  - Design interface to abstract authentication methods (PAT, AAD, DefaultAzureCredential)
-  - Implement factory pattern for credential creation
-  - Add unit tests
 - [ ] **Task A.3**: Implement DefaultAzureCredential authentication
   - **Role**: Full-Stack Developer
   - Add @azure/identity package

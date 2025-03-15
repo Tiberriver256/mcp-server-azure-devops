@@ -2,6 +2,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import * as dotenv from 'dotenv';
 import { createAzureDevOpsServer, testConnection } from './server';
 import { AzureDevOpsConfig } from './types/config';
+import { AuthenticationMethod } from './auth';
 
 // Load environment variables
 dotenv.config();
@@ -11,10 +12,29 @@ console.log('Azure DevOps MCP Server - Starting up');
 console.log('Azure DevOps Node API Version:', require('azure-devops-node-api/package.json').version);
 console.log('MCP SDK Version:', require('@modelcontextprotocol/sdk/package.json').version);
 
+// Determine the authentication method from environment variables
+let authMethod = AuthenticationMethod.PersonalAccessToken; // Default to PAT
+if (process.env.AZURE_DEVOPS_AUTH_METHOD) {
+  const method = process.env.AZURE_DEVOPS_AUTH_METHOD.toLowerCase();
+  if (method === 'azure-identity') {
+    authMethod = AuthenticationMethod.AzureIdentity;
+    console.log('Using Azure Identity authentication');
+  } else if (method === 'azure-cli') {
+    authMethod = AuthenticationMethod.AzureCli;
+    console.log('Using Azure CLI authentication');
+  } else if (method === 'pat') {
+    authMethod = AuthenticationMethod.PersonalAccessToken;
+    console.log('Using Personal Access Token authentication');
+  } else {
+    console.warn(`Unknown authentication method: ${method}, falling back to PAT`);
+  }
+}
+
 // Create the server configuration from environment variables
 const config: AzureDevOpsConfig = {
   organizationUrl: process.env.AZURE_DEVOPS_ORG_URL || '',
-  personalAccessToken: process.env.AZURE_DEVOPS_PAT || '',
+  authMethod: authMethod,
+  personalAccessToken: process.env.AZURE_DEVOPS_PAT,
   defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT,
   apiVersion: process.env.AZURE_DEVOPS_API_VERSION
 };
@@ -25,8 +45,9 @@ if (!config.organizationUrl) {
   process.exit(1);
 }
 
-if (!config.personalAccessToken) {
-  console.error('Error: AZURE_DEVOPS_PAT environment variable is required');
+// Validate PAT if using PAT authentication
+if (config.authMethod === AuthenticationMethod.PersonalAccessToken && !config.personalAccessToken) {
+  console.error('Error: AZURE_DEVOPS_PAT environment variable is required when using PAT authentication');
   process.exit(1);
 }
 
@@ -45,6 +66,7 @@ export async function runServer() {
   
   console.log('Successfully connected to Azure DevOps API');
   console.log(`Organization URL: ${config.organizationUrl}`);
+  console.log(`Authentication Method: ${config.authMethod}`);
   
   if (config.defaultProject) {
     console.log(`Default Project: ${config.defaultProject}`);

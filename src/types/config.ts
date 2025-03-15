@@ -1,3 +1,5 @@
+import { AuthenticationMethod } from '../auth/auth-factory';
+
 /**
  * Azure DevOps configuration type definition
  */
@@ -8,9 +10,15 @@ export interface AzureDevOpsConfig {
   organizationUrl: string;
   
   /**
-   * Personal Access Token for authentication
+   * Authentication method to use (pat, azure-identity, azure-cli)
+   * @default 'pat'
    */
-  personalAccessToken: string;
+  authMethod?: AuthenticationMethod;
+  
+  /**
+   * Personal Access Token for authentication (required for PAT authentication)
+   */
+  personalAccessToken?: string;
   
   /**
    * Optional default project to use when not specified

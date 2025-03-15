@@ -6,7 +6,6 @@ import {
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { WebApi } from 'azure-devops-node-api';
-import { getPersonalAccessTokenHandler } from 'azure-devops-node-api';
 import { VERSION } from "./config/version";
 import { AzureDevOpsConfig } from "./types/config";
 import { 
@@ -16,6 +15,7 @@ import {
   AzureDevOpsValidationError,
   isAzureDevOpsError
 } from "./common/errors";
+import { AuthenticationMethod, AzureDevOpsClient } from './auth';
 
 // Import our operation modules
 import * as projects from './operations/projects';
@@ -173,13 +173,16 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           throw new Error(`Unknown tool: ${request.params.name}`);
       }
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        throw new AzureDevOpsValidationError(`Invalid input: ${JSON.stringify(error.errors)}`);
-      }
-      if (isAzureDevOpsError(error)) {
-        throw new Error(formatAzureDevOpsError(error));
-      }
-      throw error;
+      console.error('Error handling tool call:', error);
+      
+      // Format the error message
+      const errorMessage = isAzureDevOpsError(error)
+        ? formatAzureDevOpsError(error)
+        : `Error: ${error instanceof Error ? error.message : String(error)}`;
+      
+      return {
+        content: [{ type: "text", text: errorMessage }],
+      };
     }
   });
 
@@ -190,7 +193,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
  * Format an Azure DevOps error for display
  * 
  * @param error The error to format
- * @returns A formatted error message
+ * @returns Formatted error message
  */
 function formatAzureDevOpsError(error: AzureDevOpsError): string {
   let message = `Azure DevOps API Error: ${error.message}`;
@@ -210,34 +213,45 @@ function formatAzureDevOpsError(error: AzureDevOpsError): string {
  * Validate the Azure DevOps configuration
  * 
  * @param config The configuration to validate
- * @throws {Error} If the configuration is invalid
+ * @throws {AzureDevOpsValidationError} If the configuration is invalid
  */
 function validateConfig(config: AzureDevOpsConfig): void {
   if (!config.organizationUrl) {
-    throw new Error('Organization URL is required');
+    throw new AzureDevOpsValidationError('Organization URL is required');
   }
-  if (!config.personalAccessToken) {
-    throw new Error('Personal Access Token is required');
+
+  // Set default authentication method if not specified
+  if (!config.authMethod) {
+    config.authMethod = AuthenticationMethod.PersonalAccessToken;
+  }
+
+  // Validate PAT if using PAT authentication
+  if (config.authMethod === AuthenticationMethod.PersonalAccessToken && !config.personalAccessToken) {
+    throw new AzureDevOpsValidationError('Personal Access Token is required for PAT authentication');
   }
 }
 
 /**
- * Get a connection to the Azure DevOps API
+ * Get an authenticated connection to Azure DevOps
  * 
  * @param config The Azure DevOps configuration
- * @returns The WebApi connection
+ * @returns An authenticated WebApi client
  * @throws {AzureDevOpsAuthenticationError} If authentication fails
  */
 export async function getConnection(config: AzureDevOpsConfig): Promise<WebApi> {
   try {
-    const authHandler = getPersonalAccessTokenHandler(config.personalAccessToken);
-    const connection = new WebApi(config.organizationUrl, authHandler);
+    // Create a client with the appropriate authentication method
+    const client = new AzureDevOpsClient({
+      method: config.authMethod || AuthenticationMethod.PersonalAccessToken,
+      organizationUrl: config.organizationUrl,
+      personalAccessToken: config.personalAccessToken
+    });
     
-    // Test the connection
-    const locationsApi = await connection.getLocationsApi();
-    await locationsApi.getResourceAreas();
+    // Test the connection by getting the Core API
+    await client.getCoreApi();
     
-    return connection;
+    // Return the underlying WebApi client
+    return await client.getWebApiClient();
   } catch (error) {
     console.error('Connection error details:', error);
     throw new AzureDevOpsAuthenticationError(`Failed to authenticate with Azure DevOps: ${error instanceof Error ? error.message : String(error)}`);
