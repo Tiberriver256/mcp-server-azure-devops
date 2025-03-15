@@ -2,6 +2,8 @@ import axios from 'axios';
 import { z } from 'zod';
 import { AzureDevOpsConfig } from '../types/config';
 import { AzureDevOpsAuthenticationError } from '../common/errors';
+import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
+import { AuthenticationMethod } from '../auth/auth-factory';
 
 /**
  * Organization interface
@@ -29,6 +31,11 @@ export interface Organization {
 export const ListOrganizationsSchema = z.object({});
 
 /**
+ * Azure DevOps resource ID for token acquisition
+ */
+const AZURE_DEVOPS_RESOURCE_ID = '499b84ac-1321-427f-aa17-267ca6975798';
+
+/**
  * Lists all Azure DevOps organizations accessible to the authenticated user
  * 
  * Note: This function uses Axios directly rather than the Azure DevOps Node API
@@ -40,13 +47,29 @@ export const ListOrganizationsSchema = z.object({});
  */
 export async function listOrganizations(config: AzureDevOpsConfig): Promise<Organization[]> {
   try {
-    // Ensure personalAccessToken is provided since this endpoint only supports PAT authentication
-    if (!config.personalAccessToken) {
-      throw new AzureDevOpsAuthenticationError('Personal Access Token (PAT) is required for listing organizations');
-    }
+    // Determine auth method and create appropriate authorization header
+    let authHeader: string;
     
-    // Create authorization header
-    const authHeader = createBasicAuthHeader(config.personalAccessToken);
+    if (config.authMethod === AuthenticationMethod.PersonalAccessToken) {
+      // PAT authentication
+      if (!config.personalAccessToken) {
+        throw new AzureDevOpsAuthenticationError('Personal Access Token (PAT) is required when using PAT authentication');
+      }
+      authHeader = createBasicAuthHeader(config.personalAccessToken);
+    } else {
+      // Azure Identity authentication (DefaultAzureCredential or AzureCliCredential)
+      const credential = config.authMethod === AuthenticationMethod.AzureCli 
+        ? new AzureCliCredential() 
+        : new DefaultAzureCredential();
+      
+      const token = await credential.getToken(`${AZURE_DEVOPS_RESOURCE_ID}/.default`);
+      
+      if (!token || !token.token) {
+        throw new AzureDevOpsAuthenticationError('Failed to acquire Azure Identity token');
+      }
+      
+      authHeader = `Bearer ${token.token}`;
+    }
 
     // Step 1: Get the user profile to get the publicAlias
     const profileResponse = await axios.get(

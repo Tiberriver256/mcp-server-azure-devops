@@ -22,6 +22,11 @@ import * as workitems from './operations/workitems';
 import * as repositories from './operations/repositories';
 import * as organizations from './operations/organizations';
 
+// Create a safe console logging function that won't interfere with MCP protocol
+function safeLog(message: string) {
+  process.stderr.write(`${message}\n`);
+}
+
 /**
  * Create an Azure DevOps MCP Server
  * 
@@ -172,7 +177,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           throw new Error(`Unknown tool: ${request.params.name}`);
       }
     } catch (error) {
-      console.error('Error handling tool call:', error);
+      safeLog(`Error handling tool call: ${error}`);
       
       // Format the error message
       const errorMessage = isAzureDevOpsError(error)
@@ -252,7 +257,7 @@ export async function getConnection(config: AzureDevOpsConfig): Promise<WebApi> 
     // Return the underlying WebApi client
     return await client.getWebApiClient();
   } catch (error) {
-    console.error('Connection error details:', error);
+    safeLog(`Connection error details: ${error}`);
     throw new AzureDevOpsAuthenticationError(`Failed to authenticate with Azure DevOps: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
@@ -265,12 +270,12 @@ export async function getConnection(config: AzureDevOpsConfig): Promise<WebApi> 
  */
 export async function testConnection(config: AzureDevOpsConfig): Promise<boolean> {
   try {
-    console.log(`Testing connection to ${config.organizationUrl}...`);
+    safeLog(`Testing connection to ${config.organizationUrl}...`);
     await getConnection(config);
-    console.log('Connection successful');
+    safeLog('Connection successful');
     return true;
   } catch (error) {
-    console.error('Connection test failed:', error);
+    safeLog('Connection test failed:');
     return false;
   }
 }
