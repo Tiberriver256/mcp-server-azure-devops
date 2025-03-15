@@ -174,6 +174,28 @@
     - ✅ Update test configuration for CI environment
     - ✅ Verify tests pass in CI environment
 
+- [x] **Task 1.2**: Implement `list_organizations` using Axios with tests
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completion
+  - **Description**: Implement the list_organizations tool which allows users to retrieve all Azure DevOps organizations accessible to the authenticated user. This tool will use Axios for direct API calls rather than the WebApi client.
+  - **Research Findings**:
+    - The organizations API is not directly supported by the azure-devops-node-api library, requiring Axios for implementation
+    - Retrieving organizations requires a two-step process:
+      1. First get the user profile: `GET https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=6.0`
+      2. Extract the `publicAlias` from the profile response
+      3. Use the `publicAlias` to get organizations: `GET https://app.vssps.visualstudio.com/_apis/accounts?memberId={publicAlias}&api-version=6.0`
+    - Authentication requires a PAT token sent via Basic Auth header
+    - Response will include organization name, ID, and URL
+    - The setup_env.sh script provides a working example of this API call sequence
+  - **Implementation Details**:
+    - Created the organizations module with the listOrganizations function
+    - Implemented proper error handling for authentication failures
+    - Added the tool to the server.ts file
+    - Created comprehensive tests that verify all functionality
+    - All tests are passing with good code coverage
+    - Added documentation in docs/tools/organizations.md
+  - **Completed**: March 15, 2024
+
 ### Task 0.1: Initialize Git repository and set up branch policies
 **Role**: Full-Stack Developer
 **Completed**: ✓
