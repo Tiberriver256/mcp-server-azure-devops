@@ -222,7 +222,8 @@ export async function getConnection(config: AzureDevOpsConfig): Promise<WebApi> 
     
     return connection;
   } catch (error) {
-    throw new AzureDevOpsAuthenticationError('Failed to authenticate with Azure DevOps');
+    console.error('Connection error details:', error);
+    throw new AzureDevOpsAuthenticationError(`Failed to authenticate with Azure DevOps: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -234,9 +235,12 @@ export async function getConnection(config: AzureDevOpsConfig): Promise<WebApi> 
  */
 export async function testConnection(config: AzureDevOpsConfig): Promise<boolean> {
   try {
+    console.log(`Testing connection to ${config.organizationUrl}...`);
     await getConnection(config);
+    console.log('Connection successful');
     return true;
-  } catch {
+  } catch (error) {
+    console.error('Connection test failed:', error);
     return false;
   }
 }

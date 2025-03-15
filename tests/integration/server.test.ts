@@ -6,17 +6,32 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 // Load environment variables
 dotenv.config();
 
+// Detect if running in CI environment
+const isCI = process.env.CI === 'true';
+
 describe('Azure DevOps MCP Server Integration', () => {
   let server: Server;
   let config: AzureDevOpsConfig;
+  let skipTests = false;
 
   beforeAll(() => {
-    // Skip tests if no credentials are provided
-    if (!process.env.AZURE_DEVOPS_ORG_URL || !process.env.AZURE_DEVOPS_PAT) {
-      console.warn('Skipping integration tests: No Azure DevOps credentials provided');
+    // Log environment for debugging
+    if (isCI) {
+      console.log('Running in CI environment');
     }
 
-    // Use real credentials if available, otherwise mock
+    // Check if credentials are available
+    if (!process.env.AZURE_DEVOPS_ORG_URL || !process.env.AZURE_DEVOPS_PAT) {
+      console.warn('No Azure DevOps credentials provided. Some tests will be skipped.');
+      skipTests = true;
+    } else {
+      console.log(`Using Azure DevOps organization: ${process.env.AZURE_DEVOPS_ORG_URL}`);
+      if (process.env.AZURE_DEVOPS_DEFAULT_PROJECT) {
+        console.log(`Using default project: ${process.env.AZURE_DEVOPS_DEFAULT_PROJECT}`);
+      }
+    }
+
+    // Use real credentials if available, otherwise use mock credentials for basic tests
     config = {
       organizationUrl: process.env.AZURE_DEVOPS_ORG_URL || 'https://dev.azure.com/mock-org',
       personalAccessToken: process.env.AZURE_DEVOPS_PAT || 'mock-pat',
@@ -32,15 +47,13 @@ describe('Azure DevOps MCP Server Integration', () => {
   });
 
   // This test will be skipped if no credentials are provided
-  (process.env.AZURE_DEVOPS_ORG_URL && process.env.AZURE_DEVOPS_PAT ? it : it.skip)(
+  (skipTests ? it.skip : it)(
     'should test connection to Azure DevOps successfully',
     async () => {
-
       const result = await testConnection(config);
-      // Skip this assertion in CI environments where we don't have real credentials
       expect(result).toBe(true);
     },
-    10000 // 10 second timeout for network operations
+    30000 // 30 second timeout for network operations
   );
 
   it('should connect to a transport', async () => {

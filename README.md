@@ -98,15 +98,33 @@ npm run dev
 
 ## Testing
 
-Run the unit tests:
-```
-npm test
+### Unit Tests
+
+Run unit tests with:
+
+```bash
+npm run test:unit
 ```
 
-Run integration tests (requires valid Azure DevOps credentials):
-```
-npm run test:integration
-```
+### Integration Tests
+
+Integration tests require a connection to a real Azure DevOps instance. To run them:
+
+1. Ensure your `.env` file is configured with valid Azure DevOps credentials:
+   ```
+   AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization
+   AZURE_DEVOPS_PAT=your-personal-access-token
+   AZURE_DEVOPS_DEFAULT_PROJECT=your-project-name
+   ```
+
+2. Run the integration tests:
+   ```bash
+   npm run test:integration
+   ```
+
+### CI Environment
+
+For running tests in CI environments (like GitHub Actions), see [CI Environment Setup](docs/ci-setup.md) for instructions on configuring secrets.
 
 ## Development
 

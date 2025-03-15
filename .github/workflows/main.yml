@@ -20,5 +20,12 @@ jobs:
         run: npm install
       - name: Build
         run: npm run build
-      - name: Test
+      - name: Unit Tests
         run: npm run test:unit
+      - name: Integration Tests
+        run: npm run test:integration
+        env:
+          CI: 'true'
+          AZURE_DEVOPS_ORG_URL: ${{ secrets.AZURE_DEVOPS_ORG_URL }}
+          AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
+          AZURE_DEVOPS_DEFAULT_PROJECT: ${{ secrets.AZURE_DEVOPS_DEFAULT_PROJECT }}
