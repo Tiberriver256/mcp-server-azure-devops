@@ -8,12 +8,6 @@
 
 ### Authentication Enhancements
 
-- [ ] **Task 1.4**: Implement `list_projects` using WebApi with tests
-  - **Role**: Full-Stack Developer
-- [ ] **Task 1.6**: Implement `list_repositories` using WebApi with tests
-  - **Role**: Full-Stack Developer
-- [ ] **Task 1.8**: Document core navigation tools (usage, parameters)
-  - **Role**: Technical Writer
 - [ ] **Task 2.2**: Implement `create_work_item` handler with tests
   - **Role**: Full-Stack Developer
 - [ ] **Task 2.4**: Implement `update_work_item` handler with tests

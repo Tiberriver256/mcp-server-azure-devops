@@ -1,4 +1,38 @@
 ## Completed Tasks
+- [x] **Task 1.8**: Document core navigation tools (usage, parameters)
+  - **Role**: Technical Writer
+  - **Phase**: Completion
+  - **Description**: Create comprehensive documentation for the core navigation tools (list_organizations, list_projects, list_repositories)
+  - **Notes**:
+    - Created detailed documentation for `list_projects` in docs/tools/projects.md
+    - Created detailed documentation for `list_repositories` in docs/tools/repositories.md
+    - Created an overview document in docs/tools/core-navigation.md that explains how the core navigation tools work together
+    - Updated the main README.md to reference the new documentation files
+    - Created a docs/tools/README.md file to serve as an index for all tool documentation
+    - Each tool documentation includes detailed parameter descriptions, response formats, error handling, and usage examples
+
+- [x] **Task 1.6**: Implement `list_repositories` using WebApi with tests
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completion
+  - **Description**: Implement the `list_repositories` tool for the Azure DevOps MCP server using WebApi with tests.
+  - **Notes**:
+    - Implemented the `list_repositories` tool for fetching repositories from Azure DevOps
+    - Created unit tests to verify functionality with proper error handling
+    - Ensured proper parameter validation and documentation
+    - Connected the tool to the Azure DevOps WebApi using the existing implementation
+    - Integrated with the MCP server interface
+
+- [x] **Task 1.4**: Implement `list_projects` using WebApi with tests
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completion
+  - **Description**: Implement the `list_projects` tool for the Azure DevOps MCP server using WebApi with tests.
+  - **Notes**:
+    - Implemented the `list_projects` tool in the core tools section
+    - Created unit tests to verify functionality
+    - Ensured proper error handling and parameter validation
+    - Connected the tool to the MCP server interface
+    - Verified integration with the Azure DevOps WebApi
+
 - [x] **Task A.7**: Update authentication documentation
   - **Role**: Technical Writer
   - **Phase**: Completion

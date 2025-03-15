@@ -139,17 +139,28 @@ For technical details about how authentication is implemented in the Azure DevOp
 
 ## Available Tools
 
-### Project Tools
+The Azure DevOps MCP server provides a variety of tools for interacting with Azure DevOps resources. For detailed documentation on each tool, please refer to the corresponding documentation.
+
+### Core Navigation Tools
+- `list_organizations`: List all accessible organizations
 - `list_projects`: List all accessible projects
+- `list_repositories`: List all repositories in a project
+
+For comprehensive documentation on all core navigation tools, see the [Core Navigation Tools Guide](docs/tools/core-navigation.md).
+
+### Project Tools
 - `get_project`: Get details of a specific project
+
+For project-specific tool documentation, see the [Projects Tools Guide](docs/tools/projects.md).
+
+### Repository Tools
+- `get_repository`: Get repository details
+
+For repository-specific tool documentation, see the [Repositories Tools Guide](docs/tools/repositories.md).
 
 ### Work Item Tools
 - `get_work_item`: Retrieve a work item by ID
 - `create_work_item`: Create a new work item
-
-### Repository Tools
-- `list_repositories`: List all repositories in a project
-- `get_repository`: Get repository details
 
 ## Testing
 
