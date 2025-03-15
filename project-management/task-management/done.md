@@ -1,4 +1,16 @@
 ## Completed Tasks
+- [x] **Task 0.11**: Document project setup and authentication (README)
+  - **Role**: Technical Writer
+  - **Phase**: Research
+  - **Description**: Create comprehensive documentation for setting up the Azure DevOps MCP server, including authentication methods (PAT and AAD), setup instructions, and examples.
+  - **Notes**:
+    - Added detailed overview section to README.md
+    - Documented both PAT and AAD authentication methods with step-by-step instructions
+    - Created a table of environment variables with descriptions
+    - Added troubleshooting tips for authentication issues
+    - Included technical details about authentication implementation
+  - **Completed**: March 15, 2024
+
 - [x] **Task 0.7**: Fix MCP Server Implementation
   - **Role**: Full-Stack Developer
   - **Phase**: Research
