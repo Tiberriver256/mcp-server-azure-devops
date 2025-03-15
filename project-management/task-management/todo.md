@@ -8,34 +8,6 @@
 
 ### Authentication Enhancements
 
-- [ ] **Task A.3**: Implement DefaultAzureCredential authentication
-  - **Role**: Full-Stack Developer
-  - Add @azure/identity package
-  - Implement bearer token authentication handler
-  - Create DefaultAzureCredential authentication flow
-  - Add unit tests
-- [ ] **Task A.4**: Implement AzureCliCredential fallback
-  - **Role**: Full-Stack Developer
-  - Add specific support for AzureCliCredential
-  - Implement proper error handling and fallback mechanisms
-  - Add unit tests
-- [ ] **Task A.5**: Update environment configuration
-  - **Role**: Full-Stack Developer
-  - Update .env file format to support new authentication methods
-  - Implement configuration validation
-  - Add unit tests
-- [ ] **Task A.6**: Create integration tests for Azure Identity
-  - **Role**: Full-Stack Developer
-  - Add integration tests using Azure CLI credentials
-  - Add integration tests using DefaultAzureCredential
-  - Add tests for credential fallback behavior
-- [ ] **Task A.7**: Update authentication documentation
-  - **Role**: Technical Writer
-  - Document new authentication methods
-  - Add examples for all supported auth methods
-  - Update troubleshooting guide
----
-
 - [ ] **Task 1.4**: Implement `list_projects` using WebApi with tests
   - **Role**: Full-Stack Developer
 - [ ] **Task 1.6**: Implement `list_repositories` using WebApi with tests
