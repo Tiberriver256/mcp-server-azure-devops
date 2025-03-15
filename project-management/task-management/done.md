@@ -146,6 +146,22 @@
       - [x] Create README.md with usage examples
       - [x] Add troubleshooting guide
 
+- [x] **Task 0.10**: Fix integration tests in CI environment
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completed
+  - **Description**: Configure integration tests to work in CI environment by properly handling credentials and environment setup
+  - **Notes**:
+    - Updated integration tests to better handle CI environment
+    - Added detailed logging for connection testing
+    - Updated GitHub Actions workflow to use secrets for credentials
+    - Created documentation for setting up CI environment
+    - Improved error handling in server connection functions
+  - **Sub-tasks**:
+    - ✅ Analyze current integration test failures in CI
+    - ✅ Implement secure credential handling for CI
+    - ✅ Update test configuration for CI environment
+    - ✅ Verify tests pass in CI environment
+
 ### Task 0.1: Initialize Git repository and set up branch policies
 **Role**: Full-Stack Developer
 **Completed**: ✓
