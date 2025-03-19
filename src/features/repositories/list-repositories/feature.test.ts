@@ -98,4 +98,13 @@ describe('listRepositories', () => {
       listRepositories(mockConnection, { projectId: 'project-1' }),
     ).rejects.toThrow(error);
   });
+
+  it('should handle non-Error objects in catch block', async () => {
+    // Mock a string error (not an Error instance)
+    mockGitApi.getRepositories.mockRejectedValue('String error message');
+
+    await expect(
+      listRepositories(mockConnection, { projectId: 'project-1' }),
+    ).rejects.toThrow('Failed to list repositories: String error message');
+  });
 });

@@ -1,4 +1,4 @@
-import { AzureDevOpsAuthenticationError } from '../errors';
+import { AzureDevOpsAuthenticationError } from '../errors/azure-devops-errors';
 import {
   AuthenticationMethod,
   AuthConfig,
@@ -32,12 +32,19 @@ jest.mock('azure-devops-node-api', () => {
 // Mock the auth-factory module
 jest.mock('./auth-factory', () => {
   const actual = jest.requireActual('./auth-factory');
+  const { AzureDevOpsAuthenticationError } = jest.requireActual('../errors/azure-devops-errors');
   return {
     ...actual,
-    createAuthClient: jest.fn().mockResolvedValue({
-      getLocationsApi: jest.fn().mockResolvedValue({
-        getResourceAreas: jest.fn().mockResolvedValue([]),
-      }),
+    createAuthClient: jest.fn().mockImplementation((config) => {
+      if (config.method === actual.AuthenticationMethod.PersonalAccessToken && 
+          (!config.personalAccessToken || config.personalAccessToken === '')) {
+        return Promise.reject(new AzureDevOpsAuthenticationError('Personal Access Token is required'));
+      }
+      return Promise.resolve({
+        getLocationsApi: jest.fn().mockResolvedValue({
+          getResourceAreas: jest.fn().mockResolvedValue([]),
+        }),
+      });
     }),
   };
 });

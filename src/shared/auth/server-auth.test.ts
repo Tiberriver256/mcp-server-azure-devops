@@ -19,9 +19,9 @@ jest.mock('azure-devops-node-api', () => {
   };
 });
 
-const MockWebApi = WebApi as jest.MockedClass<typeof WebApi>;
-// Cast WebApi for mock operations where we need to access jest.Mock methods
-const MockedWebApiConstructor = WebApi as unknown as jest.Mock;
+// Use the jest mock types directly
+const MockWebApi = jest.mocked(WebApi);
+const WebApiMock = WebApi as unknown as jest.Mock;
 
 describe('auth', () => {
   beforeEach(() => {
@@ -57,7 +57,7 @@ describe('auth', () => {
       });
 
       // Clear previous mock implementation and set new one
-      MockedWebApiConstructor.mockImplementation(() => ({
+      WebApiMock.mockImplementation(() => ({
         getLocationsApi: mockGetLocationsApi,
       }));
 
@@ -84,7 +84,7 @@ describe('auth', () => {
       });
 
       // Set up the mock to throw an error from getResourceAreas
-      MockedWebApiConstructor.mockImplementation(() => ({
+      WebApiMock.mockImplementation(() => ({
         getLocationsApi: mockGetLocationsApi,
       }));
 

@@ -104,7 +104,7 @@ export async function createAuthClient(config: AuthConfig): Promise<WebApi> {
 async function createPatClient(config: AuthConfig): Promise<WebApi> {
   if (!config.personalAccessToken) {
     throw new AzureDevOpsAuthenticationError(
-      'Personal Access Token (PAT) is required',
+      'Personal Access Token is required',
     );
   }
 

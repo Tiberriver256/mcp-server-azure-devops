@@ -2,6 +2,7 @@ import { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsAuthenticationError,
+  AzureDevOpsError,
 } from '../../../shared/errors';
 import { listWorkItems } from './feature';
 
@@ -192,5 +193,73 @@ describe('listWorkItems', () => {
         wiql: 'SELECT * FROM WorkItems',
       }),
     ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+  });
+
+  it('should convert generic Error with "not found" message to AzureDevOpsResourceNotFoundError', async () => {
+    // Mock a generic error with "not found" in the message
+    mockWorkItemTrackingApi.queryByWiql.mockRejectedValueOnce(
+      new Error('The specified project was not found')
+    );
+
+    // Call the function and expect it to throw
+    await expect(
+      listWorkItems(mockWebApi, {
+        projectId: 'project',
+        wiql: 'SELECT * FROM WorkItems',
+      }),
+    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+  });
+
+  it('should convert generic Error with "does not exist" message to AzureDevOpsResourceNotFoundError', async () => {
+    // Mock a generic error with "does not exist" in the message
+    mockWorkItemTrackingApi.queryByWiql.mockRejectedValueOnce(
+      new Error('The project does not exist')
+    );
+
+    // Call the function and expect it to throw
+    await expect(
+      listWorkItems(mockWebApi, {
+        projectId: 'project',
+        wiql: 'SELECT * FROM WorkItems',
+      }),
+    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+  });
+
+  it('should convert generic Error with "Unauthorized" message to AzureDevOpsAuthenticationError', async () => {
+    // Mock a generic error with "Unauthorized" in the message
+    mockWorkItemTrackingApi.queryByWiql.mockRejectedValueOnce(
+      new Error('Unauthorized access to the project')
+    );
+
+    // Call the function and expect it to throw
+    await expect(
+      listWorkItems(mockWebApi, {
+        projectId: 'project',
+        wiql: 'SELECT * FROM WorkItems',
+      }),
+    ).rejects.toThrow(AzureDevOpsAuthenticationError);
+  });
+
+  it('should wrap non-Error objects in AzureDevOpsError', async () => {
+    // Mock a string error (not an Error instance)
+    mockWorkItemTrackingApi.queryByWiql.mockRejectedValueOnce('String error message');
+
+    // Call the function and expect it to throw
+    await expect(
+      listWorkItems(mockWebApi, {
+        projectId: 'project',
+        wiql: 'SELECT * FROM WorkItems',
+      }),
+    ).rejects.toThrow(AzureDevOpsError);
+    
+    // Reset the mock for the second test
+    mockWorkItemTrackingApi.queryByWiql.mockRejectedValueOnce('String error message');
+    
+    await expect(
+      listWorkItems(mockWebApi, {
+        projectId: 'project',
+        wiql: 'SELECT * FROM WorkItems',
+      }),
+    ).rejects.toThrow('Failed to list work items: String error message');
   });
 });
