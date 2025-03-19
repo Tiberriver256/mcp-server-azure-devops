@@ -17,32 +17,31 @@ if [ "$CURRENT_BRANCH" = "main" ]; then
   exit 1
 fi
 
-# Stage all changes
-echo "Staging all changes..."
-git add .
+# Check if there are any uncommitted changes
+if ! git diff --quiet || ! git diff --staged --quiet; then
+  # Stage all changes
+  echo "Staging all changes..."
+  git add .
 
-# Check if there are any changes to commit
-if git diff --staged --quiet; then
-  echo "No changes to commit. Have you made any changes?"
-  exit 1
-fi
+  # Commit changes
+  echo "Committing changes with title: $PR_TITLE"
+  git commit -m "$PR_TITLE" -m "$PR_DESCRIPTION"
 
-# Commit changes
-echo "Committing changes with title: $PR_TITLE"
-git commit -m "$PR_TITLE" -m "$PR_DESCRIPTION"
+  if [ $? -ne 0 ]; then
+    echo "Failed to commit changes."
+    exit 1
+  fi
 
-if [ $? -ne 0 ]; then
-  echo "Failed to commit changes."
-  exit 1
-fi
+  # Push changes to remote
+  echo "Pushing changes to origin/$CURRENT_BRANCH..."
+  git push -u origin "$CURRENT_BRANCH"
 
-# Push changes to remote
-echo "Pushing changes to origin/$CURRENT_BRANCH..."
-git push -u origin "$CURRENT_BRANCH"
-
-if [ $? -ne 0 ]; then
-  echo "Failed to push changes to remote."
-  exit 1
+  if [ $? -ne 0 ]; then
+    echo "Failed to push changes to remote."
+    exit 1
+  fi
+else
+  echo "No uncommitted changes found. Proceeding with PR creation for already committed changes."
 fi
 
 # Create PR using GitHub CLI
