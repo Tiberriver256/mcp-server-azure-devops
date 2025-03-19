@@ -1,4 +1,16 @@
 ## Completed Tasks
+- [x] **Task 2.6**: Implement `list_work_items` handler with tests
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completion
+  - **Description**: Implement the `list_work_items` tool for the Azure DevOps MCP server using WebApi with tests.
+  - **Notes**:
+    - Implemented the `list_work_items` handler according to the pattern established in server-coverage.test.ts
+    - Created comprehensive unit tests for the handler function
+    - Fixed the test file to properly mock Azure DevOps API
+    - Ensured all tests pass successfully
+    - Implemented error handling for API errors and validation errors
+    - Aligned the implementation with the established project patterns
+
 - [x] **Task 1.8**: Document core navigation tools (usage, parameters)
   - **Role**: Technical Writer
   - **Phase**: Completion
@@ -302,6 +314,24 @@
     - Created detailed documentation in docs/tools/work-items.md
     - Updated the main documentation index to include work item tools
   - **Completed**: March 15, 2024
+
+- [x] **Task 2.4**: Implement `update_work_item` handler with tests
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completion
+  - **Description**: Implement the `update_work_item` handler for the Azure DevOps MCP server with comprehensive tests.
+  - **Notes**:
+    - Implemented the `update_work_item` handler for updating existing work items in Azure DevOps
+    - Created comprehensive unit tests with high coverage
+    - Ensured proper error handling and validation
+    - Added support for updating various fields including title, description, state, and custom fields
+    - Integrated the handler with the MCP server interface
+  - **Sub-tasks**:
+    - [x] Research Azure DevOps API for updating work items
+    - [x] Write failing tests for the update_work_item handler
+    - [x] Implement the handler to make tests pass
+    - [x] Refactor and optimize the implementation
+  - **Completed**: March 20, 2024
+  - **Pull Request**: [#18](https://github.com/Tiberriver256/azure-devops-mcp/pull/18)
 
 ### Task 0.1: Initialize Git repository and set up branch policies
 **Role**: Full-Stack Developer

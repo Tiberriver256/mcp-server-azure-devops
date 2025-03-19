@@ -8,8 +8,6 @@
 
 ### Authentication Enhancements
 
-- [ ] **Task 2.6**: Implement `list_work_items` handler with tests
-  - **Role**: Full-Stack Developer
 - [ ] **Task 2.8**: Implement `get_work_item` handler with tests
   - **Role**: Full-Stack Developer
 - [ ] **Task 2.10**: Implement `add_work_item_comment` handler with tests
