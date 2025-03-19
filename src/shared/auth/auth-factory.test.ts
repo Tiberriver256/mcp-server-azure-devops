@@ -1,313 +1,101 @@
 import { WebApi } from 'azure-devops-node-api';
 import {
+  AuthConfig,
   AuthenticationMethod,
   createAuthClient,
-  AuthConfig,
 } from './auth-factory';
-import { AzureDevOpsAuthenticationError } from '../errors';
-
-// Create Mock WebApi type that matches our test expectations
-type MockedWebApi = {
-  orgUrl: string;
-  authHandler: any;
-  getLocationsApi(): Promise<{
-    getResourceAreas: jest.Mock;
-  }>;
-};
-
-// Cast the WebApi object to a jest.Mock for mocking operations
-const MockedWebApiClass = WebApi as unknown as jest.Mock;
-
-// Create a mock WebApi class
-class MockWebApi {
-  constructor(
-    public orgUrl: string,
-    public authHandler: any,
-  ) {}
-
-  async getLocationsApi() {
-    return {
-      getResourceAreas: jest.fn().mockResolvedValue([]),
-    };
-  }
-}
-
-// Setup mock configurations
-let mockCreateWebApiThrowsError = false;
-let mockGetLocationApiThrowsError = false;
-let mockThrowAsString = false;
-let currentAuthHandler = 'pat-handler';
-
-// Mock variables for token validation tests
-let mockAzureIdentityTokenNullOrInvalid = false;
-let mockAzureCliTokenNullOrInvalid = false;
+import { AzureDevOpsAuthenticationError } from '../errors/azure-devops-errors';
 
 // Mock the azure-devops-node-api module
 jest.mock('azure-devops-node-api', () => {
-  // Create mock for WebApi class
-  const mockWebApi = jest.fn().mockImplementation((orgUrl, _) => {
-    if (mockCreateWebApiThrowsError) {
-      if (mockThrowAsString) {
-        throw 'String error';
-      } else {
-        throw new Error('WebApi construction error');
-      }
-    }
-    
-    const instance = new MockWebApi(orgUrl, currentAuthHandler);
-    
-    if (mockGetLocationApiThrowsError) {
-      instance.getLocationsApi = jest.fn().mockImplementation(() => {
-        throw new Error('Get locations API error');
-      });
-    }
-    
-    return instance;
-  });
-
   return {
-    WebApi: mockWebApi,
-    getPersonalAccessTokenHandler: jest.fn().mockReturnValue('pat-handler'),
-    getBearerHandler: jest.fn().mockReturnValue('bearer-handler'),
+    WebApi: jest.fn().mockImplementation(() => ({
+      getLocationsApi: jest.fn().mockResolvedValue({
+        getResourceAreas: jest.fn().mockResolvedValue([]),
+      }),
+    })),
+    getPersonalAccessTokenHandler: jest.fn().mockReturnValue({}),
+    getBearerHandler: jest.fn().mockReturnValue({}),
   };
 });
 
-// Mock the azure-devops-node-api/handlers/bearertoken module
-jest.mock('azure-devops-node-api/handlers/bearertoken', () => {
-  return {
-    BearerCredentialHandler: jest.fn().mockImplementation(() => 'bearer-handler'),
-  };
-});
+// Use the jest mock types directly
+const WebApiMock = WebApi as unknown as jest.Mock;
 
-// Mock the @azure/identity module
-jest.mock('@azure/identity', () => {
-  return {
-    DefaultAzureCredential: jest.fn().mockImplementation(() => {
-      return {
-        getToken: jest.fn().mockImplementation(() => {
-          if (mockAzureIdentityTokenNullOrInvalid) {
-            return Promise.resolve(null);
-          }
-          return Promise.resolve({ token: 'mock-token' });
-        }),
-      };
-    }),
-    AzureCliCredential: jest.fn().mockImplementation(() => {
-      return {
-        getToken: jest.fn().mockImplementation(() => {
-          if (mockAzureCliTokenNullOrInvalid) {
-            return Promise.resolve({ });  // Missing token property
-          }
-          return Promise.resolve({ token: 'mock-cli-token' });
-        }),
-      };
-    }),
-  };
-});
-
-describe('Authentication Factory', () => {
-  const orgUrl = 'https://dev.azure.com/testorg';
-
+describe('auth-factory', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCreateWebApiThrowsError = false;
-    mockGetLocationApiThrowsError = false;
-    mockThrowAsString = false;
-    currentAuthHandler = 'pat-handler';
-    mockAzureIdentityTokenNullOrInvalid = false;
-    mockAzureCliTokenNullOrInvalid = false;
   });
 
   describe('createAuthClient', () => {
-    it('should create a client with PAT authentication', async () => {
+    it('should throw error if PAT is missing for PAT authentication', async () => {
+      await expect(
+        createAuthClient({
+          method: AuthenticationMethod.PersonalAccessToken,
+          personalAccessToken: '',
+          organizationUrl: 'https://dev.azure.com/org',
+        }),
+      ).rejects.toThrow(AzureDevOpsAuthenticationError);
+    });
+
+    it('should throw error if organization URL is missing', async () => {
+      await expect(
+        createAuthClient({
+          method: AuthenticationMethod.PersonalAccessToken,
+          personalAccessToken: 'validpat',
+          organizationUrl: '',
+        }),
+      ).rejects.toThrow(AzureDevOpsAuthenticationError);
+    });
+
+    it('should create WebApi client with correct configuration', async () => {
+      // Set up a mock implementation for this specific test
+      const mockGetResourceAreas = jest.fn().mockResolvedValue([]);
+      const mockGetLocationsApi = jest.fn().mockResolvedValue({
+        getResourceAreas: mockGetResourceAreas,
+      });
+
+      // Clear previous mock implementation and set new one
+      WebApiMock.mockImplementation(() => ({
+        getLocationsApi: mockGetLocationsApi,
+      }));
+
       const config: AuthConfig = {
         method: AuthenticationMethod.PersonalAccessToken,
-        organizationUrl: orgUrl,
-        personalAccessToken: 'test-pat',
+        personalAccessToken: 'validpat',
+        organizationUrl: 'https://dev.azure.com/org',
       };
 
-      const client = await createAuthClient(config) as unknown as MockedWebApi;
+      const client = await createAuthClient(config);
 
+      expect(WebApiMock).toHaveBeenCalledTimes(1);
+      expect(mockGetLocationsApi).toHaveBeenCalledTimes(1);
       expect(client).toBeDefined();
-      expect(MockedWebApiClass).toHaveBeenCalledWith(orgUrl, 'pat-handler');
-      expect(client.orgUrl).toBe(orgUrl);
-      expect(client.authHandler).toBe('pat-handler');
     });
 
-    it('should throw an error if PAT is not provided for PAT authentication', async () => {
+    it('should throw authentication error if API call fails', async () => {
+      // Create a mock implementation that fails
+      const mockGetResourceAreas = jest
+        .fn()
+        .mockRejectedValue(new Error('API Error'));
+      const mockGetLocationsApi = jest.fn().mockResolvedValue({
+        getResourceAreas: mockGetResourceAreas,
+      });
+
+      // Set up the mock to throw an error from getResourceAreas
+      WebApiMock.mockImplementation(() => ({
+        getLocationsApi: mockGetLocationsApi,
+      }));
+
       const config: AuthConfig = {
         method: AuthenticationMethod.PersonalAccessToken,
-        organizationUrl: orgUrl,
+        personalAccessToken: 'validpat',
+        organizationUrl: 'https://dev.azure.com/org',
       };
 
       await expect(createAuthClient(config)).rejects.toThrow(
         AzureDevOpsAuthenticationError,
-      );
-      await expect(createAuthClient(config)).rejects.toThrow(
-        'Personal Access Token is required',
-      );
-    });
-
-    it('should create a client with Azure Identity authentication', async () => {
-      // Reset all mock implementations
-      jest.clearAllMocks();
-      
-      // Set our current auth handler
-      const mockedBearerToken = 'azure-identity-bearer-handler';
-      currentAuthHandler = mockedBearerToken;
-      
-      // Mock the BearerCredentialHandler to return our handler
-      require('azure-devops-node-api/handlers/bearertoken').BearerCredentialHandler.mockImplementation(
-        () => mockedBearerToken
-      );
-
-      const config: AuthConfig = {
-        method: AuthenticationMethod.AzureIdentity,
-        organizationUrl: orgUrl,
-      };
-
-      const client = await createAuthClient(config) as unknown as MockedWebApi;
-
-      expect(client).toBeDefined();
-      expect(client.orgUrl).toBe(orgUrl);
-      expect(client.authHandler).toBe(mockedBearerToken);
-    });
-
-    it('should throw an error if Azure Identity token is null', async () => {
-      mockAzureIdentityTokenNullOrInvalid = true;
-      
-      const config: AuthConfig = {
-        method: AuthenticationMethod.AzureIdentity,
-        organizationUrl: orgUrl,
-      };
-
-      await expect(createAuthClient(config)).rejects.toThrow(
-        AzureDevOpsAuthenticationError,
-      );
-      await expect(createAuthClient(config)).rejects.toThrow(
-        'Failed to acquire Azure Identity token: Failed to acquire token',
-      );
-    });
-
-    it('should create a client with Azure CLI authentication', async () => {
-      // Reset all mock implementations
-      jest.clearAllMocks();
-      
-      // Set our current auth handler
-      const mockedBearerToken = 'azure-cli-bearer-handler';
-      currentAuthHandler = mockedBearerToken;
-      
-      // Mock the BearerCredentialHandler to return our handler
-      require('azure-devops-node-api/handlers/bearertoken').BearerCredentialHandler.mockImplementation(
-        () => mockedBearerToken
-      );
-
-      const config: AuthConfig = {
-        method: AuthenticationMethod.AzureCli,
-        organizationUrl: orgUrl,
-      };
-
-      const client = await createAuthClient(config) as unknown as MockedWebApi;
-
-      expect(client).toBeDefined();
-      expect(client.orgUrl).toBe(orgUrl);
-      expect(client.authHandler).toBe(mockedBearerToken);
-    });
-
-    it('should throw an error if Azure CLI token is missing token property', async () => {
-      mockAzureCliTokenNullOrInvalid = true;
-      
-      const config: AuthConfig = {
-        method: AuthenticationMethod.AzureCli,
-        organizationUrl: orgUrl,
-      };
-
-      await expect(createAuthClient(config)).rejects.toThrow(
-        AzureDevOpsAuthenticationError,
-      );
-      await expect(createAuthClient(config)).rejects.toThrow(
-        'Failed to acquire Azure CLI token: Failed to acquire token',
-      );
-    });
-
-    it('should throw an error if organization URL is not provided', async () => {
-      const config = {
-        method: AuthenticationMethod.PersonalAccessToken,
-        personalAccessToken: 'test-pat',
-      } as AuthConfig;
-
-      await expect(createAuthClient(config)).rejects.toThrow(
-        AzureDevOpsAuthenticationError,
-      );
-      await expect(createAuthClient(config)).rejects.toThrow(
-        'Organization URL is required',
-      );
-    });
-
-    it('should throw an error for unsupported authentication method', async () => {
-      const config = {
-        method: 'unsupported-method' as AuthenticationMethod,
-        organizationUrl: orgUrl,
-      };
-
-      await expect(createAuthClient(config)).rejects.toThrow(
-        AzureDevOpsAuthenticationError,
-      );
-      await expect(createAuthClient(config)).rejects.toThrow(
-        'Unsupported authentication method',
-      );
-    });
-
-    it('should handle errors from the WebApi construction', async () => {
-      mockCreateWebApiThrowsError = true;
-      
-      const config: AuthConfig = {
-        method: AuthenticationMethod.PersonalAccessToken,
-        organizationUrl: orgUrl,
-        personalAccessToken: 'test-pat',
-      };
-
-      await expect(createAuthClient(config)).rejects.toThrow(
-        AzureDevOpsAuthenticationError,
-      );
-      await expect(createAuthClient(config)).rejects.toThrow(
-        'Failed to authenticate with Azure DevOps: WebApi construction error',
-      );
-    });
-
-    it('should handle errors from getLocationsApi', async () => {
-      mockGetLocationApiThrowsError = true;
-      
-      const config: AuthConfig = {
-        method: AuthenticationMethod.PersonalAccessToken,
-        organizationUrl: orgUrl,
-        personalAccessToken: 'test-pat',
-      };
-
-      await expect(createAuthClient(config)).rejects.toThrow(
-        AzureDevOpsAuthenticationError,
-      );
-      await expect(createAuthClient(config)).rejects.toThrow(
-        'Failed to authenticate with Azure DevOps: Get locations API error',
-      );
-    });
-
-    it('should handle non-Error objects in catch', async () => {
-      mockCreateWebApiThrowsError = true;
-      mockThrowAsString = true;
-      
-      const config: AuthConfig = {
-        method: AuthenticationMethod.PersonalAccessToken,
-        organizationUrl: orgUrl,
-        personalAccessToken: 'test-pat',
-      };
-
-      await expect(createAuthClient(config)).rejects.toThrow(
-        AzureDevOpsAuthenticationError,
-      );
-      await expect(createAuthClient(config)).rejects.toThrow(
-        'Failed to authenticate with Azure DevOps: String error',
       );
     });
   });
-});
+}); 

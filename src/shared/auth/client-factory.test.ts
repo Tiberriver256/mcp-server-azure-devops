@@ -1,441 +1,383 @@
-import { AuthenticationMethod } from './auth-factory';
+import { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsClient } from './client-factory';
-import { AzureDevOpsAuthenticationError } from '../errors';
+import {
+  AzureDevOpsAuthenticationError,
+  AzureDevOpsError,
+} from '../errors/azure-devops-errors';
+import {
+  AuthConfig,
+  AuthenticationMethod,
+  createAuthClient,
+} from './auth-factory';
 
-// Mock the auth-factory module
-jest.mock('./auth-factory', () => {
-  return {
-    AuthenticationMethod: {
-      PersonalAccessToken: 'pat',
-      AzureIdentity: 'azure-identity',
-      AzureCli: 'azure-cli',
-    },
-    createAuthClient: jest.fn().mockImplementation(() => {
-      return {
-        getCoreApi: jest.fn().mockResolvedValue('core-api'),
-        getGitApi: jest.fn().mockResolvedValue('git-api'),
-        getWorkItemTrackingApi: jest.fn().mockResolvedValue('work-item-api'),
-        getBuildApi: jest.fn().mockResolvedValue('build-api'),
-        getTestApi: jest.fn().mockResolvedValue('test-api'),
-        getReleaseApi: jest.fn().mockResolvedValue('release-api'),
-        getTaskAgentApi: jest.fn().mockResolvedValue('task-agent-api'),
-        getTaskApi: jest.fn().mockResolvedValue('task-api'),
-      };
-    }),
-  };
-});
+// Mock the azure-devops-node-api module
+jest.mock('azure-devops-node-api');
+// Mock the auth module
+jest.mock('./auth-factory');
 
-import { createAuthClient } from './auth-factory';
+const MockWebApi = WebApi as jest.MockedClass<typeof WebApi>;
+const mockCreateAuthClient = createAuthClient as jest.MockedFunction<
+  typeof createAuthClient
+>;
 
 describe('AzureDevOpsClient', () => {
-  const config = {
+  const config: AuthConfig = {
     method: AuthenticationMethod.PersonalAccessToken,
-    organizationUrl: 'https://dev.azure.com/testorg',
-    personalAccessToken: 'test-pat',
+    personalAccessToken: 'validpat',
+    organizationUrl: 'https://dev.azure.com/org',
   };
+
+  let client: AzureDevOpsClient;
+  let mockWebApiInstance: any;
+  let mockGetCoreApi: jest.Mock;
+  let mockGetGitApi: jest.Mock;
+  let mockGetWorkItemTrackingApi: jest.Mock;
+  let mockGetBuildApi: jest.Mock;
+  let mockGetTestApi: jest.Mock;
+  let mockGetReleaseApi: jest.Mock;
+  let mockGetTaskAgentApi: jest.Mock;
+  let mockGetTaskApi: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
-  });
 
-  it('should create a client with the provided configuration', () => {
-    const client = new AzureDevOpsClient(config);
-    expect(client).toBeInstanceOf(AzureDevOpsClient);
-  });
+    // Setup mock API methods
+    mockGetCoreApi = jest.fn().mockResolvedValue({});
+    mockGetGitApi = jest.fn().mockResolvedValue({});
+    mockGetWorkItemTrackingApi = jest.fn().mockResolvedValue({});
+    mockGetBuildApi = jest.fn().mockResolvedValue({});
+    mockGetTestApi = jest.fn().mockResolvedValue({});
+    mockGetReleaseApi = jest.fn().mockResolvedValue({});
+    mockGetTaskAgentApi = jest.fn().mockResolvedValue({});
+    mockGetTaskApi = jest.fn().mockResolvedValue({});
 
-  it('should check if the client is authenticated', async () => {
-    const client = new AzureDevOpsClient(config);
-    const result = await client.isAuthenticated();
-
-    expect(result).toBe(true);
-    expect(createAuthClient).toHaveBeenCalledWith(config);
-  });
-
-  it('should return false if authentication fails', async () => {
-    (createAuthClient as jest.Mock).mockRejectedValueOnce(
-      new Error('Auth failed'),
-    );
-
-    const client = new AzureDevOpsClient(config);
-    const result = await client.isAuthenticated();
-
-    expect(result).toBe(false);
-    expect(createAuthClient).toHaveBeenCalledWith(config);
-  });
-
-  it('should get the Core API', async () => {
-    const client = new AzureDevOpsClient(config);
-    const api = await client.getCoreApi();
-
-    expect(api).toBe('core-api');
-    expect(createAuthClient).toHaveBeenCalledWith(config);
-  });
-
-  it('should get the Git API', async () => {
-    const client = new AzureDevOpsClient(config);
-    const api = await client.getGitApi();
-
-    expect(api).toBe('git-api');
-    expect(createAuthClient).toHaveBeenCalledWith(config);
-  });
-
-  it('should get the Work Item Tracking API', async () => {
-    const client = new AzureDevOpsClient(config);
-    const api = await client.getWorkItemTrackingApi();
-
-    expect(api).toBe('work-item-api');
-    expect(createAuthClient).toHaveBeenCalledWith(config);
-  });
-
-  it('should get the Build API', async () => {
-    const client = new AzureDevOpsClient(config);
-    const api = await client.getBuildApi();
-
-    expect(api).toBe('build-api');
-    expect(createAuthClient).toHaveBeenCalledWith(config);
-  });
-
-  it('should get the Test API', async () => {
-    const client = new AzureDevOpsClient(config);
-    const api = await client.getTestApi();
-
-    expect(api).toBe('test-api');
-    expect(createAuthClient).toHaveBeenCalledWith(config);
-  });
-
-  it('should get the Release API', async () => {
-    const client = new AzureDevOpsClient(config);
-    const api = await client.getReleaseApi();
-
-    expect(api).toBe('release-api');
-    expect(createAuthClient).toHaveBeenCalledWith(config);
-  });
-
-  it('should get the Task Agent API', async () => {
-    const client = new AzureDevOpsClient(config);
-    const api = await client.getTaskAgentApi();
-
-    expect(api).toBe('task-agent-api');
-    expect(createAuthClient).toHaveBeenCalledWith(config);
-  });
-
-  it('should get the Task API', async () => {
-    const client = new AzureDevOpsClient(config);
-    const api = await client.getTaskApi();
-
-    expect(api).toBe('task-api');
-    expect(createAuthClient).toHaveBeenCalledWith(config);
-  });
-
-  it('should throw an error if getting an API fails', async () => {
-    const mockClient = {
-      getCoreApi: jest.fn().mockRejectedValue(new Error('API error')),
+    mockWebApiInstance = {
+      getCoreApi: mockGetCoreApi,
+      getGitApi: mockGetGitApi,
+      getWorkItemTrackingApi: mockGetWorkItemTrackingApi,
+      getBuildApi: mockGetBuildApi,
+      getTestApi: mockGetTestApi,
+      getReleaseApi: mockGetReleaseApi,
+      getTaskAgentApi: mockGetTaskAgentApi,
+      getTaskApi: mockGetTaskApi,
     };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
 
-    const client = new AzureDevOpsClient(config);
+    MockWebApi.mockImplementation(() => mockWebApiInstance);
 
-    await expect(client.getCoreApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getCoreApi()).rejects.toThrow(
-      'Failed to get Core API: API error',
-    );
+    // Mock the createAuthClient function to return our mockWebApiInstance
+    mockCreateAuthClient.mockResolvedValue(mockWebApiInstance);
+
+    client = new AzureDevOpsClient(config);
   });
 
-  it('should throw AzureDevOpsError directly from getCoreApi if it comes from lower layers', async () => {
-    const originalError = new AzureDevOpsAuthenticationError('Original error');
-    const mockClient = {
-      getCoreApi: jest.fn().mockRejectedValue(originalError),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
+  describe('getClient', () => {
+    it('should create WebApi client only once', async () => {
+      await client.getCoreApi();
+      await client.getCoreApi();
 
-    const client = new AzureDevOpsClient(config);
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
+      expect(mockCreateAuthClient).toHaveBeenCalledWith(config);
+    });
 
-    await expect(client.getCoreApi()).rejects.toThrow(originalError);
+    it('should re-use the cached client for multiple API calls', async () => {
+      await client.getCoreApi();
+      await client.getGitApi();
+      await client.getWorkItemTrackingApi();
+
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle authentication errors when creating client', async () => {
+      mockCreateAuthClient.mockRejectedValueOnce(
+        new AzureDevOpsAuthenticationError('Authentication failed'),
+      );
+
+      await expect(client.getCoreApi()).rejects.toThrow(
+        AzureDevOpsAuthenticationError,
+      );
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle generic errors when creating client', async () => {
+      mockCreateAuthClient.mockRejectedValueOnce(new Error('Network error'));
+
+      await expect(client.getCoreApi()).rejects.toThrow(
+        AzureDevOpsAuthenticationError,
+      );
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle non-Error instances when creating client', async () => {
+      mockCreateAuthClient.mockRejectedValueOnce('String error');
+
+      await expect(client.getCoreApi()).rejects.toThrow(
+        'Authentication failed: Unknown error',
+      );
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('should handle error from getGitApi', async () => {
-    const mockClient = {
-      getGitApi: jest.fn().mockRejectedValue(new Error('Git API error')),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
+  describe('API client getters', () => {
+    it('should get Core API client', async () => {
+      const coreApi = await client.getCoreApi();
+      expect(coreApi).toBeDefined();
+      expect(mockGetCoreApi).toHaveBeenCalledTimes(1);
+    });
 
-    const client = new AzureDevOpsClient(config);
+    it('should get Git API client', async () => {
+      const gitApi = await client.getGitApi();
+      expect(gitApi).toBeDefined();
+      expect(mockGetGitApi).toHaveBeenCalledTimes(1);
+    });
 
-    await expect(client.getGitApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getGitApi()).rejects.toThrow(
-      'Failed to get Git API: Git API error',
-    );
+    it('should get Work Item Tracking API client', async () => {
+      const witApi = await client.getWorkItemTrackingApi();
+      expect(witApi).toBeDefined();
+      expect(mockGetWorkItemTrackingApi).toHaveBeenCalledTimes(1);
+    });
+
+    it('should get Build API client', async () => {
+      const buildApi = await client.getBuildApi();
+      expect(buildApi).toBeDefined();
+      expect(mockGetBuildApi).toHaveBeenCalledTimes(1);
+    });
+
+    it('should get Test API client', async () => {
+      const testApi = await client.getTestApi();
+      expect(testApi).toBeDefined();
+      expect(mockGetTestApi).toHaveBeenCalledTimes(1);
+    });
+
+    it('should get Release API client', async () => {
+      const releaseApi = await client.getReleaseApi();
+      expect(releaseApi).toBeDefined();
+      expect(mockGetReleaseApi).toHaveBeenCalledTimes(1);
+    });
+
+    it('should get Task Agent API client', async () => {
+      const taskAgentApi = await client.getTaskAgentApi();
+      expect(taskAgentApi).toBeDefined();
+      expect(mockGetTaskAgentApi).toHaveBeenCalledTimes(1);
+    });
+
+    it('should get Task API client', async () => {
+      const taskApi = await client.getTaskApi();
+      expect(taskApi).toBeDefined();
+      expect(mockGetTaskApi).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw authentication error if API call fails', async () => {
+      mockGetCoreApi.mockRejectedValue(new Error('API Error'));
+      await expect(client.getCoreApi()).rejects.toThrow(
+        AzureDevOpsAuthenticationError,
+      );
+    });
+
+    it('should rethrow AzureDevOpsError if API call fails with that error type', async () => {
+      const apiError = new AzureDevOpsError('API Error');
+      mockGetCoreApi.mockRejectedValue(apiError);
+      await expect(client.getCoreApi()).rejects.toThrow(apiError);
+    });
+
+    it('should handle error in getGitApi', async () => {
+      mockGetGitApi.mockRejectedValue(new Error('Git API Error'));
+      await expect(client.getGitApi()).rejects.toThrow(
+        AzureDevOpsAuthenticationError,
+      );
+      await expect(client.getGitApi()).rejects.toThrow('Failed to get Git API');
+    });
+
+    it('should handle non-Error instance in getGitApi', async () => {
+      mockGetGitApi.mockRejectedValue('String error');
+      await expect(client.getGitApi()).rejects.toThrow(
+        'Failed to get Git API: Unknown error',
+      );
+    });
+
+    it('should handle error in getWorkItemTrackingApi', async () => {
+      mockGetWorkItemTrackingApi.mockRejectedValue(
+        new Error('Work Item API Error'),
+      );
+      await expect(client.getWorkItemTrackingApi()).rejects.toThrow(
+        AzureDevOpsAuthenticationError,
+      );
+      await expect(client.getWorkItemTrackingApi()).rejects.toThrow(
+        'Failed to get Work Item Tracking API',
+      );
+    });
+
+    it('should handle non-Error instance in getWorkItemTrackingApi', async () => {
+      mockGetWorkItemTrackingApi.mockRejectedValue('String error');
+      await expect(client.getWorkItemTrackingApi()).rejects.toThrow(
+        'Failed to get Work Item Tracking API: Unknown error',
+      );
+    });
+
+    it('should handle error in getBuildApi', async () => {
+      mockGetBuildApi.mockRejectedValue(new Error('Build API Error'));
+      await expect(client.getBuildApi()).rejects.toThrow(
+        AzureDevOpsAuthenticationError,
+      );
+      await expect(client.getBuildApi()).rejects.toThrow(
+        'Failed to get Build API',
+      );
+    });
+
+    it('should handle non-Error instance in getBuildApi', async () => {
+      mockGetBuildApi.mockRejectedValue('String error');
+      await expect(client.getBuildApi()).rejects.toThrow(
+        'Failed to get Build API: Unknown error',
+      );
+    });
+
+    it('should handle error in getTestApi', async () => {
+      mockGetTestApi.mockRejectedValue(new Error('Test API Error'));
+      await expect(client.getTestApi()).rejects.toThrow(
+        AzureDevOpsAuthenticationError,
+      );
+      await expect(client.getTestApi()).rejects.toThrow(
+        'Failed to get Test API',
+      );
+    });
+
+    it('should handle non-Error instance in getTestApi', async () => {
+      mockGetTestApi.mockRejectedValue('String error');
+      await expect(client.getTestApi()).rejects.toThrow(
+        'Failed to get Test API: Unknown error',
+      );
+    });
+
+    it('should handle error in getReleaseApi', async () => {
+      mockGetReleaseApi.mockRejectedValue(new Error('Release API Error'));
+      await expect(client.getReleaseApi()).rejects.toThrow(
+        AzureDevOpsAuthenticationError,
+      );
+      await expect(client.getReleaseApi()).rejects.toThrow(
+        'Failed to get Release API',
+      );
+    });
+
+    it('should handle non-Error instance in getReleaseApi', async () => {
+      mockGetReleaseApi.mockRejectedValue('String error');
+      await expect(client.getReleaseApi()).rejects.toThrow(
+        'Failed to get Release API: Unknown error',
+      );
+    });
+
+    it('should handle error in getTaskAgentApi', async () => {
+      mockGetTaskAgentApi.mockRejectedValue(new Error('Task Agent API Error'));
+      await expect(client.getTaskAgentApi()).rejects.toThrow(
+        AzureDevOpsAuthenticationError,
+      );
+      await expect(client.getTaskAgentApi()).rejects.toThrow(
+        'Failed to get Task Agent API',
+      );
+    });
+
+    it('should handle non-Error instance in getTaskAgentApi', async () => {
+      mockGetTaskAgentApi.mockRejectedValue('String error');
+      await expect(client.getTaskAgentApi()).rejects.toThrow(
+        'Failed to get Task Agent API: Unknown error',
+      );
+    });
+
+    it('should handle error in getTaskApi', async () => {
+      mockGetTaskApi.mockRejectedValue(new Error('Task API Error'));
+      await expect(client.getTaskApi()).rejects.toThrow(
+        AzureDevOpsAuthenticationError,
+      );
+      await expect(client.getTaskApi()).rejects.toThrow(
+        'Failed to get Task API',
+      );
+    });
+
+    it('should handle non-Error instance in getTaskApi', async () => {
+      mockGetTaskApi.mockRejectedValue('String error');
+      await expect(client.getTaskApi()).rejects.toThrow(
+        'Failed to get Task API: Unknown error',
+      );
+    });
   });
 
-  it('should handle error from getWorkItemTrackingApi', async () => {
-    const mockClient = {
-      getWorkItemTrackingApi: jest
-        .fn()
-        .mockRejectedValue(new Error('Work Item API error')),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
+  describe('isAuthenticated', () => {
+    it('should return true if Core API is accessible', async () => {
+      const isAuth = await client.isAuthenticated();
+      expect(isAuth).toBe(true);
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
+    });
 
-    const client = new AzureDevOpsClient(config);
+    it('should return false if Core API is not accessible', async () => {
+      mockCreateAuthClient.mockRejectedValueOnce(new Error('API Error'));
+      const isAuth = await client.isAuthenticated();
+      expect(isAuth).toBe(false);
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
+    });
 
-    await expect(client.getWorkItemTrackingApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getWorkItemTrackingApi()).rejects.toThrow(
-      'Failed to get Work Item Tracking API: Work Item API error',
-    );
+    it('should return false for any error type in isAuthenticated', async () => {
+      mockCreateAuthClient.mockRejectedValueOnce(
+        new AzureDevOpsError('Auth Error'),
+      );
+      const isAuth = await client.isAuthenticated();
+      expect(isAuth).toBe(false);
+    });
+  });
+  
+  // Add tests from auth.test.ts for client functionality
+  describe('Authentication Method', () => {
+    it('should use PAT authentication method by default', () => {
+      const client = new AzureDevOpsClient({
+        method: AuthenticationMethod.PersonalAccessToken,
+        organizationUrl: 'https://dev.azure.com/test',
+        personalAccessToken: 'test-pat',
+      });
+
+      expect(client['config'].method).toBe(
+        AuthenticationMethod.PersonalAccessToken,
+      );
+    });
+
+    it('should detect Azure Identity auth method', () => {
+      const client = new AzureDevOpsClient({
+        method: AuthenticationMethod.AzureIdentity,
+        organizationUrl: 'https://dev.azure.com/test',
+      });
+
+      expect(client['config'].method).toBe(AuthenticationMethod.AzureIdentity);
+    });
+
+    it('should detect Azure CLI auth method', () => {
+      const client = new AzureDevOpsClient({
+        method: AuthenticationMethod.AzureCli,
+        organizationUrl: 'https://dev.azure.com/test',
+      });
+
+      expect(client['config'].method).toBe(AuthenticationMethod.AzureCli);
+    });
   });
 
-  it('should handle error from getBuildApi', async () => {
-    const mockClient = {
-      getBuildApi: jest.fn().mockRejectedValue(new Error('Build API error')),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
+  describe('Client Creation', () => {
+    it('should create client with the right configuration', () => {
+      const config: AuthConfig = {
+        method: AuthenticationMethod.PersonalAccessToken,
+        organizationUrl: 'https://dev.azure.com/test',
+        personalAccessToken: 'test-pat',
+      };
 
-    const client = new AzureDevOpsClient(config);
+      const client = new AzureDevOpsClient(config);
+      expect(client).toBeDefined();
+      expect(client['config']).toEqual(config);
+    });
 
-    await expect(client.getBuildApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getBuildApi()).rejects.toThrow(
-      'Failed to get Build API: Build API error',
-    );
-  });
+    it('should get WebApi client', async () => {
+      const config: AuthConfig = {
+        method: AuthenticationMethod.PersonalAccessToken,
+        organizationUrl: 'https://dev.azure.com/test',
+        personalAccessToken: 'test-pat',
+      };
 
-  it('should handle error from getTestApi', async () => {
-    const mockClient = {
-      getTestApi: jest.fn().mockRejectedValue(new Error('Test API error')),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getTestApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getTestApi()).rejects.toThrow(
-      'Failed to get Test API: Test API error',
-    );
-  });
-
-  it('should handle error from getReleaseApi', async () => {
-    const mockClient = {
-      getReleaseApi: jest
-        .fn()
-        .mockRejectedValue(new Error('Release API error')),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getReleaseApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getReleaseApi()).rejects.toThrow(
-      'Failed to get Release API: Release API error',
-    );
-  });
-
-  it('should handle error from getTaskAgentApi', async () => {
-    const mockClient = {
-      getTaskAgentApi: jest
-        .fn()
-        .mockRejectedValue(new Error('Task Agent API error')),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getTaskAgentApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getTaskAgentApi()).rejects.toThrow(
-      'Failed to get Task Agent API: Task Agent API error',
-    );
-  });
-
-  it('should handle error from getTaskApi', async () => {
-    const mockClient = {
-      getTaskApi: jest.fn().mockRejectedValue(new Error('Task API error')),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getTaskApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getTaskApi()).rejects.toThrow(
-      'Failed to get Task API: Task API error',
-    );
-  });
-
-  it('should handle non-Error objects in getClient', async () => {
-    (createAuthClient as jest.Mock).mockRejectedValueOnce('String error');
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getWebApiClient()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getWebApiClient()).rejects.toThrow(
-      'Authentication failed: Unknown error',
-    );
-  });
-
-  it('should handle getWebApiClient error', async () => {
-    (createAuthClient as jest.Mock).mockRejectedValueOnce(
-      new Error('Web API error'),
-    );
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getWebApiClient()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getWebApiClient()).rejects.toThrow(
-      'Authentication failed: Web API error',
-    );
-  });
-
-  it('should reuse the client instance', async () => {
-    const client = new AzureDevOpsClient(config);
-
-    await client.getCoreApi();
-    await client.getGitApi();
-
-    expect(createAuthClient).toHaveBeenCalledTimes(1);
-  });
-
-  // Tests for handling non-Error objects in API getter methods
-  it('should handle non-Error objects in getCoreApi', async () => {
-    const mockClient = {
-      getCoreApi: jest.fn().mockRejectedValue('String error'),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getCoreApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getCoreApi()).rejects.toThrow(
-      'Failed to get Core API: Unknown error',
-    );
-  });
-
-  it('should handle non-Error objects in getGitApi', async () => {
-    const mockClient = {
-      getGitApi: jest.fn().mockRejectedValue('String error'),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getGitApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getGitApi()).rejects.toThrow(
-      'Failed to get Git API: Unknown error',
-    );
-  });
-
-  it('should handle non-Error objects in getWorkItemTrackingApi', async () => {
-    const mockClient = {
-      getWorkItemTrackingApi: jest.fn().mockRejectedValue('String error'),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getWorkItemTrackingApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getWorkItemTrackingApi()).rejects.toThrow(
-      'Failed to get Work Item Tracking API: Unknown error',
-    );
-  });
-
-  it('should handle non-Error objects in getBuildApi', async () => {
-    const mockClient = {
-      getBuildApi: jest.fn().mockRejectedValue('String error'),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getBuildApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getBuildApi()).rejects.toThrow(
-      'Failed to get Build API: Unknown error',
-    );
-  });
-
-  it('should handle non-Error objects in getTestApi', async () => {
-    const mockClient = {
-      getTestApi: jest.fn().mockRejectedValue('String error'),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getTestApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getTestApi()).rejects.toThrow(
-      'Failed to get Test API: Unknown error',
-    );
-  });
-
-  it('should handle non-Error objects in getReleaseApi', async () => {
-    const mockClient = {
-      getReleaseApi: jest.fn().mockRejectedValue('String error'),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getReleaseApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getReleaseApi()).rejects.toThrow(
-      'Failed to get Release API: Unknown error',
-    );
-  });
-
-  it('should handle non-Error objects in getTaskAgentApi', async () => {
-    const mockClient = {
-      getTaskAgentApi: jest.fn().mockRejectedValue('String error'),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getTaskAgentApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getTaskAgentApi()).rejects.toThrow(
-      'Failed to get Task Agent API: Unknown error',
-    );
-  });
-
-  it('should handle non-Error objects in getTaskApi', async () => {
-    const mockClient = {
-      getTaskApi: jest.fn().mockRejectedValue('String error'),
-    };
-    (createAuthClient as jest.Mock).mockResolvedValueOnce(mockClient);
-
-    const client = new AzureDevOpsClient(config);
-
-    await expect(client.getTaskApi()).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-    await expect(client.getTaskApi()).rejects.toThrow(
-      'Failed to get Task API: Unknown error',
-    );
+      const client = new AzureDevOpsClient(config);
+      const webApi = await client.getWebApiClient();
+      expect(webApi).toBeDefined();
+    });
   });
 });
