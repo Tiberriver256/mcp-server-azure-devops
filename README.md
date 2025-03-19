@@ -43,12 +43,14 @@ The server is structured around the Model Context Protocol (MCP) for communicati
 ### Installation
 
 1. Clone the repository:
+
    ```
    git clone https://github.com/your-username/azure-devops-mcp.git
    cd azure-devops-mcp
    ```
 
 2. Install dependencies:
+
    ```
    npm install
    ```
@@ -56,11 +58,14 @@ The server is structured around the Model Context Protocol (MCP) for communicati
 3. Set up your environment:
 
    Option A: Using the automated setup script (recommended):
+
    ```
    chmod +x setup_env.sh
    ./setup_env.sh
    ```
+
    This script will:
+
    - Check for and install the Azure CLI DevOps extension if needed
    - Let you select from your available Azure DevOps organizations
    - Optionally set a default project
@@ -68,24 +73,29 @@ The server is structured around the Model Context Protocol (MCP) for communicati
    - Generate your `.env` file with the correct settings
 
    Option B: Manual setup:
+
    ```
    cp .env.example .env
    ```
+
    Then edit the `.env` file with your Azure DevOps credentials (see Authentication section below).
 
 ### Running the Server
 
 Build the TypeScript files:
+
 ```
 npm run build
 ```
 
 Start the server:
+
 ```
 npm start
 ```
 
 For development with hot reloading:
+
 ```
 npm run dev
 ```
@@ -108,26 +118,27 @@ For a complete list of environment variables and their descriptions, see the [Au
 
 Key environment variables include:
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `AZURE_DEVOPS_AUTH_METHOD` | Authentication method (`pat`, `azure-identity`, or `azure-cli`) | No | `azure-identity` |
-| `AZURE_DEVOPS_ORG` | Azure DevOps organization name | No | Extracted from URL |
-| `AZURE_DEVOPS_ORG_URL` | Full URL to your Azure DevOps organization | Yes | - |
-| `AZURE_DEVOPS_PAT` | Personal Access Token (for PAT auth) | Only with PAT auth | - |
-| `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified | No | - |
-| `AZURE_DEVOPS_API_VERSION` | API version to use | No | Latest |
-| `AZURE_AD_TENANT_ID` | Azure AD tenant ID (for AAD auth) | Only with AAD auth | - |
-| `AZURE_AD_CLIENT_ID` | Azure AD application ID (for AAD auth) | Only with AAD auth | - |
-| `AZURE_AD_CLIENT_SECRET` | Azure AD client secret (for AAD auth) | Only with AAD auth | - |
-| `PORT` | Server port | No | 3000 |
-| `HOST` | Server host | No | localhost |
-| `LOG_LEVEL` | Logging level (debug, info, warn, error) | No | info |
+| Variable                       | Description                                                     | Required           | Default            |
+| ------------------------------ | --------------------------------------------------------------- | ------------------ | ------------------ |
+| `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) | No                 | `azure-identity`   |
+| `AZURE_DEVOPS_ORG`             | Azure DevOps organization name                                  | No                 | Extracted from URL |
+| `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization                      | Yes                | -                  |
+| `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                            | Only with PAT auth | -                  |
+| `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                               | No                 | -                  |
+| `AZURE_DEVOPS_API_VERSION`     | API version to use                                              | No                 | Latest             |
+| `AZURE_AD_TENANT_ID`           | Azure AD tenant ID (for AAD auth)                               | Only with AAD auth | -                  |
+| `AZURE_AD_CLIENT_ID`           | Azure AD application ID (for AAD auth)                          | Only with AAD auth | -                  |
+| `AZURE_AD_CLIENT_SECRET`       | Azure AD client secret (for AAD auth)                           | Only with AAD auth | -                  |
+| `PORT`                         | Server port                                                     | No                 | 3000               |
+| `HOST`                         | Server host                                                     | No                 | localhost          |
+| `LOG_LEVEL`                    | Logging level (debug, info, warn, error)                        | No                 | info               |
 
 ## Troubleshooting Authentication
 
 For detailed troubleshooting information for each authentication method, see the [Authentication Guide](docs/authentication.md#troubleshooting-authentication-issues).
 
 Common issues include:
+
 - Invalid or expired credentials
 - Insufficient permissions
 - Network connectivity problems
@@ -142,6 +153,7 @@ For technical details about how authentication is implemented in the Azure DevOp
 The Azure DevOps MCP server provides a variety of tools for interacting with Azure DevOps resources. For detailed documentation on each tool, please refer to the corresponding documentation.
 
 ### Core Navigation Tools
+
 - `list_organizations`: List all accessible organizations
 - `list_projects`: List all accessible projects
 - `list_repositories`: List all repositories in a project
@@ -149,16 +161,19 @@ The Azure DevOps MCP server provides a variety of tools for interacting with Azu
 For comprehensive documentation on all core navigation tools, see the [Core Navigation Tools Guide](docs/tools/core-navigation.md).
 
 ### Project Tools
+
 - `get_project`: Get details of a specific project
 
 For project-specific tool documentation, see the [Projects Tools Guide](docs/tools/projects.md).
 
 ### Repository Tools
+
 - `get_repository`: Get repository details
 
 For repository-specific tool documentation, see the [Repositories Tools Guide](docs/tools/repositories.md).
 
 ### Work Item Tools
+
 - `get_work_item`: Retrieve a work item by ID
 - `create_work_item`: Create a new work item
 
@@ -177,6 +192,7 @@ npm run test:unit
 Integration tests require a connection to a real Azure DevOps instance. To run them:
 
 1. Ensure your `.env` file is configured with valid Azure DevOps credentials:
+
    ```
    AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization
    AZURE_DEVOPS_PAT=your-personal-access-token

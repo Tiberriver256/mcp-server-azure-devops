@@ -16,15 +16,15 @@ This tool uses the Azure DevOps WebApi client to interact with the Git API.
 
 ```json
 {
-  "projectId": "MyProject",  // Required: The ID or name of the project
-  "includeLinks": true       // Optional: Whether to include reference links
+  "projectId": "MyProject", // Required: The ID or name of the project
+  "includeLinks": true // Optional: Whether to include reference links
 }
 ```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `projectId` | string | Yes | The ID or name of the project containing the repositories |
-| `includeLinks` | boolean | No | Whether to include reference links in the repository objects |
+| Parameter      | Type    | Required | Description                                                  |
+| -------------- | ------- | -------- | ------------------------------------------------------------ |
+| `projectId`    | string  | Yes      | The ID or name of the project containing the repositories    |
+| `includeLinks` | boolean | No       | Whether to include reference links in the repository objects |
 
 ### Response
 
@@ -93,15 +93,15 @@ Error messages will be formatted as text and provide details about what went wro
 
 ```typescript
 // Basic example
-const repositories = await mcpClient.callTool("list_repositories", {
-  projectId: "MyProject"
+const repositories = await mcpClient.callTool('list_repositories', {
+  projectId: 'MyProject',
 });
 console.log(repositories);
 
 // Example with includeLinks parameter
-const repositoriesWithLinks = await mcpClient.callTool("list_repositories", {
-  projectId: "MyProject",
-  includeLinks: true
+const repositoriesWithLinks = await mcpClient.callTool('list_repositories', {
+  projectId: 'MyProject',
+  includeLinks: true,
 });
 console.log(repositoriesWithLinks);
 ```
@@ -118,4 +118,4 @@ This tool uses the Azure DevOps Node API's Git API to retrieve repositories:
 ### Related Tools
 
 - `get_repository`: Get details of a specific repository
-- `list_projects`: List all projects in the organization (to find project IDs) 
+- `list_projects`: List all projects in the organization (to find project IDs)

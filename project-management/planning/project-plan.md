@@ -5,9 +5,11 @@ Below is a comprehensive project plan for building an Azure DevOps MCP (Model Co
 ## Project Plan: Building an Azure DevOps MCP Server
 
 ### Objective
+
 Develop a reference server for the Model Context Protocol (MCP) that integrates with Azure DevOps. The server will mirror the functionality of the GitHub MCP server, tailored for Azure DevOps, using Typescript and the MCP SDK, and support an end-to-end AI-driven workflow from user story creation to pull request merging.
 
 ### Scope
+
 - **Functionalities**: Implement tools in six key areas:
   - Core Functionality (e.g., listing organizations, projects, repositories)
   - Repository Operations (e.g., creating/updating files, pushing changes)
@@ -20,6 +22,7 @@ Develop a reference server for the Model Context Protocol (MCP) that integrates 
 - **Documentation**: Provide setup instructions, tool descriptions, usage examples, and troubleshooting guidance.
 
 ### Success Criteria
+
 - The server passes all unit and integration tests.
 - It supports the end-to-end use case (user story to pull request).
 - It is secure, performant, and adheres to best practices.
@@ -30,6 +33,7 @@ Develop a reference server for the Model Context Protocol (MCP) that integrates 
 ## Project Features and Tasks
 
 ### 1. Planning and Setup
+
 - **Tasks**:
   - Define project scope, requirements, and success criteria.
   - Set up Azure Boards for task tracking.
@@ -44,6 +48,7 @@ Develop a reference server for the Model Context Protocol (MCP) that integrates 
   - Development environment ready with dependencies installed.
 
 ### 2. Research and Design
+
 - **Tasks**:
   - Finalize the list of tools to implement, including inputs and outputs.
   - Design the server architecture (e.g., tool organization, API integration).
@@ -54,29 +59,36 @@ Develop a reference server for the Model Context Protocol (MCP) that integrates 
   - Authentication design document.
 
 ### 3. Development
+
 The development focuses on implementing the tools, organized by functional area. Each area includes implementation and unit testing.
 
 - **Core Functionality**
+
   - Tools: `list_organizations`, `list_projects`, `list_repositories`, etc.
   - Objective: Enable basic navigation within Azure DevOps.
 
 - **Work Item Management**
+
   - Tools: `create_work_item`, `update_work_item`, `list_work_items`, etc.
   - Objective: Support user story and task management.
 
 - **Repository Operations**
+
   - Tools: `create_or_update_file`, `push_changes`, `get_file_contents`, etc.
   - Objective: Allow code reading and writing.
 
 - **Branch and Pull Request Management**
+
   - Tools: `create_branch`, `create_pull_request`, `merge_pull_request`, etc.
   - Objective: Manage branches and pull requests.
 
 - **Pipeline Interactions**
+
   - Tools: `trigger_pipeline`, `get_pipeline_status`, `list_pipelines`, etc.
   - Objective: Integrate with CI/CD pipelines.
 
 - **Search and Query**
+
   - Tools: `search_code`, `search_work_items`, `search_wiki`, etc.
   - Objective: Enable search across Azure DevOps entities.
 
@@ -85,6 +97,7 @@ The development focuses on implementing the tools, organized by functional area.
   - Updated tool documentation.
 
 ### 4. Integration and Testing
+
 - **Tasks**:
   - Integrate all tools into a cohesive server.
   - Conduct integration testing for the end-to-end use case.
@@ -96,6 +109,7 @@ The development focuses on implementing the tools, organized by functional area.
   - Bug fixes and optimizations.
 
 ### 5. Documentation and Release
+
 - **Tasks**:
   - Write setup and usage documentation (e.g., README.md).
   - Create usage examples and tutorials (e.g., integration with MCP clients).
@@ -110,16 +124,18 @@ The development focuses on implementing the tools, organized by functional area.
 ## Key Considerations
 
 ### Risks and Mitigation
+
 - **Risk**: Delays due to unfamiliarity with MCP or Azure DevOps APIs.
-  - *Mitigation*: Allocate research time and provide team training.
+  - _Mitigation_: Allocate research time and provide team training.
 - **Risk**: Authentication complexities (e.g., AAD integration).
-  - *Mitigation*: Prioritize PAT support, implement AAD as a secondary goal.
+  - _Mitigation_: Prioritize PAT support, implement AAD as a secondary goal.
 - **Risk**: Security vulnerabilities.
-  - *Mitigation*: Use secure credential storage, minimal permissions, and thorough testing.
+  - _Mitigation_: Use secure credential storage, minimal permissions, and thorough testing.
 - **Risk**: Performance issues with large datasets.
-  - *Mitigation*: Implement pagination and optimize API calls.
+  - _Mitigation_: Implement pagination and optimize API calls.
 
 ### Team and Resources
+
 - **Team**: 2-3 developers familiar with Typescript and REST APIs.
 - **Tools**:
   - Development: VS Code, Node.js, Typescript.
@@ -128,10 +144,12 @@ The development focuses on implementing the tools, organized by functional area.
 - **Access**: Azure DevOps instance for development and testing.
 
 ### Version Control and CI/CD
+
 - **Git**: Host the repository on GitHub or Azure DevOps.
 - **CI/CD**: Use Azure DevOps Pipelines for automated builds and testing.
 
 ### Documentation
+
 - **Content**:
   - Installation and configuration instructions.
   - Authentication setup (PAT and AAD).
@@ -141,12 +159,14 @@ The development focuses on implementing the tools, organized by functional area.
 - **Format**: README.md in the repository, supplemented by examples folder.
 
 ### Release
+
 - **Versioning**: Use semantic versioning (start at 0.1.0).
 - **Distribution**: Publish via GitHub releases or npm.
 
 ---
 
 ## Milestones and Deliverables
+
 - **Planning and Setup**: Repository, CI/CD pipeline, and environment ready.
 - **Research and Design**: Tool list, architecture, and authentication plan finalized.
 - **Development**: Functional tools with unit tests.

@@ -18,14 +18,17 @@ To run integration tests in the CI environment, you need to configure the follow
 4. Add each of the required secrets:
 
 #### AZURE_DEVOPS_ORG_URL
+
 - Name: `AZURE_DEVOPS_ORG_URL`
 - Value: `https://dev.azure.com/your-organization`
 
 #### AZURE_DEVOPS_PAT
+
 - Name: `AZURE_DEVOPS_PAT`
 - Value: Your Personal Access Token
 
 #### AZURE_DEVOPS_DEFAULT_PROJECT (optional)
+
 - Name: `AZURE_DEVOPS_DEFAULT_PROJECT`
 - Value: Your project name
 
@@ -55,4 +58,4 @@ If integration tests fail in CI:
 2. Verify that the PAT has not expired
 3. Ensure the PAT has the required permissions
 4. Confirm that the organization URL is correct
-5. Check if the default project exists and is accessible with the provided PAT 
+5. Check if the default project exists and is accessible with the provided PAT

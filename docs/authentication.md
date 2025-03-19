@@ -17,6 +17,7 @@ PAT authentication is the simplest method and works well for personal use or tes
 ### Setup Instructions
 
 1. **Generate a PAT in Azure DevOps**:
+
    - Go to https://dev.azure.com/{your-organization}/_usersSettings/tokens
    - Or click on your profile picture > Personal access tokens
    - Select "+ New Token"
@@ -69,6 +70,7 @@ This makes it ideal for applications that need to work in different environments
    The SDK is already included as a dependency in the Azure DevOps MCP Server.
 
 2. **Configure your `.env` file**:
+
    ```
    AZURE_DEVOPS_AUTH_METHOD=azure-identity
    AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization
@@ -78,18 +80,20 @@ This makes it ideal for applications that need to work in different environments
 3. **Set up credentials based on your environment**:
 
    a. **For service principals (client credentials)**:
-      ```
-      AZURE_TENANT_ID=your-tenant-id
-      AZURE_CLIENT_ID=your-client-id
-      AZURE_CLIENT_SECRET=your-client-secret
-      ```
+
+   ```
+   AZURE_TENANT_ID=your-tenant-id
+   AZURE_CLIENT_ID=your-client-id
+   AZURE_CLIENT_SECRET=your-client-secret
+   ```
 
    b. **For managed identities in Azure**:
-      No additional configuration needed if running in Azure with a managed identity.
+   No additional configuration needed if running in Azure with a managed identity.
 
    c. **For local development**:
-      - Log in with Azure CLI: `az login`
-      - Or use Visual Studio Code Azure Account extension
+
+   - Log in with Azure CLI: `az login`
+   - Or use Visual Studio Code Azure Account extension
 
 ### Security Considerations
 
@@ -105,9 +109,11 @@ Azure CLI authentication uses the `AzureCliCredential` class from the `@azure/id
 ### Setup Instructions
 
 1. **Install the Azure CLI**:
+
    - Follow the instructions at https://docs.microsoft.com/cli/azure/install-azure-cli
 
 2. **Log in to Azure**:
+
    ```bash
    az login
    ```
@@ -127,26 +133,28 @@ Azure CLI authentication uses the `AzureCliCredential` class from the `@azure/id
 
 ## Configuration Reference
 
-| Environment Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `AZURE_DEVOPS_AUTH_METHOD` | Authentication method (`pat`, `azure-identity`, or `azure-cli`) | No | `azure-identity` |
-| `AZURE_DEVOPS_ORG_URL` | Full URL to your Azure DevOps organization | Yes | - |
-| `AZURE_DEVOPS_PAT` | Personal Access Token (for PAT auth) | Only with PAT auth | - |
-| `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified | No | - |
-| `AZURE_DEVOPS_API_VERSION` | API version to use | No | Latest |
-| `AZURE_TENANT_ID` | Azure AD tenant ID (for service principals) | Only with service principals | - |
-| `AZURE_CLIENT_ID` | Azure AD application ID (for service principals) | Only with service principals | - |
-| `AZURE_CLIENT_SECRET` | Azure AD client secret (for service principals) | Only with service principals | - |
+| Environment Variable           | Description                                                     | Required                     | Default          |
+| ------------------------------ | --------------------------------------------------------------- | ---------------------------- | ---------------- |
+| `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) | No                           | `azure-identity` |
+| `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization                      | Yes                          | -                |
+| `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                            | Only with PAT auth           | -                |
+| `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                               | No                           | -                |
+| `AZURE_DEVOPS_API_VERSION`     | API version to use                                              | No                           | Latest           |
+| `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                     | Only with service principals | -                |
+| `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                | Only with service principals | -                |
+| `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                 | Only with service principals | -                |
 
 ## Troubleshooting Authentication Issues
 
 ### PAT Authentication Issues
 
 1. **Invalid PAT**: Ensure your PAT hasn't expired and has the required scopes
+
    - Error: `TF400813: The user 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' is not authorized to access this resource.`
    - Solution: Generate a new PAT with the correct scopes
 
 2. **Scope issues**: If receiving 403 errors, check if your PAT has the necessary permissions
+
    - Error: `TF401027: You need the Git 'Read' permission to perform this action.`
    - Solution: Update your PAT with the required scopes
 
@@ -157,10 +165,12 @@ Azure CLI authentication uses the `AzureCliCredential` class from the `@azure/id
 ### Azure Identity Authentication Issues
 
 1. **Missing credentials**: Ensure you have the necessary credentials configured
+
    - Error: `CredentialUnavailableError: DefaultAzureCredential failed to retrieve a token`
    - Solution: Check that you're logged in with Azure CLI or have environment variables set
 
 2. **Permission issues**: Verify your identity has the necessary permissions
+
    - Error: `AuthorizationFailed: The client does not have authorization to perform action`
    - Solution: Assign the appropriate roles to your identity
 
@@ -171,10 +181,12 @@ Azure CLI authentication uses the `AzureCliCredential` class from the `@azure/id
 ### Azure CLI Authentication Issues
 
 1. **CLI not installed**: Ensure Azure CLI is installed and in your PATH
+
    - Error: `AzureCliCredential authentication failed: Azure CLI not found`
    - Solution: Install Azure CLI
 
 2. **Not logged in**: Verify you're logged in to Azure CLI
+
    - Error: `AzureCliCredential authentication failed: Please run 'az login'`
    - Solution: Run `az login`
 
@@ -185,15 +197,18 @@ Azure CLI authentication uses the `AzureCliCredential` class from the `@azure/id
 ## Best Practices
 
 1. **Choose the right authentication method for your environment**:
+
    - For local development: Azure CLI or PAT
    - For CI/CD pipelines: PAT or service principal
    - For Azure-hosted applications: Managed Identity
 
 2. **Follow the principle of least privilege**:
+
    - Only grant the permissions needed for your use case
    - Regularly review and rotate credentials
 
 3. **Secure your credentials**:
+
    - Use environment variables or a secrets manager
    - Never commit credentials to source control
    - Set appropriate expiration dates for PATs
@@ -242,4 +257,4 @@ AZURE_CLIENT_SECRET=your-client-secret
 AZURE_DEVOPS_AUTH_METHOD=azure-cli
 AZURE_DEVOPS_ORG_URL=https://dev.azure.com/mycompany
 AZURE_DEVOPS_DEFAULT_PROJECT=MyProject
-``` 
+```

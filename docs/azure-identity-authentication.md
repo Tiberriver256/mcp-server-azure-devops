@@ -57,7 +57,7 @@ Implement a factory pattern to create the appropriate authentication provider ba
 // src/api/auth.ts
 export enum AuthMethod {
   PAT = 'pat',
-  AZURE_IDENTITY = 'azure-identity'
+  AZURE_IDENTITY = 'azure-identity',
 }
 
 export function createAuthProvider(config: AzureDevOpsConfig): AuthProvider {
@@ -80,59 +80,63 @@ Implement the Azure Identity authentication provider:
 export class AzureIdentityAuthProvider implements AuthProvider {
   private config: AzureDevOpsConfig;
   private connectionPromise: Promise<WebApi> | null = null;
-  
+
   constructor(config: AzureDevOpsConfig) {
     this.config = config;
   }
-  
+
   async getConnection(): Promise<WebApi> {
     if (!this.connectionPromise) {
       this.connectionPromise = this.createConnection();
     }
     return this.connectionPromise;
   }
-  
+
   private async createConnection(): Promise<WebApi> {
     try {
       // Azure DevOps resource ID for token scope
       const azureDevOpsResourceId = '499b84ac-1321-427f-aa17-267ca6975798';
-      
+
       // Create credential based on configuration
       const credential = this.createCredential();
-      
+
       // Get token for Azure DevOps
-      const token = await credential.getToken(`${azureDevOpsResourceId}/.default`);
-      
+      const token = await credential.getToken(
+        `${azureDevOpsResourceId}/.default`,
+      );
+
       if (!token) {
-        throw new AzureDevOpsAuthenticationError('Failed to acquire token from Azure Identity');
+        throw new AzureDevOpsAuthenticationError(
+          'Failed to acquire token from Azure Identity',
+        );
       }
-      
+
       // Create auth handler with token
       const authHandler = new BearerCredentialHandler(token.token);
-      
+
       // Create WebApi client
       const connection = new WebApi(this.config.organizationUrl, authHandler);
-      
+
       // Test the connection
       await connection.getLocationsApi();
-      
+
       return connection;
     } catch (error) {
       throw new AzureDevOpsAuthenticationError(
-        `Failed to authenticate with Azure Identity: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to authenticate with Azure Identity: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
-  
+
   private createCredential(): TokenCredential {
     if (this.config.azureIdentityOptions?.useAzureCliCredential) {
       return new AzureCliCredential();
     }
-    
+
     // Default to DefaultAzureCredential
     return new DefaultAzureCredential();
   }
-  
+
   async isAuthenticated(): Promise<boolean> {
     try {
       await this.getConnection();
@@ -156,7 +160,7 @@ export interface AzureDevOpsConfig {
   personalAccessToken?: string;
   defaultProject?: string;
   apiVersion?: string;
-  
+
   // New properties
   authMethod?: AuthMethod;
   azureIdentityOptions?: {
@@ -177,10 +181,12 @@ const config: AzureDevOpsConfig = {
   personalAccessToken: process.env.AZURE_DEVOPS_PAT,
   defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT,
   apiVersion: process.env.AZURE_DEVOPS_API_VERSION,
-  authMethod: (process.env.AZURE_DEVOPS_AUTH_METHOD as AuthMethod) || AuthMethod.PAT,
+  authMethod:
+    (process.env.AZURE_DEVOPS_AUTH_METHOD as AuthMethod) || AuthMethod.PAT,
   azureIdentityOptions: {
-    useAzureCliCredential: process.env.AZURE_DEVOPS_USE_CLI_CREDENTIAL === 'true'
-  }
+    useAzureCliCredential:
+      process.env.AZURE_DEVOPS_USE_CLI_CREDENTIAL === 'true',
+  },
 };
 ```
 
@@ -192,15 +198,15 @@ Update the `AzureDevOpsClient` class to use the authentication provider:
 // src/api/client.ts
 export class AzureDevOpsClient {
   private authProvider: AuthProvider;
-  
+
   constructor(config: AzureDevOpsConfig) {
     this.authProvider = createAuthProvider(config);
   }
-  
+
   private async getClient(): Promise<WebApi> {
     return this.authProvider.getConnection();
   }
-  
+
   // Rest of the class remains the same
 }
 ```
@@ -261,4 +267,4 @@ Update the README.md and other documentation to include information about the ne
 
 ## Conclusion
 
-This implementation approach provides a flexible and extensible way to add Azure Identity authentication support to the Azure DevOps MCP Server. It allows users to choose the authentication method that best suits their environment and needs, while maintaining backward compatibility with the existing PAT authentication method. 
+This implementation approach provides a flexible and extensible way to add Azure Identity authentication support to the Azure DevOps MCP Server. It allows users to choose the authentication method that best suits their environment and needs, while maintaining backward compatibility with the existing PAT authentication method.

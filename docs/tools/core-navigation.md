@@ -17,11 +17,11 @@ The core navigation tools allow you to explore this hierarchy from top to bottom
 
 ## Available Tools
 
-| Tool Name | Description | Required Parameters | Optional Parameters |
-|-----------|-------------|---------------------|---------------------|
-| [`list_organizations`](./organizations.md#list_organizations) | Lists all Azure DevOps organizations accessible to the user | None | None |
-| [`list_projects`](./projects.md#list_projects) | Lists all projects in the organization | None | stateFilter, top, skip, continuationToken |
-| [`list_repositories`](./repositories.md#list_repositories) | Lists all repositories in a project | projectId | includeLinks |
+| Tool Name                                                     | Description                                                 | Required Parameters | Optional Parameters                       |
+| ------------------------------------------------------------- | ----------------------------------------------------------- | ------------------- | ----------------------------------------- |
+| [`list_organizations`](./organizations.md#list_organizations) | Lists all Azure DevOps organizations accessible to the user | None                | None                                      |
+| [`list_projects`](./projects.md#list_projects)                | Lists all projects in the organization                      | None                | stateFilter, top, skip, continuationToken |
+| [`list_repositories`](./repositories.md#list_repositories)    | Lists all repositories in a project                         | projectId           | includeLinks                              |
 
 ## Common Use Cases
 
@@ -37,16 +37,16 @@ Example:
 
 ```typescript
 // Step 1: Get all organizations
-const organizations = await mcpClient.callTool("list_organizations", {});
+const organizations = await mcpClient.callTool('list_organizations', {});
 const myOrg = organizations[0]; // Use the first organization for this example
 
 // Step 2: Get all projects in the organization
-const projects = await mcpClient.callTool("list_projects", {});
+const projects = await mcpClient.callTool('list_projects', {});
 const myProject = projects[0]; // Use the first project for this example
 
 // Step 3: Get all repositories in the project
-const repositories = await mcpClient.callTool("list_repositories", {
-  projectId: myProject.name
+const repositories = await mcpClient.callTool('list_repositories', {
+  projectId: myProject.name,
 });
 ```
 
@@ -56,8 +56,8 @@ You can filter projects based on their state:
 
 ```typescript
 // Get only well-formed projects (state = 1)
-const wellFormedProjects = await mcpClient.callTool("list_projects", {
-  stateFilter: 1
+const wellFormedProjects = await mcpClient.callTool('list_projects', {
+  stateFilter: 1,
 });
 ```
 
@@ -67,15 +67,15 @@ For organizations with many projects or repositories, you can use pagination:
 
 ```typescript
 // Get projects with pagination (first 10 projects)
-const firstPage = await mcpClient.callTool("list_projects", {
+const firstPage = await mcpClient.callTool('list_projects', {
   top: 10,
-  skip: 0
+  skip: 0,
 });
 
 // Get the next 10 projects
-const secondPage = await mcpClient.callTool("list_projects", {
+const secondPage = await mcpClient.callTool('list_projects', {
   top: 10,
-  skip: 10
+  skip: 10,
 });
 ```
 
@@ -89,4 +89,4 @@ For detailed information about each tool, including parameters, response format,
 
 ## Error Handling
 
-Each of these tools may throw various errors, such as authentication errors or permission errors. Be sure to implement proper error handling when using these tools. Refer to the individual tool documentation for specific error types that each tool might throw. 
+Each of these tools may throw various errors, such as authentication errors or permission errors. Be sure to implement proper error handling when using these tools. Refer to the individual tool documentation for specific error types that each tool might throw.

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // Base schemas for common types
 export const GitHubAuthorSchema = z.object({
@@ -40,7 +40,7 @@ export const GitHubRepositorySchema = z.object({
 export const GithubFileContentLinks = z.object({
   self: z.string(),
   git: z.string().nullable(),
-  html: z.string().nullable()
+  html: z.string().nullable(),
 });
 
 export const GitHubFileContentSchema = z.object({
@@ -55,7 +55,7 @@ export const GitHubFileContentSchema = z.object({
   type: z.string(),
   content: z.string().optional(),
   encoding: z.string().optional(),
-  _links: GithubFileContentLinks
+  _links: GithubFileContentLinks,
 });
 
 export const GitHubDirectoryContentSchema = z.object({
@@ -77,8 +77,8 @@ export const GitHubContentSchema = z.union([
 
 export const GitHubTreeEntrySchema = z.object({
   path: z.string(),
-  mode: z.enum(["100644", "100755", "040000", "160000", "120000"]),
-  type: z.enum(["blob", "tree", "commit"]),
+  mode: z.enum(['100644', '100755', '040000', '160000', '120000']),
+  type: z.enum(['blob', 'tree', 'commit']),
   size: z.number().optional(),
   sha: z.string(),
   url: z.string(),
@@ -106,28 +106,30 @@ export const GitHubCommitSchema = z.object({
     z.object({
       sha: z.string(),
       url: z.string(),
-    })
+    }),
   ),
 });
 
-export const GitHubListCommitsSchema = z.array(z.object({
-  sha: z.string(),
-  node_id: z.string(),
-  commit: z.object({
-    author: GitHubAuthorSchema,
-    committer: GitHubAuthorSchema,
-    message: z.string(),
-    tree: z.object({
-      sha: z.string(),
-      url: z.string()
+export const GitHubListCommitsSchema = z.array(
+  z.object({
+    sha: z.string(),
+    node_id: z.string(),
+    commit: z.object({
+      author: GitHubAuthorSchema,
+      committer: GitHubAuthorSchema,
+      message: z.string(),
+      tree: z.object({
+        sha: z.string(),
+        url: z.string(),
+      }),
+      url: z.string(),
+      comment_count: z.number(),
     }),
     url: z.string(),
-    comment_count: z.number(),
+    html_url: z.string(),
+    comments_url: z.string(),
   }),
-  url: z.string(),
-  html_url: z.string(),
-  comments_url: z.string()
-}));
+);
 
 export const GitHubReferenceSchema = z.object({
   ref: z.string(),
@@ -244,7 +246,9 @@ export const GitHubPullRequestSchema = z.object({
 export type GitHubAuthor = z.infer<typeof GitHubAuthorSchema>;
 export type GitHubRepository = z.infer<typeof GitHubRepositorySchema>;
 export type GitHubFileContent = z.infer<typeof GitHubFileContentSchema>;
-export type GitHubDirectoryContent = z.infer<typeof GitHubDirectoryContentSchema>;
+export type GitHubDirectoryContent = z.infer<
+  typeof GitHubDirectoryContentSchema
+>;
 export type GitHubContent = z.infer<typeof GitHubContentSchema>;
 export type GitHubTree = z.infer<typeof GitHubTreeSchema>;
 export type GitHubCommit = z.infer<typeof GitHubCommitSchema>;

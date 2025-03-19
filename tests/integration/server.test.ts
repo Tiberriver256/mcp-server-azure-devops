@@ -1,5 +1,5 @@
 import { createAzureDevOpsServer, testConnection } from '../../src/server';
-import { AzureDevOpsConfig } from '../../src/types/config';
+import { AzureDevOpsConfig } from '../../src/shared/types';
 import * as dotenv from 'dotenv';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 
@@ -22,21 +22,28 @@ describe('Azure DevOps MCP Server Integration', () => {
 
     // Check if credentials are available
     if (!process.env.AZURE_DEVOPS_ORG_URL || !process.env.AZURE_DEVOPS_PAT) {
-      console.warn('No Azure DevOps credentials provided. Some tests will be skipped.');
+      console.warn(
+        'No Azure DevOps credentials provided. Some tests will be skipped.',
+      );
       skipTests = true;
     } else {
-      console.log(`Using Azure DevOps organization: ${process.env.AZURE_DEVOPS_ORG_URL}`);
+      console.log(
+        `Using Azure DevOps organization: ${process.env.AZURE_DEVOPS_ORG_URL}`,
+      );
       if (process.env.AZURE_DEVOPS_DEFAULT_PROJECT) {
-        console.log(`Using default project: ${process.env.AZURE_DEVOPS_DEFAULT_PROJECT}`);
+        console.log(
+          `Using default project: ${process.env.AZURE_DEVOPS_DEFAULT_PROJECT}`,
+        );
       }
     }
 
     // Use real credentials if available, otherwise use mock credentials for basic tests
     config = {
-      organizationUrl: process.env.AZURE_DEVOPS_ORG_URL || 'https://dev.azure.com/mock-org',
+      organizationUrl:
+        process.env.AZURE_DEVOPS_ORG_URL || 'https://dev.azure.com/mock-org',
       personalAccessToken: process.env.AZURE_DEVOPS_PAT || 'mock-pat',
       defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT,
-      apiVersion: process.env.AZURE_DEVOPS_API_VERSION
+      apiVersion: process.env.AZURE_DEVOPS_API_VERSION,
     };
 
     server = createAzureDevOpsServer(config);
@@ -53,7 +60,7 @@ describe('Azure DevOps MCP Server Integration', () => {
       const result = await testConnection(config);
       expect(result).toBe(true);
     },
-    30000 // 30 second timeout for network operations
+    30000, // 30 second timeout for network operations
   );
 
   it('should connect to a transport', async () => {
@@ -63,7 +70,7 @@ describe('Azure DevOps MCP Server Integration', () => {
       onMessage: jest.fn(),
       sendMessage: jest.fn(),
       send: jest.fn(),
-      close: jest.fn()
+      close: jest.fn(),
     };
 
     // Mock the connect method
@@ -73,4 +80,4 @@ describe('Azure DevOps MCP Server Integration', () => {
     await server.connect(mockTransport as any);
     expect(server.connect).toHaveBeenCalledWith(mockTransport);
   });
-}); 
+});

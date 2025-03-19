@@ -1,26 +1,51 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+} from '@modelcontextprotocol/sdk/types.js';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { WebApi } from 'azure-devops-node-api';
-import { VERSION } from "./config/version";
-import { AzureDevOpsConfig } from "./types/config";
-import { 
-  AzureDevOpsAuthenticationError, 
+import { VERSION } from './shared/config';
+import { AzureDevOpsConfig } from './shared/types';
+import {
+  AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-  isAzureDevOpsError
-} from "./common/errors";
-import { AuthenticationMethod, AzureDevOpsClient } from './auth';
+  isAzureDevOpsError,
+} from './shared/errors';
+import { AuthenticationMethod, AzureDevOpsClient } from './shared/auth';
 
-// Import our operation modules
-import * as projects from './operations/projects';
-import * as workitems from './operations/workitems';
-import * as repositories from './operations/repositories';
-import * as organizations from './operations/organizations';
+// Import our new feature modules
+import {
+  ListWorkItemsSchema,
+  GetWorkItemSchema,
+  CreateWorkItemSchema,
+  UpdateWorkItemSchema,
+  listWorkItems,
+  getWorkItem,
+  createWorkItem,
+  updateWorkItem,
+} from './features/work-items';
+
+import {
+  GetProjectSchema,
+  ListProjectsSchema,
+  getProject,
+  listProjects,
+} from './features/projects';
+
+import {
+  GetRepositorySchema,
+  ListRepositoriesSchema,
+  getRepository,
+  listRepositories,
+} from './features/repositories';
+
+import {
+  ListOrganizationsSchema,
+  listOrganizations,
+} from './features/organizations';
 
 // Create a safe console logging function that won't interfere with MCP protocol
 function safeLog(message: string) {
@@ -29,79 +54,80 @@ function safeLog(message: string) {
 
 /**
  * Create an Azure DevOps MCP Server
- * 
+ *
  * @param config The Azure DevOps configuration
  * @returns A configured MCP server instance
  */
 export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
   // Validate the configuration
   validateConfig(config);
-  
+
   // Initialize the MCP server
   const server = new Server(
     {
-      name: "azure-devops-mcp",
+      name: 'azure-devops-mcp',
       version: VERSION,
     },
     {
       capabilities: {
         tools: {},
       },
-    }
+    },
   );
 
   // Register the ListTools request handler
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
+  server.setRequestHandler(ListToolsRequestSchema, () => {
     return {
       tools: [
         // Organization tools
         {
-          name: "list_organizations",
-          description: "List all Azure DevOps organizations accessible to the authenticated user",
-          inputSchema: zodToJsonSchema(organizations.ListOrganizationsSchema),
+          name: 'list_organizations',
+          description:
+            'List all Azure DevOps organizations accessible to the current authentication',
+          inputSchema: zodToJsonSchema(ListOrganizationsSchema),
         },
         // Project tools
         {
-          name: "list_projects",
-          description: "List all projects in the Azure DevOps organization",
-          inputSchema: zodToJsonSchema(projects.ListProjectsSchema),
+          name: 'list_projects',
+          description: 'List all projects in an organization',
+          inputSchema: zodToJsonSchema(ListProjectsSchema),
         },
         {
-          name: "get_project",
-          description: "Get details of a specific project",
-          inputSchema: zodToJsonSchema(projects.GetProjectSchema),
+          name: 'get_project',
+          description: 'Get details of a specific project',
+          inputSchema: zodToJsonSchema(GetProjectSchema),
         },
         // Work item tools
         {
-          name: "get_work_item",
-          description: "Get details of a specific work item",
-          inputSchema: zodToJsonSchema(workitems.GetWorkItemSchema),
+          name: 'get_work_item',
+          description: 'Get details of a specific work item',
+          inputSchema: zodToJsonSchema(GetWorkItemSchema),
         },
         {
-          name: "list_work_items",
-          description: "List work items in a project",
-          inputSchema: zodToJsonSchema(workitems.ListWorkItemsSchema),
+          name: 'list_work_items',
+          description: 'List work items in a project',
+          inputSchema: zodToJsonSchema(ListWorkItemsSchema),
         },
         {
-          name: "create_work_item",
-          description: "Create a new work item in a project",
-          inputSchema: zodToJsonSchema(workitems.CreateWorkItemSchema),
+          name: 'create_work_item',
+          description: 'Create a new work item',
+          inputSchema: zodToJsonSchema(CreateWorkItemSchema),
         },
         {
-          name: "update_work_item",
-          description: "Update an existing work item",
-          inputSchema: zodToJsonSchema(workitems.UpdateWorkItemSchema),
+          name: 'update_work_item',
+          description: 'Update an existing work item',
+          inputSchema: zodToJsonSchema(UpdateWorkItemSchema),
         },
         // Repository tools
         {
-          name: "get_repository",
-          description: "Get details of a specific repository",
-          inputSchema: zodToJsonSchema(repositories.GetRepositorySchema),
+          name: 'get_repository',
+          description: 'Get details of a specific repository',
+          inputSchema: zodToJsonSchema(GetRepositorySchema),
         },
         {
-          name: "list_repositories",
-          description: "List repositories in a project",
-          inputSchema: zodToJsonSchema(repositories.ListRepositoriesSchema),
+          name: 'list_repositories',
+          description: 'List repositories in a project',
+          inputSchema: zodToJsonSchema(ListRepositoriesSchema),
         },
       ],
     };
@@ -111,7 +137,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     try {
       if (!request.params.arguments) {
-        throw new AzureDevOpsValidationError("Arguments are required");
+        throw new AzureDevOpsValidationError('Arguments are required');
       }
 
       // Get a connection to Azure DevOps
@@ -121,50 +147,47 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         // Organization tools
         case 'list_organizations': {
           // Parse arguments but they're not used since this tool doesn't have parameters
-          organizations.ListOrganizationsSchema.parse(request.params.arguments);
-          const result = await organizations.listOrganizations(config);
+          ListOrganizationsSchema.parse(request.params.arguments);
+          const result = await listOrganizations(config);
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
-        
+
         // Project tools
         case 'list_projects': {
-          const args = projects.ListProjectsSchema.parse(request.params.arguments);
-          const result = await projects.listProjects(connection, args);
+          const args = ListProjectsSchema.parse(request.params.arguments);
+          const result = await listProjects(connection, args);
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
         case 'get_project': {
-          const args = projects.GetProjectSchema.parse(request.params.arguments);
-          const result = await projects.getProject(connection, args.projectId);
+          const args = GetProjectSchema.parse(request.params.arguments);
+          const result = await getProject(connection, args.projectId);
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
-        
+
         // Work item tools
         case 'get_work_item': {
-          const args = workitems.GetWorkItemSchema.parse(request.params.arguments);
-          const result = await workitems.getWorkItem(
-            connection,
-            args.workItemId
-          );
+          const args = GetWorkItemSchema.parse(request.params.arguments);
+          const result = await getWorkItem(connection, args.workItemId);
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
         case 'list_work_items': {
-          const args = workitems.ListWorkItemsSchema.parse(request.params.arguments);
-          const result = await workitems.listWorkItems(connection, args);
+          const args = ListWorkItemsSchema.parse(request.params.arguments);
+          const result = await listWorkItems(connection, args);
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
         case 'create_work_item': {
-          const args = workitems.CreateWorkItemSchema.parse(request.params.arguments);
-          const result = await workitems.createWorkItem(
+          const args = CreateWorkItemSchema.parse(request.params.arguments);
+          const result = await createWorkItem(
             connection,
             args.projectId,
             args.workItemType,
@@ -175,67 +198,63 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
               areaPath: args.areaPath,
               iterationPath: args.iterationPath,
               priority: args.priority,
-              additionalFields: args.additionalFields
-            }
+              additionalFields: args.additionalFields,
+            },
           );
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
         case 'update_work_item': {
-          const args = workitems.UpdateWorkItemSchema.parse(request.params.arguments);
-          const result = await workitems.updateWorkItem(
-            connection,
-            args.workItemId,
-            {
-              title: args.title,
-              description: args.description,
-              assignedTo: args.assignedTo,
-              areaPath: args.areaPath,
-              iterationPath: args.iterationPath,
-              priority: args.priority,
-              state: args.state,
-              additionalFields: args.additionalFields
-            }
-          );
+          const args = UpdateWorkItemSchema.parse(request.params.arguments);
+          const result = await updateWorkItem(connection, args.workItemId, {
+            title: args.title,
+            description: args.description,
+            assignedTo: args.assignedTo,
+            areaPath: args.areaPath,
+            iterationPath: args.iterationPath,
+            priority: args.priority,
+            state: args.state,
+            additionalFields: args.additionalFields,
+          });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
-        
+
         // Repository tools
         case 'get_repository': {
-          const args = repositories.GetRepositorySchema.parse(request.params.arguments);
-          const result = await repositories.getRepository(
+          const args = GetRepositorySchema.parse(request.params.arguments);
+          const result = await getRepository(
             connection,
             args.projectId,
-            args.repositoryId
+            args.repositoryId,
           );
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
         case 'list_repositories': {
-          const args = repositories.ListRepositoriesSchema.parse(request.params.arguments);
-          const result = await repositories.listRepositories(connection, args);
+          const args = ListRepositoriesSchema.parse(request.params.arguments);
+          const result = await listRepositories(connection, args);
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
-        
+
         default:
           throw new Error(`Unknown tool: ${request.params.name}`);
       }
     } catch (error) {
       safeLog(`Error handling tool call: ${error}`);
-      
+
       // Format the error message
       const errorMessage = isAzureDevOpsError(error)
         ? formatAzureDevOpsError(error)
         : `Error: ${error instanceof Error ? error.message : String(error)}`;
-      
+
       return {
-        content: [{ type: "text", text: errorMessage }],
+        content: [{ type: 'text', text: errorMessage }],
       };
     }
   });
@@ -245,13 +264,13 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
 
 /**
  * Format an Azure DevOps error for display
- * 
+ *
  * @param error The error to format
  * @returns Formatted error message
  */
 function formatAzureDevOpsError(error: AzureDevOpsError): string {
   let message = `Azure DevOps API Error: ${error.message}`;
-  
+
   if (error instanceof AzureDevOpsValidationError) {
     message = `Validation Error: ${error.message}`;
   } else if (error instanceof AzureDevOpsResourceNotFoundError) {
@@ -265,7 +284,7 @@ function formatAzureDevOpsError(error: AzureDevOpsError): string {
 
 /**
  * Validate the Azure DevOps configuration
- * 
+ *
  * @param config The configuration to validate
  * @throws {AzureDevOpsValidationError} If the configuration is invalid
  */
@@ -280,45 +299,56 @@ function validateConfig(config: AzureDevOpsConfig): void {
   }
 
   // Validate PAT if using PAT authentication
-  if (config.authMethod === AuthenticationMethod.PersonalAccessToken && !config.personalAccessToken) {
-    throw new AzureDevOpsValidationError('Personal Access Token is required for PAT authentication');
+  if (
+    config.authMethod === AuthenticationMethod.PersonalAccessToken &&
+    !config.personalAccessToken
+  ) {
+    throw new AzureDevOpsValidationError(
+      'Personal Access Token is required for PAT authentication',
+    );
   }
 }
 
 /**
  * Get an authenticated connection to Azure DevOps
- * 
+ *
  * @param config The Azure DevOps configuration
  * @returns An authenticated WebApi client
  * @throws {AzureDevOpsAuthenticationError} If authentication fails
  */
-export async function getConnection(config: AzureDevOpsConfig): Promise<WebApi> {
+export async function getConnection(
+  config: AzureDevOpsConfig,
+): Promise<WebApi> {
   try {
     // Create a client with the appropriate authentication method
     const client = new AzureDevOpsClient({
       method: config.authMethod || AuthenticationMethod.PersonalAccessToken,
       organizationUrl: config.organizationUrl,
-      personalAccessToken: config.personalAccessToken
+      personalAccessToken: config.personalAccessToken,
     });
-    
+
     // Test the connection by getting the Core API
     await client.getCoreApi();
-    
+
     // Return the underlying WebApi client
     return await client.getWebApiClient();
   } catch (error) {
     safeLog(`Connection error details: ${error}`);
-    throw new AzureDevOpsAuthenticationError(`Failed to authenticate with Azure DevOps: ${error instanceof Error ? error.message : String(error)}`);
+    throw new AzureDevOpsAuthenticationError(
+      `Failed to authenticate with Azure DevOps: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
 /**
  * Test the connection to Azure DevOps
- * 
+ *
  * @param config The Azure DevOps configuration
  * @returns True if the connection is successful, false otherwise
  */
-export async function testConnection(config: AzureDevOpsConfig): Promise<boolean> {
+export async function testConnection(
+  config: AzureDevOpsConfig,
+): Promise<boolean> {
   try {
     safeLog(`Testing connection to ${config.organizationUrl}...`);
     await getConnection(config);

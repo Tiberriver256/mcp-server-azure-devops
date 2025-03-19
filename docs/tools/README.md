@@ -13,17 +13,21 @@ This directory contains documentation for all tools available in the Azure DevOp
 ## Tools by Category
 
 ### Organization Tools
+
 - [`list_organizations`](./organizations.md#list_organizations) - List all Azure DevOps organizations accessible to the user
 
 ### Project Tools
+
 - [`list_projects`](./projects.md#list_projects) - List all projects in the organization
 - [`get_project`](./projects.md#get_project) - Get details of a specific project
 
 ### Repository Tools
+
 - [`list_repositories`](./repositories.md#list_repositories) - List all repositories in a project
 - [`get_repository`](./repositories.md#get_repository) - Get details of a specific repository
 
 ### Work Item Tools
+
 - [`get_work_item`](./work-items.md#get_work_item) - Retrieve a work item by ID
 - [`create_work_item`](./work-items.md#create_work_item) - Create a new work item
 - [`list_work_items`](./work-items.md#list_work_items) - List work items in a project
@@ -41,4 +45,4 @@ Each tool documentation follows a consistent structure:
 
 ## Examples
 
-Examples of using multiple tools together can be found in the [Core Navigation Tools](./core-navigation.md#common-use-cases) documentation. 
+Examples of using multiple tools together can be found in the [Core Navigation Tools](./core-navigation.md#common-use-cases) documentation.

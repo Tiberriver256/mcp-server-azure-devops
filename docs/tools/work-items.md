@@ -14,10 +14,10 @@ Retrieves a work item by its ID.
 
 ### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `workItemId` | number | Yes | The ID of the work item to retrieve |
-| `expand` | string | No | Controls the level of detail in the response (e.g., "All", "Relations", "Fields") |
+| Parameter    | Type   | Required | Description                                                                       |
+| ------------ | ------ | -------- | --------------------------------------------------------------------------------- |
+| `workItemId` | number | Yes      | The ID of the work item to retrieve                                               |
+| `expand`     | string | No       | Controls the level of detail in the response (e.g., "All", "Relations", "Fields") |
 
 ### Response
 
@@ -46,7 +46,7 @@ Returns a work item object with the following structure:
 
 ```javascript
 const result = await callTool('get_work_item', {
-  workItemId: 123
+  workItemId: 123,
 });
 ```
 
@@ -56,17 +56,17 @@ Creates a new work item in a specified project.
 
 ### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `projectId` | string | Yes | The ID or name of the project where the work item will be created |
-| `workItemType` | string | Yes | The type of work item to create (e.g., "Task", "Bug", "User Story") |
-| `title` | string | Yes | The title of the work item |
-| `description` | string | No | The description of the work item |
-| `assignedTo` | string | No | The email or name of the user to assign the work item to |
-| `areaPath` | string | No | The area path for the work item |
-| `iterationPath` | string | No | The iteration path for the work item |
-| `priority` | number | No | The priority of the work item |
-| `additionalFields` | object | No | Additional fields to set on the work item (key-value pairs) |
+| Parameter          | Type   | Required | Description                                                         |
+| ------------------ | ------ | -------- | ------------------------------------------------------------------- |
+| `projectId`        | string | Yes      | The ID or name of the project where the work item will be created   |
+| `workItemType`     | string | Yes      | The type of work item to create (e.g., "Task", "Bug", "User Story") |
+| `title`            | string | Yes      | The title of the work item                                          |
+| `description`      | string | No       | The description of the work item                                    |
+| `assignedTo`       | string | No       | The email or name of the user to assign the work item to            |
+| `areaPath`         | string | No       | The area path for the work item                                     |
+| `iterationPath`    | string | No       | The iteration path for the work item                                |
+| `priority`         | number | No       | The priority of the work item                                       |
+| `additionalFields` | object | No       | Additional fields to set on the work item (key-value pairs)         |
 
 ### Response
 
@@ -102,12 +102,13 @@ const result = await callTool('create_work_item', {
   projectId: 'my-project',
   workItemType: 'User Story',
   title: 'Implement login functionality',
-  description: 'Create a secure login system with email and password authentication',
+  description:
+    'Create a secure login system with email and password authentication',
   assignedTo: 'developer@example.com',
   priority: 1,
   additionalFields: {
-    'Custom.Field': 'Custom Value'
-  }
+    'Custom.Field': 'Custom Value',
+  },
 });
 ```
 
@@ -121,14 +122,14 @@ Lists work items in a specified project.
 
 ### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `projectId` | string | Yes | The ID or name of the project to list work items from |
-| `teamId` | string | No | The ID of the team to list work items for |
-| `queryId` | string | No | ID of a saved work item query |
-| `wiql` | string | No | Work Item Query Language (WIQL) query |
-| `top` | number | No | Maximum number of work items to return |
-| `skip` | number | No | Number of work items to skip |
+| Parameter   | Type   | Required | Description                                           |
+| ----------- | ------ | -------- | ----------------------------------------------------- |
+| `projectId` | string | Yes      | The ID or name of the project to list work items from |
+| `teamId`    | string | No       | The ID of the team to list work items for             |
+| `queryId`   | string | No       | ID of a saved work item query                         |
+| `wiql`      | string | No       | Work Item Query Language (WIQL) query                 |
+| `top`       | number | No       | Maximum number of work items to return                |
+| `skip`      | number | No       | Number of work items to skip                          |
 
 ### Response
 
@@ -169,6 +170,6 @@ Returns an array of work item objects:
 const result = await callTool('list_work_items', {
   projectId: 'my-project',
   wiql: "SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = 'Task' ORDER BY [System.CreatedDate] DESC",
-  top: 10
+  top: 10,
 });
-``` 
+```

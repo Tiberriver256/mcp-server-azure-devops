@@ -30,4 +30,4 @@ npm start
 
 ## Additional Resources
 
-For more detailed information about authentication methods, setup instructions, and troubleshooting, refer to the [Authentication Guide](../authentication.md). 
+For more detailed information about authentication methods, setup instructions, and troubleshooting, refer to the [Authentication Guide](../authentication.md).

@@ -58,7 +58,7 @@ The tool may throw the following errors:
 
 ```typescript
 // Example MCP client call
-const result = await mcpClient.callTool("list_organizations", {});
+const result = await mcpClient.callTool('list_organizations', {});
 console.log(result);
 ```
 
@@ -70,4 +70,4 @@ This tool uses a two-step process to retrieve organizations:
 2. Then it extracts the `publicAlias` from the profile response
 3. Finally, it uses the `publicAlias` to get organizations from `https://app.vssps.visualstudio.com/_apis/accounts?memberId={publicAlias}`
 
-Authentication is handled using Basic Auth with the Personal Access Token. 
+Authentication is handled using Basic Auth with the Personal Access Token.
