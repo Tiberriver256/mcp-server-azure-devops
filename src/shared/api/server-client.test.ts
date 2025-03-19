@@ -1,26 +1,30 @@
 import { WebApi } from 'azure-devops-node-api';
-import { AzureDevOpsClient } from '../../../src/api/client';
+import { AzureDevOpsClient } from '../auth/client-factory';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
-} from '../../../src/common/errors';
-import * as auth from '../../../src/api/auth';
+} from '../errors/azure-devops-errors';
+import {
+  AuthConfig,
+  AuthenticationMethod,
+  createAuthClient,
+} from '../auth/auth-factory';
 
 // Mock the azure-devops-node-api module
 jest.mock('azure-devops-node-api');
 // Mock the auth module
-jest.mock('../../../src/api/auth');
+jest.mock('../auth/auth-factory');
 
 const MockWebApi = WebApi as jest.MockedClass<typeof WebApi>;
-const mockCreateAuthenticatedClient =
-  auth.createAuthenticatedClient as jest.MockedFunction<
-    typeof auth.createAuthenticatedClient
-  >;
+const mockCreateAuthClient = createAuthClient as jest.MockedFunction<
+  typeof createAuthClient
+>;
 
 describe('AzureDevOpsClient', () => {
-  const config = {
-    pat: 'validpat',
-    orgUrl: 'https://dev.azure.com/org',
+  const config: AuthConfig = {
+    method: AuthenticationMethod.PersonalAccessToken,
+    personalAccessToken: 'validpat',
+    organizationUrl: 'https://dev.azure.com/org',
   };
 
   let client: AzureDevOpsClient;
@@ -60,8 +64,8 @@ describe('AzureDevOpsClient', () => {
 
     MockWebApi.mockImplementation(() => mockWebApiInstance);
 
-    // Mock the createAuthenticatedClient function to return our mockWebApiInstance
-    mockCreateAuthenticatedClient.mockResolvedValue(mockWebApiInstance);
+    // Mock the createAuthClient function to return our mockWebApiInstance
+    mockCreateAuthClient.mockResolvedValue(mockWebApiInstance);
 
     client = new AzureDevOpsClient(config);
   });
@@ -71,8 +75,8 @@ describe('AzureDevOpsClient', () => {
       await client.getCoreApi();
       await client.getCoreApi();
 
-      expect(mockCreateAuthenticatedClient).toHaveBeenCalledTimes(1);
-      expect(mockCreateAuthenticatedClient).toHaveBeenCalledWith(config);
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
+      expect(mockCreateAuthClient).toHaveBeenCalledWith(config);
     });
 
     it('should re-use the cached client for multiple API calls', async () => {
@@ -80,38 +84,36 @@ describe('AzureDevOpsClient', () => {
       await client.getGitApi();
       await client.getWorkItemTrackingApi();
 
-      expect(mockCreateAuthenticatedClient).toHaveBeenCalledTimes(1);
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
     });
 
     it('should handle authentication errors when creating client', async () => {
-      mockCreateAuthenticatedClient.mockRejectedValueOnce(
+      mockCreateAuthClient.mockRejectedValueOnce(
         new AzureDevOpsAuthenticationError('Authentication failed'),
       );
 
       await expect(client.getCoreApi()).rejects.toThrow(
         AzureDevOpsAuthenticationError,
       );
-      expect(mockCreateAuthenticatedClient).toHaveBeenCalledTimes(1);
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
     });
 
     it('should handle generic errors when creating client', async () => {
-      mockCreateAuthenticatedClient.mockRejectedValueOnce(
-        new Error('Network error'),
-      );
+      mockCreateAuthClient.mockRejectedValueOnce(new Error('Network error'));
 
       await expect(client.getCoreApi()).rejects.toThrow(
         AzureDevOpsAuthenticationError,
       );
-      expect(mockCreateAuthenticatedClient).toHaveBeenCalledTimes(1);
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
     });
 
     it('should handle non-Error instances when creating client', async () => {
-      mockCreateAuthenticatedClient.mockRejectedValueOnce('String error');
+      mockCreateAuthClient.mockRejectedValueOnce('String error');
 
       await expect(client.getCoreApi()).rejects.toThrow(
         'Authentication failed: Unknown error',
       );
-      expect(mockCreateAuthenticatedClient).toHaveBeenCalledTimes(1);
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -301,20 +303,18 @@ describe('AzureDevOpsClient', () => {
     it('should return true if Core API is accessible', async () => {
       const isAuth = await client.isAuthenticated();
       expect(isAuth).toBe(true);
-      expect(mockCreateAuthenticatedClient).toHaveBeenCalledTimes(1);
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
     });
 
     it('should return false if Core API is not accessible', async () => {
-      mockCreateAuthenticatedClient.mockRejectedValueOnce(
-        new Error('API Error'),
-      );
+      mockCreateAuthClient.mockRejectedValueOnce(new Error('API Error'));
       const isAuth = await client.isAuthenticated();
       expect(isAuth).toBe(false);
-      expect(mockCreateAuthenticatedClient).toHaveBeenCalledTimes(1);
+      expect(mockCreateAuthClient).toHaveBeenCalledTimes(1);
     });
 
     it('should return false for any error type in isAuthenticated', async () => {
-      mockCreateAuthenticatedClient.mockRejectedValueOnce(
+      mockCreateAuthClient.mockRejectedValueOnce(
         new AzureDevOpsError('Auth Error'),
       );
       const isAuth = await client.isAuthenticated();

@@ -233,7 +233,9 @@ describe('listOrganizations', () => {
 
     // Call the function and expect it to throw
     await expect(mockedListOrgs(mockAzureIdentityConfig)).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
+      new AzureDevOpsAuthenticationError(
+        'Failed to list organizations: Token acquisition failed',
+      ),
     );
 
     // Reset mocks for subsequent tests
@@ -278,7 +280,9 @@ describe('listOrganizations', () => {
 
     // Call the function and expect it to throw
     await expect(mockedListOrgs(mockAzureCliConfig)).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
+      new AzureDevOpsAuthenticationError(
+        'Failed to list organizations: CLI token acquisition failed',
+      ),
     );
 
     // Reset mocks for subsequent tests

@@ -152,6 +152,8 @@ We have been refactoring the test structure to follow colocation patterns.
 - [x] Update import paths in moved test files
 - [x] Delete empty directories and test files (tests/unit)
 - [x] Fix remaining test file import paths that are still using the old structure
+- [ ] Fix src/shared/errors/api-errors.test.ts by co-locating it it breaking it apart
+- [ ] Fix src/shared/server-coverage.test.ts by co-locating it or moving individual tests to the appropriate files
 - [ ] Fix integration tests
 - [ ] Ensure all tests pass after the refactoring
 

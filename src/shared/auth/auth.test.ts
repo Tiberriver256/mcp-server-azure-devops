@@ -1,5 +1,3 @@
-import { WebApi } from 'azure-devops-node-api';
-import { getPersonalAccessTokenHandler } from 'azure-devops-node-api';
 import { AzureDevOpsAuthenticationError } from '../errors';
 import {
   AuthenticationMethod,

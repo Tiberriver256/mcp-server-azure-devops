@@ -9,6 +9,10 @@
 
 ### Repository Restructuring
 
+### DevOps
+
+- [ ] **Task 1.0**: Fix all errors shown by `npm run lint` and add it to .github/workflows/main.yml so they don't build up again.
+
 ### Authentication Enhancements
 
 - [ ] **Task 2.8**: Implement `get_work_item` handler with tests

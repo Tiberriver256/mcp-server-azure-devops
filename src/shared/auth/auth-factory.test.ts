@@ -6,6 +6,18 @@ import {
 } from './auth-factory';
 import { AzureDevOpsAuthenticationError } from '../errors';
 
+// Create Mock WebApi type that matches our test expectations
+type MockedWebApi = {
+  orgUrl: string;
+  authHandler: any;
+  getLocationsApi(): Promise<{
+    getResourceAreas: jest.Mock;
+  }>;
+};
+
+// Cast the WebApi object to a jest.Mock for mocking operations
+const MockedWebApiClass = WebApi as unknown as jest.Mock;
+
 // Create a mock WebApi class
 class MockWebApi {
   constructor(
@@ -70,10 +82,12 @@ describe('Authentication Factory', () => {
         personalAccessToken: 'test-pat',
       };
 
-      const client = await createAuthClient(config);
+      const client = (await createAuthClient(
+        config,
+      )) as unknown as MockedWebApi;
 
-      expect(client).toBeInstanceOf(MockWebApi);
-      expect(WebApi).toHaveBeenCalledWith(orgUrl, 'pat-handler');
+      expect(client).toBeDefined();
+      expect(MockedWebApiClass).toHaveBeenCalledWith(orgUrl, 'pat-handler');
       expect(client.orgUrl).toBe(orgUrl);
       expect(client.authHandler).toBe('pat-handler');
     });
@@ -98,10 +112,12 @@ describe('Authentication Factory', () => {
         organizationUrl: orgUrl,
       };
 
-      const client = await createAuthClient(config);
+      const client = (await createAuthClient(
+        config,
+      )) as unknown as MockedWebApi;
 
-      expect(client).toBeInstanceOf(MockWebApi);
-      expect(WebApi).toHaveBeenCalledWith(orgUrl, 'bearer-handler');
+      expect(client).toBeDefined();
+      expect(MockedWebApiClass).toHaveBeenCalledWith(orgUrl, 'bearer-handler');
       expect(client.orgUrl).toBe(orgUrl);
       expect(client.authHandler).toBe('bearer-handler');
     });
@@ -112,10 +128,12 @@ describe('Authentication Factory', () => {
         organizationUrl: orgUrl,
       };
 
-      const client = await createAuthClient(config);
+      const client = (await createAuthClient(
+        config,
+      )) as unknown as MockedWebApi;
 
-      expect(client).toBeInstanceOf(MockWebApi);
-      expect(WebApi).toHaveBeenCalledWith(orgUrl, 'bearer-handler');
+      expect(client).toBeDefined();
+      expect(MockedWebApiClass).toHaveBeenCalledWith(orgUrl, 'bearer-handler');
       expect(client.orgUrl).toBe(orgUrl);
       expect(client.authHandler).toBe('bearer-handler');
     });
@@ -155,9 +173,11 @@ describe('Authentication Factory', () => {
         personalAccessToken: 'test-pat',
       };
 
-      // Mock WebApi constructor to throw an error
-      const originalWebApi = WebApi;
-      (WebApi as jest.Mock).mockImplementationOnce(() => {
+      // Save original implementation
+      const origImpl = MockedWebApiClass.mockImplementation;
+
+      // Set up the mock to throw an error
+      MockedWebApiClass.mockImplementationOnce(() => {
         throw new Error('WebApi construction error');
       });
 
@@ -168,8 +188,8 @@ describe('Authentication Factory', () => {
         'Failed to authenticate with Azure DevOps: WebApi construction error',
       );
 
-      // Restore original mock
-      (WebApi as jest.Mock).mockImplementation(originalWebApi);
+      // Restore original implementation
+      MockedWebApiClass.mockImplementation = origImpl;
     });
 
     it('should handle errors from getLocationsApi', async () => {
@@ -180,7 +200,6 @@ describe('Authentication Factory', () => {
       };
 
       // Mock getLocationsApi to throw an error
-      const originalMockWebApi = MockWebApi;
       jest
         .spyOn(MockWebApi.prototype, 'getLocationsApi')
         .mockImplementationOnce(() => {
@@ -202,9 +221,11 @@ describe('Authentication Factory', () => {
         personalAccessToken: 'test-pat',
       };
 
-      // Mock WebApi constructor to throw a non-Error
-      const originalWebApi = WebApi;
-      (WebApi as jest.Mock).mockImplementationOnce(() => {
+      // Save original implementation
+      const origImpl = MockedWebApiClass.mockImplementation;
+
+      // Set up the mock to throw a non-Error
+      MockedWebApiClass.mockImplementationOnce(() => {
         throw 'String error'; // not an Error object
       });
 
@@ -215,8 +236,8 @@ describe('Authentication Factory', () => {
         'Failed to authenticate with Azure DevOps: String error',
       );
 
-      // Restore original mock
-      (WebApi as jest.Mock).mockImplementation(originalWebApi);
+      // Restore original implementation
+      MockedWebApiClass.mockImplementation = origImpl;
     });
   });
 });

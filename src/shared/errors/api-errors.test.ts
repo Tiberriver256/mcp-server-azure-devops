@@ -7,7 +7,7 @@ import {
   AzureDevOpsRateLimitError,
   isAzureDevOpsError,
   formatAzureDevOpsError,
-} from '../../../src/common/errors';
+} from './azure-devops-errors';
 
 describe('Azure DevOps Errors', () => {
   describe('AzureDevOpsError', () => {
@@ -51,6 +51,13 @@ describe('Azure DevOps Errors', () => {
       );
       expect(error.message).toBe('Validation failed');
       expect(error.response).toBeUndefined();
+    });
+
+    it('should format validation error with null response', () => {
+      const error = new AzureDevOpsValidationError('Validation failed', null);
+      expect(formatAzureDevOpsError(error)).toBe(
+        'AzureDevOpsValidationError: Validation failed\nNo response details available',
+      );
     });
   });
 
@@ -148,7 +155,7 @@ describe('Azure DevOps Errors', () => {
     it('should format validation error with null response', () => {
       const error = new AzureDevOpsValidationError('Validation failed', null);
       expect(formatAzureDevOpsError(error)).toBe(
-        'AzureDevOpsValidationError: Validation failed',
+        'AzureDevOpsValidationError: Validation failed\nNo response details available',
       );
     });
 
@@ -203,12 +210,8 @@ describe('Azure DevOps Errors', () => {
       const numberError = 123 as unknown as AzureDevOpsError;
       const booleanError = true as unknown as AzureDevOpsError;
 
-      expect(formatAzureDevOpsError(numberError)).toBe(
-        'Unknown: Unknown error',
-      );
-      expect(formatAzureDevOpsError(booleanError)).toBe(
-        'Unknown: Unknown error',
-      );
+      expect(formatAzureDevOpsError(numberError)).toBe('123');
+      expect(formatAzureDevOpsError(booleanError)).toBe('true');
     });
   });
 });
