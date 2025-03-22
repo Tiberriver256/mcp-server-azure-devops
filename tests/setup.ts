@@ -2,8 +2,43 @@
  * Jest setup file that runs before all tests
  */
 
-// Set default timeout longer for all tests
-jest.setTimeout(10000);
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables from .env file
+const result = dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+if (result.error) {
+  console.warn('Warning: .env file not found or cannot be read.');
+} else {
+  console.log('Environment variables loaded from .env file');
+}
+
+// Increase timeout for integration tests
+jest.setTimeout(30000); // 30 seconds
+
+// Suppress console output during tests unless specifically desired
+const originalConsoleLog = console.log;
+const originalConsoleWarn = console.warn;
+const originalConsoleError = console.error;
+
+if (process.env.DEBUG !== 'true') {
+  global.console.log = (...args: any[]) => {
+    if (args[0]?.toString().includes('Skip') || args[0]?.toString().includes('Environment')) {
+      originalConsoleLog(...args);
+    }
+  };
+  
+  global.console.warn = (...args: any[]) => {
+    if (args[0]?.toString().includes('Warning')) {
+      originalConsoleWarn(...args);
+    }
+  };
+  
+  global.console.error = (...args: any[]) => {
+    originalConsoleError(...args);
+  };
+}
 
 // Global setup before tests run
 beforeAll(() => {
@@ -18,6 +53,9 @@ afterAll(() => {
 // Clear all mocks before each test
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.spyOn(console, 'log').mockImplementation(originalConsoleLog);
+  jest.spyOn(console, 'warn').mockImplementation(originalConsoleWarn);
+  jest.spyOn(console, 'error').mockImplementation(originalConsoleError);
 });
 
 // Restore all mocks after each test
