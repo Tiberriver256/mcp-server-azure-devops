@@ -65,7 +65,7 @@ For testing interactions with external APIs like Azure DevOps, use integration t
 
 ## Test Location
 
-We co-locate all tests with the code they're testing following Feature Sliced Design principles:
+We co-locate unit and integration tests with the code they're testing following Feature Sliced Design principles:
 
 ```
 src/
@@ -74,7 +74,14 @@ src/
       feature.ts
       feature.spec.unit.ts   # Unit tests
       feature.spec.int.ts    # Integration tests
-      feature.spec.e2e.ts    # End-to-end tests
+```
+
+E2E tests are only located at the server level since they test the full application:
+
+```
+src/
+  server.ts
+  server.spec.e2e.ts   # E2E tests using the MCP client
 ```
 
 This way, tests stay close to the code they're testing, making it easier to:

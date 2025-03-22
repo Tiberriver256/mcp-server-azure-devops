@@ -1,6 +1,7 @@
 import { WebApi } from 'azure-devops-node-api';
 import { getWorkItem } from './feature';
 import { getTestConnection, shouldSkipIntegrationTest } from '../__test__/test-helpers';
+import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 
 describe('getWorkItem integration', () => {
   let connection: WebApi | null = null;
@@ -36,6 +37,38 @@ describe('getWorkItem integration', () => {
     expect(result.fields).toBeDefined();
     if (result.fields) {
       // Don't make assumptions about specific field values, just verify structure
+      expect(result.fields['System.Title']).toBeDefined();
+    }
+  });
+  
+  test('should retrieve work item with expanded relations', async () => {
+    // Skip if no connection is available
+    if (shouldSkipIntegrationTest()) {
+      return;
+    }
+    
+    // This connection must be available if we didn't skip
+    if (!connection) {
+      throw new Error('Connection should be available when test is not skipped');
+    }
+    
+    // For a true integration test, use a known work item ID that exists
+    const workItemId = 1; // This assumes work item #1 exists in your project
+    
+    // Act - make an actual API call to Azure DevOps with expanded relations
+    const result = await getWorkItem(connection, workItemId, WorkItemExpand.Relations);
+    
+    // Assert on the actual response
+    expect(result).toBeDefined();
+    expect(result.id).toBe(workItemId);
+    
+    // When using WorkItemExpand.Relations, the API should include relations
+    // Relations might be empty for a work item with no links, but the property should exist
+    expect(result.relations !== undefined || result.relations === null).toBeTruthy();
+    
+    // Verify fields exist
+    expect(result.fields).toBeDefined();
+    if (result.fields) {
       expect(result.fields['System.Title']).toBeDefined();
     }
   });

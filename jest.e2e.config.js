@@ -12,4 +12,5 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testTimeout: 30000, // Longer timeout for E2E tests
+  passWithNoTests: true, // Allow tests to pass when no tests exist yet
 }; 
