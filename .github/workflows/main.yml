@@ -18,12 +18,21 @@ jobs:
           node-version: 'lts/*'
       - name: Install Dependencies
         run: npm install
+      - name: Lint
+        run: npm run lint
       - name: Build
         run: npm run build
       - name: Unit Tests
         run: npm run test:unit
       - name: Integration Tests
-        run: npm run test:integration
+        run: npm run test:int
+        env:
+          CI: 'true'
+          AZURE_DEVOPS_ORG_URL: ${{ secrets.AZURE_DEVOPS_ORG_URL }}
+          AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
+          AZURE_DEVOPS_DEFAULT_PROJECT: ${{ secrets.AZURE_DEVOPS_DEFAULT_PROJECT }}
+      - name: E2E Tests
+        run: npm run test:e2e
         env:
           CI: 'true'
           AZURE_DEVOPS_ORG_URL: ${{ secrets.AZURE_DEVOPS_ORG_URL }}

@@ -1,14 +1,5 @@
 ## Azure DevOps MCP Server Project TODO List (Granular Daily Tasks)
 
-### Task Structure
-
-- Each task is designed to take **one day or less** to complete.
-- All tasks follow the TDD workflow naturally: writing failing tests, code until they pass, and refactoring are part of one continuous process.
-- Documentation is still handled as a separate step for clarity.
-- Tasks are prefixed with `[ ]` for tracking completion.
-
-### Repository Restructuring
-
 ### DevOps
 
 - [ ] **Task 1.0**: Fix all errors shown by `npm run lint` and add it to .github/workflows/main.yml so they don't build up again.
