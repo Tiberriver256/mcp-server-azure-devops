@@ -61,3 +61,43 @@ For each feature slice in our Feature Sliced Design architecture:
 - Better alignment with Feature Sliced Design architecture
 - More bugs caught before reaching production
 
+### Standardize Feature Integration Tests
+
+#### Background
+We need to ensure that all features have proper integration tests that validate their interaction with real Azure DevOps APIs. Our recent update to the Testing Trophy approach has clarified that integration tests should be the main focus of our testing strategy, providing the most confidence with the least overhead.
+
+#### Objective
+Add consistent integration tests to every feature implementation in the codebase, following the pattern established in our sample `get-work-item` feature.
+
+#### Key Principles
+1. All integration tests should be in `*.spec.int.ts` files
+2. Integration tests should test real interactions with Azure DevOps API clients
+3. Tests should minimize mocking and focus on verifying behavior rather than implementation
+4. E2E tests should only exist at the server level using the MCP client
+
+#### Sub-tasks - Work Items Features
+- [x] Add integration tests for `get-work-item` feature
+- [ ] Add integration tests for `create-work-item` feature
+- [ ] Add integration tests for `update-work-item` feature
+- [ ] Add integration tests for `list-work-items` feature
+
+#### Sub-tasks - Repositories Features
+- [ ] Add integration tests for `get-repository` feature
+- [ ] Add integration tests for `list-repositories` feature
+
+#### Sub-tasks - Projects Features
+- [ ] Add integration tests for `get-project` feature
+- [ ] Add integration tests for `list-projects` feature
+
+#### Sub-tasks - Organizations Features
+- [ ] Add integration tests for `list-organizations` feature
+
+#### Sub-tasks - Server Level
+- [ ] Create proper E2E tests for the server using MCP client from `@modelcontextprotocol/sdk`
+
+#### Expected Outcomes
+- Higher confidence in our feature implementations
+- Better test coverage for interactions with Azure DevOps APIs
+- Clearer separation between unit, integration, and E2E tests
+- More maintainable test suite
+

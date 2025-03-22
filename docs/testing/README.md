@@ -48,12 +48,14 @@ These provide the bulk of our test coverage and confidence. They verify that dif
 ### End-to-End Tests (Small Cap)
 
 - Located in `*.spec.e2e.ts` files
-- Co-located with the feature slice they test
+- **Only exists at the server level** (e.g., `server.spec.e2e.ts`) where they use the MCP client
 - Test complete user flows across the entire application
 - Provide the highest confidence but are slower and more costly to maintain
 - Run with `npm run test:e2e`
 
-We maintain a small number of E2E tests that cover critical user flows from end to end.
+End-to-end tests should only be created for critical user journeys that span the entire application. They should use the MCP client from `@modelcontextprotocol/sdk` to test the server as a black box, similar to how real users would interact with it.
+
+For testing interactions with external APIs like Azure DevOps, use integration tests (`*.spec.int.ts`) instead, which are co-located with the feature implementations.
 
 ## Test File Naming Convention
 
