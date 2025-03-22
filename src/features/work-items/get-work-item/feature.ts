@@ -28,12 +28,16 @@ export async function getWorkItem(
       'System.State',
       'System.AssignedTo',
     ];
-    const workItem = await witApi.getWorkItem(
-      workItemId,
-      fields,
-      undefined,
-      expand,
-    );
+    
+    // Don't pass fields when using expand parameter
+    const workItem = expand
+      ? await witApi.getWorkItem(
+          workItemId, 
+          undefined, 
+          undefined, 
+          expand
+        )
+      : await witApi.getWorkItem(workItemId, fields);
 
     if (!workItem) {
       throw new AzureDevOpsResourceNotFoundError(

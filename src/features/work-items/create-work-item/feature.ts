@@ -88,8 +88,8 @@ export async function createWorkItem(
 
     // Create the work item
     const workItem = await witApi.createWorkItem(
+      null,
       document,
-      {},
       projectId,
       workItemType,
     );

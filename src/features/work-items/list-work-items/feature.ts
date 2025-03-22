@@ -2,7 +2,6 @@ import { WebApi } from 'azure-devops-node-api';
 import { TeamContext } from 'azure-devops-node-api/interfaces/CoreInterfaces';
 import {
   WorkItem,
-  WorkItemExpand,
   WorkItemReference,
 } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import {
@@ -85,7 +84,7 @@ export async function listWorkItems(
       workItemIds,
       fields,
       undefined,
-      WorkItemExpand.All,
+      undefined,
     );
 
     if (!workItems) {

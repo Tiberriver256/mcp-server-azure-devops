@@ -94,7 +94,9 @@ describe('updateWorkItem integration', () => {
     if (result.fields) {
       expect(result.fields['System.Description']).toBe(newDescription);
       expect(result.fields['Microsoft.VSTS.Common.Priority']).toBe(newPriority);
-      expect(result.fields['System.Tags']).toBe('UpdateTest; Integration');
+      // Just check that tags contain both values, order may vary
+      expect(result.fields['System.Tags']).toContain('UpdateTest');
+      expect(result.fields['System.Tags']).toContain('Integration');
     }
   });
   

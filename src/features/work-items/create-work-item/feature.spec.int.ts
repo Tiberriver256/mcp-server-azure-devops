@@ -89,7 +89,9 @@ describe('createWorkItem integration', () => {
     if (result.fields) {
       expect(result.fields['System.Title']).toBe(uniqueTitle);
       expect(result.fields['Microsoft.VSTS.Common.Priority']).toBe(1);
-      expect(result.fields['System.Tags']).toBe('Integration Test; Automated');
+      // Just check that tags contain both values, order may vary
+      expect(result.fields['System.Tags']).toContain('Integration Test');
+      expect(result.fields['System.Tags']).toContain('Automated');
     }
   });
 }); 
