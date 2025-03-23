@@ -290,6 +290,25 @@ function formatAzureDevOpsError(error: AzureDevOpsError): string {
  */
 function validateConfig(config: AzureDevOpsConfig): void {
   if (!config.organizationUrl) {
+    process.stderr.write(
+      'ERROR: Organization URL is required but was not provided.\n',
+    );
+    process.stderr.write(
+      `Config: ${JSON.stringify(
+        {
+          organizationUrl: config.organizationUrl,
+          authMethod: config.authMethod,
+          defaultProject: config.defaultProject,
+          // Hide PAT for security
+          personalAccessToken: config.personalAccessToken
+            ? 'REDACTED'
+            : undefined,
+          apiVersion: config.apiVersion,
+        },
+        null,
+        2,
+      )}\n`,
+    );
     throw new AzureDevOpsValidationError('Organization URL is required');
   }
 

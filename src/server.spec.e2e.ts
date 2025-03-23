@@ -4,6 +4,7 @@ import { spawn } from 'child_process';
 import { join } from 'path';
 import dotenv from 'dotenv';
 import { Organization } from './features/organizations/types';
+import fs from 'fs';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -12,27 +13,60 @@ describe('Azure DevOps MCP Server E2E Tests', () => {
   let client: Client;
   let serverProcess: ReturnType<typeof spawn>;
   let transport: StdioClientTransport;
+  let tempEnvFile: string | null = null;
 
   beforeAll(async () => {
+    // Debug: Log environment variables
+    console.error('E2E TEST ENVIRONMENT VARIABLES:');
+    console.error(
+      `AZURE_DEVOPS_ORG_URL: ${process.env.AZURE_DEVOPS_ORG_URL || 'NOT SET'}`,
+    );
+    console.error(
+      `AZURE_DEVOPS_PAT: ${process.env.AZURE_DEVOPS_PAT ? 'SET (hidden value)' : 'NOT SET'}`,
+    );
+    console.error(
+      `AZURE_DEVOPS_DEFAULT_PROJECT: ${process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'NOT SET'}`,
+    );
+    console.error(
+      `AZURE_DEVOPS_AUTH_METHOD: ${process.env.AZURE_DEVOPS_AUTH_METHOD || 'NOT SET'}`,
+    );
+
     // Start the MCP server process
     const serverPath = join(process.cwd(), 'dist', 'index.js');
-    
-    // Check for required environment variables
-    if (!process.env.AZURE_DEVOPS_ORG_URL) {
-      console.error('AZURE_DEVOPS_ORG_URL environment variable is missing in E2E tests');
-      throw new Error('AZURE_DEVOPS_ORG_URL is required for E2E tests');
+
+    // Create a temporary .env file for testing if needed
+    const orgUrl = process.env.AZURE_DEVOPS_ORG_URL || '';
+    const pat = process.env.AZURE_DEVOPS_PAT || '';
+    const defaultProject = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '';
+    const authMethod = process.env.AZURE_DEVOPS_AUTH_METHOD || 'pat';
+
+    if (orgUrl) {
+      // Create a temporary .env file for the test
+      tempEnvFile = join(process.cwd(), '.env.e2e-test');
+
+      const envFileContent = `
+AZURE_DEVOPS_ORG_URL=${orgUrl}
+AZURE_DEVOPS_PAT=${pat}
+AZURE_DEVOPS_DEFAULT_PROJECT=${defaultProject}
+AZURE_DEVOPS_AUTH_METHOD=${authMethod}
+`;
+
+      fs.writeFileSync(tempEnvFile, envFileContent);
+      console.error(`Created temporary .env file at ${tempEnvFile}`);
+
+      // Start server with explicit file path to the temp .env file
+      serverProcess = spawn('node', ['-r', 'dotenv/config', serverPath], {
+        env: {
+          ...process.env,
+          NODE_ENV: 'test',
+          DOTENV_CONFIG_PATH: tempEnvFile,
+        },
+      });
+    } else {
+      throw new Error(
+        'Cannot start server: AZURE_DEVOPS_ORG_URL is not set in the environment',
+      );
     }
-    
-    serverProcess = spawn('node', [serverPath], {
-      env: {
-        ...process.env,
-        NODE_ENV: 'test',
-        AZURE_DEVOPS_ORG_URL: process.env.AZURE_DEVOPS_ORG_URL || '',
-        AZURE_DEVOPS_PAT: process.env.AZURE_DEVOPS_PAT || '',
-        AZURE_DEVOPS_DEFAULT_PROJECT: process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '',
-        AZURE_DEVOPS_AUTH_METHOD: process.env.AZURE_DEVOPS_AUTH_METHOD || 'pat',
-      },
-    });
 
     // Capture server output for debugging
     if (serverProcess && serverProcess.stderr) {
@@ -47,14 +81,11 @@ describe('Azure DevOps MCP Server E2E Tests', () => {
     // Connect the MCP client to the server
     transport = new StdioClientTransport({
       command: 'node',
-      args: [serverPath],
+      args: ['-r', 'dotenv/config', serverPath],
       env: {
         ...process.env,
         NODE_ENV: 'test',
-        AZURE_DEVOPS_ORG_URL: process.env.AZURE_DEVOPS_ORG_URL || '',
-        AZURE_DEVOPS_PAT: process.env.AZURE_DEVOPS_PAT || '',
-        AZURE_DEVOPS_DEFAULT_PROJECT: process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '',
-        AZURE_DEVOPS_AUTH_METHOD: process.env.AZURE_DEVOPS_AUTH_METHOD || 'pat',
+        DOTENV_CONFIG_PATH: tempEnvFile,
       },
     });
 
@@ -87,6 +118,12 @@ describe('Azure DevOps MCP Server E2E Tests', () => {
     // Clean up the server process
     if (serverProcess) {
       serverProcess.kill();
+    }
+
+    // Clean up temporary env file
+    if (tempEnvFile && fs.existsSync(tempEnvFile)) {
+      fs.unlinkSync(tempEnvFile);
+      console.error(`Deleted temporary .env file at ${tempEnvFile}`);
     }
 
     // Force exit to clean up any remaining handles

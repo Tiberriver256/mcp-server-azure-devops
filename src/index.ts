@@ -13,6 +13,16 @@ import { AuthenticationMethod } from './shared/auth/auth-factory';
 dotenv.config();
 
 function getConfig(): AzureDevOpsConfig {
+  // Debug log the environment variables to help diagnose issues
+  process.stderr.write(`DEBUG - Environment variables in getConfig():
+  AZURE_DEVOPS_ORG_URL: ${process.env.AZURE_DEVOPS_ORG_URL || 'NOT SET'}
+  AZURE_DEVOPS_AUTH_METHOD: ${process.env.AZURE_DEVOPS_AUTH_METHOD || 'NOT SET'}
+  AZURE_DEVOPS_PAT: ${process.env.AZURE_DEVOPS_PAT ? 'SET (hidden)' : 'NOT SET'}
+  AZURE_DEVOPS_DEFAULT_PROJECT: ${process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'NOT SET'}
+  AZURE_DEVOPS_API_VERSION: ${process.env.AZURE_DEVOPS_API_VERSION || 'NOT SET'}
+  NODE_ENV: ${process.env.NODE_ENV || 'NOT SET'}
+\n`);
+
   return {
     organizationUrl: process.env.AZURE_DEVOPS_ORG_URL || '',
     authMethod: (process.env.AZURE_DEVOPS_AUTH_METHOD ||
