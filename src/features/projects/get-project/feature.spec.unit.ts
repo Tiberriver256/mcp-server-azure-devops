@@ -3,17 +3,21 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { ICoreApi } from 'azure-devops-node-api/CoreApi';
 import { TeamProject } from 'azure-devops-node-api/interfaces/CoreInterfaces';
+import { WebApi } from 'azure-devops-node-api';
 
-// Create a mock interface that only implements the methods we need
-interface MockCoreApi extends Partial<ICoreApi> {
+// Create a partial mock interface for ICoreApi
+interface MockCoreApi {
   getProject: jest.Mock<Promise<TeamProject | null>>;
 }
 
-// Create a connection type that matches only what we need for these tests
-interface ConnectionLike {
-  getCoreApi(): Promise<MockCoreApi>;
+// Create a mock connection that resembles WebApi with minimal implementation
+interface MockConnection {
+  getCoreApi: jest.Mock<Promise<MockCoreApi>>;
+  serverUrl?: string;
+  authHandler?: unknown;
+  rest?: unknown;
+  vsoClient?: unknown;
 }
 
 // Unit tests should only focus on isolated logic
@@ -24,55 +28,49 @@ describe('getProject unit', () => {
       getProject: jest.fn().mockResolvedValue(null), // Simulate project not found
     };
 
-    const mockConnection: ConnectionLike = {
+    const mockConnection: MockConnection = {
       getCoreApi: jest.fn().mockResolvedValue(mockCoreApi),
     };
 
     // Act & Assert
     await expect(
-      getProject(
-        mockConnection as unknown as ConnectionLike,
-        'non-existent-project',
-      ),
+      getProject(mockConnection as unknown as WebApi, 'non-existent-project'),
     ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
 
     await expect(
-      getProject(
-        mockConnection as unknown as ConnectionLike,
-        'non-existent-project',
-      ),
+      getProject(mockConnection as unknown as WebApi, 'non-existent-project'),
     ).rejects.toThrow("Project 'non-existent-project' not found");
   });
 
   test('should propagate custom errors when thrown internally', async () => {
     // Arrange
-    const mockConnection: ConnectionLike = {
+    const mockConnection: MockConnection = {
       getCoreApi: jest.fn().mockImplementation(() => {
         throw new AzureDevOpsError('Custom error');
       }),
     };
 
     // Act & Assert
-    await expect(getProject(mockConnection, 'test-project')).rejects.toThrow(
-      AzureDevOpsError,
-    );
+    await expect(
+      getProject(mockConnection as unknown as WebApi, 'test-project'),
+    ).rejects.toThrow(AzureDevOpsError);
 
-    await expect(getProject(mockConnection, 'test-project')).rejects.toThrow(
-      'Custom error',
-    );
+    await expect(
+      getProject(mockConnection as unknown as WebApi, 'test-project'),
+    ).rejects.toThrow('Custom error');
   });
 
   test('should wrap unexpected errors in a friendly error message', async () => {
     // Arrange
-    const mockConnection: ConnectionLike = {
+    const mockConnection: MockConnection = {
       getCoreApi: jest.fn().mockImplementation(() => {
         throw new Error('Unexpected error');
       }),
     };
 
     // Act & Assert
-    await expect(getProject(mockConnection, 'test-project')).rejects.toThrow(
-      'Failed to get project: Unexpected error',
-    );
+    await expect(
+      getProject(mockConnection as unknown as WebApi, 'test-project'),
+    ).rejects.toThrow('Failed to get project: Unexpected error');
   });
 });

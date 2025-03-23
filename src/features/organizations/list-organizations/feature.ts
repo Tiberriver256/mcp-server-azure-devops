@@ -100,12 +100,16 @@ export async function listOrganizations(
     // Handle profile API errors as authentication errors
     if (
       axios.isAxiosError(error) &&
-      error.config?.url?.includes('profiles/me')
+      error.config?.url?.includes('profile')
     ) {
       throw new AzureDevOpsAuthenticationError(
         `Authentication failed: ${error.message}`,
       );
-    } else if (error instanceof Error && error.message.includes('profile')) {
+    } else if (error instanceof Error && 
+              (error.message.includes('profile') || 
+               error.message.includes('Unauthorized') ||
+               error.message.includes('Authentication'))
+    ) {
       throw new AzureDevOpsAuthenticationError(
         `Authentication failed: ${error.message}`,
       );

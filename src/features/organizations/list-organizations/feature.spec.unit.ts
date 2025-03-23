@@ -17,11 +17,6 @@ jest.mock('@azure/identity', () => ({
   })),
 }));
 
-// Define an interface for axios error
-interface AxiosErrorLike extends Error {
-  config: { url: string };
-}
-
 describe('listOrganizations unit', () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -52,19 +47,28 @@ describe('listOrganizations unit', () => {
       personalAccessToken: 'test-pat',
     };
 
-    // Mock axios to throw on the profile API call
-    mockedAxios.get.mockImplementationOnce(() => {
-      const error = new Error('Unauthorized') as AxiosErrorLike;
-      error.config = { url: 'profiles/me' };
-      throw error;
-    });
+    // Mock axios to throw an error with properties expected by axios.isAxiosError
+    const axiosError = new Error('Unauthorized');
+    // Add axios error properties
+    (axiosError as any).isAxiosError = true;
+    (axiosError as any).config = { 
+      url: 'https://app.vssps.visualstudio.com/_apis/profile/profiles/me'
+    };
 
-    // Act & Assert
+    // Setup the mock for the first call
+    mockedAxios.get.mockRejectedValueOnce(axiosError);
+
+    // Act & Assert - Test with a fresh call each time to avoid test sequence issues
     await expect(listOrganizations(config)).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
+      AzureDevOpsAuthenticationError
     );
+
+    // Reset mock and set it up again for the second call
+    mockedAxios.get.mockReset();
+    mockedAxios.get.mockRejectedValueOnce(axiosError);
+    
     await expect(listOrganizations(config)).rejects.toThrow(
-      'Authentication failed',
+      /Authentication failed/
     );
   });
 
