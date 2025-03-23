@@ -16,12 +16,30 @@ describe('Azure DevOps MCP Server E2E Tests', () => {
   beforeAll(async () => {
     // Start the MCP server process
     const serverPath = join(process.cwd(), 'dist', 'index.js');
+    
+    // Check for required environment variables
+    if (!process.env.AZURE_DEVOPS_ORG_URL) {
+      console.error('AZURE_DEVOPS_ORG_URL environment variable is missing in E2E tests');
+      throw new Error('AZURE_DEVOPS_ORG_URL is required for E2E tests');
+    }
+    
     serverProcess = spawn('node', [serverPath], {
       env: {
         ...process.env,
         NODE_ENV: 'test',
+        AZURE_DEVOPS_ORG_URL: process.env.AZURE_DEVOPS_ORG_URL || '',
+        AZURE_DEVOPS_PAT: process.env.AZURE_DEVOPS_PAT || '',
+        AZURE_DEVOPS_DEFAULT_PROJECT: process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '',
+        AZURE_DEVOPS_AUTH_METHOD: process.env.AZURE_DEVOPS_AUTH_METHOD || 'pat',
       },
     });
+
+    // Capture server output for debugging
+    if (serverProcess && serverProcess.stderr) {
+      serverProcess.stderr.on('data', (data) => {
+        console.error(`Server error: ${data.toString()}`);
+      });
+    }
 
     // Give the server a moment to start
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -30,6 +48,14 @@ describe('Azure DevOps MCP Server E2E Tests', () => {
     transport = new StdioClientTransport({
       command: 'node',
       args: [serverPath],
+      env: {
+        ...process.env,
+        NODE_ENV: 'test',
+        AZURE_DEVOPS_ORG_URL: process.env.AZURE_DEVOPS_ORG_URL || '',
+        AZURE_DEVOPS_PAT: process.env.AZURE_DEVOPS_PAT || '',
+        AZURE_DEVOPS_DEFAULT_PROJECT: process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '',
+        AZURE_DEVOPS_AUTH_METHOD: process.env.AZURE_DEVOPS_AUTH_METHOD || 'pat',
+      },
     });
 
     client = new Client(
