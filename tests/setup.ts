@@ -24,17 +24,20 @@ const originalConsoleError = console.error;
 
 if (process.env.DEBUG !== 'true') {
   global.console.log = (...args: any[]) => {
-    if (args[0]?.toString().includes('Skip') || args[0]?.toString().includes('Environment')) {
+    if (
+      args[0]?.toString().includes('Skip') ||
+      args[0]?.toString().includes('Environment')
+    ) {
       originalConsoleLog(...args);
     }
   };
-  
+
   global.console.warn = (...args: any[]) => {
     if (args[0]?.toString().includes('Warning')) {
       originalConsoleWarn(...args);
     }
   };
-  
+
   global.console.error = (...args: any[]) => {
     originalConsoleError(...args);
   };

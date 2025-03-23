@@ -12,7 +12,7 @@ export async function timeTest(testName: string, fn: () => Promise<void>) {
   const start = performance.now();
   await fn();
   const end = performance.now();
-  
+
   const duration = end - start;
   if (duration > 100) {
     console.warn(`Test "${testName}" is slow (${duration.toFixed(2)}ms)`);
@@ -27,12 +27,12 @@ export async function timeTest(testName: string, fn: () => Promise<void>) {
 export function setupTestEnvironment() {
   // Set any environment variables needed for tests
   const originalEnv = { ...process.env };
-  
+
   return {
     // Clean up function to restore environment
     cleanup: () => {
       // Restore original environment
       process.env = originalEnv;
-    }
+    },
   };
-} 
+}

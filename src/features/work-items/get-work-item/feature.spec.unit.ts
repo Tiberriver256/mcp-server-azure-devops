@@ -14,10 +14,14 @@ describe('getWorkItem unit', () => {
     };
 
     // Act & Assert
-    await expect(getWorkItem(mockConnection, 123)).rejects.toThrow(AzureDevOpsError);
-    await expect(getWorkItem(mockConnection, 123)).rejects.toThrow('Custom error');
+    await expect(getWorkItem(mockConnection, 123)).rejects.toThrow(
+      AzureDevOpsError,
+    );
+    await expect(getWorkItem(mockConnection, 123)).rejects.toThrow(
+      'Custom error',
+    );
   });
-  
+
   test('should wrap unexpected errors in a friendly error message', async () => {
     // Arrange
     const mockConnection: any = {
@@ -27,6 +31,8 @@ describe('getWorkItem unit', () => {
     };
 
     // Act & Assert
-    await expect(getWorkItem(mockConnection, 123)).rejects.toThrow('Failed to get work item: Unexpected error');
+    await expect(getWorkItem(mockConnection, 123)).rejects.toThrow(
+      'Failed to get work item: Unexpected error',
+    );
   });
-}); 
+});

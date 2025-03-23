@@ -12,12 +12,14 @@ describe('createWorkItem unit', () => {
     };
 
     // Act & Assert
-    await expect(createWorkItem(
-      mockConnection, 
-      'TestProject', 
-      'Task', 
-      { title: '' } // Empty title
-    )).rejects.toThrow('Title is required');
+    await expect(
+      createWorkItem(
+        mockConnection,
+        'TestProject',
+        'Task',
+        { title: '' }, // Empty title
+      ),
+    ).rejects.toThrow('Title is required');
   });
 
   // Test for error propagation
@@ -30,21 +32,19 @@ describe('createWorkItem unit', () => {
     };
 
     // Act & Assert
-    await expect(createWorkItem(
-      mockConnection, 
-      'TestProject', 
-      'Task', 
-      { title: 'Test Task' }
-    )).rejects.toThrow(AzureDevOpsError);
-    
-    await expect(createWorkItem(
-      mockConnection, 
-      'TestProject', 
-      'Task', 
-      { title: 'Test Task' }
-    )).rejects.toThrow('Custom error');
+    await expect(
+      createWorkItem(mockConnection, 'TestProject', 'Task', {
+        title: 'Test Task',
+      }),
+    ).rejects.toThrow(AzureDevOpsError);
+
+    await expect(
+      createWorkItem(mockConnection, 'TestProject', 'Task', {
+        title: 'Test Task',
+      }),
+    ).rejects.toThrow('Custom error');
   });
-  
+
   test('should wrap unexpected errors in a friendly error message', async () => {
     // Arrange
     const mockConnection: any = {
@@ -54,11 +54,10 @@ describe('createWorkItem unit', () => {
     };
 
     // Act & Assert
-    await expect(createWorkItem(
-      mockConnection, 
-      'TestProject', 
-      'Task', 
-      { title: 'Test Task' }
-    )).rejects.toThrow('Failed to create work item: Unexpected error');
+    await expect(
+      createWorkItem(mockConnection, 'TestProject', 'Task', {
+        title: 'Test Task',
+      }),
+    ).rejects.toThrow('Failed to create work item: Unexpected error');
   });
-}); 
+});

@@ -1,5 +1,8 @@
 import { getProject } from './feature';
-import { AzureDevOpsError, AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
+import {
+  AzureDevOpsError,
+  AzureDevOpsResourceNotFoundError,
+} from '../../../shared/errors';
 
 // Unit tests should only focus on isolated logic
 describe('getProject unit', () => {
@@ -7,20 +10,18 @@ describe('getProject unit', () => {
     // Arrange
     const mockConnection: any = {
       getCoreApi: jest.fn().mockImplementation(() => ({
-        getProject: jest.fn().mockResolvedValue(null) // Simulate project not found
+        getProject: jest.fn().mockResolvedValue(null), // Simulate project not found
       })),
     };
 
     // Act & Assert
-    await expect(getProject(
-      mockConnection, 
-      'non-existent-project'
-    )).rejects.toThrow(AzureDevOpsResourceNotFoundError);
-    
-    await expect(getProject(
-      mockConnection, 
-      'non-existent-project'
-    )).rejects.toThrow("Project 'non-existent-project' not found");
+    await expect(
+      getProject(mockConnection, 'non-existent-project'),
+    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+
+    await expect(
+      getProject(mockConnection, 'non-existent-project'),
+    ).rejects.toThrow("Project 'non-existent-project' not found");
   });
 
   test('should propagate custom errors when thrown internally', async () => {
@@ -32,17 +33,15 @@ describe('getProject unit', () => {
     };
 
     // Act & Assert
-    await expect(getProject(
-      mockConnection, 
-      'test-project'
-    )).rejects.toThrow(AzureDevOpsError);
-    
-    await expect(getProject(
-      mockConnection, 
-      'test-project'
-    )).rejects.toThrow('Custom error');
+    await expect(getProject(mockConnection, 'test-project')).rejects.toThrow(
+      AzureDevOpsError,
+    );
+
+    await expect(getProject(mockConnection, 'test-project')).rejects.toThrow(
+      'Custom error',
+    );
   });
-  
+
   test('should wrap unexpected errors in a friendly error message', async () => {
     // Arrange
     const mockConnection: any = {
@@ -52,9 +51,8 @@ describe('getProject unit', () => {
     };
 
     // Act & Assert
-    await expect(getProject(
-      mockConnection, 
-      'test-project'
-    )).rejects.toThrow('Failed to get project: Unexpected error');
+    await expect(getProject(mockConnection, 'test-project')).rejects.toThrow(
+      'Failed to get project: Unexpected error',
+    );
   });
-}); 
+});

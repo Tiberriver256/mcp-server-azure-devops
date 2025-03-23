@@ -116,7 +116,7 @@ export async function createOrUpdateFile(
       if (!Array.isArray(existingFile)) {
         currentSha = existingFile.sha;
       }
-    } catch (error) {
+    } catch (_error) {
       console.error(
         'Note: File does not exist in branch, will create new file',
       );

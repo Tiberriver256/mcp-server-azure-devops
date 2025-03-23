@@ -34,7 +34,7 @@ export async function getDefaultBranchSHA(
     );
     const data = GitHubReferenceSchema.parse(response);
     return data.object.sha;
-  } catch (error) {
+  } catch (_error) {
     const masterResponse = await githubRequest(
       `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/master`,
     );

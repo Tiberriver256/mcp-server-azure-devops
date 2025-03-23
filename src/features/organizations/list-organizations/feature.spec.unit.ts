@@ -21,7 +21,7 @@ describe('listOrganizations unit', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
-  
+
   test('should throw error when PAT is not provided with PAT auth method', async () => {
     // Arrange
     const config = {
@@ -29,12 +29,16 @@ describe('listOrganizations unit', () => {
       authMethod: AuthenticationMethod.PersonalAccessToken,
       // No PAT provided
     };
-    
+
     // Act & Assert
-    await expect(listOrganizations(config)).rejects.toThrow(AzureDevOpsAuthenticationError);
-    await expect(listOrganizations(config)).rejects.toThrow('Personal Access Token (PAT) is required');
+    await expect(listOrganizations(config)).rejects.toThrow(
+      AzureDevOpsAuthenticationError,
+    );
+    await expect(listOrganizations(config)).rejects.toThrow(
+      'Personal Access Token (PAT) is required',
+    );
   });
-  
+
   test('should throw authentication error when profile API fails', async () => {
     // Arrange
     const config = {
@@ -42,19 +46,23 @@ describe('listOrganizations unit', () => {
       authMethod: AuthenticationMethod.PersonalAccessToken,
       personalAccessToken: 'test-pat',
     };
-    
+
     // Mock axios to throw on the profile API call
     mockedAxios.get.mockImplementationOnce(() => {
       const error = new Error('Unauthorized');
       (error as any).config = { url: 'profiles/me' };
       throw error;
     });
-    
+
     // Act & Assert
-    await expect(listOrganizations(config)).rejects.toThrow(AzureDevOpsAuthenticationError);
-    await expect(listOrganizations(config)).rejects.toThrow('Authentication failed');
+    await expect(listOrganizations(config)).rejects.toThrow(
+      AzureDevOpsAuthenticationError,
+    );
+    await expect(listOrganizations(config)).rejects.toThrow(
+      'Authentication failed',
+    );
   });
-  
+
   test('should transform organization response correctly', async () => {
     // Arrange
     const config = {
@@ -62,18 +70,18 @@ describe('listOrganizations unit', () => {
       authMethod: AuthenticationMethod.PersonalAccessToken,
       personalAccessToken: 'test-pat',
     };
-    
+
     // Mock profile API response
-    mockedAxios.get.mockImplementationOnce(() => 
+    mockedAxios.get.mockImplementationOnce(() =>
       Promise.resolve({
         data: {
           publicAlias: 'test-alias',
         },
-      })
+      }),
     );
-    
+
     // Mock organizations API response
-    mockedAxios.get.mockImplementationOnce(() => 
+    mockedAxios.get.mockImplementationOnce(() =>
       Promise.resolve({
         data: {
           value: [
@@ -89,12 +97,12 @@ describe('listOrganizations unit', () => {
             },
           ],
         },
-      })
+      }),
     );
-    
+
     // Act
     const result = await listOrganizations(config);
-    
+
     // Assert
     expect(result).toEqual([
       {
@@ -109,4 +117,4 @@ describe('listOrganizations unit', () => {
       },
     ]);
   });
-}); 
+});

@@ -11,11 +11,13 @@ describe('updateWorkItem unit', () => {
     };
 
     // Act & Assert - empty options object should throw
-    await expect(updateWorkItem(
-      mockConnection, 
-      123, 
-      {} // No fields to update
-    )).rejects.toThrow('At least one field must be provided for update');
+    await expect(
+      updateWorkItem(
+        mockConnection,
+        123,
+        {}, // No fields to update
+      ),
+    ).rejects.toThrow('At least one field must be provided for update');
   });
 
   test('should propagate custom errors when thrown internally', async () => {
@@ -27,19 +29,15 @@ describe('updateWorkItem unit', () => {
     };
 
     // Act & Assert
-    await expect(updateWorkItem(
-      mockConnection, 
-      123, 
-      { title: 'Updated Title' }
-    )).rejects.toThrow(AzureDevOpsError);
-    
-    await expect(updateWorkItem(
-      mockConnection, 
-      123, 
-      { title: 'Updated Title' }
-    )).rejects.toThrow('Custom error');
+    await expect(
+      updateWorkItem(mockConnection, 123, { title: 'Updated Title' }),
+    ).rejects.toThrow(AzureDevOpsError);
+
+    await expect(
+      updateWorkItem(mockConnection, 123, { title: 'Updated Title' }),
+    ).rejects.toThrow('Custom error');
   });
-  
+
   test('should wrap unexpected errors in a friendly error message', async () => {
     // Arrange
     const mockConnection: any = {
@@ -49,10 +47,8 @@ describe('updateWorkItem unit', () => {
     };
 
     // Act & Assert
-    await expect(updateWorkItem(
-      mockConnection, 
-      123, 
-      { title: 'Updated Title' }
-    )).rejects.toThrow('Failed to update work item: Unexpected error');
+    await expect(
+      updateWorkItem(mockConnection, 123, { title: 'Updated Title' }),
+    ).rejects.toThrow('Failed to update work item: Unexpected error');
   });
-}); 
+});

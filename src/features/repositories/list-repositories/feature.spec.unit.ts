@@ -7,12 +7,14 @@ describe('listRepositories unit', () => {
     // Arrange
     const mockConnection: any = {
       getGitApi: jest.fn().mockImplementation(() => ({
-        getRepositories: jest.fn().mockResolvedValue([]) // No repositories found
+        getRepositories: jest.fn().mockResolvedValue([]), // No repositories found
       })),
     };
 
     // Act
-    const result = await listRepositories(mockConnection, { projectId: 'test-project' });
+    const result = await listRepositories(mockConnection, {
+      projectId: 'test-project',
+    });
 
     // Assert
     expect(result).toEqual([]);
@@ -27,17 +29,15 @@ describe('listRepositories unit', () => {
     };
 
     // Act & Assert
-    await expect(listRepositories(
-      mockConnection, 
-      { projectId: 'test-project' }
-    )).rejects.toThrow(AzureDevOpsError);
-    
-    await expect(listRepositories(
-      mockConnection, 
-      { projectId: 'test-project' }
-    )).rejects.toThrow('Custom error');
+    await expect(
+      listRepositories(mockConnection, { projectId: 'test-project' }),
+    ).rejects.toThrow(AzureDevOpsError);
+
+    await expect(
+      listRepositories(mockConnection, { projectId: 'test-project' }),
+    ).rejects.toThrow('Custom error');
   });
-  
+
   test('should wrap unexpected errors in a friendly error message', async () => {
     // Arrange
     const mockConnection: any = {
@@ -47,28 +47,27 @@ describe('listRepositories unit', () => {
     };
 
     // Act & Assert
-    await expect(listRepositories(
-      mockConnection, 
-      { projectId: 'test-project' }
-    )).rejects.toThrow('Failed to list repositories: Unexpected error');
+    await expect(
+      listRepositories(mockConnection, { projectId: 'test-project' }),
+    ).rejects.toThrow('Failed to list repositories: Unexpected error');
   });
-  
+
   test('should respect the includeLinks option', async () => {
     // Arrange
     const mockGetRepositories = jest.fn().mockResolvedValue([]);
     const mockConnection: any = {
       getGitApi: jest.fn().mockImplementation(() => ({
-        getRepositories: mockGetRepositories
+        getRepositories: mockGetRepositories,
       })),
     };
 
     // Act
-    await listRepositories(mockConnection, { 
+    await listRepositories(mockConnection, {
       projectId: 'test-project',
-      includeLinks: true 
+      includeLinks: true,
     });
 
     // Assert
     expect(mockGetRepositories).toHaveBeenCalledWith('test-project', true);
   });
-}); 
+});

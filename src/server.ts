@@ -354,7 +354,7 @@ export async function testConnection(
     await getConnection(config);
     safeLog('Connection successful');
     return true;
-  } catch (error) {
+  } catch {
     safeLog('Connection test failed:');
     return false;
   }

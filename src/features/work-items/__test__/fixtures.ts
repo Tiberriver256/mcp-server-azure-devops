@@ -7,7 +7,7 @@ export const createWorkItemFixture = (
   id: number,
   title: string = 'Test Work Item',
   state: string = 'Active',
-  assignedTo?: string
+  assignedTo?: string,
 ): WorkItem => {
   return {
     id,
@@ -26,7 +26,11 @@ export const createWorkItemFixture = (
  * Create a collection of work items for list tests
  */
 export const createWorkItemsFixture = (count: number = 3): WorkItem[] => {
-  return Array.from({ length: count }, (_, i) => 
-    createWorkItemFixture(i + 1, `Work Item ${i + 1}`, i % 2 === 0 ? 'Active' : 'Resolved')
+  return Array.from({ length: count }, (_, i) =>
+    createWorkItemFixture(
+      i + 1,
+      `Work Item ${i + 1}`,
+      i % 2 === 0 ? 'Active' : 'Resolved',
+    ),
   );
-}; 
+};

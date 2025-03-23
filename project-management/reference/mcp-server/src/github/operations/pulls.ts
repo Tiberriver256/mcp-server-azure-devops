@@ -3,7 +3,6 @@ import { githubRequest } from '../common/utils.js';
 import {
   GitHubPullRequestSchema,
   GitHubIssueAssigneeSchema,
-  GitHubRepositorySchema,
 } from '../common/types.js';
 
 // Schema definitions

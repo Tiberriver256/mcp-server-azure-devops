@@ -75,7 +75,7 @@ export class AzureDevOpsClient {
     try {
       const client = await this.getClient();
       return !!client;
-    } catch (error) {
+    } catch {
       // Any error means we're not authenticated
       return false;
     }
