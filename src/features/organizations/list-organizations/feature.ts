@@ -83,8 +83,15 @@ export async function listOrganizations(
       },
     );
 
+    // Define the shape of the API response
+    interface AzureDevOpsOrganization {
+      accountId: string;
+      accountName: string;
+      accountUri: string;
+    }
+
     // Transform the response
-    return orgsResponse.data.value.map((org: any) => ({
+    return orgsResponse.data.value.map((org: AzureDevOpsOrganization) => ({
       id: org.accountId,
       name: org.accountName,
       url: org.accountUri,

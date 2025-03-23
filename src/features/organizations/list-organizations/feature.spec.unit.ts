@@ -17,6 +17,11 @@ jest.mock('@azure/identity', () => ({
   })),
 }));
 
+// Define an interface for axios error
+interface AxiosErrorLike extends Error {
+  config: { url: string };
+}
+
 describe('listOrganizations unit', () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -49,8 +54,8 @@ describe('listOrganizations unit', () => {
 
     // Mock axios to throw on the profile API call
     mockedAxios.get.mockImplementationOnce(() => {
-      const error = new Error('Unauthorized');
-      (error as any).config = { url: 'profiles/me' };
+      const error = new Error('Unauthorized') as AxiosErrorLike;
+      error.config = { url: 'profiles/me' };
       throw error;
     });
 

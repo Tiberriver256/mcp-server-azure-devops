@@ -20,6 +20,14 @@
       { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
     ]
   },
+  "overrides": [
+    {
+      "files": ["**/*.spec.unit.ts", "tests/**/*.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    }
+  ],
   "parserOptions": {
     "ecmaVersion": 2020,
     "sourceType": "module"

@@ -27,17 +27,27 @@ export class AzureDevOpsAuthenticationError extends AzureDevOpsError {
 }
 
 /**
+ * Type for API response error details
+ */
+export type ApiErrorResponse = {
+  message?: string;
+  statusCode?: number;
+  details?: unknown;
+  [key: string]: unknown;
+};
+
+/**
  * Error thrown when input validation fails.
  * This includes invalid parameters, malformed requests, or missing required fields.
  *
  * @class AzureDevOpsValidationError
  * @extends {AzureDevOpsError}
- * @property {any} [response] - The raw response from the API containing validation details
+ * @property {ApiErrorResponse} [response] - The raw response from the API containing validation details
  */
 export class AzureDevOpsValidationError extends AzureDevOpsError {
-  response?: any;
+  response?: ApiErrorResponse;
 
-  constructor(message: string, response?: any) {
+  constructor(message: string, response?: ApiErrorResponse) {
     super(message);
     this.name = 'AzureDevOpsValidationError';
     this.response = response;
@@ -94,7 +104,7 @@ export class AzureDevOpsRateLimitError extends AzureDevOpsError {
  * Helper function to check if an error is an Azure DevOps error.
  * Useful for type narrowing in catch blocks.
  *
- * @param {any} error - The error to check
+ * @param {unknown} error - The error to check
  * @returns {boolean} True if the error is an Azure DevOps error
  *
  * @example
@@ -108,7 +118,7 @@ export class AzureDevOpsRateLimitError extends AzureDevOpsError {
  *   }
  * }
  */
-export function isAzureDevOpsError(error: any): error is AzureDevOpsError {
+export function isAzureDevOpsError(error: unknown): error is AzureDevOpsError {
   return error instanceof AzureDevOpsError;
 }
 
@@ -116,7 +126,7 @@ export function isAzureDevOpsError(error: any): error is AzureDevOpsError {
  * Format an Azure DevOps error for display.
  * Provides a consistent error message format across different error types.
  *
- * @param {any} error - The error to format
+ * @param {unknown} error - The error to format
  * @returns {string} A formatted error message
  *
  * @example
@@ -126,7 +136,7 @@ export function isAzureDevOpsError(error: any): error is AzureDevOpsError {
  *   console.error(formatAzureDevOpsError(error));
  * }
  */
-export function formatAzureDevOpsError(error: any): string {
+export function formatAzureDevOpsError(error: unknown): string {
   // Handle non-error objects
   if (error === null) {
     return 'null';
@@ -145,7 +155,8 @@ export function formatAzureDevOpsError(error: any): string {
   }
 
   // Handle error-like objects
-  let message = `${error.name || 'Unknown'}: ${error.message || 'Unknown error'}`;
+  const errorObj = error as Record<string, unknown>;
+  let message = `${errorObj.name || 'Unknown'}: ${errorObj.message || 'Unknown error'}`;
 
   if (error instanceof AzureDevOpsValidationError) {
     if (error.response) {
