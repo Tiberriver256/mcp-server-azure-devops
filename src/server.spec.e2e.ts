@@ -11,6 +11,7 @@ dotenv.config();
 describe('Azure DevOps MCP Server E2E Tests', () => {
   let client: Client;
   let serverProcess: ReturnType<typeof spawn>;
+  let transport: StdioClientTransport;
 
   beforeAll(async () => {
     // Start the MCP server process
@@ -26,7 +27,7 @@ describe('Azure DevOps MCP Server E2E Tests', () => {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Connect the MCP client to the server
-    const transport = new StdioClientTransport({
+    transport = new StdioClientTransport({
       command: 'node',
       args: [serverPath],
     });
@@ -46,11 +47,28 @@ describe('Azure DevOps MCP Server E2E Tests', () => {
     await client.connect(transport);
   });
 
-  afterAll(() => {
+  afterAll(async () => {
+    // Clean up the client transport
+    if (transport) {
+      await transport.close();
+    }
+
+    // Clean up the client
+    if (client) {
+      await client.close();
+    }
+
     // Clean up the server process
     if (serverProcess) {
       serverProcess.kill();
     }
+
+    // Force exit to clean up any remaining handles
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, 500);
+    });
   });
 
   describe('Organizations', () => {
