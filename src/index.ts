@@ -7,6 +7,7 @@ import { createAzureDevOpsServer } from './server';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import dotenv from 'dotenv';
 import { AzureDevOpsConfig } from './shared/types';
+import { AuthenticationMethod } from './shared/auth/auth-factory';
 
 // Load environment variables
 dotenv.config();
@@ -14,8 +15,9 @@ dotenv.config();
 function getConfig(): AzureDevOpsConfig {
   return {
     organizationUrl: process.env.AZURE_DEVOPS_ORG_URL || '',
-    authMethod: (process.env.AZURE_DEVOPS_AUTH_METHOD || 'pat') as any,
-    personalAccessToken: process.env.AZURE_DEVOPS_PAT || '',
+    authMethod: (process.env.AZURE_DEVOPS_AUTH_METHOD ||
+      AuthenticationMethod.AzureIdentity) as AuthenticationMethod,
+    personalAccessToken: process.env.AZURE_DEVOPS_PAT,
     defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT,
     apiVersion: process.env.AZURE_DEVOPS_API_VERSION,
   };
@@ -25,11 +27,11 @@ async function main() {
   try {
     // Create the server with configuration
     const server = createAzureDevOpsServer(getConfig());
-    
+
     // Connect to stdio transport
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    
+
     process.stderr.write('Azure DevOps MCP Server running on stdio\n');
   } catch (error) {
     process.stderr.write(`Error starting server: ${error}\n`);
@@ -46,4 +48,4 @@ if (require.main === module) {
 }
 
 // Export the server and related components
-export * from './server'; 
+export * from './server';
