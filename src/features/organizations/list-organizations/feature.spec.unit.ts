@@ -51,8 +51,8 @@ describe('listOrganizations unit', () => {
     const axiosError = new Error('Unauthorized');
     // Add axios error properties
     (axiosError as any).isAxiosError = true;
-    (axiosError as any).config = { 
-      url: 'https://app.vssps.visualstudio.com/_apis/profile/profiles/me'
+    (axiosError as any).config = {
+      url: 'https://app.vssps.visualstudio.com/_apis/profile/profiles/me',
     };
 
     // Setup the mock for the first call
@@ -60,15 +60,15 @@ describe('listOrganizations unit', () => {
 
     // Act & Assert - Test with a fresh call each time to avoid test sequence issues
     await expect(listOrganizations(config)).rejects.toThrow(
-      AzureDevOpsAuthenticationError
+      AzureDevOpsAuthenticationError,
     );
 
     // Reset mock and set it up again for the second call
     mockedAxios.get.mockReset();
     mockedAxios.get.mockRejectedValueOnce(axiosError);
-    
+
     await expect(listOrganizations(config)).rejects.toThrow(
-      /Authentication failed/
+      /Authentication failed/,
     );
   });
 

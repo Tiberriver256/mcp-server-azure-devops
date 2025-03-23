@@ -29,11 +29,7 @@ describe('listWorkItems unit', () => {
 
   test('should properly handle pagination options', async () => {
     // Arrange
-    const mockWorkItemRefs = [
-      { id: 1 },
-      { id: 2 },
-      { id: 3 },
-    ];
+    const mockWorkItemRefs = [{ id: 1 }, { id: 2 }, { id: 3 }];
 
     const mockWorkItems = [
       { id: 1, fields: { 'System.Title': 'Item 1' } },
