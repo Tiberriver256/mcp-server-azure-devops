@@ -20,6 +20,45 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## Development Practices
+
+This project follows Test-Driven Development practices. Each new feature should:
+
+1. Begin with a failing test
+2. Implement the minimal code to make the test pass
+3. Refactor while keeping tests green
+
+## Testing
+
+### Unit Tests
+
+Run unit tests with:
+
+```bash
+npm run test:unit
+```
+
+### Integration Tests
+
+Integration tests require a connection to a real Azure DevOps instance. To run them:
+
+1. Ensure your `.env` file is configured with valid Azure DevOps credentials:
+
+   ```
+   AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization
+   AZURE_DEVOPS_PAT=your-personal-access-token
+   AZURE_DEVOPS_DEFAULT_PROJECT=your-project-name
+   ```
+
+2. Run the integration tests:
+   ```bash
+   npm run test:integration
+   ```
+
+### CI Environment
+
+For running tests in CI environments (like GitHub Actions), see [CI Environment Setup](docs/ci-setup.md) for instructions on configuring secrets.
+
 ## Commit Message Guidelines
 
 We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for our commit messages. This leads to more readable messages that are easy to follow when looking through the project history and enables automatic versioning and changelog generation.
@@ -80,6 +119,15 @@ npm run commit
 ```
 
 This will start an interactive prompt that will help you generate a properly formatted commit message.
+
+## Release Process
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) to automate versioning and changelog generation. When contributing, please follow the commit message convention.
+
+To create a commit with the correct format, use:
+```bash
+npm run commit
+```
 
 ## Automated Release Workflow
 

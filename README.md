@@ -40,65 +40,55 @@ The server is structured around the Model Context Protocol (MCP) for communicati
   - Azure Identity credentials, or
   - Azure CLI login
 
-### Installation
+### Running with NPX
 
-1. Clone the repository:
+### Usage with Claude Desktop/Cursor AI
 
-   ```
-   git clone https://github.com/your-username/azure-devops-mcp.git
-   cd azure-devops-mcp
-   ```
+To integrate with Claude Desktop or Cursor AI, add one of the following configurations to your configuration file.
 
-2. Install dependencies:
 
-   ```
-   npm install
-   ```
+#### Azure Identity Authentication
 
-3. Set up your environment:
+Be sure you are logged in to Azure CLI with `az login` then add the following:
 
-   Option A: Using the automated setup script (recommended):
-
-   ```
-   chmod +x setup_env.sh
-   ./setup_env.sh
-   ```
-
-   This script will:
-
-   - Check for and install the Azure CLI DevOps extension if needed
-   - Let you select from your available Azure DevOps organizations
-   - Optionally set a default project
-   - Create a Personal Access Token with the required permissions
-   - Generate your `.env` file with the correct settings
-
-   Option B: Manual setup:
-
-   ```
-   cp .env.example .env
-   ```
-
-   Then edit the `.env` file with your Azure DevOps credentials (see Authentication section below).
-
-### Running the Server
-
-Build the TypeScript files:
-
-```
-npm run build
+```json
+{
+  "mcpServers": {
+    "azureDevOps": {
+      "command": "npx",
+      "args": ["-y", "@tiberriver256/mcp-server-azure-devops"],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "https://dev.azure.com/your-organization",
+        "AZURE_DEVOPS_AUTH_METHOD": "azure-identity",
+        "AZURE_DEVOPS_DEFAULT_PROJECT": "your-project-name"
+      }
+    }
+  }
+}
 ```
 
-Start the server:
 
-```
-npm start
+#### Personal Access Token (PAT) Authentication
+
+```json
+{
+  "mcpServers": {
+    "azureDevOps": {
+      "command": "npx",
+      "args": ["-y", "@tiberriver256/mcp-server-azure-devops"],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "https://dev.azure.com/your-organization",
+        "AZURE_DEVOPS_AUTH_METHOD": "pat",
+        "AZURE_DEVOPS_PAT": "<YOUR_PAT>",
+        "AZURE_DEVOPS_DEFAULT_PROJECT": "your-project-name"
+      }
+    }
+  }
+}
 ```
 
-For development with hot reloading:
+For detailed configuration instructions and more authentication options, see the [Authentication Guide](docs/authentication.md).
 
-```
-npm run dev
-```
 
 ## Authentication Methods
 
@@ -118,20 +108,18 @@ For a complete list of environment variables and their descriptions, see the [Au
 
 Key environment variables include:
 
-| Variable                       | Description                                                     | Required           | Default            |
-| ------------------------------ | --------------------------------------------------------------- | ------------------ | ------------------ |
+| Variable                       | Description                                                                        | Required           | Default            |
+| ------------------------------ | ---------------------------------------------------------------------------------- | ------------------ | ------------------ |
 | `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) - case-insensitive | No                 | `azure-identity`   |
-| `AZURE_DEVOPS_ORG`             | Azure DevOps organization name                                  | No                 | Extracted from URL |
-| `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization                      | Yes                | -                  |
-| `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                            | Only with PAT auth | -                  |
-| `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                               | No                 | -                  |
-| `AZURE_DEVOPS_API_VERSION`     | API version to use                                              | No                 | Latest             |
-| `AZURE_AD_TENANT_ID`           | Azure AD tenant ID (for AAD auth)                               | Only with AAD auth | -                  |
-| `AZURE_AD_CLIENT_ID`           | Azure AD application ID (for AAD auth)                          | Only with AAD auth | -                  |
-| `AZURE_AD_CLIENT_SECRET`       | Azure AD client secret (for AAD auth)                           | Only with AAD auth | -                  |
-| `PORT`                         | Server port                                                     | No                 | 3000               |
-| `HOST`                         | Server host                                                     | No                 | localhost          |
-| `LOG_LEVEL`                    | Logging level (debug, info, warn, error)                        | No                 | info               |
+| `AZURE_DEVOPS_ORG`             | Azure DevOps organization name                                                     | No                 | Extracted from URL |
+| `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization                                         | Yes                | -                  |
+| `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                                               | Only with PAT auth | -                  |
+| `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                                                  | No                 | -                  |
+| `AZURE_DEVOPS_API_VERSION`     | API version to use                                                                 | No                 | Latest             |
+| `AZURE_AD_TENANT_ID`           | Azure AD tenant ID (for AAD auth)                                                  | Only with AAD auth | -                  |
+| `AZURE_AD_CLIENT_ID`           | Azure AD application ID (for AAD auth)                                             | Only with AAD auth | -                  |
+| `AZURE_AD_CLIENT_SECRET`       | Azure AD client secret (for AAD auth)                                              | Only with AAD auth | -                  |
+| `LOG_LEVEL`                    | Logging level (debug, info, warn, error)                                           | No                 | info               |
 
 ## Troubleshooting Authentication
 
@@ -177,58 +165,10 @@ For repository-specific tool documentation, see the [Repositories Tools Guide](d
 - `get_work_item`: Retrieve a work item by ID
 - `create_work_item`: Create a new work item
 
-## Testing
+## Contributing
 
-### Unit Tests
-
-Run unit tests with:
-
-```bash
-npm run test:unit
-```
-
-### Integration Tests
-
-Integration tests require a connection to a real Azure DevOps instance. To run them:
-
-1. Ensure your `.env` file is configured with valid Azure DevOps credentials:
-
-   ```
-   AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization
-   AZURE_DEVOPS_PAT=your-personal-access-token
-   AZURE_DEVOPS_DEFAULT_PROJECT=your-project-name
-   ```
-
-2. Run the integration tests:
-   ```bash
-   npm run test:integration
-   ```
-
-### CI Environment
-
-For running tests in CI environments (like GitHub Actions), see [CI Environment Setup](docs/ci-setup.md) for instructions on configuring secrets.
-
-## Development
-
-This project follows Test-Driven Development practices. Each new feature should:
-
-1. Begin with a failing test
-2. Implement the minimal code to make the test pass
-3. Refactor while keeping tests green
-
-## Release Process
-
-This project uses [Conventional Commits](https://www.conventionalcommits.org/) to automate versioning and changelog generation. When contributing, please follow the commit message convention.
-
-To create a commit with the correct format, use:
-```bash
-npm run commit
-```
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## License
 
 MIT
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.

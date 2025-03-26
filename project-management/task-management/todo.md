@@ -1,13 +1,5 @@
 ## Azure DevOps MCP Server Project TODO List (Granular Daily Tasks)
 
-### Authentication and Documentation Enhancements
-
-- [ ] **Task 1.2**: Update documentation on package usage with npx
-  - **Role**: Technical Writer
-  - **Description**: Create examples showing how to use the package with Cursor and other environments using mcp.json configuration
-
-### Authentication Enhancements
-
 - [ ] **Task 2.8**: Implement `get_work_item` handler with tests
   - **Role**: Full-Stack Developer
 - [ ] **Task 2.10**: Implement `add_work_item_comment` handler with tests
