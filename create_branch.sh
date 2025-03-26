@@ -26,11 +26,13 @@ if git ls-remote --heads origin "$branch_name" | grep -q "$branch_name"; then
     exit 1
 fi
 
-# Create the new branch
+# Create the new branch from origin/main but don't set up tracking yet
 git checkout -b "$branch_name" origin/main
 
 if [ $? -eq 0 ]; then
-  echo "Branch '$branch_name' created successfully."
+  # Push the branch to origin and set up proper tracking
+  git push -u origin "$branch_name"
+  echo "Branch '$branch_name' created successfully and pushed to origin."
 else
   echo "Failed to create branch '$branch_name'."
   exit 1
