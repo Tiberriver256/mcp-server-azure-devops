@@ -52,18 +52,7 @@ jobs:
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
-        # This action runs implicitly on tag push, which is handled by the previous step.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.package-version.outputs.version }}
-          name: Release v${{ steps.package-version.outputs.version }}
-          body: |
-            ## Release Notes
-            
-            ${{ steps.changelog.outputs.content }}
-            
-            ## Changes
-            
-            See the [CHANGELOG.md](./CHANGELOG.md) for all changes and the complete history.
-          generate_release_notes: true # Will append GitHub's generated notes 
+          generate_release_notes: true 
