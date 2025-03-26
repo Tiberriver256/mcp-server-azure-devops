@@ -1,8 +1,10 @@
 ## Azure DevOps MCP Server Project TODO List (Granular Daily Tasks)
 
-### DevOps
+### Authentication and Documentation Enhancements
 
-- [ ] **Task 1.0**: Fix all errors shown by `npm run lint` and add it to .github/workflows/main.yml so they don't build up again.
+- [ ] **Task 1.2**: Update documentation on package usage with npx
+  - **Role**: Technical Writer
+  - **Description**: Create examples showing how to use the package with Cursor and other environments using mcp.json configuration
 
 ### Authentication Enhancements
 

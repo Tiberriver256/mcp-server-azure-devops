@@ -70,6 +70,26 @@
     *   [x] **Sub-task 5.5:** Clean up the temporary file: `git rm --cached temp_test.txt` and `rm temp_test.txt`.
     *   [x] **Sub-task 5.6:** Execute `npm run commit`. **Verify that an interactive prompt appears**, asking questions to build a conventional commit message. Exit the prompt without completing the commit (e.g., using Ctrl+C).
 
+*   **Task 1.1**: Fix auth method case-sensitivity issue
+    *   **Role**: Full-Stack Developer
+    *   **Phase**: Completion
+    *   **Description**: Make the `AZURE_DEVOPS_AUTH_METHOD` parameter case-insensitive
+
+    ### Notes
+    - Currently, the auth method parameter is case-sensitive, causing issues when users enter values with different casing
+    - Need to research how the auth method is currently implemented
+    - Need to modify the validation/parsing logic to handle case variations
+    - Implemented a normalizeAuthMethod function that compares the auth method in a case-insensitive way
+    - Added comprehensive unit tests to verify case-insensitive behavior
+    - Updated documentation to clarify that the parameter is case-insensitive
+
+    ### Sub-tasks
+    - [x] Research current implementation of auth method validation
+    - [x] Design approach for handling case-insensitive comparison
+    - [x] Implement the fix with proper error handling
+    - [x] Add tests to verify the fix works with different case variations
+    - [x] Update documentation to clarify that the parameter is now case-insensitive
+
 ---
 
 **### Phase 2: Setup Release Automation (`standard-version`)**
