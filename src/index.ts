@@ -12,11 +12,13 @@ import { AuthenticationMethod } from './shared/auth/auth-factory';
 /**
  * Normalize auth method string to a valid AuthenticationMethod enum value
  * in a case-insensitive manner
- * 
+ *
  * @param authMethodStr The auth method string from environment variable
  * @returns A valid AuthenticationMethod value
  */
-export function normalizeAuthMethod(authMethodStr?: string): AuthenticationMethod {
+export function normalizeAuthMethod(
+  authMethodStr?: string,
+): AuthenticationMethod {
   if (!authMethodStr) {
     return AuthenticationMethod.AzureIdentity; // Default
   }
@@ -25,16 +27,22 @@ export function normalizeAuthMethod(authMethodStr?: string): AuthenticationMetho
   const normalizedMethod = authMethodStr.toLowerCase();
 
   // Check against known enum values (as lowercase strings)
-  if (normalizedMethod === AuthenticationMethod.PersonalAccessToken.toLowerCase()) {
+  if (
+    normalizedMethod === AuthenticationMethod.PersonalAccessToken.toLowerCase()
+  ) {
     return AuthenticationMethod.PersonalAccessToken;
-  } else if (normalizedMethod === AuthenticationMethod.AzureIdentity.toLowerCase()) {
+  } else if (
+    normalizedMethod === AuthenticationMethod.AzureIdentity.toLowerCase()
+  ) {
     return AuthenticationMethod.AzureIdentity;
   } else if (normalizedMethod === AuthenticationMethod.AzureCli.toLowerCase()) {
     return AuthenticationMethod.AzureCli;
   }
 
   // If not recognized, log a warning and use the default
-  process.stderr.write(`WARNING: Unrecognized auth method '${authMethodStr}'. Using default (${AuthenticationMethod.AzureIdentity}).\n`);
+  process.stderr.write(
+    `WARNING: Unrecognized auth method '${authMethodStr}'. Using default (${AuthenticationMethod.AzureIdentity}).\n`,
+  );
   return AuthenticationMethod.AzureIdentity;
 }
 

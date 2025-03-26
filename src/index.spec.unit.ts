@@ -6,10 +6,10 @@ describe('index', () => {
     it('should return AzureIdentity when authMethodStr is undefined', () => {
       // Arrange
       const authMethodStr = undefined;
-      
+
       // Act
       const result = normalizeAuthMethod(authMethodStr);
-      
+
       // Assert
       expect(result).toBe(AuthenticationMethod.AzureIdentity);
     });
@@ -17,27 +17,23 @@ describe('index', () => {
     it('should return AzureIdentity when authMethodStr is empty', () => {
       // Arrange
       const authMethodStr = '';
-      
+
       // Act
       const result = normalizeAuthMethod(authMethodStr);
-      
+
       // Assert
       expect(result).toBe(AuthenticationMethod.AzureIdentity);
     });
 
     it('should handle PersonalAccessToken case-insensitively', () => {
       // Arrange
-      const variations = [
-        'pat',
-        'PAT',
-        'Pat',
-        'pAt',
-        'paT',
-      ];
-      
+      const variations = ['pat', 'PAT', 'Pat', 'pAt', 'paT'];
+
       // Act & Assert
-      variations.forEach(variant => {
-        expect(normalizeAuthMethod(variant)).toBe(AuthenticationMethod.PersonalAccessToken);
+      variations.forEach((variant) => {
+        expect(normalizeAuthMethod(variant)).toBe(
+          AuthenticationMethod.PersonalAccessToken,
+        );
       });
     });
 
@@ -50,10 +46,12 @@ describe('index', () => {
         'azure-Identity',
         'Azure-identity',
       ];
-      
+
       // Act & Assert
-      variations.forEach(variant => {
-        expect(normalizeAuthMethod(variant)).toBe(AuthenticationMethod.AzureIdentity);
+      variations.forEach((variant) => {
+        expect(normalizeAuthMethod(variant)).toBe(
+          AuthenticationMethod.AzureIdentity,
+        );
       });
     });
 
@@ -66,10 +64,12 @@ describe('index', () => {
         'azure-Cli',
         'Azure-cli',
       ];
-      
+
       // Act & Assert
-      variations.forEach(variant => {
-        expect(normalizeAuthMethod(variant)).toBe(AuthenticationMethod.AzureCli);
+      variations.forEach((variant) => {
+        expect(normalizeAuthMethod(variant)).toBe(
+          AuthenticationMethod.AzureCli,
+        );
       });
     });
 
@@ -83,18 +83,20 @@ describe('index', () => {
         'cli',
         'identity',
       ];
-      
+
       // Act & Assert (mute stderr for warning messages)
       const originalStderrWrite = process.stderr.write;
       process.stderr.write = jest.fn();
-      
+
       try {
-        unrecognized.forEach(value => {
-          expect(normalizeAuthMethod(value)).toBe(AuthenticationMethod.AzureIdentity);
+        unrecognized.forEach((value) => {
+          expect(normalizeAuthMethod(value)).toBe(
+            AuthenticationMethod.AzureIdentity,
+          );
         });
       } finally {
         process.stderr.write = originalStderrWrite;
       }
     });
   });
-}); 
+});
