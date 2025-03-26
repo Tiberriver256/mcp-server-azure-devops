@@ -20,6 +20,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 'lts/*' # Use the project's LTS Node version
+          registry-url: 'https://registry.npmjs.org/'
 
       - name: Install Dependencies
         run: npm ci
@@ -51,7 +52,7 @@ jobs:
         # Ensure this pushes to the correct branch (e.g., main)
 
       - name: Publish to npm
-        run: npm publish --access public # <-- Scoped packages need --access public
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
