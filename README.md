@@ -216,6 +216,15 @@ This project follows Test-Driven Development practices. Each new feature should:
 2. Implement the minimal code to make the test pass
 3. Refactor while keeping tests green
 
+## Release Process
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) to automate versioning and changelog generation. When contributing, please follow the commit message convention.
+
+To create a commit with the correct format, use:
+```bash
+npm run commit
+```
+
 ## License
 
 MIT

@@ -1,9 +1,14 @@
 {
-  "name": "azure-devops-mcp",
+  "name": "@tiberriver256/mcp-server-azure-devops",
   "version": "0.1.0",
   "description": "Azure DevOps reference server for the Model Context Protocol (MCP)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
@@ -16,7 +21,13 @@
     "test:watch": "jest --watch",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "commit": "cz",
+    "release": "standard-version",
+    "release:minor": "standard-version --release-as minor",
+    "release:patch": "standard-version --release-as patch",
+    "release:major": "standard-version --release-as major",
+    "release:dryrun": "standard-version --dry-run"
   },
   "keywords": [
     "azure-devops",
@@ -35,16 +46,21 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^8.27.0",
     "@typescript-eslint/parser": "^8.27.0",
+    "commitizen": "^4.3.1",
+    "cz-conventional-changelog": "^3.3.0",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
-    "husky": "^8.0.0",
+    "husky": "^8.0.3",
     "jest": "^29.0.0",
     "prettier": "^3.0.0",
+    "standard-version": "^9.5.0",
     "ts-jest": "^29.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.2"
