@@ -5,10 +5,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "mcp-server-azure-devops": "./dist/index.js"
+    "mcp-server-azure-devops": "./bin/mcp-server-azure-devops.js"
   },
   "files": [
     "dist",
+    "bin",
     "docs",
     "LICENSE",
     "README.md"
@@ -19,7 +20,7 @@
     }
   },
   "scripts": {
-    "build": "tsc && chmod +x dist/index.js",
+    "build": "tsc && chmod +x dist/index.js && chmod +x bin/mcp-server-azure-devops.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "start": "node dist/index.js",
     "inspector": "npm run build && npx @modelcontextprotocol/inspector node dist/index.js",
