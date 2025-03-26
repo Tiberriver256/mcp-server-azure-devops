@@ -135,7 +135,7 @@ Azure CLI authentication uses the `AzureCliCredential` class from the `@azure/id
 
 | Environment Variable           | Description                                                     | Required                     | Default          |
 | ------------------------------ | --------------------------------------------------------------- | ---------------------------- | ---------------- |
-| `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) | No                           | `azure-identity` |
+| `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) - case-insensitive | No                           | `azure-identity` |
 | `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization                      | Yes                          | -                |
 | `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                            | Only with PAT auth           | -                |
 | `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                               | No                           | -                |

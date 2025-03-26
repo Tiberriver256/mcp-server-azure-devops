@@ -120,7 +120,7 @@ Key environment variables include:
 
 | Variable                       | Description                                                     | Required           | Default            |
 | ------------------------------ | --------------------------------------------------------------- | ------------------ | ------------------ |
-| `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) | No                 | `azure-identity`   |
+| `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) - case-insensitive | No                 | `azure-identity`   |
 | `AZURE_DEVOPS_ORG`             | Azure DevOps organization name                                  | No                 | Extracted from URL |
 | `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization                      | Yes                | -                  |
 | `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                            | Only with PAT auth | -                  |

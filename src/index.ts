@@ -9,6 +9,35 @@ import dotenv from 'dotenv';
 import { AzureDevOpsConfig } from './shared/types';
 import { AuthenticationMethod } from './shared/auth/auth-factory';
 
+/**
+ * Normalize auth method string to a valid AuthenticationMethod enum value
+ * in a case-insensitive manner
+ * 
+ * @param authMethodStr The auth method string from environment variable
+ * @returns A valid AuthenticationMethod value
+ */
+export function normalizeAuthMethod(authMethodStr?: string): AuthenticationMethod {
+  if (!authMethodStr) {
+    return AuthenticationMethod.AzureIdentity; // Default
+  }
+
+  // Convert to lowercase for case-insensitive comparison
+  const normalizedMethod = authMethodStr.toLowerCase();
+
+  // Check against known enum values (as lowercase strings)
+  if (normalizedMethod === AuthenticationMethod.PersonalAccessToken.toLowerCase()) {
+    return AuthenticationMethod.PersonalAccessToken;
+  } else if (normalizedMethod === AuthenticationMethod.AzureIdentity.toLowerCase()) {
+    return AuthenticationMethod.AzureIdentity;
+  } else if (normalizedMethod === AuthenticationMethod.AzureCli.toLowerCase()) {
+    return AuthenticationMethod.AzureCli;
+  }
+
+  // If not recognized, log a warning and use the default
+  process.stderr.write(`WARNING: Unrecognized auth method '${authMethodStr}'. Using default (${AuthenticationMethod.AzureIdentity}).\n`);
+  return AuthenticationMethod.AzureIdentity;
+}
+
 // Load environment variables
 dotenv.config();
 
@@ -25,8 +54,7 @@ function getConfig(): AzureDevOpsConfig {
 
   return {
     organizationUrl: process.env.AZURE_DEVOPS_ORG_URL || '',
-    authMethod: (process.env.AZURE_DEVOPS_AUTH_METHOD ||
-      AuthenticationMethod.AzureIdentity) as AuthenticationMethod,
+    authMethod: normalizeAuthMethod(process.env.AZURE_DEVOPS_AUTH_METHOD),
     personalAccessToken: process.env.AZURE_DEVOPS_PAT,
     defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT,
     apiVersion: process.env.AZURE_DEVOPS_API_VERSION,
