@@ -50,6 +50,11 @@ jobs:
         run: git push --follow-tags origin main
         # Ensure this pushes to the correct branch (e.g., main)
 
+      - name: Publish to npm
+        run: npm publish --access public # <-- Scoped packages need --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         env:
