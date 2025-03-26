@@ -1,0 +1,47 @@
+name: Release Automation
+
+on:
+  workflow_dispatch: # Allows manual triggering for testing
+
+permissions:
+  contents: write # Allows pushing commits/tags and creating releases
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Fetch all history for standard-version
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 'lts/*' # Use the project's LTS Node version
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create Release Bump and Changelog
+        run: npm run release -- --commit-all # standard-version determines version based on commits
+        # Add --first-release if this is the absolute first tag/release
+
+      - name: Push changes and tags
+        run: git push --follow-tags origin main
+        # Ensure this pushes to the correct branch (e.g., main)
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        # This action runs implicitly on tag push, which is handled by the previous step.
+        # If you want more control, you can extract the tag version and trigger explicitly.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          generate_release_notes: true # Use conventional commits for release notes 

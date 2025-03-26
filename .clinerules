@@ -2,6 +2,12 @@
 
 ⚠️ CRITICAL: DO NOT USE attempt_completion BEFORE TESTING ⚠️
 
+## Commit Rules
+
+⚠️ MANDATORY: All git commits MUST adhere to the Conventional Commits specification (https://www.conventionalcommits.org/). Example: 'feat: implement user login' or 'fix: resolve calculation error'.
+
+⚠️ RECOMMENDED: Use 'npm run commit' to create commit messages interactively, ensuring compliance.
+
 ## Step 1: Planning (PLAN MODE)
 - What problem does this tool solve?
 - What API/service will it use?
