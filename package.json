@@ -8,9 +8,9 @@
     "mcp-server-azure-devops": "./bin/mcp-server-azure-devops.js"
   },
   "files": [
-    "dist",
-    "bin",
-    "docs",
+    "dist/",
+    "bin/",
+    "docs/",
     "LICENSE",
     "README.md"
   ],

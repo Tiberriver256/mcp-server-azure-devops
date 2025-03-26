@@ -51,6 +51,9 @@ jobs:
         run: git push --follow-tags origin main
         # Ensure this pushes to the correct branch (e.g., main)
 
+      - name: Build package
+        run: npm run build
+
       - name: Publish to npm
         run: npm publish --access public
         env:
