@@ -55,4 +55,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tag_name: v${{ steps.package-version.outputs.version }}
           generate_release_notes: true 
