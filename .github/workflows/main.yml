@@ -1,8 +1,6 @@
-name: CI/CD
+name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
