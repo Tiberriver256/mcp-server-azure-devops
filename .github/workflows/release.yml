@@ -33,6 +33,19 @@ jobs:
         run: npm run release -- --commit-all # standard-version determines version based on commits
         # Add --first-release if this is the absolute first tag/release
 
+      - name: Get version from package.json
+        id: package-version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog content
+        id: changelog
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          CHANGELOG_CONTENT=$(awk "/### \[$VERSION\]/,/### \[.*\]/ { if (!/### \[.*\]/ || NR==1) print; }" CHANGELOG.md | sed '1d;$d')
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Push changes and tags
         run: git push --follow-tags origin main
         # Ensure this pushes to the correct branch (e.g., main)
@@ -40,8 +53,17 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         # This action runs implicitly on tag push, which is handled by the previous step.
-        # If you want more control, you can extract the tag version and trigger explicitly.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          generate_release_notes: true # Use conventional commits for release notes 
+          tag_name: v${{ steps.package-version.outputs.version }}
+          name: Release v${{ steps.package-version.outputs.version }}
+          body: |
+            ## Release Notes
+            
+            ${{ steps.changelog.outputs.content }}
+            
+            ## Changes
+            
+            See the [CHANGELOG.md](./CHANGELOG.md) for all changes and the complete history.
+          generate_release_notes: true # Will append GitHub's generated notes 
