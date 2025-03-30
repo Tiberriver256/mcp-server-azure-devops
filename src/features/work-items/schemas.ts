@@ -44,6 +44,10 @@ export const CreateWorkItemSchema = z.object({
     .optional()
     .describe('The iteration path for the work item'),
   priority: z.number().optional().describe('The priority of the work item'),
+  parentId: z
+    .number()
+    .optional()
+    .describe('The ID of the parent work item to create a relationship with'),
   additionalFields: z
     .record(z.string(), z.any())
     .optional()

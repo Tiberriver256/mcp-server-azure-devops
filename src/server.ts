@@ -198,6 +198,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
               areaPath: args.areaPath,
               iterationPath: args.iterationPath,
               priority: args.priority,
+              parentId: args.parentId,
               additionalFields: args.additionalFields,
             },
           );

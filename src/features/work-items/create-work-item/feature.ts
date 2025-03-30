@@ -75,6 +75,18 @@ export async function createWorkItem(
       });
     }
 
+    // Add parent relationship if parentId is provided
+    if (options.parentId) {
+      document.push({
+        op: 'add',
+        path: '/relations/-',
+        value: {
+          rel: 'System.LinkTypes.Hierarchy-Reverse',
+          url: `${connection.serverUrl}/_apis/wit/workItems/${options.parentId}`,
+        },
+      });
+    }
+
     // Add any additional fields
     if (options.additionalFields) {
       for (const [key, value] of Object.entries(options.additionalFields)) {

@@ -113,4 +113,72 @@ describe('createWorkItem integration', () => {
       expect(result.fields['System.Tags']).toContain('Automated');
     }
   });
+
+  test('should create a child work item with parent-child relationship', async () => {
+    // Skip if no connection is available
+    if (shouldSkipIntegrationTest()) {
+      return;
+    }
+
+    // This connection must be available if we didn't skip
+    if (!connection) {
+      throw new Error(
+        'Connection should be available when test is not skipped',
+      );
+    }
+
+    // For a true integration test, use a real project
+    const projectName =
+      process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
+
+    // First, create a parent work item (User Story)
+    const parentTitle = `Parent Story ${new Date().toISOString()}`;
+    const parentOptions: CreateWorkItemOptions = {
+      title: parentTitle,
+      description: 'This is a parent user story',
+    };
+
+    const parentResult = await createWorkItem(
+      connection,
+      projectName,
+      'User Story', // Assuming User Story type exists
+      parentOptions,
+    );
+
+    expect(parentResult).toBeDefined();
+    expect(parentResult.id).toBeDefined();
+    const parentId = parentResult.id;
+
+    // Now create a child work item (Task) with a link to the parent
+    const childTitle = `Child Task ${new Date().toISOString()}`;
+    const childOptions: CreateWorkItemOptions = {
+      title: childTitle,
+      description: 'This is a child task of a user story',
+      parentId: parentId, // Reference to parent work item
+    };
+
+    const childResult = await createWorkItem(
+      connection,
+      projectName,
+      'Task',
+      childOptions,
+    );
+
+    // Assert the child work item was created
+    expect(childResult).toBeDefined();
+    expect(childResult.id).toBeDefined();
+
+    // Now verify the parent-child relationship
+    // We would need to fetch the relations, but for now we'll just assert
+    // that the response indicates a relationship was created
+    expect(childResult.relations).toBeDefined();
+    
+    // Check that at least one relation exists that points to our parent
+    const parentRelation = childResult.relations?.find(
+      relation => 
+        relation.rel === 'System.LinkTypes.Hierarchy-Reverse' && 
+        relation.url && relation.url.includes(`/${parentId}`)
+    );
+    expect(parentRelation).toBeDefined();
+  });
 });
