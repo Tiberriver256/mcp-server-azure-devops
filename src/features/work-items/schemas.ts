@@ -86,3 +86,28 @@ export const UpdateWorkItemSchema = z.object({
     .optional()
     .describe('Additional fields to update on the work item'),
 });
+
+/**
+ * Schema for managing work item links
+ */
+export const ManageWorkItemLinkSchema = z.object({
+  sourceWorkItemId: z.number().describe('The ID of the source work item'),
+  targetWorkItemId: z.number().describe('The ID of the target work item'),
+  projectId: z.string().describe('The ID or name of the project'),
+  operation: z
+    .enum(['add', 'remove', 'update'])
+    .describe('The operation to perform on the link'),
+  relationType: z
+    .string()
+    .describe(
+      'The reference name of the relation type (e.g., "System.LinkTypes.Hierarchy-Forward")',
+    ),
+  newRelationType: z
+    .string()
+    .optional()
+    .describe('The new relation type to use when updating a link'),
+  comment: z
+    .string()
+    .optional()
+    .describe('Optional comment explaining the link'),
+});

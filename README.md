@@ -164,6 +164,9 @@ For repository-specific tool documentation, see the [Repositories Tools Guide](d
 
 - `get_work_item`: Retrieve a work item by ID
 - `create_work_item`: Create a new work item
+- `update_work_item`: Update an existing work item
+- `list_work_items`: List work items in a project
+- `manage_work_item_link`: Add, remove, or update links between work items
 
 ## Contributing
 

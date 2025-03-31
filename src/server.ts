@@ -22,10 +22,12 @@ import {
   GetWorkItemSchema,
   CreateWorkItemSchema,
   UpdateWorkItemSchema,
+  ManageWorkItemLinkSchema,
   listWorkItems,
   getWorkItem,
   createWorkItem,
   updateWorkItem,
+  manageWorkItemLink,
 } from './features/work-items';
 
 import {
@@ -117,6 +119,11 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           name: 'update_work_item',
           description: 'Update an existing work item',
           inputSchema: zodToJsonSchema(UpdateWorkItemSchema),
+        },
+        {
+          name: 'manage_work_item_link',
+          description: 'Add or remove a link between work items',
+          inputSchema: zodToJsonSchema(ManageWorkItemLinkSchema),
         },
         // Repository tools
         {
@@ -217,6 +224,20 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
             priority: args.priority,
             state: args.state,
             additionalFields: args.additionalFields,
+          });
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        case 'manage_work_item_link': {
+          const args = ManageWorkItemLinkSchema.parse(request.params.arguments);
+          const result = await manageWorkItemLink(connection, args.projectId, {
+            sourceWorkItemId: args.sourceWorkItemId,
+            targetWorkItemId: args.targetWorkItemId,
+            operation: args.operation,
+            relationType: args.relationType,
+            newRelationType: args.newRelationType,
+            comment: args.comment,
           });
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
