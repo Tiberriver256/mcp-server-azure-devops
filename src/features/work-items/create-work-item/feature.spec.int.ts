@@ -172,12 +172,13 @@ describe('createWorkItem integration', () => {
     // We would need to fetch the relations, but for now we'll just assert
     // that the response indicates a relationship was created
     expect(childResult.relations).toBeDefined();
-    
+
     // Check that at least one relation exists that points to our parent
     const parentRelation = childResult.relations?.find(
-      relation => 
-        relation.rel === 'System.LinkTypes.Hierarchy-Reverse' && 
-        relation.url && relation.url.includes(`/${parentId}`)
+      (relation) =>
+        relation.rel === 'System.LinkTypes.Hierarchy-Reverse' &&
+        relation.url &&
+        relation.url.includes(`/${parentId}`),
     );
     expect(parentRelation).toBeDefined();
   });
