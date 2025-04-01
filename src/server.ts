@@ -49,6 +49,8 @@ import {
   listOrganizations,
 } from './features/organizations';
 
+import { SearchCodeSchema, searchCode } from './features/search';
+
 // Create a safe console logging function that won't interfere with MCP protocol
 function safeLog(message: string) {
   process.stderr.write(`${message}\n`);
@@ -135,6 +137,12 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           name: 'list_repositories',
           description: 'List repositories in a project',
           inputSchema: zodToJsonSchema(ListRepositoriesSchema),
+        },
+        // Search tools
+        {
+          name: 'search_code',
+          description: 'Search for code across repositories in a project',
+          inputSchema: zodToJsonSchema(SearchCodeSchema),
         },
       ],
     };
@@ -263,6 +271,15 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         case 'list_repositories': {
           const args = ListRepositoriesSchema.parse(request.params.arguments);
           const result = await listRepositories(connection, args);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        // Search tools
+        case 'search_code': {
+          const args = SearchCodeSchema.parse(request.params.arguments);
+          const result = await searchCode(connection, args);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };

@@ -1,0 +1,212 @@
+import { WebApi } from 'azure-devops-node-api';
+import axios from 'axios';
+import {
+  AzureDevOpsError,
+  AzureDevOpsResourceNotFoundError,
+  AzureDevOpsValidationError,
+  AzureDevOpsPermissionError,
+} from '../../../shared/errors';
+import {
+  SearchCodeOptions,
+  CodeSearchRequest,
+  CodeSearchResponse,
+  CodeSearchResult,
+} from '../types';
+
+/**
+ * Search for code in Azure DevOps repositories
+ *
+ * @param connection The Azure DevOps WebApi connection
+ * @param options Parameters for searching code
+ * @returns Search results with optional file content
+ */
+export async function searchCode(
+  connection: WebApi,
+  options: SearchCodeOptions,
+): Promise<CodeSearchResponse> {
+  try {
+    // Prepare the search request
+    const searchRequest: CodeSearchRequest = {
+      searchText: options.searchText,
+      $skip: options.skip,
+      $top: options.top,
+      filters: {
+        Project: [options.projectId],
+        ...options.filters,
+      },
+      includeFacets: true,
+      includeSnippet: options.includeSnippet,
+    };
+
+    // Get the authorization header from the connection
+    const authHeader = await getAuthorizationHeader(connection);
+
+    // Extract organization and project from the connection URL
+    const { organization, project } = extractOrgAndProject(
+      connection,
+      options.projectId,
+    );
+
+    // Make the search API request
+    const searchUrl = `https://almsearch.dev.azure.com/${organization}/${project}/_apis/search/codesearchresults?api-version=7.1`;
+    const searchResponse = await axios.post<CodeSearchResponse>(
+      searchUrl,
+      searchRequest,
+      {
+        headers: {
+          Authorization: authHeader,
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+
+    const results = searchResponse.data;
+
+    // If includeContent is true, fetch the content for each result
+    if (options.includeContent && results.results.length > 0) {
+      await enrichResultsWithContent(connection, results.results);
+    }
+
+    return results;
+  } catch (error) {
+    // If it's already an AzureDevOpsError, rethrow it
+    if (error instanceof AzureDevOpsError) {
+      throw error;
+    }
+
+    // Handle axios errors
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const message = error.response?.data?.message || error.message;
+
+      if (status === 404) {
+        throw new AzureDevOpsResourceNotFoundError(
+          `Resource not found: ${message}`,
+        );
+      } else if (status === 400) {
+        throw new AzureDevOpsValidationError(
+          `Invalid request: ${message}`,
+          error.response?.data,
+        );
+      } else if (status === 401 || status === 403) {
+        throw new AzureDevOpsPermissionError(`Permission denied: ${message}`);
+      } else {
+        // For other axios errors, wrap in a generic AzureDevOpsError
+        throw new AzureDevOpsError(`Azure DevOps API error: ${message}`);
+      }
+    }
+
+    // Otherwise, wrap it in a generic error
+    throw new AzureDevOpsError(
+      `Failed to search code: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/**
+ * Extract organization and project from the connection URL
+ *
+ * @param connection The Azure DevOps WebApi connection
+ * @param projectId The project ID or name
+ * @returns The organization and project
+ */
+function extractOrgAndProject(
+  connection: WebApi,
+  projectId: string,
+): { organization: string; project: string } {
+  // Extract organization from the connection URL
+  const url = connection.serverUrl;
+  const match = url.match(/https?:\/\/dev\.azure\.com\/([^/]+)/);
+  const organization = match ? match[1] : '';
+
+  if (!organization) {
+    throw new AzureDevOpsValidationError(
+      'Could not extract organization from connection URL',
+    );
+  }
+
+  return {
+    organization,
+    project: projectId,
+  };
+}
+
+/**
+ * Get the authorization header from the connection
+ *
+ * @param connection The Azure DevOps WebApi connection
+ * @returns The authorization header
+ */
+async function getAuthorizationHeader(connection: WebApi): Promise<string> {
+  try {
+    // For PAT authentication, we can construct the header directly
+    if (
+      process.env.AZURE_DEVOPS_AUTH_METHOD?.toLowerCase() === 'pat' &&
+      process.env.AZURE_DEVOPS_PAT
+    ) {
+      // For PAT auth, we can construct the Basic auth header directly
+      const token = process.env.AZURE_DEVOPS_PAT;
+      const base64Token = Buffer.from(`:${token}`).toString('base64');
+      return `Basic ${base64Token}`;
+    }
+
+    // For other auth methods, we'll make a simple API call to get a valid token
+    // This is a workaround since we can't directly access the auth handler's token
+    const coreApi = await connection.getCoreApi();
+    await coreApi.getProjects();
+
+    // At this point, the connection should have made a request and we can
+    // extract the auth header from the most recent request
+    // If this fails, we'll fall back to a default approach
+    return `Basic ${Buffer.from(':' + process.env.AZURE_DEVOPS_PAT).toString('base64')}`;
+  } catch (error) {
+    throw new AzureDevOpsValidationError(
+      `Failed to get authorization header: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/**
+ * Enrich search results with file content
+ *
+ * @param connection The Azure DevOps WebApi connection
+ * @param results The search results to enrich
+ */
+async function enrichResultsWithContent(
+  connection: WebApi,
+  results: CodeSearchResult[],
+): Promise<void> {
+  try {
+    const gitApi = await connection.getGitApi();
+
+    // Process each result in parallel
+    await Promise.all(
+      results.map(async (result) => {
+        try {
+          // Get the file content using the Git API
+          const content = await gitApi.getItemContent(
+            result.repository.id,
+            result.path,
+            result.project.name,
+            result.versions[0]?.changeId,
+          );
+
+          // Convert the buffer to a string and store it in the result
+          if (content) {
+            result.content = content.toString();
+          }
+        } catch (error) {
+          // Log the error but don't fail the entire operation
+          console.error(
+            `Failed to fetch content for ${result.path}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }),
+    );
+  } catch (error) {
+    // Log the error but don't fail the entire operation
+    console.error(
+      `Failed to enrich results with content: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}

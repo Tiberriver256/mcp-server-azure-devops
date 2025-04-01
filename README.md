@@ -168,6 +168,12 @@ For repository-specific tool documentation, see the [Repositories Tools Guide](d
 - `list_work_items`: List work items in a project
 - `manage_work_item_link`: Add, remove, or update links between work items
 
+### Search Tools
+
+- `search_code`: Search for code across repositories in a project
+
+For search-specific tool documentation, see the [Search Tools Guide](docs/tools/search.md).
+
 ## Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
