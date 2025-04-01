@@ -58,7 +58,7 @@ export async function listWorkItems(
     }
 
     // Apply pagination in memory
-    const { top, skip } = options;
+    const { top = 200, skip } = options;
     if (skip !== undefined) {
       workItemRefs = workItemRefs.slice(skip);
     }
