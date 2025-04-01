@@ -1,7 +1,5 @@
 ## Azure DevOps MCP Server Project TODO List (Granular Daily Tasks)
 
-- [ ] **Task 2.8**: Implement `get_work_item` handler with tests
-  - **Role**: Full-Stack Developer
 - [ ] **Task 2.10**: Implement `add_work_item_comment` handler with tests
   - **Role**: Full-Stack Developer
 - [ ] **Task 2.13**: Refactor work item tools for consistency (with regression tests)

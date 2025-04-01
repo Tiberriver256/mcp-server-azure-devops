@@ -17,7 +17,7 @@ Retrieves a work item by its ID.
 | Parameter    | Type   | Required | Description                                                                       |
 | ------------ | ------ | -------- | --------------------------------------------------------------------------------- |
 | `workItemId` | number | Yes      | The ID of the work item to retrieve                                               |
-| `expand`     | string | No       | Controls the level of detail in the response (e.g., "All", "Relations", "Fields") |
+| `expand`     | string | No       | Controls the level of detail in the response. Defaults to "All" if not specified. Other values: "Relations", "Fields", "None" |
 
 ### Response
 
@@ -45,8 +45,15 @@ Returns a work item object with the following structure:
 ### Example Usage
 
 ```javascript
+// Using default expand="All"
 const result = await callTool('get_work_item', {
   workItemId: 123,
+});
+
+// Explicitly specifying expand
+const minimalResult = await callTool('get_work_item', {
+  workItemId: 123,
+  expand: 'None'
 });
 ```
 

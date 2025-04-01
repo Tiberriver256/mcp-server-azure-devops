@@ -1,10 +1,17 @@
 import { z } from 'zod';
+import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 
 /**
  * Schema for getting a work item
  */
 export const GetWorkItemSchema = z.object({
   workItemId: z.number().describe('The ID of the work item'),
+  expand: z
+    .nativeEnum(WorkItemExpand)
+    .optional()
+    .describe(
+      'The level of detail to include in the response. Defaults to "all" if not specified.',
+    ),
 });
 
 /**

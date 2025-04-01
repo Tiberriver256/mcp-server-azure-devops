@@ -1,5 +1,20 @@
 ## Completed Tasks
 
+- [x] **Task 2.8**: Allow `get_work_item` to default to 'Expand All' when no specific fields are requested. There isn't usually enough information on the default Get_work_item response now.
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completed
+  - **Notes**:
+    - Current implementation in `src/features/work-items/get-work-item/feature.ts` only requested minimal fields by default
+    - Azure DevOps API supports WorkItemExpand enum with options: None, Relations, Fields, Links, All
+    - When using expand parameter, we should not specify fields array
+    - Current schema in `src/features/work-items/schemas.ts` didn't expose expand parameter
+  - **Implementation**:
+    - Updated `GetWorkItemSchema` in `src/features/work-items/schemas.ts` to include the optional expand parameter
+    - Modified `getWorkItem` function in `src/features/work-items/get-work-item/feature.ts` to use `WorkItemExpand.All` by default
+    - Updated documentation in `docs/tools/work-items.md` to reflect the new default behavior
+    - Added tests in `src/features/work-items/get-work-item/feature.spec.int.ts` to verify the expanded data retrieval
+  - **Completed**: March 31, 2024
+
 - [x] **Task 1.0**: Implement `manage_work_item_link` handler with tests
   - **Role**: Full-Stack Developer
   - **Phase**: Completed

@@ -180,7 +180,11 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         // Work item tools
         case 'get_work_item': {
           const args = GetWorkItemSchema.parse(request.params.arguments);
-          const result = await getWorkItem(connection, args.workItemId);
+          const result = await getWorkItem(
+            connection,
+            args.workItemId,
+            args.expand,
+          );
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };

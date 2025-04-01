@@ -11,28 +11,25 @@ import { WorkItem } from '../types';
  *
  * @param connection The Azure DevOps WebApi connection
  * @param workItemId The ID of the work item
- * @param expand Optional expansion options
+ * @param expand Optional expansion options (defaults to WorkItemExpand.All)
  * @returns The work item details
  * @throws {AzureDevOpsResourceNotFoundError} If the work item is not found
  */
 export async function getWorkItem(
   connection: WebApi,
   workItemId: number,
-  expand?: WorkItemExpand,
+  expand: WorkItemExpand = WorkItemExpand.All,
 ): Promise<WorkItem> {
   try {
     const witApi = await connection.getWorkItemTrackingApi();
-    const fields = [
-      'System.Id',
-      'System.Title',
-      'System.State',
-      'System.AssignedTo',
-    ];
 
-    // Don't pass fields when using expand parameter
-    const workItem = expand
-      ? await witApi.getWorkItem(workItemId, undefined, undefined, expand)
-      : await witApi.getWorkItem(workItemId, fields);
+    // Always use expand parameter for consistent behavior
+    const workItem = await witApi.getWorkItem(
+      workItemId,
+      undefined,
+      undefined,
+      expand,
+    );
 
     if (!workItem) {
       throw new AzureDevOpsResourceNotFoundError(
