@@ -39,8 +39,10 @@ import {
 
 import {
   GetRepositorySchema,
+  GetRepositoryDetailsSchema,
   ListRepositoriesSchema,
   getRepository,
+  getRepositoryDetails,
   listRepositories,
 } from './features/repositories';
 
@@ -132,6 +134,11 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           name: 'get_repository',
           description: 'Get details of a specific repository',
           inputSchema: zodToJsonSchema(GetRepositorySchema),
+        },
+        {
+          name: 'get_repository_details',
+          description: 'Get detailed information about a repository including statistics and refs',
+          inputSchema: zodToJsonSchema(GetRepositoryDetailsSchema),
         },
         {
           name: 'list_repositories',
@@ -263,6 +270,23 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
             connection,
             args.projectId,
             args.repositoryId,
+          );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        case 'get_repository_details': {
+          const args = GetRepositoryDetailsSchema.parse(request.params.arguments);
+          const result = await getRepositoryDetails(
+            connection,
+            {
+              projectId: args.projectId,
+              repositoryId: args.repositoryId,
+              includeStatistics: args.includeStatistics,
+              includeRefs: args.includeRefs,
+              refFilter: args.refFilter,
+              branchName: args.branchName,
+            },
           );
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
