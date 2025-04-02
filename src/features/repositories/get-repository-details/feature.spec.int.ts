@@ -42,13 +42,10 @@ describe('getRepositoryDetails integration', () => {
     const testRepo = repos[0];
 
     // Act - make an actual API call to Azure DevOps
-    const result = await getRepositoryDetails(
-      connection,
-      {
-        projectId: projectName,
-        repositoryId: testRepo.name || testRepo.id || '',
-      },
-    );
+    const result = await getRepositoryDetails(connection, {
+      projectId: projectName,
+      repositoryId: testRepo.name || testRepo.id || '',
+    });
 
     // Assert on the actual response
     expect(result).toBeDefined();
@@ -88,14 +85,11 @@ describe('getRepositoryDetails integration', () => {
     const testRepo = repos[0];
 
     // Act - make an actual API call to Azure DevOps
-    const result = await getRepositoryDetails(
-      connection,
-      {
-        projectId: projectName,
-        repositoryId: testRepo.name || testRepo.id || '',
-        includeStatistics: true,
-      },
-    );
+    const result = await getRepositoryDetails(connection, {
+      projectId: projectName,
+      repositoryId: testRepo.name || testRepo.id || '',
+      includeStatistics: true,
+    });
 
     // Assert on the actual response
     expect(result).toBeDefined();
@@ -132,14 +126,11 @@ describe('getRepositoryDetails integration', () => {
     const testRepo = repos[0];
 
     // Act - make an actual API call to Azure DevOps
-    const result = await getRepositoryDetails(
-      connection,
-      {
-        projectId: projectName,
-        repositoryId: testRepo.name || testRepo.id || '',
-        includeRefs: true,
-      },
-    );
+    const result = await getRepositoryDetails(connection, {
+      projectId: projectName,
+      repositoryId: testRepo.name || testRepo.id || '',
+      includeRefs: true,
+    });
 
     // Assert on the actual response
     expect(result).toBeDefined();
@@ -178,25 +169,22 @@ describe('getRepositoryDetails integration', () => {
     const testRepo = repos[0];
 
     // Act - make an actual API call to Azure DevOps
-    const result = await getRepositoryDetails(
-      connection,
-      {
-        projectId: projectName,
-        repositoryId: testRepo.name || testRepo.id || '',
-        includeRefs: true,
-        refFilter: 'heads/',
-      },
-    );
+    const result = await getRepositoryDetails(connection, {
+      projectId: projectName,
+      repositoryId: testRepo.name || testRepo.id || '',
+      includeRefs: true,
+      refFilter: 'heads/',
+    });
 
     // Assert on the actual response
     expect(result).toBeDefined();
     expect(result.repository).toBeDefined();
     expect(result.refs).toBeDefined();
     expect(result.refs?.value).toBeDefined();
-    
+
     // All refs should start with refs/heads/
     if (result.refs && result.refs.value.length > 0) {
-      result.refs.value.forEach(ref => {
+      result.refs.value.forEach((ref) => {
         expect(ref.name).toMatch(/^refs\/heads\//);
       });
     }

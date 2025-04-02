@@ -137,7 +137,8 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         },
         {
           name: 'get_repository_details',
-          description: 'Get detailed information about a repository including statistics and refs',
+          description:
+            'Get detailed information about a repository including statistics and refs',
           inputSchema: zodToJsonSchema(GetRepositoryDetailsSchema),
         },
         {
@@ -276,18 +277,17 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           };
         }
         case 'get_repository_details': {
-          const args = GetRepositoryDetailsSchema.parse(request.params.arguments);
-          const result = await getRepositoryDetails(
-            connection,
-            {
-              projectId: args.projectId,
-              repositoryId: args.repositoryId,
-              includeStatistics: args.includeStatistics,
-              includeRefs: args.includeRefs,
-              refFilter: args.refFilter,
-              branchName: args.branchName,
-            },
+          const args = GetRepositoryDetailsSchema.parse(
+            request.params.arguments,
           );
+          const result = await getRepositoryDetails(connection, {
+            projectId: args.projectId,
+            repositoryId: args.repositoryId,
+            includeStatistics: args.includeStatistics,
+            includeRefs: args.includeRefs,
+            refFilter: args.refFilter,
+            branchName: args.branchName,
+          });
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };

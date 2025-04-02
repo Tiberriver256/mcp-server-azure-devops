@@ -182,7 +182,7 @@ describe('getRepositoryDetails unit', () => {
     expect(getRefs).toHaveBeenCalledWith(
       mockRepository.id,
       'test-project',
-      'heads/'
+      'heads/',
     );
   });
 
@@ -210,8 +210,8 @@ describe('getRepositoryDetails unit', () => {
       'test-project',
       {
         version: 'main',
-        versionType: GitVersionType.Branch
-      }
+        versionType: GitVersionType.Branch,
+      },
     );
   });
 

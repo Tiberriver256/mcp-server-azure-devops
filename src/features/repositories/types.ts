@@ -1,7 +1,7 @@
-import { 
-  GitRepository, 
-  GitBranchStats, 
-  GitRef 
+import {
+  GitRepository,
+  GitBranchStats,
+  GitRef,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 /**

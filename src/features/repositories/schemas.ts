@@ -31,7 +31,9 @@ export const GetRepositoryDetailsSchema = z.object({
   branchName: z
     .string()
     .optional()
-    .describe('Name of specific branch to get statistics for (if includeStatistics is true)'),
+    .describe(
+      'Name of specific branch to get statistics for (if includeStatistics is true)',
+    ),
 });
 
 /**

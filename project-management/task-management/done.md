@@ -1,5 +1,23 @@
 ## Completed Tasks
 
+- [x] **Task 3.1**: Implement get_repository_details core functionality
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completed
+  - **Notes**:
+    - Implemented a handler to fetch detailed information about a specific Git repository in Azure DevOps
+    - Added support for repository metadata, branch statistics, and refs information
+    - Created unit tests and integration tests
+    - Updated documentation
+  - **Sub-tasks**:
+    - [x] Created schema for get_repository_details
+    - [x] Implemented core functionality to fetch repository details
+    - [x] Added support for branch statistics
+    - [x] Added support for repository refs
+    - [x] Wrote unit tests
+    - [x] Wrote integration tests
+    - [x] Updated documentation
+  - **Completed**: April 2, 2025
+
 - [x] **Task 2.8**: Allow `get_work_item` to default to 'Expand All' when no specific fields are requested. There isn't usually enough information on the default Get_work_item response now.
   - **Role**: Full-Stack Developer
   - **Phase**: Completed

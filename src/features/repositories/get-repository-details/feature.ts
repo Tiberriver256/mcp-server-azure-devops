@@ -20,9 +20,12 @@ export async function getRepositoryDetails(
 ): Promise<RepositoryDetails> {
   try {
     const gitApi = await connection.getGitApi();
-    
+
     // Get the basic repository information
-    const repository = await gitApi.getRepository(options.repositoryId, options.projectId);
+    const repository = await gitApi.getRepository(
+      options.repositoryId,
+      options.projectId,
+    );
 
     if (!repository) {
       throw new AzureDevOpsResourceNotFoundError(
@@ -38,19 +41,19 @@ export async function getRepositoryDetails(
     // Get branch statistics if requested
     if (options.includeStatistics) {
       let baseVersionDescriptor = undefined;
-      
+
       // If a specific branch name is provided, create a version descriptor for it
       if (options.branchName) {
         baseVersionDescriptor = {
           version: options.branchName,
-          versionType: GitVersionType.Branch
+          versionType: GitVersionType.Branch,
         };
       }
-      
+
       const branchStats = await gitApi.getBranches(
         repository.id || '',
         options.projectId,
-        baseVersionDescriptor
+        baseVersionDescriptor,
       );
 
       response.statistics = {
@@ -64,7 +67,7 @@ export async function getRepositoryDetails(
       const refs = await gitApi.getRefs(
         repository.id || '',
         options.projectId,
-        filter
+        filter,
       );
 
       if (refs) {
