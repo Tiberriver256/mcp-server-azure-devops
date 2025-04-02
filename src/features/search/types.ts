@@ -217,7 +217,7 @@ export interface SortOption {
   /**
    * Sort direction
    */
-  sortOrder: 'asc' | 'desc';
+  sortOrder: 'asc' | 'desc' | 'ASC' | 'DESC';
 }
 
 /**
@@ -348,5 +348,257 @@ export interface WikiSearchResponse {
      * Project facets for filtering
      */
     Project?: CodeSearchFacet[];
+  };
+}
+
+/**
+ * Options for searching work items in Azure DevOps projects
+ */
+export interface SearchWorkItemsOptions {
+  /**
+   * The text to search for within work items
+   */
+  searchText: string;
+
+  /**
+   * The ID or name of the project to search in
+   */
+  projectId: string;
+
+  /**
+   * Optional filters to narrow search results
+   */
+  filters?: {
+    /**
+     * Filter by project names. Useful for cross-project searches.
+     */
+    'System.TeamProject'?: string[];
+
+    /**
+     * Filter by work item types (Bug, Task, User Story, etc.)
+     */
+    'System.WorkItemType'?: string[];
+
+    /**
+     * Filter by work item states (New, Active, Closed, etc.)
+     */
+    'System.State'?: string[];
+
+    /**
+     * Filter by assigned users
+     */
+    'System.AssignedTo'?: string[];
+
+    /**
+     * Filter by area paths
+     */
+    'System.AreaPath'?: string[];
+  };
+
+  /**
+   * Number of results to return
+   * @default 100
+   * @minimum 1
+   * @maximum 1000
+   */
+  top?: number;
+
+  /**
+   * Number of results to skip for pagination
+   * @default 0
+   * @minimum 0
+   */
+  skip?: number;
+
+  /**
+   * Whether to include faceting in results
+   * @default true
+   */
+  includeFacets?: boolean;
+
+  /**
+   * Options for sorting search results
+   * If null, results are sorted by relevance
+   */
+  orderBy?: SortOption[];
+}
+
+/**
+ * Request body for the Azure DevOps Work Item Search API
+ */
+export interface WorkItemSearchRequest {
+  /**
+   * The search text to find in work items
+   */
+  searchText: string;
+
+  /**
+   * Number of results to skip for pagination
+   */
+  $skip?: number;
+
+  /**
+   * Number of results to return
+   */
+  $top?: number;
+
+  /**
+   * Filters to be applied. Set to null if no filters are needed.
+   */
+  filters?: {
+    'System.TeamProject'?: string[];
+    'System.WorkItemType'?: string[];
+    'System.State'?: string[];
+    'System.AssignedTo'?: string[];
+    'System.AreaPath'?: string[];
+  };
+
+  /**
+   * Options for sorting search results
+   * If null, results are sorted by relevance
+   */
+  $orderBy?: SortOption[];
+
+  /**
+   * Whether to include faceting in the result
+   * @default false
+   */
+  includeFacets?: boolean;
+}
+
+/**
+ * Defines the matched terms in the field of the work item result
+ */
+export interface WorkItemHit {
+  /**
+   * Reference name of the highlighted field
+   */
+  fieldReferenceName: string;
+
+  /**
+   * Matched/highlighted snippets of the field
+   */
+  highlights: string[];
+}
+
+/**
+ * Defines the work item result that matched a work item search request
+ */
+export interface WorkItemResult {
+  /**
+   * Project details of the work item
+   */
+  project: {
+    /**
+     * ID of the project
+     */
+    id: string;
+
+    /**
+     * Name of the project
+     */
+    name: string;
+  };
+
+  /**
+   * A standard set of work item fields and their values
+   */
+  fields: {
+    /**
+     * ID of the work item
+     */
+    'system.id': string;
+
+    /**
+     * Type of the work item (Bug, Task, User Story, etc.)
+     */
+    'system.workitemtype': string;
+
+    /**
+     * Title of the work item
+     */
+    'system.title': string;
+
+    /**
+     * User assigned to the work item
+     */
+    'system.assignedto'?: string;
+
+    /**
+     * Current state of the work item
+     */
+    'system.state'?: string;
+
+    /**
+     * Tags associated with the work item
+     */
+    'system.tags'?: string;
+
+    /**
+     * Revision number of the work item
+     */
+    'system.rev'?: string;
+
+    /**
+     * Creation date of the work item
+     */
+    'system.createddate'?: string;
+
+    /**
+     * Last modified date of the work item
+     */
+    'system.changeddate'?: string;
+
+    /**
+     * Other fields may be included based on the work item type
+     */
+    [key: string]: string | number | boolean | null | undefined;
+  };
+
+  /**
+   * Highlighted snippets of fields that match the search request
+   * The list is sorted by relevance of the snippets
+   */
+  hits: WorkItemHit[];
+
+  /**
+   * URL to the work item
+   */
+  url: string;
+}
+
+/**
+ * Defines a work item search response item
+ */
+export interface WorkItemSearchResponse {
+  /**
+   * Total number of matched work items
+   */
+  count: number;
+
+  /**
+   * List of top matched work items
+   */
+  results: WorkItemResult[];
+
+  /**
+   * Numeric code indicating additional information:
+   * 0 - Ok
+   * 1 - Account is being reindexed
+   * 2 - Account indexing has not started
+   * 3 - Invalid Request
+   * ... and others as defined in the API
+   */
+  infoCode?: number;
+
+  /**
+   * A dictionary storing an array of Filter objects against each facet
+   */
+  facets?: {
+    'System.TeamProject'?: CodeSearchFacet[];
+    'System.WorkItemType'?: CodeSearchFacet[];
+    'System.State'?: CodeSearchFacet[];
+    'System.AssignedTo'?: CodeSearchFacet[];
+    'System.AreaPath'?: CodeSearchFacet[];
   };
 }

@@ -21,6 +21,21 @@
     - [x] Updated exports in projects/index.ts
   - **Completed**: April 2, 2025
   - **Pull Request**: [#111](https://github.com/Tiberriver256/mcp-server-azure-devops/pull/111)
+- [x] **Task 6.4**: Implement `search_work_items` handler with tests
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completed
+  - **Notes**:
+    - Implemented a handler to search for work items in Azure DevOps projects
+    - Used the Azure DevOps Work Item Search API
+    - Added support for filtering, pagination, and proper error handling
+    - Created unit and integration tests
+  - **Sub-tasks**:
+    - [x] Created the necessary types and schemas
+    - [x] Implemented the search_work_items handler
+    - [x] Wrote unit tests
+    - [x] Wrote integration tests
+    - [x] Updated server.ts to register the new tool
+  - **Completed**: April 2, 2025
 
 - [x] **Task 3.1**: Implement get_repository_details core functionality
   - **Role**: Full-Stack Developer
