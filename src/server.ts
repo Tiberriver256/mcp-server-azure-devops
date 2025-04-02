@@ -32,8 +32,10 @@ import {
 
 import {
   GetProjectSchema,
+  GetProjectDetailsSchema,
   ListProjectsSchema,
   getProject,
+  getProjectDetails,
   listProjects,
 } from './features/projects';
 
@@ -107,6 +109,12 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           name: 'get_project',
           description: 'Get details of a specific project',
           inputSchema: zodToJsonSchema(GetProjectSchema),
+        },
+        {
+          name: 'get_project_details',
+          description:
+            'Get comprehensive details of a project including process, work item types, and teams',
+          inputSchema: zodToJsonSchema(GetProjectDetailsSchema),
         },
         // Work item tools
         {
@@ -198,6 +206,13 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         case 'get_project': {
           const args = GetProjectSchema.parse(request.params.arguments);
           const result = await getProject(connection, args.projectId);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        case 'get_project_details': {
+          const args = GetProjectDetailsSchema.parse(request.params.arguments);
+          const result = await getProjectDetails(connection, args);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };

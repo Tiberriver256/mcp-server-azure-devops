@@ -8,6 +8,38 @@ export const GetProjectSchema = z.object({
 });
 
 /**
+ * Schema for getting detailed project information
+ */
+export const GetProjectDetailsSchema = z.object({
+  projectId: z.string().describe('The ID or name of the project'),
+  includeProcess: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Include process information in the project result'),
+  includeWorkItemTypes: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Include work item types and their structure'),
+  includeFields: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Include field information for work item types'),
+  includeTeams: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Include associated teams in the project result'),
+  expandTeamIdentity: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Expand identity information in the team objects'),
+});
+
+/**
  * Schema for listing projects
  */
 export const ListProjectsSchema = z.object({

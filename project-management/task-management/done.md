@@ -1,5 +1,27 @@
 ## Completed Tasks
 
+- [x] **Task**: Implement get_project_details core functionality (GitHub Issue #101)
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completed
+  - **Notes**:
+    - Implemented a handler for the `get_project_details` functionality
+    - Added support for retrieving comprehensive project information including:
+      - Basic project metadata
+      - Process information
+      - Work item types and their structure
+      - Fields applicable to each work item type
+      - Project teams
+    - Created unit tests and integration tests
+    - Registered the handler in the server
+  - **Sub-tasks**:
+    - [x] Created schema for get_project_details
+    - [x] Created tests for get_project_details
+    - [x] Implemented get_project_details feature
+    - [x] Registered the handler in server.ts
+    - [x] Updated exports in projects/index.ts
+  - **Completed**: April 2, 2025
+  - **Pull Request**: [#111](https://github.com/Tiberriver256/mcp-server-azure-devops/pull/111)
+
 - [x] **Task 3.1**: Implement get_repository_details core functionality
   - **Role**: Full-Stack Developer
   - **Phase**: Completed
