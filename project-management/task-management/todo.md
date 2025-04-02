@@ -48,8 +48,6 @@
   - **Role**: Full-Stack Developer
 - [ ] **Task 6.4**: Implement `search_work_items` handler with tests
   - **Role**: Full-Stack Developer
-- [ ] **Task 6.6**: Implement `search_wiki` handler with tests
-  - **Role**: Full-Stack Developer
 - [ ] **Task 6.8**: Document search tools (usage, examples)
   - **Role**: Technical Writer
 - [ ] **Task 7.1**: Create end-to-end tests for user story to pull request workflow
