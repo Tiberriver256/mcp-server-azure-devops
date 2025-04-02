@@ -34,9 +34,13 @@ export async function searchWiki(
       },
       includeFacets: options.includeFacets,
     };
-    
+
     // Add custom filters if provided
-    if (options.filters && options.filters.Project && options.filters.Project.length > 0) {
+    if (
+      options.filters &&
+      options.filters.Project &&
+      options.filters.Project.length > 0
+    ) {
       if (searchRequest.filters && searchRequest.filters.Project) {
         searchRequest.filters.Project = [
           ...searchRequest.filters.Project,
@@ -94,7 +98,7 @@ export async function searchWiki(
         // For other axios errors, wrap in a generic AzureDevOpsError
         throw new AzureDevOpsError(`Azure DevOps API error: ${message}`);
       }
-      
+
       // This return is never reached but helps TypeScript understand the control flow
       return null as never;
     }

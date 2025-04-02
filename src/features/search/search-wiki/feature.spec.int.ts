@@ -23,13 +23,17 @@ const runTests = process.env.RUN_INTEGRATION_TESTS === 'true';
     }
 
     if (!projectId) {
-      throw new Error('AZURE_DEVOPS_TEST_PROJECT environment variable is required');
+      throw new Error(
+        'AZURE_DEVOPS_TEST_PROJECT environment variable is required',
+      );
     }
 
     // Create connection
     const config: AzureDevOpsConfig = {
       organizationUrl: process.env.AZURE_DEVOPS_ORG_URL,
-      authMethod: (process.env.AZURE_DEVOPS_AUTH_METHOD as AuthenticationMethod) || AuthenticationMethod.PersonalAccessToken,
+      authMethod:
+        (process.env.AZURE_DEVOPS_AUTH_METHOD as AuthenticationMethod) ||
+        AuthenticationMethod.PersonalAccessToken,
       personalAccessToken: process.env.AZURE_DEVOPS_PAT,
     };
 
@@ -68,7 +72,7 @@ const runTests = process.env.RUN_INTEGRATION_TESTS === 'true';
 
     // Get first page of results
     const page1 = await searchWiki(connection, {
-      searchText: 'the',  // Common word likely to have many results
+      searchText: 'the', // Common word likely to have many results
       projectId,
       top: 5,
       skip: 0,
@@ -84,15 +88,15 @@ const runTests = process.env.RUN_INTEGRATION_TESTS === 'true';
 
     // Verify pagination works
     expect(page1.count).toBe(page2.count); // Total count should be the same
-    
+
     // If there are enough results, verify pages are different
     if (page1.results.length === 5 && page2.results.length > 0) {
       // Check that the results are different by comparing paths
-      const page1Paths = page1.results.map(r => r.path);
-      const page2Paths = page2.results.map(r => r.path);
-      
+      const page1Paths = page1.results.map((r) => r.path);
+      const page2Paths = page2.results.map((r) => r.path);
+
       // At least one result should be different
-      expect(page2Paths.some(path => !page1Paths.includes(path))).toBe(true);
+      expect(page2Paths.some((path) => !page1Paths.includes(path))).toBe(true);
     }
   }, 30000);
 
@@ -113,7 +117,7 @@ const runTests = process.env.RUN_INTEGRATION_TESTS === 'true';
     // Verify the response has the expected structure
     expect(result).toBeDefined();
     expect(typeof result.count).toBe('number');
-    
+
     // If facets were requested and returned, verify their structure
     if (result.facets && result.facets.Project) {
       expect(Array.isArray(result.facets.Project)).toBe(true);

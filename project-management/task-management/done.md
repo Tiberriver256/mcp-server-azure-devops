@@ -597,3 +597,20 @@
         - [x] Update server.test.ts
       - [ ] Fix resetTime/resetAt property issues in error tests
       - [ ] Fix integration tests with valid credentials
+
+- [x] **Task 6.6**: Implement `search_wiki` handler with tests
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completed
+  - **Notes**:
+    - Implemented a handler to search wiki pages in Azure DevOps projects
+    - Followed the same pattern as the existing `search_code` handler
+    - Added appropriate types, schemas, and tests
+  - **Sub-tasks**:
+    - [x] Created the necessary interfaces in types.ts
+    - [x] Created the schema in schemas.ts
+    - [x] Implemented the search_wiki handler in a new directory
+    - [x] Wrote unit tests for the handler
+    - [x] Wrote integration tests for the handler
+    - [x] Updated the server.ts file to register the new tool
+    - [x] Updated the search/index.ts file to export the new functionality
+  - **Completed**: April 2, 2025

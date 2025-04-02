@@ -51,7 +51,12 @@ import {
   listOrganizations,
 } from './features/organizations';
 
-import { SearchCodeSchema, SearchWikiSchema, searchCode, searchWiki } from './features/search';
+import {
+  SearchCodeSchema,
+  SearchWikiSchema,
+  searchCode,
+  searchWiki,
+} from './features/search';
 
 // Create a safe console logging function that won't interfere with MCP protocol
 function safeLog(message: string) {

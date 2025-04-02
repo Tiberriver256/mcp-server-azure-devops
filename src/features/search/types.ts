@@ -125,12 +125,12 @@ export interface SearchWikiOptions {
    * The text to search for within wiki pages
    */
   searchText: string;
-  
+
   /**
    * The ID or name of the project to search in
    */
   projectId: string;
-  
+
   /**
    * Optional filters to narrow search results
    */
@@ -140,7 +140,7 @@ export interface SearchWikiOptions {
      */
     Project?: string[];
   };
-  
+
   /**
    * Number of results to return
    * @default 100
@@ -148,14 +148,14 @@ export interface SearchWikiOptions {
    * @maximum 1000
    */
   top?: number;
-  
+
   /**
    * Number of results to skip for pagination
    * @default 0
    * @minimum 0
    */
   skip?: number;
-  
+
   /**
    * Whether to include faceting in results
    * @default true
@@ -171,17 +171,17 @@ export interface WikiSearchRequest {
    * The search text to find in wiki pages
    */
   searchText: string;
-  
+
   /**
    * Number of results to skip for pagination
    */
   $skip?: number;
-  
+
   /**
    * Number of results to return
    */
   $top?: number;
-  
+
   /**
    * Filters to be applied. Set to null if no filters are needed.
    */
@@ -191,13 +191,13 @@ export interface WikiSearchRequest {
      */
     Project?: string[];
   };
-  
+
   /**
    * Options for sorting search results
    * If null, results are sorted by relevance
    */
   $orderBy?: SortOption[];
-  
+
   /**
    * Whether to include faceting in the result
    * @default false
@@ -213,7 +213,7 @@ export interface SortOption {
    * Field to sort by
    */
   field: string;
-  
+
   /**
    * Sort direction
    */
@@ -228,7 +228,7 @@ export interface WikiHit {
    * Reference name of the highlighted field
    */
   fieldReferenceName: string;
-  
+
   /**
    * Matched/highlighted snippets of the field
    */
@@ -243,12 +243,12 @@ export interface WikiResult {
    * Name of the result file
    */
   fileName: string;
-  
+
   /**
    * Path at which result file is present
    */
   path: string;
-  
+
   /**
    * Collection of the result file
    */
@@ -258,7 +258,7 @@ export interface WikiResult {
      */
     name: string;
   };
-  
+
   /**
    * Project details of the wiki document
    */
@@ -267,18 +267,18 @@ export interface WikiResult {
      * ID of the project
      */
     id: string;
-    
+
     /**
      * Name of the project
      */
     name: string;
-    
+
     /**
      * Visibility of the project
      */
     visibility?: string;
   };
-  
+
   /**
    * Wiki information for the result
    */
@@ -287,28 +287,28 @@ export interface WikiResult {
      * ID of the wiki
      */
     id: string;
-    
+
     /**
      * Mapped path for the wiki
      */
     mappedPath: string;
-    
+
     /**
      * Name of the wiki
      */
     name: string;
-    
+
     /**
      * Version for wiki
      */
     version: string;
   };
-  
+
   /**
    * Content ID of the result file
    */
   contentId: string;
-  
+
   /**
    * Highlighted snippets of fields that match the search request
    * The list is sorted by relevance of the snippets
@@ -324,12 +324,12 @@ export interface WikiSearchResponse {
    * Total number of matched wiki documents
    */
   count: number;
-  
+
   /**
    * List of top matched wiki documents
    */
   results: WikiResult[];
-  
+
   /**
    * Numeric code indicating additional information:
    * 0 - Ok
@@ -339,7 +339,7 @@ export interface WikiSearchResponse {
    * ... and others as defined in the API
    */
   infoCode?: number;
-  
+
   /**
    * A dictionary storing an array of Filter objects against each facet
    */
