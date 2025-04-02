@@ -1,5 +1,25 @@
 ## Completed Tasks
 
+- [x] **Task**: Migrate release automation to use Release Please for version management (GitHub Issue #113)
+  - **Role**: DevOps Engineer
+  - **Phase**: Completed
+  - **Notes**:
+    - Implemented a new Release Please GitHub Action workflow
+    - Created Release Please configuration and manifest files
+    - Updated package.json to remove standard-version scripts and add Release Please config
+    - Deprecated the existing manual release workflow
+    - Added comprehensive documentation for the migration
+    - Updated CONTRIBUTING.md to reflect the new release process
+  - **Sub-tasks**:
+    - [x] Created .github/workflows/release-please.yml
+    - [x] Created .github/release-please-config.json
+    - [x] Created .github/release-please-manifest.json
+    - [x] Updated package.json to remove standard-version
+    - [x] Marked existing release.yml as deprecated
+    - [x] Updated CONTRIBUTING.md with new process
+    - [x] Created migration guide in docs/release-please-migration.md
+  - **Completed**: April 2, 2025
+
 - [x] **Task**: Implement get_project_details core functionality (GitHub Issue #101)
   - **Role**: Full-Stack Developer
   - **Phase**: Completed

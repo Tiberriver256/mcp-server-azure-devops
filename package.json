@@ -18,6 +18,17 @@
       "path": "./node_modules/cz-conventional-changelog"
     }
   },
+  "release-please": {
+    "release-type": "node",
+    "changelog-types": [
+      {"type": "feat", "section": "Features", "hidden": false},
+      {"type": "fix", "section": "Bug Fixes", "hidden": false},
+      {"type": "chore", "section": "Miscellaneous", "hidden": false},
+      {"type": "docs", "section": "Documentation", "hidden": false},
+      {"type": "perf", "section": "Performance Improvements", "hidden": false},
+      {"type": "refactor", "section": "Code Refactoring", "hidden": false}
+    ]
+  },
   "scripts": {
     "build": "tsc && chmod +x dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
@@ -31,12 +42,7 @@
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "prepare": "husky install",
-    "commit": "cz",
-    "release": "standard-version",
-    "release:minor": "standard-version --release-as minor",
-    "release:patch": "standard-version --release-as patch",
-    "release:major": "standard-version --release-as major",
-    "release:dryrun": "standard-version --dry-run"
+    "commit": "cz"
   },
   "keywords": [
     "azure-devops",
@@ -69,7 +75,6 @@
     "husky": "^8.0.3",
     "jest": "^29.0.0",
     "prettier": "^3.0.0",
-    "standard-version": "^9.5.0",
     "ts-jest": "^29.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.2"

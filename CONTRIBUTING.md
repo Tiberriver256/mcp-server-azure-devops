@@ -131,18 +131,27 @@ npm run commit
 
 ## Automated Release Workflow
 
-Our project uses an automated release workflow that leverages Conventional Commits to manage semantic versioning, generate changelogs, and create GitHub Releases.
+Our project uses [Release Please](https://github.com/googleapis/release-please) to automate releases based on Conventional Commits. This approach manages semantic versioning, changelog generation, and GitHub Releases creation.
 
-The workflow is currently triggered manually via GitHub Actions' `workflow_dispatch` feature. In the future, it may be configured to run automatically on merges to the `main` branch.
+The workflow is automatically triggered on pushes to the `main` branch and follows this process:
 
-When the workflow runs, it:
+1. Release Please analyzes commit messages since the last release
+2. If releasable changes are detected, it creates or updates a Release PR
+3. When the Release PR is merged, it:
+   - Updates the version in package.json
+   - Updates CHANGELOG.md with details of all changes
+   - Creates a Git tag and GitHub Release
+   - Publishes the package to npm
 
-1. Analyzes the commit messages since the last release
-2. Determines the appropriate semantic version bump
-3. Updates the version in package.json
-4. Generates or updates the CHANGELOG.md file
-5. Creates a new Git tag
-6. Creates a GitHub Release with release notes
+### Release PR Process
+
+1. When commits with conventional commit messages are pushed to `main`, Release Please automatically creates a Release PR
+2. The Release PR contains all the changes since the last release with proper version bump based on commit types:
+   - `feat:` commits trigger a minor version bump
+   - `fix:` commits trigger a patch version bump
+   - `feat!:` or `fix!:` commits with breaking changes trigger a major version bump
+3. Review the Release PR to ensure the changelog and version bump are correct
+4. Merge the Release PR to trigger the actual release
 
 This automation ensures consistent and well-documented releases that accurately reflect the changes made since the previous release.
 
