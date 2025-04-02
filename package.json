@@ -1,6 +1,6 @@
 {
   "name": "@tiberriver256/mcp-server-azure-devops",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Azure DevOps reference server for the Model Context Protocol (MCP)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,12 +21,36 @@
   "release-please": {
     "release-type": "node",
     "changelog-types": [
-      {"type": "feat", "section": "Features", "hidden": false},
-      {"type": "fix", "section": "Bug Fixes", "hidden": false},
-      {"type": "chore", "section": "Miscellaneous", "hidden": false},
-      {"type": "docs", "section": "Documentation", "hidden": false},
-      {"type": "perf", "section": "Performance Improvements", "hidden": false},
-      {"type": "refactor", "section": "Code Refactoring", "hidden": false}
+      {
+        "type": "feat",
+        "section": "Features",
+        "hidden": false
+      },
+      {
+        "type": "fix",
+        "section": "Bug Fixes",
+        "hidden": false
+      },
+      {
+        "type": "chore",
+        "section": "Miscellaneous",
+        "hidden": false
+      },
+      {
+        "type": "docs",
+        "section": "Documentation",
+        "hidden": false
+      },
+      {
+        "type": "perf",
+        "section": "Performance Improvements",
+        "hidden": false
+      },
+      {
+        "type": "refactor",
+        "section": "Code Refactoring",
+        "hidden": false
+      }
     ]
   },
   "scripts": {

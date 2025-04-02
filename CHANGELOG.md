@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.12](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.11...mcp-server-azure-devops-v0.1.12) (2025-04-02)
+
+
+### Features
+
+* add 'expand' option to get_work_item ([6bee365](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/6bee365d9b37f7e197eaff03065e713ab0ee1c5f))
+* Add npm publish to release.yml ([50d0368](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/50d0368c090adc39a9b3ece67d198cabcd18c6ce))
+* add pre-commit hook for prettier and eslint ([1b4ddff](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/1b4ddff90e3c3ab9954d041398d224f03c632f63))
+* enhance GitHub release notes with changelog content ([2fb275d](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/2fb275d38acbc9c092584573a549466ccd5482bc))
+* implement automated release workflow ([9e5a5df](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/9e5a5dfacdd87ca933ed02efbd0aa8035239332d))
+* implement get_project_details core functionality ([6d93d98](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/6d93d9820c4bd3ce8bc257d05ff04b39d1370a19)), closes [#101](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/101)
+* implement get_repository_details core functionality ([dcef80b](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/dcef80b922ef338f6d3704ab30f59c1b126c70ee))
+* implement manage work item link handler ([72cd641](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/72cd6419cf804eb0d72d5ba7763ad5b46bc35650))
+* implement search_wiki handler with tests ([286598c](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/286598c47052ade3b6a524938046b3e3b9341b3a))
+* implement search_work_items handler with tests ([e244658](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/e2446587e6f82fb7e2dbfe47d2d034ecfdfc3189))
+* **search:** add code search functionality for Azure DevOps repos ([0680102](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/068010236b10d8ed444ec01bd6820b27c5c9dcdc))
+
+
+### Bug Fixes
+
+* add bin field to make package executable with npx ([2d3d5fa](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/2d3d5fa31a9ba741c4a85d7ef21d72ff46270695))
+* add build step to workflow and ensure dist files are included in package ([6e12d3c](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/6e12d3ca666937c7b24c7c5d8b161fbb8e34798c))
+* add parent-child relationship support for createWorkItem ([31d5efe](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/31d5efef49c162772e64eabd1e4012d8143dc270))
+* add tag_name parameter to GitHub release action ([68cfa43](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/68cfa43839c5975cdf9c2ec8a5348ace6138d1c2))
+* improve cross-platform CLI compatibility for Windows ([0f6ed3f](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/0f6ed3fe7c72ba63ec5485047ce52e06278457ab))
+* make AZURE_DEVOPS_AUTH_METHOD parameter case-insensitive ([9bbf53f](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/9bbf53ffcc1a9170e6ba038fee182da0621be777))
+* only request max 200 by default ([296de35](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/296de3584346bd05c14dec3b39dff9a5ec0036a5))
+* resolve npm publish authentication and package content issues ([96e91d0](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/96e91d04ec620ad77fc35fea31c2b7795fb73d9e))
+* restore tests/setup.ts to fix test suite ([5e23eab](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/5e23eab1228f3949c431f1b8509ad5fbf829e528))
+* revert to direct execution of index.js to fix main module detection ([82efa90](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/82efa90852f56db3a0b028ec50eb5230072da88a))
+* Typo in release.yaml workflow ([e0de15f](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/e0de15fd220ef2141466cf0530383921ed99253d))
+
 ### [0.1.11](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/v0.1.10...v0.1.11) (2025-04-01)
 
 
