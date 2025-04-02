@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.15](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.14...mcp-server-azure-devops-v0.1.15) (2025-04-02)
+
+
+### Bug Fixes
+
+* search_work_items authentication with Azure Identity ([cdb2e72](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/cdb2e722ee3abf6be465adcad7dc294f7c623103))
+
 ## [0.1.14](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.13...mcp-server-azure-devops-v0.1.14) (2025-04-02)
 
 
