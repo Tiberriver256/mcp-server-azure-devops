@@ -3,6 +3,19 @@ import { searchCode } from './feature';
 import { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsError } from '../../../shared/errors';
 
+// Mock Azure Identity
+jest.mock('@azure/identity', () => {
+  const mockGetToken = jest.fn().mockResolvedValue({ token: 'mock-token' });
+  return {
+    DefaultAzureCredential: jest.fn().mockImplementation(() => ({
+      getToken: mockGetToken,
+    })),
+    AzureCliCredential: jest.fn().mockImplementation(() => ({
+      getToken: mockGetToken,
+    })),
+  };
+});
+
 // Mock axios
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;

@@ -13,6 +13,16 @@ import { SearchWorkItemsOptions, WorkItemSearchResponse } from '../types';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
+// Mock @azure/identity
+jest.mock('@azure/identity', () => ({
+  DefaultAzureCredential: jest.fn().mockImplementation(() => ({
+    getToken: jest
+      .fn()
+      .mockResolvedValue({ token: 'mock-azure-identity-token' }),
+  })),
+  AzureCliCredential: jest.fn(),
+}));
+
 // Mock WebApi
 jest.mock('azure-devops-node-api');
 const MockedWebApi = WebApi as jest.MockedClass<typeof WebApi>;
@@ -265,5 +275,49 @@ describe('searchWorkItems', () => {
     await expect(searchWorkItems(connection, options)).rejects.toThrow(
       AzureDevOpsValidationError,
     );
+  });
+
+  it('should use Azure Identity authentication when AZURE_DEVOPS_AUTH_METHOD is azure-identity', async () => {
+    // Mock environment variables
+    const originalEnv = process.env.AZURE_DEVOPS_AUTH_METHOD;
+    process.env.AZURE_DEVOPS_AUTH_METHOD = 'azure-identity';
+
+    // Mock the WebApi connection
+    const mockConnection = {
+      serverUrl: 'https://dev.azure.com/testorg',
+      getCoreApi: jest.fn().mockResolvedValue({
+        getProjects: jest.fn().mockResolvedValue([]),
+      }),
+    };
+
+    // Mock axios post
+    const mockResponse = {
+      data: {
+        count: 0,
+        results: [],
+      },
+    };
+    (axios.post as jest.Mock).mockResolvedValueOnce(mockResponse);
+
+    // Call the function
+    await searchWorkItems(mockConnection as unknown as WebApi, {
+      projectId: 'testproject',
+      searchText: 'test query',
+    });
+
+    // Verify the axios post was called with a Bearer token
+    expect(axios.post).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(Object),
+      {
+        headers: {
+          Authorization: 'Bearer mock-azure-identity-token',
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+
+    // Cleanup
+    process.env.AZURE_DEVOPS_AUTH_METHOD = originalEnv;
   });
 });

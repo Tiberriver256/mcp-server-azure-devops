@@ -169,4 +169,38 @@ describeOrSkip('searchWorkItems (Integration)', () => {
       }
     }
   }, 30000);
+
+  // Add a test to verify Azure Identity authentication if configured
+  if (
+    process.env.AZURE_DEVOPS_AUTH_METHOD?.toLowerCase() === 'azure-identity'
+  ) {
+    test('should search work items using Azure Identity authentication', async () => {
+      // Skip if required environment variables are missing
+      if (!process.env.AZURE_DEVOPS_ORG_URL || !process.env.TEST_PROJECT_ID) {
+        console.log('Skipping test: required environment variables missing');
+        return;
+      }
+
+      // Create a config with Azure Identity authentication
+      const testConfig: AzureDevOpsConfig = {
+        organizationUrl: process.env.AZURE_DEVOPS_ORG_URL,
+        authMethod: AuthenticationMethod.AzureIdentity,
+        defaultProject: process.env.TEST_PROJECT_ID,
+      };
+
+      // Create the connection using the config
+      const connection = await getConnection(testConfig);
+
+      // Search work items
+      const result = await searchWorkItems(connection, {
+        projectId: process.env.TEST_PROJECT_ID,
+        searchText: 'test',
+      });
+
+      // Check that the response is properly formatted
+      expect(result).toBeDefined();
+      expect(result.count).toBeDefined();
+      expect(Array.isArray(result.results)).toBe(true);
+    });
+  }
 });

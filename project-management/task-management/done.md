@@ -1,5 +1,21 @@
 ## Completed Tasks
 
+- [x] **Task**: Fix search_work_items API authentication error with Azure Identity (GitHub Issue #120)
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completed
+  - **Notes**:
+    - Fixed an authentication issue with the search_work_items API when using Azure Identity authentication
+    - The search API was returning HTML for a login page instead of JSON data
+    - Identified that the search API endpoints (almsearch.dev.azure.com) require Bearer token authentication when using Azure Identity
+    - Fixed all three search features (work items, code, wiki) to properly handle Azure Identity authentication
+    - Added unit and integration tests to verify the fix
+  - **Sub-tasks**:
+    - [x] Updated the getAuthorizationHeader function in search-work-items feature to properly handle Azure Identity authentication
+    - [x] Applied the same fix to search-code and search-wiki features for consistency
+    - [x] Added unit tests to verify Azure Identity token acquisition
+    - [x] Added integration tests for the Azure Identity authentication path
+  - **Completed**: April 2, 2025
+
 - [x] **Task**: Migrate release automation to use Release Please for version management (GitHub Issue #113)
   - **Role**: DevOps Engineer
   - **Phase**: Completed

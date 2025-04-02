@@ -1,5 +1,6 @@
 import { WebApi } from 'azure-devops-node-api';
 import axios from 'axios';
+import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
@@ -39,7 +40,7 @@ export async function searchCode(
     };
 
     // Get the authorization header from the connection
-    const authHeader = await getAuthorizationHeader(connection);
+    const authHeader = await getAuthorizationHeader();
 
     // Extract organization and project from the connection URL
     const { organization, project } = extractOrgAndProject(
@@ -134,10 +135,9 @@ function extractOrgAndProject(
 /**
  * Get the authorization header from the connection
  *
- * @param connection The Azure DevOps WebApi connection
  * @returns The authorization header
  */
-async function getAuthorizationHeader(connection: WebApi): Promise<string> {
+async function getAuthorizationHeader(): Promise<string> {
   try {
     // For PAT authentication, we can construct the header directly
     if (
@@ -150,15 +150,27 @@ async function getAuthorizationHeader(connection: WebApi): Promise<string> {
       return `Basic ${base64Token}`;
     }
 
-    // For other auth methods, we'll make a simple API call to get a valid token
-    // This is a workaround since we can't directly access the auth handler's token
-    const coreApi = await connection.getCoreApi();
-    await coreApi.getProjects();
+    // For Azure Identity / Azure CLI auth, we need to get a token
+    // using the Azure DevOps resource ID
+    // Choose the appropriate credential based on auth method
+    const credential =
+      process.env.AZURE_DEVOPS_AUTH_METHOD?.toLowerCase() === 'azure-cli'
+        ? new AzureCliCredential()
+        : new DefaultAzureCredential();
 
-    // At this point, the connection should have made a request and we can
-    // extract the auth header from the most recent request
-    // If this fails, we'll fall back to a default approach
-    return `Basic ${Buffer.from(':' + process.env.AZURE_DEVOPS_PAT).toString('base64')}`;
+    // Azure DevOps resource ID for token acquisition
+    const AZURE_DEVOPS_RESOURCE_ID = '499b84ac-1321-427f-aa17-267ca6975798';
+
+    // Get token for Azure DevOps
+    const token = await credential.getToken(
+      `${AZURE_DEVOPS_RESOURCE_ID}/.default`,
+    );
+
+    if (!token || !token.token) {
+      throw new Error('Failed to acquire token for Azure DevOps');
+    }
+
+    return `Bearer ${token.token}`;
   } catch (error) {
     throw new AzureDevOpsValidationError(
       `Failed to get authorization header: ${error instanceof Error ? error.message : String(error)}`,
