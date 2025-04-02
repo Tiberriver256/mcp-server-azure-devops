@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.14](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.13...mcp-server-azure-devops-v0.1.14) (2025-04-02)
+
+
+### Bug Fixes
+
+* add zod-to-json-schema dependency and remove unused packages from package-lock.json ([c9c117f](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/c9c117fd388e228c1116d9249698d931557877b7))
+
 ## [0.1.13](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.12...mcp-server-azure-devops-v0.1.13) (2025-04-02)
 
 
