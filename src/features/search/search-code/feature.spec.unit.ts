@@ -918,4 +918,99 @@ describe('searchCode unit', () => {
       true,
     );
   });
+
+  test('should limit top to 10 when includeContent is true', async () => {
+    // Arrange
+    const mockSearchResponse = {
+      data: {
+        count: 10,
+        results: Array(10)
+          .fill(0)
+          .map((_, i) => ({
+            fileName: `example${i}.ts`,
+            path: `/src/example${i}.ts`,
+            matches: {
+              content: [
+                {
+                  charOffset: 17,
+                  length: 7,
+                },
+              ],
+            },
+            collection: {
+              name: 'DefaultCollection',
+            },
+            project: {
+              name: 'TestProject',
+              id: 'project-id',
+            },
+            repository: {
+              name: 'TestRepo',
+              id: 'repo-id',
+              type: 'git',
+            },
+            versions: [
+              {
+                branchName: 'main',
+                changeId: 'commit-hash',
+              },
+            ],
+            contentId: `content-hash-${i}`,
+          })),
+      },
+    };
+
+    mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
+
+    // Act
+    await searchCode(mockConnection, {
+      searchText: 'example',
+      projectId: 'TestProject',
+      top: 50, // User tries to get 50 results
+      includeContent: true, // But includeContent is true
+    });
+
+    // Assert
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        $top: 10, // Should be limited to 10
+      }),
+      expect.any(Object),
+    );
+  });
+
+  test('should not limit top when includeContent is false', async () => {
+    // Arrange
+    const mockSearchResponse = {
+      data: {
+        count: 50,
+        results: Array(50)
+          .fill(0)
+          .map((_, i) => ({
+            // ... simplified result object
+            fileName: `example${i}.ts`,
+          })),
+      },
+    };
+
+    mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
+
+    // Act
+    await searchCode(mockConnection, {
+      searchText: 'example',
+      projectId: 'TestProject',
+      top: 50, // User wants 50 results
+      includeContent: false, // includeContent is false
+    });
+
+    // Assert
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        $top: 50, // Should use requested value
+      }),
+      expect.any(Object),
+    );
+  });
 });

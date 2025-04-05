@@ -27,11 +27,16 @@ export async function searchCode(
   options: SearchCodeOptions,
 ): Promise<CodeSearchResponse> {
   try {
+    // When includeContent is true, limit results to prevent timeouts
+    const top = options.includeContent
+      ? Math.min(options.top || 10, 10)
+      : options.top;
+
     // Prepare the search request
     const searchRequest: CodeSearchRequest = {
       searchText: options.searchText,
       $skip: options.skip,
-      $top: options.top,
+      $top: top, // Use limited top value when includeContent is true
       filters: {
         ...(options.projectId ? { Project: [options.projectId] } : {}),
         ...options.filters,
