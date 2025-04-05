@@ -2,6 +2,7 @@ import axios from 'axios';
 import { searchCode } from './feature';
 import { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsError } from '../../../shared/errors';
+import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 // Mock Azure Identity
 jest.mock('@azure/identity', () => {
@@ -137,7 +138,16 @@ describe('searchCode unit', () => {
       'repo-id',
       '/src/example.ts',
       'TestProject',
-      'commit-hash',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      false,
+      {
+        version: 'commit-hash',
+        versionType: GitVersionType.Commit,
+      },
+      true,
     );
   });
 
@@ -782,6 +792,22 @@ describe('searchCode unit', () => {
 
     // Git API should have been called 4 times
     expect(mockGitApi.getItemContent).toHaveBeenCalledTimes(4);
+    // Verify the parameters for the first call
+    expect(mockGitApi.getItemContent.mock.calls[0]).toEqual([
+      'repo-id-1',
+      '/src/example1.ts',
+      'TestProject',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      false,
+      {
+        version: 'commit-hash-1',
+        versionType: GitVersionType.Commit,
+      },
+      true,
+    ]);
   });
 
   test('should properly convert content stream to string', async () => {
@@ -874,5 +900,22 @@ describe('searchCode unit', () => {
     expect(mockStream.on).toHaveBeenCalledWith('data', expect.any(Function));
     expect(mockStream.on).toHaveBeenCalledWith('end', expect.any(Function));
     expect(mockStream.on).toHaveBeenCalledWith('error', expect.any(Function));
+
+    // Verify the parameters for getItemContent
+    expect(mockGitApi.getItemContent).toHaveBeenCalledWith(
+      'repo-id',
+      '/src/example.ts',
+      'TestProject',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      false,
+      {
+        version: 'commit-hash',
+        versionType: GitVersionType.Commit,
+      },
+      true,
+    );
   });
 });

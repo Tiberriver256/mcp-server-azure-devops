@@ -13,6 +13,7 @@ import {
   CodeSearchResponse,
   CodeSearchResult,
 } from '../types';
+import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 /**
  * Search for code in Azure DevOps repositories
@@ -200,11 +201,21 @@ async function enrichResultsWithContent(
       results.map(async (result) => {
         try {
           // Get the file content using the Git API
+          // Pass only the required parameters to avoid the "path" and "scopePath" conflict
           const contentStream = await gitApi.getItemContent(
             result.repository.id,
             result.path,
             result.project.name,
-            result.versions[0]?.changeId,
+            undefined, // No version descriptor object
+            undefined, // No recursion level
+            undefined, // Don't include content metadata
+            undefined, // No latest processed change
+            false, // Don't download
+            {
+              version: result.versions[0]?.changeId,
+              versionType: GitVersionType.Commit,
+            }, // Version descriptor
+            true, // Include content
           );
 
           // Convert the stream to a string and store it in the result
