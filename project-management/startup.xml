@@ -16,7 +16,8 @@
     <Step order="5">If there is a task in doing.md move directly into TaskWorkflow. If not take the FIRST task from the top of todo.md and move it to doing.md, removing it from todo.md. Remember that tasks are sorted by priority with most important at the top. After moving the task you should extend it with a phase property to be used in TaskWorkflow and a section for notes and sub-tasks.</Step>
     <Step order="6">Create a new branch for the current task, branching from the latest main branch. Use a descriptive name for the branch, related to the task, by running ./create_branch.sh &lt;branch_name&gt;.</Step>
     <Step order="7">Read tdd-cycle.xml to understand the TDD cycle.</Step>
-    <Step order="8">Start the research phase of TaskWorkflow.</Step>
+    <Step order="8">Read all files in the docs/testing directory to understand the testing strategy.</Step>
+    <Step order="9">Start the research phase of TaskWorkflow.</Step>
   </InitialSetup>
   
   <TaskWorkflow order="2">

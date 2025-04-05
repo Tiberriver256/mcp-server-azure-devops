@@ -18,6 +18,12 @@
       "path": "./node_modules/cz-conventional-changelog"
     }
   },
+  "lint-staged": {
+    "*.ts": [
+      "prettier --write",
+      "eslint --fix"
+    ]
+  },
   "release-please": {
     "release-type": "node",
     "changelog-types": [
@@ -99,6 +105,7 @@
     "eslint-plugin-prettier": "^5.0.0",
     "husky": "^8.0.3",
     "jest": "^29.0.0",
+    "lint-staged": "^15.5.0",
     "prettier": "^3.0.0",
     "ts-jest": "^29.0.0",
     "ts-node-dev": "^2.0.0",

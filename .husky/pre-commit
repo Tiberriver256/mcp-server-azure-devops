@@ -1,8 +1,5 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Run prettier
-npm run format
-
-# Run eslint
-npm run lint 
+# Run lint-staged to run formatters and linters only on staged files
+npx lint-staged 
