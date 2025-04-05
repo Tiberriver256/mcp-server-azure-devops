@@ -39,17 +39,11 @@ export async function getMe(connection: WebApi): Promise<UserProfile> {
 
     const profile = response.data;
 
-    // Extract email from coreAttributes
-    const emailAttribute = profile.coreAttributes
-      ? profile.coreAttributes['Email'] ||
-        profile.coreAttributes['emailAddress']
-      : undefined;
-
     // Return the user profile with required fields
     return {
       id: profile.id,
-      displayName: profile.coreAttributes?.DisplayName?.value || '',
-      email: emailAttribute?.value || '',
+      displayName: profile.displayName || '',
+      email: profile.emailAddress || '',
     };
   } catch (error) {
     // Handle authentication errors

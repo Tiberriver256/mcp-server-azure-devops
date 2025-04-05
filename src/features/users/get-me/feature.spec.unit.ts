@@ -42,10 +42,11 @@ describe('getMe', () => {
     // Arrange
     const mockProfile = {
       id: 'user-id-123',
-      coreAttributes: {
-        DisplayName: { value: 'Test User' },
-        Email: { value: 'test.user@example.com' },
-      },
+      displayName: 'Test User',
+      emailAddress: 'test.user@example.com',
+      coreRevision: 1647,
+      timeStamp: '2023-01-01T00:00:00.000Z',
+      revision: 1647,
     };
 
     // Mock axios get to return profile data
@@ -67,14 +68,15 @@ describe('getMe', () => {
     });
   });
 
-  it('should handle missing email attribute', async () => {
+  it('should handle missing email', async () => {
     // Arrange
     const mockProfile = {
       id: 'user-id-123',
-      coreAttributes: {
-        DisplayName: { value: 'Test User' },
-        // No Email attribute
-      },
+      displayName: 'Test User',
+      // No emailAddress
+      coreRevision: 1647,
+      timeStamp: '2023-01-01T00:00:00.000Z',
+      revision: 1647,
     };
 
     // Mock axios get to return profile data
@@ -87,14 +89,15 @@ describe('getMe', () => {
     expect(result.email).toBe('');
   });
 
-  it('should handle missing display name attribute', async () => {
+  it('should handle missing display name', async () => {
     // Arrange
     const mockProfile = {
       id: 'user-id-123',
-      coreAttributes: {
-        // No DisplayName attribute
-        Email: { value: 'test.user@example.com' },
-      },
+      // No displayName
+      emailAddress: 'test.user@example.com',
+      coreRevision: 1647,
+      timeStamp: '2023-01-01T00:00:00.000Z',
+      revision: 1647,
     };
 
     // Mock axios get to return profile data
@@ -105,26 +108,6 @@ describe('getMe', () => {
 
     // Assert
     expect(result.displayName).toBe('');
-  });
-
-  it('should handle alternative email attribute name', async () => {
-    // Arrange
-    const mockProfile = {
-      id: 'user-id-123',
-      coreAttributes: {
-        DisplayName: { value: 'Test User' },
-        emailAddress: { value: 'alt.email@example.com' }, // Using alternative name
-      },
-    };
-
-    // Mock axios get to return profile data
-    mockAxios.get.mockResolvedValue({ data: mockProfile });
-
-    // Act
-    const result = await getMe(mockConnection);
-
-    // Assert
-    expect(result.email).toBe('alt.email@example.com');
   });
 
   it('should handle authentication errors', async () => {

@@ -29,9 +29,11 @@ describe('getMe Integration', () => {
     expect(typeof result.id).toBe('string');
     expect(result.displayName).toBeDefined();
     expect(typeof result.displayName).toBe('string');
+    expect(result.displayName.length).toBeGreaterThan(0);
 
-    // Email might be empty in some environments, but it should be a string
-    expect(result.email !== undefined).toBe(true);
+    // Email should be defined, a string, and not empty
+    expect(result.email).toBeDefined();
     expect(typeof result.email).toBe('string');
+    expect(result.email.length).toBeGreaterThan(0);
   });
 });
