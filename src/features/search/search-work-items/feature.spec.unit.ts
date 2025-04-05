@@ -320,4 +320,67 @@ describe('searchWorkItems', () => {
     // Cleanup
     process.env.AZURE_DEVOPS_AUTH_METHOD = originalEnv;
   });
+
+  test('should perform organization-wide work item search when projectId is not provided', async () => {
+    // Arrange
+    const mockSearchResponse = {
+      data: {
+        count: 2,
+        results: [
+          {
+            id: 1,
+            fields: {
+              'System.Title': 'Test Bug 1',
+              'System.State': 'Active',
+              'System.WorkItemType': 'Bug',
+              'System.TeamProject': 'Project1',
+            },
+            project: {
+              name: 'Project1',
+              id: 'project-id-1',
+            },
+          },
+          {
+            id: 2,
+            fields: {
+              'System.Title': 'Test Bug 2',
+              'System.State': 'Active',
+              'System.WorkItemType': 'Bug',
+              'System.TeamProject': 'Project2',
+            },
+            project: {
+              name: 'Project2',
+              id: 'project-id-2',
+            },
+          },
+        ],
+      },
+    };
+
+    mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
+
+    // Act
+    const result = await searchWorkItems(connection, {
+      searchText: 'bug',
+    });
+
+    // Assert
+    expect(result).toBeDefined();
+    expect(result.count).toBe(2);
+    expect(result.results).toHaveLength(2);
+    expect(result.results[0].fields['System.TeamProject']).toBe('Project1');
+    expect(result.results[1].fields['System.TeamProject']).toBe('Project2');
+    expect(mockedAxios.post).toHaveBeenCalledTimes(1);
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'https://almsearch.dev.azure.com/mock-org/_apis/search/workitemsearchresults',
+      ),
+      expect.not.objectContaining({
+        filters: expect.objectContaining({
+          'System.TeamProject': expect.anything(),
+        }),
+      }),
+      expect.any(Object),
+    );
+  });
 });

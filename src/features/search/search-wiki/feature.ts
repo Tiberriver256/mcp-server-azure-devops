@@ -30,9 +30,11 @@ export async function searchWiki(
       searchText: options.searchText,
       $skip: options.skip,
       $top: options.top,
-      filters: {
-        Project: [options.projectId],
-      },
+      filters: options.projectId
+        ? {
+            Project: [options.projectId],
+          }
+        : {},
       includeFacets: options.includeFacets,
     };
 
@@ -42,12 +44,18 @@ export async function searchWiki(
       options.filters.Project &&
       options.filters.Project.length > 0
     ) {
-      if (searchRequest.filters && searchRequest.filters.Project) {
-        searchRequest.filters.Project = [
-          ...searchRequest.filters.Project,
-          ...options.filters.Project,
-        ];
+      if (!searchRequest.filters) {
+        searchRequest.filters = {};
       }
+
+      if (!searchRequest.filters.Project) {
+        searchRequest.filters.Project = [];
+      }
+
+      searchRequest.filters.Project = [
+        ...(searchRequest.filters.Project || []),
+        ...options.filters.Project,
+      ];
     }
 
     // Get the authorization header from the connection
@@ -60,7 +68,11 @@ export async function searchWiki(
     );
 
     // Make the search API request
-    const searchUrl = `https://almsearch.dev.azure.com/${organization}/${project}/_apis/search/wikisearchresults?api-version=7.1`;
+    // If projectId is provided, include it in the URL, otherwise perform organization-wide search
+    const searchUrl = options.projectId
+      ? `https://almsearch.dev.azure.com/${organization}/${project}/_apis/search/wikisearchresults?api-version=7.1`
+      : `https://almsearch.dev.azure.com/${organization}/_apis/search/wikisearchresults?api-version=7.1`;
+
     const searchResponse = await axios.post<WikiSearchResponse>(
       searchUrl,
       searchRequest,
@@ -115,12 +127,12 @@ export async function searchWiki(
  * Extract organization and project from the connection URL
  *
  * @param connection The Azure DevOps WebApi connection
- * @param projectId The project ID or name
+ * @param projectId The project ID or name (optional)
  * @returns The organization and project
  */
 function extractOrgAndProject(
   connection: WebApi,
-  projectId: string,
+  projectId?: string,
 ): { organization: string; project: string } {
   // Extract organization from the connection URL
   const url = connection.serverUrl;
@@ -135,7 +147,7 @@ function extractOrgAndProject(
 
   return {
     organization,
-    project: projectId,
+    project: projectId || '',
   };
 }
 

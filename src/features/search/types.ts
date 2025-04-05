@@ -3,7 +3,7 @@
  */
 export interface SearchCodeOptions {
   searchText: string;
-  projectId: string;
+  projectId?: string;
   filters?: {
     Repository?: string[];
     Path?: string[];
@@ -128,8 +128,9 @@ export interface SearchWikiOptions {
 
   /**
    * The ID or name of the project to search in
+   * If not provided, search will be performed across the entire organization
    */
-  projectId: string;
+  projectId?: string;
 
   /**
    * Optional filters to narrow search results
@@ -362,8 +363,9 @@ export interface SearchWorkItemsOptions {
 
   /**
    * The ID or name of the project to search in
+   * If not provided, search will be performed across the entire organization
    */
-  projectId: string;
+  projectId?: string;
 
   /**
    * Optional filters to narrow search results

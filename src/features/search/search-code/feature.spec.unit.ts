@@ -453,4 +453,104 @@ describe('searchCode unit', () => {
     // Content should be undefined when there's an error fetching it
     expect(result.results[0].content).toBeUndefined();
   });
+
+  test('should perform organization-wide search when projectId is not provided', async () => {
+    // Arrange
+    const mockSearchResponse = {
+      data: {
+        count: 2,
+        results: [
+          {
+            fileName: 'example1.ts',
+            path: '/src/example1.ts',
+            matches: {
+              content: [
+                {
+                  charOffset: 17,
+                  length: 7,
+                },
+              ],
+            },
+            collection: {
+              name: 'DefaultCollection',
+            },
+            project: {
+              name: 'Project1',
+              id: 'project-id-1',
+            },
+            repository: {
+              name: 'Repo1',
+              id: 'repo-id-1',
+              type: 'git',
+            },
+            versions: [
+              {
+                branchName: 'main',
+                changeId: 'commit-hash-1',
+              },
+            ],
+            contentId: 'content-hash-1',
+          },
+          {
+            fileName: 'example2.ts',
+            path: '/src/example2.ts',
+            matches: {
+              content: [
+                {
+                  charOffset: 17,
+                  length: 7,
+                },
+              ],
+            },
+            collection: {
+              name: 'DefaultCollection',
+            },
+            project: {
+              name: 'Project2',
+              id: 'project-id-2',
+            },
+            repository: {
+              name: 'Repo2',
+              id: 'repo-id-2',
+              type: 'git',
+            },
+            versions: [
+              {
+                branchName: 'main',
+                changeId: 'commit-hash-2',
+              },
+            ],
+            contentId: 'content-hash-2',
+          },
+        ],
+      },
+    };
+
+    mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
+
+    // Act
+    const result = await searchCode(mockConnection, {
+      searchText: 'example',
+      includeContent: false,
+    });
+
+    // Assert
+    expect(result).toBeDefined();
+    expect(result.count).toBe(2);
+    expect(result.results).toHaveLength(2);
+    expect(result.results[0].project.name).toBe('Project1');
+    expect(result.results[1].project.name).toBe('Project2');
+    expect(mockedAxios.post).toHaveBeenCalledTimes(1);
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'https://almsearch.dev.azure.com/testorg/_apis/search/codesearchresults',
+      ),
+      expect.not.objectContaining({
+        filters: expect.objectContaining({
+          Project: expect.anything(),
+        }),
+      }),
+      expect.any(Object),
+    );
+  });
 });

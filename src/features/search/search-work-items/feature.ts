@@ -31,7 +31,9 @@ export async function searchWorkItems(
       $skip: options.skip,
       $top: options.top,
       filters: {
-        'System.TeamProject': [options.projectId],
+        ...(options.projectId
+          ? { 'System.TeamProject': [options.projectId] }
+          : {}),
         ...options.filters,
       },
       includeFacets: options.includeFacets,
@@ -48,7 +50,11 @@ export async function searchWorkItems(
     );
 
     // Make the search API request
-    const searchUrl = `https://almsearch.dev.azure.com/${organization}/${project}/_apis/search/workitemsearchresults?api-version=7.1`;
+    // If projectId is provided, include it in the URL, otherwise perform organization-wide search
+    const searchUrl = options.projectId
+      ? `https://almsearch.dev.azure.com/${organization}/${project}/_apis/search/workitemsearchresults?api-version=7.1`
+      : `https://almsearch.dev.azure.com/${organization}/_apis/search/workitemsearchresults?api-version=7.1`;
+
     const searchResponse = await axios.post<WorkItemSearchResponse>(
       searchUrl,
       searchRequest,
@@ -101,12 +107,12 @@ export async function searchWorkItems(
  * Extract organization and project from the connection URL
  *
  * @param connection The Azure DevOps WebApi connection
- * @param projectId The project ID or name
+ * @param projectId The project ID or name (optional)
  * @returns The organization and project
  */
 function extractOrgAndProject(
   connection: WebApi,
-  projectId: string,
+  projectId?: string,
 ): { organization: string; project: string } {
   // Extract organization from the connection URL
   const url = connection.serverUrl;
@@ -121,7 +127,7 @@ function extractOrgAndProject(
 
   return {
     organization,
-    project: projectId,
+    project: projectId || '',
   };
 }
 

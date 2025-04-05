@@ -11,7 +11,7 @@ The `search_code` tool allows you to search for code across repositories in an A
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | searchText | string | Yes | The text to search for in the code |
-| projectId | string | Yes | The ID or name of the project to search in |
+| projectId | string | No | The ID or name of the project to search in. If not provided, search will be performed across all projects in the organization. |
 | filters | object | No | Optional filters to narrow search results |
 | filters.Repository | string[] | No | Filter by repository names |
 | filters.Path | string[] | No | Filter by file paths |
@@ -46,6 +46,14 @@ The response includes:
 {
   "searchText": "function searchCode",
   "projectId": "MyProject"
+}
+```
+
+#### Organization-wide Search
+
+```json
+{
+  "searchText": "function searchCode"
 }
 ```
 
@@ -92,3 +100,4 @@ The response includes:
 - When `includeContent` is true, the tool makes additional API calls to fetch the full content of each file in the search results.
 - The search API supports a variety of search syntax, including wildcards, exact phrases, and boolean operators. See the [Azure DevOps Search documentation](https://learn.microsoft.com/en-us/azure/devops/project/search/get-started-search?view=azure-devops) for more information.
 - The `CodeElement` filter allows you to filter by code element types such as `function`, `class`, `method`, `property`, `variable`, `comment`, etc.
+- When `projectId` is not provided, the search will be performed across all projects in the organization, which can be useful for finding examples of specific code patterns or libraries used across the organization.

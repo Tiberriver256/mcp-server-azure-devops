@@ -5,7 +5,12 @@ import { z } from 'zod';
  */
 export const SearchCodeSchema = z.object({
   searchText: z.string().describe('The text to search for'),
-  projectId: z.string().describe('The ID or name of the project to search in'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(
+      'The ID or name of the project to search in. If not provided, search across all projects.',
+    ),
   filters: z
     .object({
       Repository: z
@@ -51,7 +56,12 @@ export const SearchCodeSchema = z.object({
  */
 export const SearchWikiSchema = z.object({
   searchText: z.string().describe('The text to search for in wikis'),
-  projectId: z.string().describe('The ID or name of the project to search in'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(
+      'The ID or name of the project to search in. If not provided, search across all projects.',
+    ),
   filters: z
     .object({
       Project: z
@@ -85,7 +95,12 @@ export const SearchWikiSchema = z.object({
  */
 export const SearchWorkItemsSchema = z.object({
   searchText: z.string().describe('The text to search for in work items'),
-  projectId: z.string().describe('The ID or name of the project to search in'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(
+      'The ID or name of the project to search in. If not provided, search across all projects.',
+    ),
   filters: z
     .object({
       'System.TeamProject': z

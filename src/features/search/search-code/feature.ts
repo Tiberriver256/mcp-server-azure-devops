@@ -32,7 +32,7 @@ export async function searchCode(
       $skip: options.skip,
       $top: options.top,
       filters: {
-        Project: [options.projectId],
+        ...(options.projectId ? { Project: [options.projectId] } : {}),
         ...options.filters,
       },
       includeFacets: true,
@@ -42,14 +42,18 @@ export async function searchCode(
     // Get the authorization header from the connection
     const authHeader = await getAuthorizationHeader();
 
-    // Extract organization and project from the connection URL
+    // Extract organization from the connection URL
     const { organization, project } = extractOrgAndProject(
       connection,
       options.projectId,
     );
 
     // Make the search API request
-    const searchUrl = `https://almsearch.dev.azure.com/${organization}/${project}/_apis/search/codesearchresults?api-version=7.1`;
+    // If projectId is provided, include it in the URL, otherwise perform organization-wide search
+    const searchUrl = options.projectId
+      ? `https://almsearch.dev.azure.com/${organization}/${project}/_apis/search/codesearchresults?api-version=7.1`
+      : `https://almsearch.dev.azure.com/${organization}/_apis/search/codesearchresults?api-version=7.1`;
+
     const searchResponse = await axios.post<CodeSearchResponse>(
       searchUrl,
       searchRequest,
@@ -108,12 +112,12 @@ export async function searchCode(
  * Extract organization and project from the connection URL
  *
  * @param connection The Azure DevOps WebApi connection
- * @param projectId The project ID or name
+ * @param projectId The project ID or name (optional)
  * @returns The organization and project
  */
 function extractOrgAndProject(
   connection: WebApi,
-  projectId: string,
+  projectId?: string,
 ): { organization: string; project: string } {
   // Extract organization from the connection URL
   const url = connection.serverUrl;
@@ -128,7 +132,7 @@ function extractOrgAndProject(
 
   return {
     organization,
-    project: projectId,
+    project: projectId || '',
   };
 }
 
