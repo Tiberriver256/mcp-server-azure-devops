@@ -62,6 +62,8 @@ import {
   searchWorkItems,
 } from './features/search';
 
+import { GetMeSchema, getMe } from './features/users';
+
 // Create a safe console logging function that won't interfere with MCP protocol
 function safeLog(message: string) {
   process.stderr.write(`${message}\n`);
@@ -94,6 +96,13 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
   server.setRequestHandler(ListToolsRequestSchema, () => {
     return {
       tools: [
+        // User tools
+        {
+          name: 'get_me',
+          description:
+            'Get details of the authenticated user (id, displayName, email)',
+          inputSchema: zodToJsonSchema(GetMeSchema),
+        },
         // Organization tools
         {
           name: 'list_organizations',
@@ -192,6 +201,15 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
       const connection = await getConnection(config);
 
       switch (request.params.name) {
+        // User tools
+        case 'get_me': {
+          GetMeSchema.parse(request.params.arguments);
+          const result = await getMe(connection);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
         // Organization tools
         case 'list_organizations': {
           // Parse arguments but they're not used since this tool doesn't have parameters

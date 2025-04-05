@@ -1,5 +1,23 @@
 ## Completed Tasks
 
+- [x] **Task**: Implement `get_me` tool to get details of the authenticated user
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completed
+  - **Notes**:
+    - Implemented the `get_me` tool to retrieve authenticated user's profile information
+    - Used `ProfileApi.getUserDefaults()` from azure-devops-node-api to get the user profile
+    - Extracted the required fields (id, displayName, email) from the profile object
+    - Added error handling for authentication and API errors
+    - Created comprehensive unit tests
+    - Updated documentation with usage examples
+  - **Sub-tasks**:
+    - [x] Added ProfileApi method to AzureDevOpsClient class
+    - [x] Implemented get_me feature with proper schema
+    - [x] Registered tool in MCP server
+    - [x] Created unit tests
+    - [x] Added documentation
+  - **Completed**: April 5, 2025
+
 - [x] **Task 6.2.1**: Fix the bug in `search_code` where `includeContent` shows content as "[Object Object]"
   - **Role**: Full-Stack Developer
   - **Phase**: Completed

@@ -272,4 +272,28 @@ export class AzureDevOpsClient {
       );
     }
   }
+
+  /**
+   * Get the Profile API
+   *
+   * @returns The Profile API client
+   * @throws {AzureDevOpsAuthenticationError} If authentication fails
+   */
+  public async getProfileApi(): Promise<any> {
+    try {
+      const client = await this.getClient();
+      return await client.getProfileApi();
+    } catch (error) {
+      // If it's already an AzureDevOpsError, rethrow it
+      if (error instanceof AzureDevOpsError) {
+        throw error;
+      }
+      // Otherwise, wrap it in an AzureDevOpsAuthenticationError
+      throw new AzureDevOpsAuthenticationError(
+        error instanceof Error
+          ? `Failed to get Profile API: ${error.message}`
+          : 'Failed to get Profile API: Unknown error',
+      );
+    }
+  }
 }
