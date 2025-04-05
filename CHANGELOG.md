@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.19](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.18...mcp-server-azure-devops-v0.1.19) (2025-04-05)
+
+
+### Bug Fixes
+
+* package.json & package-lock.json to reduce vulnerabilities ([2fb1e72](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/2fb1e725120edc75c9897bc81f57381c20ad880a))
+
 ## [0.1.18](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.17...mcp-server-azure-devops-v0.1.18) (2025-04-05)
 
 
