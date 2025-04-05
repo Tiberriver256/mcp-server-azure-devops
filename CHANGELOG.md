@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.16](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.15...mcp-server-azure-devops-v0.1.16) (2025-04-05)
+
+
+### Features
+
+* limit search results to 10 when includeContent is true ([827e4e6](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/827e4e65be353125f5ae595b7e68d80f614f8c07))
+* make projectId optional in search features for organization-wide search ([1ca1e0e](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/1ca1e0e146bf880d367078b02a2ddaebf6f54a2a))
+
+
+### Bug Fixes
+
+* correct [Object Object] display in search_code includeContent ([bdabd6b](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/bdabd6bbeb3f60347c37499bdcb621f5c206dfe0))
+* resolve parameter conflict in getItemContent function ([38d624c](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/38d624c10dcfad26bab6d04a9290ad05097f5052))
+* simplify content handling in search_code to properly process ReadableStream ([136a90a](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/136a90a94f446e2c4227d87286b8d71ef8223212))
+
+
+### Performance Improvements
+
+* optimize git hooks with lint-staged ([ba953d8](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/ba953d84706893d56a82573c8d9e8ecdf3b09591))
+
 ## [0.1.15](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.14...mcp-server-azure-devops-v0.1.15) (2025-04-02)
 
 
