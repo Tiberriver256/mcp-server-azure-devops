@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.18](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.17...mcp-server-azure-devops-v0.1.18) (2025-04-05)
+
+
+### Bug Fixes
+
+* getMe profile bug ([ceca909](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/ceca909beaa74b0dd150ce1688a498281fd0b9e8))
+
 ## [0.1.17](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.16...mcp-server-azure-devops-v0.1.17) (2025-04-05)
 
 
