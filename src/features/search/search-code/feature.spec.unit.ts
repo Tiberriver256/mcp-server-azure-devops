@@ -553,4 +553,195 @@ describe('searchCode unit', () => {
       expect.any(Object),
     );
   });
+
+  test('should handle includeContent for different content types', async () => {
+    // Arrange
+    const mockSearchResponse = {
+      data: {
+        count: 4,
+        results: [
+          // Result 1 - Buffer content
+          {
+            fileName: 'example1.ts',
+            path: '/src/example1.ts',
+            matches: {
+              content: [
+                {
+                  charOffset: 17,
+                  length: 7,
+                },
+              ],
+            },
+            collection: {
+              name: 'DefaultCollection',
+            },
+            project: {
+              name: 'TestProject',
+              id: 'project-id',
+            },
+            repository: {
+              name: 'TestRepo',
+              id: 'repo-id-1',
+              type: 'git',
+            },
+            versions: [
+              {
+                branchName: 'main',
+                changeId: 'commit-hash-1',
+              },
+            ],
+            contentId: 'content-hash-1',
+          },
+          // Result 2 - String content
+          {
+            fileName: 'example2.ts',
+            path: '/src/example2.ts',
+            matches: {
+              content: [
+                {
+                  charOffset: 17,
+                  length: 7,
+                },
+              ],
+            },
+            collection: {
+              name: 'DefaultCollection',
+            },
+            project: {
+              name: 'TestProject',
+              id: 'project-id',
+            },
+            repository: {
+              name: 'TestRepo',
+              id: 'repo-id-2',
+              type: 'git',
+            },
+            versions: [
+              {
+                branchName: 'main',
+                changeId: 'commit-hash-2',
+              },
+            ],
+            contentId: 'content-hash-2',
+          },
+          // Result 3 - Object content
+          {
+            fileName: 'example3.ts',
+            path: '/src/example3.ts',
+            matches: {
+              content: [
+                {
+                  charOffset: 17,
+                  length: 7,
+                },
+              ],
+            },
+            collection: {
+              name: 'DefaultCollection',
+            },
+            project: {
+              name: 'TestProject',
+              id: 'project-id',
+            },
+            repository: {
+              name: 'TestRepo',
+              id: 'repo-id-3',
+              type: 'git',
+            },
+            versions: [
+              {
+                branchName: 'main',
+                changeId: 'commit-hash-3',
+              },
+            ],
+            contentId: 'content-hash-3',
+          },
+          // Result 4 - Uint8Array content
+          {
+            fileName: 'example4.ts',
+            path: '/src/example4.ts',
+            matches: {
+              content: [
+                {
+                  charOffset: 17,
+                  length: 7,
+                },
+              ],
+            },
+            collection: {
+              name: 'DefaultCollection',
+            },
+            project: {
+              name: 'TestProject',
+              id: 'project-id',
+            },
+            repository: {
+              name: 'TestRepo',
+              id: 'repo-id-4',
+              type: 'git',
+            },
+            versions: [
+              {
+                branchName: 'main',
+                changeId: 'commit-hash-4',
+              },
+            ],
+            contentId: 'content-hash-4',
+          },
+        ],
+      },
+    };
+
+    mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
+
+    // Create mock contents for each type
+    const bufferContent = Buffer.from('Buffer content');
+    const stringContent = 'String content';
+    const objectContent = { foo: 'bar', baz: 42 };
+    const uint8ArrayContent = new Uint8Array([104, 101, 108, 108, 111]); // "hello" in ASCII
+
+    // Mock Git API with different content types
+    const mockGitApi = {
+      getItemContent: jest
+        .fn()
+        .mockImplementationOnce(() => Promise.resolve(bufferContent))
+        .mockImplementationOnce(() => Promise.resolve(stringContent))
+        .mockImplementationOnce(() => Promise.resolve(objectContent))
+        .mockImplementationOnce(() => Promise.resolve(uint8ArrayContent)),
+    };
+
+    const mockConnectionWithDifferentContentTypes = {
+      ...mockConnection,
+      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+      serverUrl: 'https://dev.azure.com/testorg',
+    } as unknown as WebApi;
+
+    // Act
+    const result = await searchCode(mockConnectionWithDifferentContentTypes, {
+      searchText: 'example',
+      projectId: 'TestProject',
+      includeContent: true,
+    });
+
+    // Assert
+    expect(result).toBeDefined();
+    expect(result.count).toBe(4);
+    expect(result.results).toHaveLength(4);
+
+    // Check each result has appropriate content
+    // Result 1 - Buffer should be converted to string
+    expect(result.results[0].content).toBe('Buffer content');
+
+    // Result 2 - String should remain the same
+    expect(result.results[1].content).toBe('String content');
+
+    // Result 3 - Object should be stringified
+    expect(result.results[2].content).toBe(JSON.stringify(objectContent));
+
+    // Result 4 - Uint8Array should be converted to string
+    expect(result.results[3].content).toBe('hello');
+
+    // Git API should have been called 4 times
+    expect(mockGitApi.getItemContent).toHaveBeenCalledTimes(4);
+  });
 });

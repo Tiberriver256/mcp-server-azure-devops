@@ -209,7 +209,33 @@ async function enrichResultsWithContent(
 
           // Convert the buffer to a string and store it in the result
           if (content) {
-            result.content = content.toString();
+            // Check if content is a Buffer and convert it to string
+            if (Buffer.isBuffer(content)) {
+              result.content = content.toString('utf8');
+            } else if (typeof content === 'string') {
+              result.content = content;
+            } else if (content instanceof Uint8Array) {
+              // Handle Uint8Array case
+              result.content = Buffer.from(content).toString('utf8');
+            } else if (typeof content === 'object') {
+              // If it's an object with a toString method, try to use it
+              // Otherwise JSON stringify it
+              try {
+                if (content.toString !== Object.prototype.toString) {
+                  result.content = content.toString();
+                } else {
+                  result.content = JSON.stringify(content);
+                }
+              } catch (stringifyError) {
+                console.error(
+                  `Failed to stringify content for ${result.path}: ${stringifyError}`,
+                );
+                result.content = '[Content could not be displayed]';
+              }
+            } else {
+              // For any other type, convert to string
+              result.content = String(content);
+            }
           }
         } catch (error) {
           // Log the error but don't fail the entire operation

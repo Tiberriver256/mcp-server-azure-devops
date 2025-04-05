@@ -1,5 +1,20 @@
 ## Completed Tasks
 
+- [x] **Task 6.2.1**: Fix the bug in `search_code` where `includeContent` shows content as "[Object Object]"
+  - **Role**: Full-Stack Developer
+  - **Phase**: Completed
+  - **Notes**:
+    - Fixed a bug in the `enrichResultsWithContent` function of the search_code feature
+    - The bug was causing file content to be displayed as "[Object Object]" when `includeContent` was set to true
+    - The issue was that the code wasn't properly handling different content object types returned by the Git API
+    - Solution implemented:
+      - Added type checking for different content types (Buffer, string, object, Uint8Array)
+      - Properly converted each type to a string representation
+      - For objects, used JSON.stringify when the object's toString method wasn't useful
+      - Added comprehensive unit tests to verify the fix with different content types
+    - Added a new test case that verifies all different content types are handled correctly
+  - **Completed**: April 5, 2025
+
 - [x] **Task 7.3.1**: Optimize git hooks performance using lint-staged
   - **Role**: Full-Stack Developer
   - **Phase**: Completed
