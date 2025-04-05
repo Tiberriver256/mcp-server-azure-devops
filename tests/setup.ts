@@ -6,11 +6,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load environment variables from .env file
-const result = dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+// Use silent mode to prevent warning when .env file is not found
+const result = dotenv.config({
+  path: path.resolve(process.cwd(), '.env'),
+});
 
-if (result.error) {
-  console.warn('Warning: .env file not found or cannot be read.');
-} else {
+// Only log if .env file was successfully loaded and DEBUG=true
+if (!result.error && process.env.DEBUG === 'true') {
   console.log('Environment variables loaded from .env file');
 }
 
