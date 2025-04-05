@@ -90,8 +90,34 @@ describe('searchCode unit', () => {
 
     mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
 
+    // Create a mock stream with content
+    const fileContent = 'export function example() { return "test"; }';
+    const mockStream = {
+      on: jest.fn().mockImplementation((event, callback) => {
+        if (event === 'data') {
+          // Call the callback with the data
+          callback(Buffer.from(fileContent));
+        } else if (event === 'end') {
+          // Call the end callback asynchronously
+          setTimeout(callback, 0);
+        }
+        return mockStream; // Return this for chaining
+      }),
+    };
+
+    // Mock Git API to return content
+    const mockGitApi = {
+      getItemContent: jest.fn().mockResolvedValue(mockStream),
+    };
+
+    const mockConnectionWithContent = {
+      ...mockConnection,
+      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+      serverUrl: 'https://dev.azure.com/testorg',
+    } as unknown as WebApi;
+
     // Act
-    const result = await searchCode(mockConnection, {
+    const result = await searchCode(mockConnectionWithContent, {
       searchText: 'example',
       projectId: 'TestProject',
       includeContent: true,
@@ -106,14 +132,12 @@ describe('searchCode unit', () => {
       'export function example() { return "test"; }',
     );
     expect(mockedAxios.post).toHaveBeenCalledTimes(1);
-    expect(mockedAxios.post).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'https://almsearch.dev.azure.com/testorg/TestProject/_apis/search/codesearchresults',
-      ),
-      expect.objectContaining({
-        searchText: 'example',
-      }),
-      expect.any(Object),
+    expect(mockGitApi.getItemContent).toHaveBeenCalledTimes(1);
+    expect(mockGitApi.getItemContent).toHaveBeenCalledWith(
+      'repo-id',
+      '/src/example.ts',
+      'TestProject',
+      'commit-hash',
     );
   });
 
@@ -694,30 +718,45 @@ describe('searchCode unit', () => {
 
     mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
 
-    // Create mock contents for each type
-    const bufferContent = Buffer.from('Buffer content');
-    const stringContent = 'String content';
-    const objectContent = { foo: 'bar', baz: 42 };
-    const uint8ArrayContent = new Uint8Array([104, 101, 108, 108, 111]); // "hello" in ASCII
+    // Create mock contents for each type - all as streams, since that's what getItemContent returns
+    // These are all streams but with different content to demonstrate handling different data types from the stream
+    const createMockStream = (content: string) => ({
+      on: jest.fn().mockImplementation((event, callback) => {
+        if (event === 'data') {
+          callback(Buffer.from(content));
+        } else if (event === 'end') {
+          setTimeout(callback, 0);
+        }
+        return createMockStream(content); // Return this for chaining
+      }),
+    });
 
-    // Mock Git API with different content types
+    // Create four different mock streams with different content
+    const mockStream1 = createMockStream('Buffer content');
+    const mockStream2 = createMockStream('String content');
+    const mockStream3 = createMockStream(
+      JSON.stringify({ foo: 'bar', baz: 42 }),
+    );
+    const mockStream4 = createMockStream('hello');
+
+    // Mock Git API to return our different mock streams for each repository
     const mockGitApi = {
       getItemContent: jest
         .fn()
-        .mockImplementationOnce(() => Promise.resolve(bufferContent))
-        .mockImplementationOnce(() => Promise.resolve(stringContent))
-        .mockImplementationOnce(() => Promise.resolve(objectContent))
-        .mockImplementationOnce(() => Promise.resolve(uint8ArrayContent)),
+        .mockImplementationOnce(() => Promise.resolve(mockStream1))
+        .mockImplementationOnce(() => Promise.resolve(mockStream2))
+        .mockImplementationOnce(() => Promise.resolve(mockStream3))
+        .mockImplementationOnce(() => Promise.resolve(mockStream4)),
     };
 
-    const mockConnectionWithDifferentContentTypes = {
+    const mockConnectionWithStreams = {
       ...mockConnection,
       getGitApi: jest.fn().mockResolvedValue(mockGitApi),
       serverUrl: 'https://dev.azure.com/testorg',
     } as unknown as WebApi;
 
     // Act
-    const result = await searchCode(mockConnectionWithDifferentContentTypes, {
+    const result = await searchCode(mockConnectionWithStreams, {
       searchText: 'example',
       projectId: 'TestProject',
       includeContent: true,
@@ -728,20 +767,112 @@ describe('searchCode unit', () => {
     expect(result.count).toBe(4);
     expect(result.results).toHaveLength(4);
 
-    // Check each result has appropriate content
-    // Result 1 - Buffer should be converted to string
+    // Check each result has appropriate content from the streams
+    // Result 1 - Buffer content stream
     expect(result.results[0].content).toBe('Buffer content');
 
-    // Result 2 - String should remain the same
+    // Result 2 - String content stream
     expect(result.results[1].content).toBe('String content');
 
-    // Result 3 - Object should be stringified
-    expect(result.results[2].content).toBe(JSON.stringify(objectContent));
+    // Result 3 - JSON object content stream
+    expect(result.results[2].content).toBe('{"foo":"bar","baz":42}');
 
-    // Result 4 - Uint8Array should be converted to string
+    // Result 4 - Text content stream
     expect(result.results[3].content).toBe('hello');
 
     // Git API should have been called 4 times
     expect(mockGitApi.getItemContent).toHaveBeenCalledTimes(4);
+  });
+
+  test('should properly convert content stream to string', async () => {
+    // Arrange
+    const mockSearchResponse = {
+      data: {
+        count: 1,
+        results: [
+          {
+            fileName: 'example.ts',
+            path: '/src/example.ts',
+            matches: {
+              content: [
+                {
+                  charOffset: 17,
+                  length: 7,
+                },
+              ],
+            },
+            collection: {
+              name: 'DefaultCollection',
+            },
+            project: {
+              name: 'TestProject',
+              id: 'project-id',
+            },
+            repository: {
+              name: 'TestRepo',
+              id: 'repo-id',
+              type: 'git',
+            },
+            versions: [
+              {
+                branchName: 'main',
+                changeId: 'commit-hash',
+              },
+            ],
+            contentId: 'content-hash',
+          },
+        ],
+      },
+    };
+
+    mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
+
+    // Create a mock ReadableStream
+    const mockContent = 'This is the file content';
+
+    // Create a simplified mock stream that emits the content
+    const mockStream = {
+      on: jest.fn().mockImplementation((event, callback) => {
+        if (event === 'data') {
+          // Call the callback with the data
+          callback(Buffer.from(mockContent));
+        } else if (event === 'end') {
+          // Call the end callback asynchronously
+          setTimeout(callback, 0);
+        }
+        return mockStream; // Return this for chaining
+      }),
+    };
+
+    // Mock Git API to return our mock stream
+    const mockGitApi = {
+      getItemContent: jest.fn().mockResolvedValue(mockStream),
+    };
+
+    const mockConnectionWithStream = {
+      ...mockConnection,
+      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+      serverUrl: 'https://dev.azure.com/testorg',
+    } as unknown as WebApi;
+
+    // Act
+    const result = await searchCode(mockConnectionWithStream, {
+      searchText: 'example',
+      projectId: 'TestProject',
+      includeContent: true,
+    });
+
+    // Assert
+    expect(result).toBeDefined();
+    expect(result.count).toBe(1);
+    expect(result.results).toHaveLength(1);
+
+    // Check that the content was properly converted from stream to string
+    expect(result.results[0].content).toBe(mockContent);
+
+    // Verify the stream event handlers were attached
+    expect(mockStream.on).toHaveBeenCalledWith('data', expect.any(Function));
+    expect(mockStream.on).toHaveBeenCalledWith('end', expect.any(Function));
+    expect(mockStream.on).toHaveBeenCalledWith('error', expect.any(Function));
   });
 });

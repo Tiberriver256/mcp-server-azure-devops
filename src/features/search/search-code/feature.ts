@@ -200,42 +200,35 @@ async function enrichResultsWithContent(
       results.map(async (result) => {
         try {
           // Get the file content using the Git API
-          const content = await gitApi.getItemContent(
+          const contentStream = await gitApi.getItemContent(
             result.repository.id,
             result.path,
             result.project.name,
             result.versions[0]?.changeId,
           );
 
-          // Convert the buffer to a string and store it in the result
-          if (content) {
-            // Check if content is a Buffer and convert it to string
-            if (Buffer.isBuffer(content)) {
-              result.content = content.toString('utf8');
-            } else if (typeof content === 'string') {
-              result.content = content;
-            } else if (content instanceof Uint8Array) {
-              // Handle Uint8Array case
-              result.content = Buffer.from(content).toString('utf8');
-            } else if (typeof content === 'object') {
-              // If it's an object with a toString method, try to use it
-              // Otherwise JSON stringify it
-              try {
-                if (content.toString !== Object.prototype.toString) {
-                  result.content = content.toString();
-                } else {
-                  result.content = JSON.stringify(content);
-                }
-              } catch (stringifyError) {
-                console.error(
-                  `Failed to stringify content for ${result.path}: ${stringifyError}`,
-                );
-                result.content = '[Content could not be displayed]';
-              }
-            } else {
-              // For any other type, convert to string
-              result.content = String(content);
-            }
+          // Convert the stream to a string and store it in the result
+          if (contentStream) {
+            // Since getItemContent always returns NodeJS.ReadableStream, we need to read the stream
+            const chunks: Buffer[] = [];
+
+            // Listen for data events to collect chunks
+            contentStream.on('data', (chunk) => {
+              chunks.push(Buffer.from(chunk));
+            });
+
+            // Use a promise to wait for the stream to finish
+            result.content = await new Promise<string>((resolve, reject) => {
+              contentStream.on('end', () => {
+                // Concatenate all chunks and convert to string
+                const buffer = Buffer.concat(chunks);
+                resolve(buffer.toString('utf8'));
+              });
+
+              contentStream.on('error', (err) => {
+                reject(err);
+              });
+            });
           }
         } catch (error) {
           // Log the error but don't fail the entire operation
