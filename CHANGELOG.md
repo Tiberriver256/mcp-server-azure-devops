@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.20](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.19...mcp-server-azure-devops-v0.1.20) (2025-04-06)
+
+
+### Bug Fixes
+
+* add explicit permissions to workflow file ([ae85b95](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/ae85b953d2467538e42d8c6853b93e1af3c8ed51))
+* refine WIQL query in integration test ([eb32e43](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/eb32e43a9064485d29661bcae99a987e3b863464))
+* remove schema validation for parameterless tools ([031a71d](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/031a71d71083649216e5b67eb6d67c18c78702bd))
+
 ## [0.1.19](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.18...mcp-server-azure-devops-v0.1.19) (2025-04-05)
 
 
