@@ -203,7 +203,6 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
       switch (request.params.name) {
         // User tools
         case 'get_me': {
-          GetMeSchema.parse(request.params.arguments);
           const result = await getMe(connection);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
@@ -212,8 +211,6 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
 
         // Organization tools
         case 'list_organizations': {
-          // Parse arguments but they're not used since this tool doesn't have parameters
-          ListOrganizationsSchema.parse(request.params.arguments);
           const result = await listOrganizations(config);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
