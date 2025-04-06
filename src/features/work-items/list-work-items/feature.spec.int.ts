@@ -124,8 +124,9 @@ describe('listWorkItems integration', () => {
       return;
     }
 
-    // Use a WIQL query that should find our created test items
-    const wiql = `SELECT [System.Id], [System.Title] FROM WorkItems WHERE [System.TeamProject] = '${projectName}' AND [System.Tags] CONTAINS 'ListTest' ORDER BY [System.Id]`;
+    // Create a more specific WIQL query that includes the IDs of our created work items
+    const workItemIdList = createdWorkItemIds.join(',');
+    const wiql = `SELECT [System.Id], [System.Title] FROM WorkItems WHERE [System.TeamProject] = '${projectName}' AND [System.Id] IN (${workItemIdList}) AND [System.Tags] CONTAINS 'ListTest' ORDER BY [System.Id]`;
 
     const options: ListWorkItemsOptions = {
       projectId: projectName,
