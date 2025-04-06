@@ -11,7 +11,7 @@ export interface AzureDevOpsConfig {
 
   /**
    * Authentication method to use (pat, azure-identity, azure-cli)
-   * @default 'pat'
+   * @default 'azure-identity'
    */
   authMethod?: AuthenticationMethod;
 

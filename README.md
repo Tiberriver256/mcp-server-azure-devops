@@ -111,14 +111,13 @@ Key environment variables include:
 | Variable                       | Description                                                                        | Required           | Default            |
 | ------------------------------ | ---------------------------------------------------------------------------------- | ------------------ | ------------------ |
 | `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) - case-insensitive | No                 | `azure-identity`   |
-| `AZURE_DEVOPS_ORG`             | Azure DevOps organization name                                                     | No                 | Extracted from URL |
 | `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization                                         | Yes                | -                  |
 | `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                                               | Only with PAT auth | -                  |
 | `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                                                  | No                 | -                  |
 | `AZURE_DEVOPS_API_VERSION`     | API version to use                                                                 | No                 | Latest             |
-| `AZURE_AD_TENANT_ID`           | Azure AD tenant ID (for AAD auth)                                                  | Only with AAD auth | -                  |
-| `AZURE_AD_CLIENT_ID`           | Azure AD application ID (for AAD auth)                                             | Only with AAD auth | -                  |
-| `AZURE_AD_CLIENT_SECRET`       | Azure AD client secret (for AAD auth)                                              | Only with AAD auth | -                  |
+| `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                                        | Only with service principals | -                  |
+| `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                                   | Only with service principals | -                  |
+| `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                                    | Only with service principals | -                  |
 | `LOG_LEVEL`                    | Logging level (debug, info, warn, error)                                           | No                 | info               |
 
 ## Troubleshooting Authentication
@@ -140,25 +139,25 @@ For technical details about how authentication is implemented in the Azure DevOp
 
 The Azure DevOps MCP server provides a variety of tools for interacting with Azure DevOps resources. For detailed documentation on each tool, please refer to the corresponding documentation.
 
-### Core Navigation Tools
+### User Tools
+
+- `get_me`: Get details of the authenticated user (id, displayName, email)
+
+### Organization Tools
 
 - `list_organizations`: List all accessible organizations
-- `list_projects`: List all accessible projects
-- `list_repositories`: List all repositories in a project
-
-For comprehensive documentation on all core navigation tools, see the [Core Navigation Tools Guide](docs/tools/core-navigation.md).
 
 ### Project Tools
 
+- `list_projects`: List all projects in an organization
 - `get_project`: Get details of a specific project
-
-For project-specific tool documentation, see the [Projects Tools Guide](docs/tools/projects.md).
+- `get_project_details`: Get comprehensive details of a project including process, work item types, and teams
 
 ### Repository Tools
 
-- `get_repository`: Get repository details
-
-For repository-specific tool documentation, see the [Repositories Tools Guide](docs/tools/repositories.md).
+- `list_repositories`: List all repositories in a project
+- `get_repository`: Get details of a specific repository
+- `get_repository_details`: Get detailed information about a repository including statistics and refs
 
 ### Work Item Tools
 
@@ -171,8 +170,10 @@ For repository-specific tool documentation, see the [Repositories Tools Guide](d
 ### Search Tools
 
 - `search_code`: Search for code across repositories in a project
+- `search_wiki`: Search for content across wiki pages in a project
+- `search_work_items`: Search for work items across projects in Azure DevOps
 
-For search-specific tool documentation, see the [Search Tools Guide](docs/tools/search.md).
+For comprehensive documentation on all tools, see the [Tools Documentation](docs/tools/).
 
 ## Contributing
 

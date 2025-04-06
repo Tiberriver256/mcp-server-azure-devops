@@ -133,16 +133,17 @@ Azure CLI authentication uses the `AzureCliCredential` class from the `@azure/id
 
 ## Configuration Reference
 
-| Environment Variable           | Description                                                     | Required                     | Default          |
-| ------------------------------ | --------------------------------------------------------------- | ---------------------------- | ---------------- |
+| Variable                       | Description                                                                        | Required                     | Default          |
+| ------------------------------ | ---------------------------------------------------------------------------------- | ---------------------------- | ---------------- |
 | `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) - case-insensitive | No                           | `azure-identity` |
-| `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization                      | Yes                          | -                |
-| `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                            | Only with PAT auth           | -                |
-| `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                               | No                           | -                |
-| `AZURE_DEVOPS_API_VERSION`     | API version to use                                              | No                           | Latest           |
-| `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                     | Only with service principals | -                |
-| `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                | Only with service principals | -                |
-| `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                 | Only with service principals | -                |
+| `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization                                         | Yes                          | -                |
+| `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                                               | Only with PAT auth           | -                |
+| `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                                                  | No                           | -                |
+| `AZURE_DEVOPS_API_VERSION`     | API version to use                                                                 | No                           | Latest           |
+| `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                                        | Only with service principals | -                |
+| `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                                   | Only with service principals | -                |
+| `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                                    | Only with service principals | -                |
+| `LOG_LEVEL`                    | Logging level (debug, info, warn, error)                                           | No                           | info             |
 
 ## Troubleshooting Authentication Issues
 

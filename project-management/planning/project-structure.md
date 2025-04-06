@@ -1,84 +1,68 @@
-Below is the tree view of the folder structure for the Azure DevOps MCP server project. This structure is designed to be modular, organized, and easy to navigate, with clear separation between source code, tests, documentation, and configuration. The `tools/` directory is further categorized to enhance scalability and maintainability.
+Below is the conceptual structure for the Azure DevOps MCP server project. This structure follows the Feature-Sliced Design architecture, which emphasizes business domains and use cases over technical implementations, creating a "screaming architecture" that clearly expresses the application's purpose.
 
 ```
 azure-devops-mcp-server/
 ├── src/                             # Source code for the server
-│   ├── tools/                       # MCP tools organized by category
-│   │   ├── core/                    # Tools for core functionality (e.g., listing orgs, projects)
-│   │   │   ├── list_organizations.ts
-│   │   │   ├── list_projects.ts
-│   │   │   └── index.ts             # Exports all core tools
-│   │   ├── repository/              # Tools for repository operations
-│   │   │   ├── create_or_update_file.ts
-│   │   │   ├── push_changes.ts
-│   │   │   └── index.ts
-│   │   ├── workitem/                # Tools for work item management
-│   │   │   ├── create_work_item.ts
-│   │   │   ├── update_work_item.ts
-│   │   │   └── index.ts
-│   │   ├── branch_pr/               # Tools for branch and pull request management
-│   │   │   ├── create_branch.ts
-│   │   │   ├── create_pull_request.ts
-│   │   │   └── index.ts
-│   │   ├── pipeline/                # Tools for pipeline interactions
-│   │   │   ├── trigger_pipeline.ts
-│   │   │   ├── get_pipeline_status.ts
-│   │   │   └── index.ts
-│   │   └── search/                  # Tools for search and query operations
-│   │       ├── search_code.ts
-│   │       ├── search_work_items.ts
-│   │       └── index.ts
-│   ├── api/                         # API client logic for Azure DevOps
-│   │   ├── client.ts                # Initializes and manages API client
-│   │   ├── auth.ts                  # Handles authentication (PAT, AAD)
-│   │   └── requests.ts              # Custom requests for unsupported endpoints
-│   ├── config/                      # Configuration management
-│   │   └── index.ts                 # Loads and exports configuration
-│   ├── utils/                       # Utility functions
-│   │   ├── error.ts                 # Error handling utilities
-│   │   ├── logger.ts                # Logging functions
-│   │   └── validation.ts            # Input validation helpers
-│   ├── types/                       # Shared type definitions
-│   │   ├── tool.ts                  # Interfaces for MCP tools
-│   │   └── api.ts                   # Types for API responses
-│   └── index.ts                     # Server entry point (initializes server)
-├── tests/                           # Test suites
-│   ├── unit/                        # Unit tests
-│   │   ├── tools/                   # Mirrors src/tools structure
-│   │   │   ├── core/
-│   │   │   │   ├── list_organizations.test.ts
-│   │   │   │   └── ...
-│   │   │   └── ...
-│   │   ├── api/
-│   │   │   ├── client.test.ts
-│   │   │   └── ...
-│   │   └── utils/
-│   │       ├── error.test.ts
-│   │       └── ...
-│   └── integration/                 # Integration tests
-│       └── workflow.test.ts         # End-to-end workflow tests
-├── docs/                            # Documentation
-│   ├── examples/                    # Usage examples and tutorials
-│   │   ├── claude-desktop.md        # Example integration with Claude Desktop
-│   │   └── config.json              # Sample configuration file
-│   └── troubleshooting.md           # Troubleshooting guide
-├── .gitignore                       # Git ignore file
-├── package.json                     # Project dependencies and scripts
-├── tsconfig.json                    # Typescript configuration
-├── jest.config.js                   # Jest configuration for testing
-├── eslint.config.js                 # ESLint configuration
-├── prettier.config.js               # Prettier configuration
-├── README.md                        # Main project documentation
-└── LICENSE                          # Project license (e.g., MIT)
+│   ├── features/                    # Business-domain features organized by entity
+│   │   ├── {entity}/                # Entity represents a business domain (e.g., organizations, projects, work-items)
+│   │   │   ├── {feature}/           # Specific feature implementation (e.g., list-projects, create-work-item)
+│   │   │   │   ├── feature.ts       # Main feature implementation
+│   │   │   │   ├── feature.spec.unit.ts   # Unit tests
+│   │   │   │   ├── feature.spec.int.ts    # Integration tests
+│   │   │   │   ├── schema.ts        # Feature request/response schema
+│   │   │   │   └── index.ts         # Feature exports
+│   │   │   ├── index.ts             # Exports all features for this entity
+│   │   │   ├── schemas.ts           # Shared schemas across entity features
+│   │   │   ├── types.ts             # Shared types for entity features
+│   │   │   └── __test__/            # Test utilities and fixtures for this entity
+│   │   │       ├── fixtures.ts      # Test fixtures
+│   │   │       └── test-helpers.ts  # Test helper functions
+│   │   └── ...                      # Additional entity folders follow the same pattern
+│   ├── shared/                      # Shared utilities and infrastructure
+│   │   ├── api/                     # API client logic
+│   │   ├── auth/                    # Authentication functionality
+│   │   ├── config/                  # Configuration management
+│   │   ├── errors/                  # Error handling utilities
+│   │   ├── test/                    # Shared testing utilities
+│   │   └── types/                   # Shared type definitions
+│   ├── index.ts                     # Server entry point
+│   └── server.ts                    # Server implementation
+├── tests/                           # Global test configuration
+├── project-management/              # Project documentation
+└── ...                              # Configuration files, etc.
 ```
 
-### Explanation of Key Components
+### Explanation of Feature-Sliced Architecture
 
-- **`src/`**: Contains all source code, with subdirectories for tools, API logic, configuration, utilities, and type definitions. The `index.ts` file serves as the entry point for the server.
-- **`tools/`**: Organized into subcategories (e.g., `core/`, `repository/`, `workitem/`) to group related functionality. Each subcategory includes an `index.ts` file to export its tools for easy importing.
-- **`api/`**: Manages interaction with the Azure DevOps API, including client initialization, authentication, and custom requests.
-- **`tests/`**: Houses unit and integration tests, with unit tests mirroring the `src/` structure for consistency.
-- **`docs/`**: Stores documentation, including examples and troubleshooting guides, to support users and developers.
-- **Root Files**: Configuration files (`tsconfig.json`, `jest.config.js`, etc.), `README.md`, and `LICENSE` reside at the root for visibility and convention.
+The project follows the Feature-Sliced Design methodology, with the following key aspects:
 
-This structure ensures the project is scalable, maintainable, and intuitive to navigate, accommodating future growth while keeping components modular and well-separated.
+- **Feature-First Organization**: The code is organized primarily by business domain features rather than technical concerns, making the architecture "scream" about what the application does rather than how it's built.
+
+- **Entity and Feature Structure**: 
+  - Each `{entity}` folder represents a business domain area (organizations, projects, work-items, etc.)
+  - Within each entity, `{feature}` folders represent specific use cases (list, create, update, etc.)
+  - Features follow a consistent pattern with implementation, tests, schema validation, and exports
+
+- **Layers**:
+  - **Features**: Business domain functionality organized by entity
+  - **Shared**: Cross-cutting concerns like API clients, authentication, configuration, and error handling
+  
+- **Benefits of this Architecture**:
+  - Clear separation of business domains makes the codebase easy to navigate
+  - Features can be developed, tested, and maintained independently
+  - Business logic is isolated from implementation details
+  - New developers can quickly understand what the system does by looking at the feature structure
+  - Testing is simplified with well-defined feature boundaries
+
+### Examples of Actual Feature Implementations
+
+The project currently implements features for several entities including:
+
+- **organizations**: Listing and managing Azure DevOps organizations
+- **projects**: Getting project information and details
+- **repositories**: Managing code repositories
+- **work-items**: Creating, updating, and linking work items
+- **search**: Searching across code, work items, and wikis
+- **users**: User management and information
+
+Each feature follows the structure outlined above, creating a consistent, maintainable, and scalable architecture that clearly communicates the application's purpose without being tied to any specific framework or implementation details.

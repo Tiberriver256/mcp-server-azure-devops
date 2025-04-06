@@ -445,7 +445,7 @@ function validateConfig(config: AzureDevOpsConfig): void {
 
   // Set default authentication method if not specified
   if (!config.authMethod) {
-    config.authMethod = AuthenticationMethod.PersonalAccessToken;
+    config.authMethod = AuthenticationMethod.AzureIdentity;
   }
 
   // Validate PAT if using PAT authentication

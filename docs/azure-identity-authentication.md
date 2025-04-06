@@ -1,270 +1,187 @@
 # Azure Identity Authentication for Azure DevOps MCP Server
 
-This document outlines the implementation approach for adding Azure Identity authentication support to the Azure DevOps MCP Server.
+This guide explains how to use Azure Identity authentication with the Azure DevOps MCP Server.
 
 ## Overview
 
-The Azure DevOps MCP Server currently supports Personal Access Token (PAT) authentication. This enhancement will add support for Azure Identity authentication methods, specifically DefaultAzureCredential and AzureCliCredential, to provide more flexible authentication options for different environments.
+Azure Identity authentication lets you use your existing Azure credentials to authenticate with Azure DevOps, instead of creating and managing Personal Access Tokens (PATs). This approach offers several benefits:
 
-## Azure Identity SDK
+- **Unified authentication**: Use the same credentials for Azure and Azure DevOps
+- **Enhanced security**: Support for managed identities and client certificates
+- **Flexible credential types**: Multiple options for different environments
+- **Automatic token management**: Handles token acquisition and renewal
 
-The `@azure/identity` package provides various credential types for authenticating with Azure services. For our implementation, we will focus on the following credential types:
+## Credential Types
+
+The Azure DevOps MCP Server supports multiple credential types through the Azure Identity SDK:
 
 ### DefaultAzureCredential
 
-`DefaultAzureCredential` provides a simplified authentication experience by trying multiple credential types in sequence:
+This credential type attempts multiple authentication methods in sequence until one succeeds:
 
 1. Environment variables (EnvironmentCredential)
 2. Managed Identity (ManagedIdentityCredential)
 3. Azure CLI (AzureCliCredential)
 4. Visual Studio Code (VisualStudioCodeCredential)
 5. Azure PowerShell (AzurePowerShellCredential)
-6. Interactive Browser (InteractiveBrowserCredential) - optional, disabled by default
 
-This makes it ideal for applications that need to work in different environments (local development, Azure-hosted) without code changes.
+It's a great option for applications that need to work across different environments without code changes.
 
 ### AzureCliCredential
 
-`AzureCliCredential` authenticates using the Azure CLI's logged-in account. It requires the Azure CLI to be installed and the user to be logged in (`az login`). This is particularly useful for local development scenarios where developers are already using the Azure CLI.
+This credential type uses your Azure CLI login. It's perfect for local development when you're already using the Azure CLI.
 
-## Implementation Approach
+## Configuration
 
-### 1. Authentication Abstraction Layer
+### Environment Variables
 
-Create an abstraction layer for authentication that supports both PAT and Azure Identity methods:
+To use Azure Identity authentication, set the following environment variables:
 
-```typescript
-// src/api/auth.ts
-export interface AuthProvider {
-  getConnection(): Promise<WebApi>;
-  isAuthenticated(): Promise<boolean>;
-}
-
-export class PatAuthProvider implements AuthProvider {
-  // Existing PAT authentication implementation
-}
-
-export class AzureIdentityAuthProvider implements AuthProvider {
-  // New Azure Identity authentication implementation
-}
-```
-
-### 2. Authentication Factory
-
-Implement a factory pattern to create the appropriate authentication provider based on configuration:
-
-```typescript
-// src/api/auth.ts
-export enum AuthMethod {
-  PAT = 'pat',
-  AZURE_IDENTITY = 'azure-identity',
-}
-
-export function createAuthProvider(config: AzureDevOpsConfig): AuthProvider {
-  switch (config.authMethod) {
-    case AuthMethod.AZURE_IDENTITY:
-      return new AzureIdentityAuthProvider(config);
-    case AuthMethod.PAT:
-    default:
-      return new PatAuthProvider(config);
-  }
-}
-```
-
-### 3. Azure Identity Authentication Provider
-
-Implement the Azure Identity authentication provider:
-
-```typescript
-// src/api/auth.ts
-export class AzureIdentityAuthProvider implements AuthProvider {
-  private config: AzureDevOpsConfig;
-  private connectionPromise: Promise<WebApi> | null = null;
-
-  constructor(config: AzureDevOpsConfig) {
-    this.config = config;
-  }
-
-  async getConnection(): Promise<WebApi> {
-    if (!this.connectionPromise) {
-      this.connectionPromise = this.createConnection();
-    }
-    return this.connectionPromise;
-  }
-
-  private async createConnection(): Promise<WebApi> {
-    try {
-      // Azure DevOps resource ID for token scope
-      const azureDevOpsResourceId = '499b84ac-1321-427f-aa17-267ca6975798';
-
-      // Create credential based on configuration
-      const credential = this.createCredential();
-
-      // Get token for Azure DevOps
-      const token = await credential.getToken(
-        `${azureDevOpsResourceId}/.default`,
-      );
-
-      if (!token) {
-        throw new AzureDevOpsAuthenticationError(
-          'Failed to acquire token from Azure Identity',
-        );
-      }
-
-      // Create auth handler with token
-      const authHandler = new BearerCredentialHandler(token.token);
-
-      // Create WebApi client
-      const connection = new WebApi(this.config.organizationUrl, authHandler);
-
-      // Test the connection
-      await connection.getLocationsApi();
-
-      return connection;
-    } catch (error) {
-      throw new AzureDevOpsAuthenticationError(
-        `Failed to authenticate with Azure Identity: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
-
-  private createCredential(): TokenCredential {
-    if (this.config.azureIdentityOptions?.useAzureCliCredential) {
-      return new AzureCliCredential();
-    }
-
-    // Default to DefaultAzureCredential
-    return new DefaultAzureCredential();
-  }
-
-  async isAuthenticated(): Promise<boolean> {
-    try {
-      await this.getConnection();
-      return true;
-    } catch {
-      return false;
-    }
-  }
-}
-```
-
-### 4. Configuration Updates
-
-Update the configuration interface to support specifying the authentication method:
-
-```typescript
-// src/types/config.ts
-export interface AzureDevOpsConfig {
-  // Existing properties
-  organizationUrl: string;
-  personalAccessToken?: string;
-  defaultProject?: string;
-  apiVersion?: string;
-
-  // New properties
-  authMethod?: AuthMethod;
-  azureIdentityOptions?: {
-    useAzureCliCredential?: boolean;
-    // Other Azure Identity options as needed
-  };
-}
-```
-
-### 5. Environment Variable Updates
-
-Update the environment variable handling in `index.ts`:
-
-```typescript
-// src/index.ts
-const config: AzureDevOpsConfig = {
-  organizationUrl: process.env.AZURE_DEVOPS_ORG_URL || '',
-  personalAccessToken: process.env.AZURE_DEVOPS_PAT,
-  defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT,
-  apiVersion: process.env.AZURE_DEVOPS_API_VERSION,
-  authMethod:
-    (process.env.AZURE_DEVOPS_AUTH_METHOD as AuthMethod) || AuthMethod.PAT,
-  azureIdentityOptions: {
-    useAzureCliCredential:
-      process.env.AZURE_DEVOPS_USE_CLI_CREDENTIAL === 'true',
-  },
-};
-```
-
-### 6. Client Updates
-
-Update the `AzureDevOpsClient` class to use the authentication provider:
-
-```typescript
-// src/api/client.ts
-export class AzureDevOpsClient {
-  private authProvider: AuthProvider;
-
-  constructor(config: AzureDevOpsConfig) {
-    this.authProvider = createAuthProvider(config);
-  }
-
-  private async getClient(): Promise<WebApi> {
-    return this.authProvider.getConnection();
-  }
-
-  // Rest of the class remains the same
-}
-```
-
-## Error Handling
-
-Implement proper error handling for Azure Identity authentication failures:
-
-```typescript
-// src/common/errors.ts
-export class AzureIdentityAuthenticationError extends AzureDevOpsAuthenticationError {
-  constructor(message: string) {
-    super(`Azure Identity Authentication Error: ${message}`);
-  }
-}
-```
-
-## Configuration Examples
-
-### PAT Authentication
-
-```env
-AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-org
-AZURE_DEVOPS_PAT=your-pat
-AZURE_DEVOPS_AUTH_METHOD=pat
-```
-
-### DefaultAzureCredential Authentication
-
-```env
-AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-org
+```bash
+# Required
+AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization
 AZURE_DEVOPS_AUTH_METHOD=azure-identity
-# Optional environment variables for specific credential types
+
+# Optional
+AZURE_DEVOPS_DEFAULT_PROJECT=your-project-name
+```
+
+For service principal authentication, add these environment variables:
+
+```bash
 AZURE_TENANT_ID=your-tenant-id
 AZURE_CLIENT_ID=your-client-id
 AZURE_CLIENT_SECRET=your-client-secret
 ```
 
-### AzureCliCredential Authentication
+### Use with Claude Desktop/Cursor AI
 
-```env
-AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-org
-AZURE_DEVOPS_AUTH_METHOD=azure-identity
-AZURE_DEVOPS_USE_CLI_CREDENTIAL=true
+Add the following to your configuration file:
+
+```json
+{
+  "mcpServers": {
+    "azureDevOps": {
+      "command": "npx",
+      "args": ["-y", "@tiberriver256/mcp-server-azure-devops"],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "https://dev.azure.com/your-organization",
+        "AZURE_DEVOPS_AUTH_METHOD": "azure-identity",
+        "AZURE_DEVOPS_DEFAULT_PROJECT": "your-project-name"
+      }
+    }
+  }
+}
 ```
 
-## Testing
+## Authentication Methods
 
-Implement tests for the new authentication methods:
+### Method 1: Using Azure CLI
 
-1. Unit tests for the authentication providers
-2. Integration tests for Azure Identity authentication
-3. Tests for fallback behavior
+1. Install the Azure CLI from [here](https://docs.microsoft.com/cli/azure/install-azure-cli)
+2. Log in to Azure:
+   ```bash
+   az login
+   ```
+3. Set up your environment variables:
+   ```bash
+   AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization
+   AZURE_DEVOPS_AUTH_METHOD=azure-identity
+   ```
 
-## Documentation Updates
+### Method 2: Using Service Principal
 
-Update the README.md and other documentation to include information about the new authentication methods.
+1. Create a service principal in Azure AD:
+   ```bash
+   az ad sp create-for-rbac --name "MyAzureDevOpsApp"
+   ```
+2. Grant the service principal access to your Azure DevOps organization
+3. Set up your environment variables:
+   ```bash
+   AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization
+   AZURE_DEVOPS_AUTH_METHOD=azure-identity
+   AZURE_TENANT_ID=your-tenant-id
+   AZURE_CLIENT_ID=your-client-id
+   AZURE_CLIENT_SECRET=your-client-secret
+   ```
 
-## Conclusion
+### Method 3: Using Managed Identity (for Azure-hosted applications)
 
-This implementation approach provides a flexible and extensible way to add Azure Identity authentication support to the Azure DevOps MCP Server. It allows users to choose the authentication method that best suits their environment and needs, while maintaining backward compatibility with the existing PAT authentication method.
+1. Enable managed identity for your Azure resource (VM, App Service, etc.)
+2. Grant the managed identity access to your Azure DevOps organization
+3. Set up your environment variables:
+   ```bash
+   AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization
+   AZURE_DEVOPS_AUTH_METHOD=azure-identity
+   ```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Failed to acquire token
+
+```
+Error: Failed to authenticate with Azure Identity: CredentialUnavailableError: DefaultAzureCredential failed to retrieve a token
+```
+
+**Possible solutions:**
+- Ensure you're logged in with `az login`
+- Check if your managed identity is correctly configured
+- Verify that service principal credentials are correct
+
+#### Permission issues
+
+```
+Error: Failed to authenticate with Azure Identity: AuthorizationFailed: The client does not have authorization to perform action
+```
+
+**Possible solutions:**
+- Ensure your identity has the necessary permissions in Azure DevOps
+- Check if you need to add your identity to specific Azure DevOps project(s)
+
+#### Network issues
+
+```
+Error: Failed to authenticate with Azure Identity: ClientAuthError: Interaction required
+```
+
+**Possible solutions:**
+- Check your network connectivity
+- Verify that your firewall allows connections to Azure services
+
+## Best Practices
+
+1. **Choose the right credential type for your environment**:
+   - For local development: Azure CLI credential
+   - For CI/CD pipelines: Service principal
+   - For Azure-hosted applications: Managed identity
+
+2. **Follow the principle of least privilege**:
+   - Only grant the permissions needed for your use case
+   - Regularly audit and review permissions
+
+3. **Rotate credentials regularly**:
+   - For service principals, rotate client secrets periodically
+   - Use certificate-based authentication when possible for enhanced security
+
+## Examples
+
+### Basic configuration with Azure CLI
+
+```bash
+AZURE_DEVOPS_ORG_URL=https://dev.azure.com/mycompany
+AZURE_DEVOPS_AUTH_METHOD=azure-identity
+AZURE_DEVOPS_DEFAULT_PROJECT=MyProject
+```
+
+### Service principal authentication
+
+```bash
+AZURE_DEVOPS_ORG_URL=https://dev.azure.com/mycompany
+AZURE_DEVOPS_AUTH_METHOD=azure-identity
+AZURE_DEVOPS_DEFAULT_PROJECT=MyProject
+AZURE_TENANT_ID=00000000-0000-0000-0000-000000000000
+AZURE_CLIENT_ID=11111111-1111-1111-1111-111111111111
+AZURE_CLIENT_SECRET=your-client-secret
+```
