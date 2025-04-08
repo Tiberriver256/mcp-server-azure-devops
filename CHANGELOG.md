@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.21](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.20...mcp-server-azure-devops-v0.1.21) (2025-04-08)
+
+
+### Features
+
+* add get-file-content feature to access repository content ([a282f75](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/a282f75383ffc362e5b2d1ecbccebb0047e21571))
+* restore get_file_content tool and update documentation ([f71013a](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/f71013a962fb5fbe5d121eaf7f1901e58cf70482))
+
 ## [0.1.20](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.19...mcp-server-azure-devops-v0.1.20) (2025-04-06)
 
 
