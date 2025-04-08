@@ -49,6 +49,7 @@ import {
   getRepositoryDetails,
   listRepositories,
   getFileContent,
+  GetFileContentSchema,
 } from './features/repositories';
 
 import {
@@ -176,7 +177,11 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           inputSchema: zodToJsonSchema(ListRepositoriesSchema),
         },
         // File content tool
-        // Removed: get_file_content tool as it duplicates resource URI functionality
+        {
+          name: 'get_file_content',
+          description: 'Get content of a file or directory from a repository',
+          inputSchema: zodToJsonSchema(GetFileContentSchema),
+        },
         // Search tools
         {
           name: 'search_code',
@@ -505,7 +510,26 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
-        // Removed: get_file_content handler as it duplicates resource URI functionality
+        case 'get_file_content': {
+          const args = GetFileContentSchema.parse(request.params.arguments);
+          const result = await getFileContent(
+            connection,
+            args.projectId,
+            args.repositoryId,
+            args.path,
+            args.versionType && args.version
+              ? { versionType: args.versionType, version: args.version }
+              : undefined,
+          );
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+          };
+        }
 
         // Search tools
         case 'search_code': {

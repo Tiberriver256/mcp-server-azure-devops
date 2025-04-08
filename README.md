@@ -158,6 +158,7 @@ The Azure DevOps MCP server provides a variety of tools for interacting with Azu
 - `list_repositories`: List all repositories in a project
 - `get_repository`: Get details of a specific repository
 - `get_repository_details`: Get detailed information about a repository including statistics and refs
+- `get_file_content`: Get content of a file or directory from a repository
 
 ### Work Item Tools
 

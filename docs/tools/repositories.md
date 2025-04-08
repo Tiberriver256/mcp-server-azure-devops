@@ -279,3 +279,138 @@ This tool uses the Azure DevOps Node API's Git API to retrieve repositories:
 - `get_repository`: Get details of a specific repository
 - `get_repository_details`: Get detailed information about a repository including statistics and refs
 - `list_projects`: List all projects in the organization (to find project IDs)
+
+## get_file_content
+
+Retrieves the content of a file or directory from a Git repository.
+
+### Description
+
+The `get_file_content` tool allows you to access the contents of files and directories within a Git repository. This is useful for examining code, documentation, or other files stored in repositories without having to clone the entire repository. It supports fetching file content from the default branch or from specific branches, tags, or commits.
+
+### Parameters
+
+```json
+{
+  "projectId": "MyProject", // Required: The ID or name of the project
+  "repositoryId": "MyRepo", // Required: The ID or name of the repository
+  "path": "/src/index.ts", // Required: The path to the file or directory
+  "versionType": "branch", // Optional: The type of version (branch, tag, or commit)
+  "version": "main" // Optional: The name of the branch/tag, or commit ID
+}
+```
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `projectId` | string | Yes | The ID or name of the project containing the repository |
+| `repositoryId` | string | Yes | The ID or name of the repository |
+| `path` | string | Yes | The path to the file or directory (starting with "/") |
+| `versionType` | enum | No | The type of version: "branch", "tag", or "commit" (GitVersionType) |
+| `version` | string | No | The name of the branch/tag, or the commit ID |
+
+### Response
+
+The tool returns a `FileContentResponse` object containing:
+
+- `content`: The content of the file as a string, or a JSON string of items for directories
+- `isDirectory`: Boolean indicating whether the path refers to a directory
+
+Example response for a file:
+
+```json
+{
+  "content": "import { Component } from '@angular/core';\n\n@Component({\n  selector: 'app-root',\n  templateUrl: './app.component.html',\n  styleUrls: ['./app.component.css']\n})\nexport class AppComponent {\n  title = 'My App';\n}\n",
+  "isDirectory": false
+}
+```
+
+Example response for a directory:
+
+```json
+{
+  "content": "[{\"objectId\":\"c7be24d3\",\"gitObjectType\":\"blob\",\"commitId\":\"d5b8e757\",\"path\":\"/src/app/app.component.ts\",\"contentMetadata\":{\"fileName\":\"app.component.ts\"}},{\"objectId\":\"a8c2e5f1\",\"gitObjectType\":\"blob\",\"commitId\":\"d5b8e757\",\"path\":\"/src/app/app.module.ts\",\"contentMetadata\":{\"fileName\":\"app.module.ts\"}}]",
+  "isDirectory": true
+}
+```
+
+### Error Handling
+
+The tool may throw the following errors:
+
+- General errors: If the API call fails or other unexpected errors occur
+- Authentication errors: If the authentication credentials are invalid or expired
+- Permission errors: If the authenticated user doesn't have permission to access the repository
+- ResourceNotFound errors: If the specified project, repository, or path doesn't exist
+
+Error messages will be formatted as text and provide details about what went wrong.
+
+### Example Usage
+
+```typescript
+// Basic example - get file from default branch
+const fileContent = await mcpClient.callTool('get_file_content', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  path: '/src/index.ts'
+});
+console.log(fileContent.content);
+
+// Get directory content
+const directoryContent = await mcpClient.callTool('get_file_content', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  path: '/src'
+});
+if (directoryContent.isDirectory) {
+  const items = JSON.parse(directoryContent.content);
+  console.log(`Directory contains ${items.length} items`);
+}
+
+// Get file from specific branch
+const branchFileContent = await mcpClient.callTool('get_file_content', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  path: '/src/index.ts',
+  versionType: 'branch',
+  version: 'feature/new-ui'
+});
+console.log(branchFileContent.content);
+
+// Get file from specific commit
+const commitFileContent = await mcpClient.callTool('get_file_content', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  path: '/src/index.ts',
+  versionType: 'commit',
+  version: 'a1b2c3d4e5f6g7h8i9j0'
+});
+console.log(commitFileContent.content);
+```
+
+### Implementation Details
+
+This tool uses the Azure DevOps Node API's Git API to retrieve file or directory content:
+
+1. It gets a connection to the Azure DevOps WebApi client
+2. It calls the `getGitApi()` method to get a handle to the Git API
+3. It determines if the path is a file or directory by attempting to fetch items
+4. For directories, it returns the list of items as a JSON string
+5. For files, it fetches the file content and returns it as a string
+6. The results are wrapped in a `FileContentResponse` object with the appropriate `isDirectory` flag
+
+### Resource URI Access
+
+In addition to using this tool, file content can also be accessed via resource URIs with the following patterns:
+
+- Default branch: `ado://{organization}/{project}/{repo}/contents/{path}`
+- Specific branch: `ado://{organization}/{project}/{repo}/branches/{branch}/contents/{path}`
+- Specific commit: `ado://{organization}/{project}/{repo}/commits/{commit}/contents/{path}`
+- Specific tag: `ado://{organization}/{project}/{repo}/tags/{tag}/contents/{path}`
+- Pull request: `ado://{organization}/{project}/{repo}/pullrequests/{prId}/contents/{path}`
+
+### Related Tools
+
+- `list_repositories`: List all repositories in a project
+- `get_repository`: Get details of a specific repository
+- `get_repository_details`: Get detailed information about a repository including statistics and refs
+- `search_code`: Search for code across repositories in a project
