@@ -4,5 +4,6 @@ export * from './types';
 
 // Re-export features
 export * from './get-repository';
-export * from './list-repositories';
 export * from './get-repository-details';
+export * from './list-repositories';
+export * from './get-file-content';
