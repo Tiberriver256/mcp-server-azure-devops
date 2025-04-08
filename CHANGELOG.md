@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.22](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.21...mcp-server-azure-devops-v0.1.22) (2025-04-08)
+
+
+### Bug Fixes
+
+* allow parameterless tools to be called without arguments ([9ce88c3](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/9ce88c3afd4454b8a65392a98e7e2ffb45192584))
+
 ## [0.1.21](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.20...mcp-server-azure-devops-v0.1.21) (2025-04-08)
 
 
