@@ -75,6 +75,11 @@ function safeLog(message: string) {
 }
 
 /**
+ * Type definition for the Azure DevOps MCP Server
+ */
+export type AzureDevOpsServer = Server;
+
+/**
  * Create an Azure DevOps MCP Server
  *
  * @param config The Azure DevOps configuration
@@ -357,7 +362,14 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
   // Register the CallTool request handler
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     try {
-      if (!request.params.arguments) {
+      // Get a list of tools that don't require arguments
+      const parameterlessTools = ['get_me', 'list_organizations'];
+
+      // Only validate arguments for tools that require parameters
+      if (
+        !request.params.arguments &&
+        !parameterlessTools.includes(request.params.name)
+      ) {
         throw new AzureDevOpsValidationError('Arguments are required');
       }
 

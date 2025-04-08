@@ -167,4 +167,45 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       }
     });
   });
+
+  describe('Parameterless Tools', () => {
+    test('should call list_organizations without arguments', async () => {
+      // Act - call the tool without providing arguments
+      const result = await client.callTool({
+        name: 'list_organizations',
+        // No arguments provided
+      });
+
+      // Assert
+      expect(result).toBeDefined();
+      const content = result.content as Array<{ type: string; text: string }>;
+      expect(content).toBeDefined();
+      expect(content.length).toBeGreaterThan(0);
+
+      // Verify we got a valid JSON response
+      const resultText = content[0].text;
+      const organizations = JSON.parse(resultText);
+      expect(Array.isArray(organizations)).toBe(true);
+    });
+
+    test('should call get_me without arguments', async () => {
+      // Act - call the tool without providing arguments
+      const result = await client.callTool({
+        name: 'get_me',
+        // No arguments provided
+      });
+
+      // Assert
+      expect(result).toBeDefined();
+      const content = result.content as Array<{ type: string; text: string }>;
+      expect(content).toBeDefined();
+      expect(content.length).toBeGreaterThan(0);
+
+      // Verify we got a valid JSON response with user info
+      const resultText = content[0].text;
+      const userInfo = JSON.parse(resultText);
+      expect(userInfo).toHaveProperty('id');
+      expect(userInfo).toHaveProperty('displayName');
+    });
+  });
 });
