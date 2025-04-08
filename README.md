@@ -9,6 +9,7 @@ This server implements the [Model Context Protocol (MCP)](https://modelcontextpr
 - Access and manage projects, work items, repositories, and more
 - Create and update work items, branches, and pull requests
 - Execute common DevOps workflows through natural language
+- Access repository content via standardized resource URIs
 - Safely authenticate and interact with Azure DevOps resources
 
 ## Server Structure

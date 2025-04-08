@@ -9,6 +9,7 @@ This directory contains documentation for all tools available in the Azure DevOp
   - [Projects](./projects.md) - Tools for working with projects
   - [Repositories](./repositories.md) - Tools for working with Git repositories
   - [Work Items](./work-items.md) - Tools for working with work items
+- [Resource URIs](./resources.md) - Documentation for accessing repository content via resource URIs
 
 ## Tools by Category
 
@@ -25,6 +26,8 @@ This directory contains documentation for all tools available in the Azure DevOp
 
 - [`list_repositories`](./repositories.md#list_repositories) - List all repositories in a project
 - [`get_repository`](./repositories.md#get_repository) - Get details of a specific repository
+- [`get_repository_details`](./repositories.md#get_repository_details) - Get detailed information about a repository
+- [`get_file_content`](./repositories.md#get_file_content) - Get content of a file or directory from a repository
 
 ### Work Item Tools
 
