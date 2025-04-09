@@ -414,3 +414,110 @@ In addition to using this tool, file content can also be accessed via resource U
 - `get_repository`: Get details of a specific repository
 - `get_repository_details`: Get detailed information about a repository including statistics and refs
 - `search_code`: Search for code across repositories in a project
+
+## get_all_repositories_tree
+
+Displays a hierarchical tree view of files and directories across multiple Azure DevOps repositories within a project, based on their default branches.
+
+### Description
+
+The `get_all_repositories_tree` tool provides a broad overview of file and directory structure across multiple repositories in a project. It uses a tree-like structure similar to the Unix `tree` command, with each repository's tree displayed sequentially.
+
+Key features:
+- Views multiple repositories at once
+- Filter repositories by name pattern
+- Filter files by pattern
+- Control depth to balance performance and detail
+- Shows directories and files in a hierarchical view
+- Provides statistics (count of files and directories)
+- Works with the default branch of each repository
+- Handles errors gracefully
+
+### Parameters
+
+```json
+{
+  "organizationId": "MyOrg",
+  "projectId": "MyProject",
+  "repositoryPattern": "API*",
+  "depth": 0, 
+  "pattern": "*.yaml"
+}
+```
+
+- `organizationId` (string, required): The ID or name of the Azure DevOps organization.
+- `projectId` (string, required): The ID or name of the project containing the repositories.
+- `repositoryPattern` (string, optional): Pattern to filter repositories by name (PowerShell wildcard).
+- `depth` (number, optional, default: 0): Maximum depth to traverse in each repository's file hierarchy. Use 0 for unlimited depth (more efficient server-side recursion), or a specific number (1-10) for limited depth.
+- `pattern` (string, optional): Pattern to filter files by name (PowerShell wildcard). Note: Directories are always shown regardless of this filter.
+
+### Response
+
+The response is a formatted ASCII tree showing the file and directory structure of each repository:
+
+```
+Repo-API-1/
+  |-- src/
+  |   |-- config.yaml
+  |   `-- utils/
+  `-- deploy.yaml
+1 directory, 2 files
+
+Repo-API-Gateway/
+  |-- charts/
+  |   `-- values.yaml
+  `-- README.md
+1 directory, 2 files
+
+Repo-Data-Service/
+  (Repository is empty or default branch not found)
+0 directories, 0 files
+```
+
+### Examples
+
+#### Basic Example - View All Repositories with Maximum Depth
+
+```javascript
+const result = await mcpClient.callTool('get_all_repositories_tree', {
+  organizationId: 'MyOrg',
+  projectId: 'MyProject'
+});
+console.log(result);
+```
+
+#### Filter Repositories by Name Pattern
+
+```javascript
+const result = await mcpClient.callTool('get_all_repositories_tree', {
+  organizationId: 'MyOrg',
+  projectId: 'MyProject',
+  repositoryPattern: 'API*'
+});
+console.log(result);
+```
+
+#### Limited Depth and File Pattern Filter
+
+```javascript
+const result = await mcpClient.callTool('get_all_repositories_tree', {
+  organizationId: 'MyOrg',
+  projectId: 'MyProject',
+  depth: 1,  // Only one level deep
+  pattern: '*.yaml'
+});
+console.log(result);
+```
+
+### Performance Considerations
+
+- For maximum depth (depth=0), the tool uses server-side recursion (VersionControlRecursionType.Full) which is more efficient for retrieving deep directory structures.
+- For limited depth (depth=1 to 10), the tool uses client-side recursion which is better for controlled exploration.
+- When viewing very large repositories, consider using a limited depth or file pattern to reduce response time.
+
+### Related Tools
+
+- `list_repositories`: Lists all repositories in a project (summary only)
+- `get_repository_details`: Gets detailed info about a single repository
+- `get_repository_tree`: Explores structure within a single repository (more detailed)
+- `get_file_content`: Gets content of a specific file

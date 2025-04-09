@@ -7,3 +7,4 @@ export * from './get-repository';
 export * from './get-repository-details';
 export * from './list-repositories';
 export * from './get-file-content';
+export * from './get-all-repositories-tree';

@@ -1,0 +1,43 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`getAllRepositoriesTree should format complex repository tree structures correctly 1`] = `
+"complex-repo/
+  |-- docs/
+  |   |-- API.md
+  |   \`-- CONTRIBUTING.md
+  |-- src/
+  |   |-- assets/
+  |   |-- components/
+  |   |   |-- Button/
+  |   |   |   |-- Button.styles.ts
+  |   |   |   |-- Button.test.tsx
+  |   |   |   |-- Button.tsx
+  |   |   |   \`-- index.ts
+  |   |   \`-- Card/
+  |   |       \`-- Card.tsx
+  |   |-- utils/
+  |   |   |-- constants.ts
+  |   |   \`-- helpers.ts
+  |   |-- file_with_underscores.js
+  |   |-- file-with-dashes.js
+  |   \`-- index.ts
+  |-- tests/
+  |   |-- integration/
+  |   |-- unit/
+  |   |   \`-- example.test.js
+  |   \`-- setup.js
+  |-- .gitignore
+  |-- package.json
+  \`-- README.md
+10 directories, 18 files
+"
+`;
+
+exports[`getAllRepositoriesTree should format repository tree correctly 1`] = `
+"test-repo/
+  |-- src/
+  |   \`-- index.ts
+  \`-- README.md
+1 directories, 2 files
+"
+`;

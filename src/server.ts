@@ -50,6 +50,9 @@ import {
   listRepositories,
   getFileContent,
   GetFileContentSchema,
+  GetAllRepositoriesTreeSchema,
+  getAllRepositoriesTree,
+  formatRepositoryTree,
 } from './features/repositories';
 
 import {
@@ -186,6 +189,13 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           name: 'get_file_content',
           description: 'Get content of a file or directory from a repository',
           inputSchema: zodToJsonSchema(GetFileContentSchema),
+        },
+        // Multi-repository tree tool
+        {
+          name: 'get_all_repositories_tree',
+          description:
+            'Displays a hierarchical tree view of files and directories across multiple Azure DevOps repositories within a project, based on their default branches',
+          inputSchema: zodToJsonSchema(GetAllRepositoriesTreeSchema),
         },
         // Search tools
         {
@@ -524,13 +534,26 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         }
         case 'get_file_content': {
           const args = GetFileContentSchema.parse(request.params.arguments);
+
+          // Map the string version type to the GitVersionType enum
+          let versionTypeEnum: GitVersionType | undefined;
+          if (args.versionType && args.version) {
+            if (args.versionType === 'branch') {
+              versionTypeEnum = GitVersionType.Branch;
+            } else if (args.versionType === 'commit') {
+              versionTypeEnum = GitVersionType.Commit;
+            } else if (args.versionType === 'tag') {
+              versionTypeEnum = GitVersionType.Tag;
+            }
+          }
+
           const result = await getFileContent(
             connection,
             args.projectId,
             args.repositoryId,
             args.path,
-            args.versionType && args.version
-              ? { versionType: args.versionType, version: args.version }
+            versionTypeEnum !== undefined && args.version
+              ? { versionType: versionTypeEnum, version: args.version }
               : undefined,
           );
           return {
@@ -540,6 +563,28 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
                 text: JSON.stringify(result, null, 2),
               },
             ],
+          };
+        }
+        case 'get_all_repositories_tree': {
+          const args = GetAllRepositoriesTreeSchema.parse(
+            request.params.arguments,
+          );
+          const result = await getAllRepositoriesTree(connection, args);
+
+          // Format the output as plain text tree representation
+          let formattedOutput = '';
+          for (const repo of result.repositories) {
+            formattedOutput += formatRepositoryTree(
+              repo.name,
+              repo.tree,
+              repo.stats,
+              repo.error,
+            );
+            formattedOutput += '\n'; // Add blank line between repositories
+          }
+
+          return {
+            content: [{ type: 'text', text: formattedOutput }],
           };
         }
 
