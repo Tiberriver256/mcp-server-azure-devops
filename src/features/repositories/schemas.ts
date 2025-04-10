@@ -115,7 +115,7 @@ export const GetAllRepositoriesTreeSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Repository name pattern (PowerShell wildcard) to filter which repositories are included',
+      'Repository name pattern (wildcard characters allowed) to filter which repositories are included',
     ),
   depth: z
     .number()
@@ -131,6 +131,6 @@ export const GetAllRepositoriesTreeSchema = z.object({
     .string()
     .optional()
     .describe(
-      'File pattern (PowerShell wildcard) to filter files by within each repository',
+      'File pattern (wildcard characters allowed) to filter files by within each repository',
     ),
 });
