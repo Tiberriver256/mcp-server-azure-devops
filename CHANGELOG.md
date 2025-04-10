@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.24](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.23...mcp-server-azure-devops-v0.1.24) (2025-04-10)
+
+
+### Bug Fixes
+
+* add missing minimatch module ([ee1ffa3](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/ee1ffa34afb0da9cdac31da140c17dbd9c589c2b))
+
 ## [0.1.23](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.22...mcp-server-azure-devops-v0.1.23) (2025-04-10)
 
 
