@@ -1,10 +1,18 @@
 import { z } from 'zod';
+import { defaultProject, defaultOrg } from '../../utils/environment';
 
 /**
  * Schema for getting a repository
  */
 export const GetRepositorySchema = z.object({
-  projectId: z.string().describe('The ID or name of the project'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
   repositoryId: z.string().describe('The ID or name of the repository'),
 });
 
@@ -12,7 +20,14 @@ export const GetRepositorySchema = z.object({
  * Schema for getting detailed repository information
  */
 export const GetRepositoryDetailsSchema = z.object({
-  projectId: z.string().describe('The ID or name of the project'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
   repositoryId: z.string().describe('The ID or name of the repository'),
   includeStatistics: z
     .boolean()
@@ -40,7 +55,14 @@ export const GetRepositoryDetailsSchema = z.object({
  * Schema for listing repositories
  */
 export const ListRepositoriesSchema = z.object({
-  projectId: z.string().describe('The ID or name of the project'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
   includeLinks: z
     .boolean()
     .optional()
@@ -51,7 +73,14 @@ export const ListRepositoriesSchema = z.object({
  * Schema for getting file content
  */
 export const GetFileContentSchema = z.object({
-  projectId: z.string().describe('The ID or name of the project'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
   repositoryId: z.string().describe('The ID or name of the repository'),
   path: z
     .string()
@@ -74,8 +103,14 @@ export const GetFileContentSchema = z.object({
 export const GetAllRepositoriesTreeSchema = z.object({
   organizationId: z
     .string()
-    .describe('The ID or name of the Azure DevOps organization'),
-  projectId: z.string().describe('The ID or name of the project'),
+    .optional()
+    .describe(
+      `The ID or name of the Azure DevOps organization (Default: ${defaultOrg})`,
+    ),
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
   repositoryPattern: z
     .string()
     .optional()

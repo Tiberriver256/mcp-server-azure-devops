@@ -174,6 +174,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       const result = await client.callTool({
         name: 'list_organizations',
         // No arguments provided
+        arguments: {},
       });
 
       // Assert
@@ -193,6 +194,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       const result = await client.callTool({
         name: 'get_me',
         // No arguments provided
+        arguments: {},
       });
 
       // Assert
@@ -206,6 +208,69 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       const userInfo = JSON.parse(resultText);
       expect(userInfo).toHaveProperty('id');
       expect(userInfo).toHaveProperty('displayName');
+    });
+  });
+
+  describe('Tools with Optional Parameters', () => {
+    test('should call list_projects without arguments', async () => {
+      // Act - call the tool without providing arguments
+      const result = await client.callTool({
+        name: 'list_projects',
+        // No arguments provided
+        arguments: {},
+      });
+
+      // Assert
+      expect(result).toBeDefined();
+      const content = result.content as Array<{ type: string; text: string }>;
+      expect(content).toBeDefined();
+      expect(content.length).toBeGreaterThan(0);
+
+      // Verify we got a valid JSON response
+      const resultText = content[0].text;
+      const projects = JSON.parse(resultText);
+      expect(Array.isArray(projects)).toBe(true);
+    });
+
+    test('should call get_project without arguments', async () => {
+      // Act - call the tool without providing arguments
+      const result = await client.callTool({
+        name: 'get_project',
+        // No arguments provided
+        arguments: {},
+      });
+
+      // Assert
+      expect(result).toBeDefined();
+      const content = result.content as Array<{ type: string; text: string }>;
+      expect(content).toBeDefined();
+      expect(content.length).toBeGreaterThan(0);
+
+      // Verify we got a valid JSON response with project info
+      const resultText = content[0].text;
+      const project = JSON.parse(resultText);
+      expect(project).toHaveProperty('id');
+      expect(project).toHaveProperty('name');
+    });
+
+    test('should call list_repositories without arguments', async () => {
+      // Act - call the tool without providing arguments
+      const result = await client.callTool({
+        name: 'list_repositories',
+        // No arguments provided
+        arguments: {},
+      });
+
+      // Assert
+      expect(result).toBeDefined();
+      const content = result.content as Array<{ type: string; text: string }>;
+      expect(content).toBeDefined();
+      expect(content.length).toBeGreaterThan(0);
+
+      // Verify we got a valid JSON response
+      const resultText = content[0].text;
+      const repositories = JSON.parse(resultText);
+      expect(Array.isArray(repositories)).toBe(true);
     });
   });
 });

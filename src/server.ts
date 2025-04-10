@@ -17,6 +17,7 @@ import {
   isAzureDevOpsError,
 } from './shared/errors';
 import { AuthenticationMethod, AzureDevOpsClient } from './shared/auth';
+import { defaultProject, defaultOrg } from './utils/environment';
 
 // Import our new feature modules
 import {
@@ -372,16 +373,10 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
   // Register the CallTool request handler
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     try {
-      // Get a list of tools that don't require arguments
-      const parameterlessTools = ['get_me', 'list_organizations'];
-
-      // Only validate arguments for tools that require parameters
-      if (
-        !request.params.arguments &&
-        !parameterlessTools.includes(request.params.name)
-      ) {
-        throw new AzureDevOpsValidationError('Arguments are required');
-      }
+      // Note: We don't need to validate the presence of arguments here because:
+      // 1. The schema validations (via zod.parse) will check for required parameters
+      // 2. Default values from environment.ts are applied for optional parameters (projectId, organizationId)
+      // 3. Arguments can be omitted entirely for tools with no required parameters
 
       // Get a connection to Azure DevOps
       const connection = await getConnection(config);
@@ -406,21 +401,32 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         // Project tools
         case 'list_projects': {
           const args = ListProjectsSchema.parse(request.params.arguments);
-          const result = await listProjects(connection, args);
+          const result = await listProjects(connection, {
+            stateFilter: args.stateFilter,
+            top: args.top,
+            skip: args.skip,
+            continuationToken: args.continuationToken,
+          });
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
         case 'get_project': {
           const args = GetProjectSchema.parse(request.params.arguments);
-          const result = await getProject(connection, args.projectId);
+          const result = await getProject(
+            connection,
+            args.projectId ?? defaultProject,
+          );
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
         case 'get_project_details': {
           const args = GetProjectDetailsSchema.parse(request.params.arguments);
-          const result = await getProjectDetails(connection, args);
+          const result = await getProjectDetails(connection, {
+            ...args,
+            projectId: args.projectId ?? defaultProject,
+          });
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
@@ -440,7 +446,14 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         }
         case 'list_work_items': {
           const args = ListWorkItemsSchema.parse(request.params.arguments);
-          const result = await listWorkItems(connection, args);
+          const result = await listWorkItems(connection, {
+            projectId: args.projectId ?? defaultProject,
+            teamId: args.teamId,
+            queryId: args.queryId,
+            wiql: args.wiql,
+            top: args.top,
+            skip: args.skip,
+          });
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
@@ -449,7 +462,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           const args = CreateWorkItemSchema.parse(request.params.arguments);
           const result = await createWorkItem(
             connection,
-            args.projectId,
+            args.projectId ?? defaultProject,
             args.workItemType,
             {
               title: args.title,
@@ -484,14 +497,18 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         }
         case 'manage_work_item_link': {
           const args = ManageWorkItemLinkSchema.parse(request.params.arguments);
-          const result = await manageWorkItemLink(connection, args.projectId, {
-            sourceWorkItemId: args.sourceWorkItemId,
-            targetWorkItemId: args.targetWorkItemId,
-            operation: args.operation,
-            relationType: args.relationType,
-            newRelationType: args.newRelationType,
-            comment: args.comment,
-          });
+          const result = await manageWorkItemLink(
+            connection,
+            args.projectId ?? defaultProject,
+            {
+              sourceWorkItemId: args.sourceWorkItemId,
+              targetWorkItemId: args.targetWorkItemId,
+              operation: args.operation,
+              relationType: args.relationType,
+              newRelationType: args.newRelationType,
+              comment: args.comment,
+            },
+          );
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
@@ -502,7 +519,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           const args = GetRepositorySchema.parse(request.params.arguments);
           const result = await getRepository(
             connection,
-            args.projectId,
+            args.projectId ?? defaultProject,
             args.repositoryId,
           );
           return {
@@ -514,7 +531,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
             request.params.arguments,
           );
           const result = await getRepositoryDetails(connection, {
-            projectId: args.projectId,
+            projectId: args.projectId ?? defaultProject,
             repositoryId: args.repositoryId,
             includeStatistics: args.includeStatistics,
             includeRefs: args.includeRefs,
@@ -527,7 +544,10 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         }
         case 'list_repositories': {
           const args = ListRepositoriesSchema.parse(request.params.arguments);
-          const result = await listRepositories(connection, args);
+          const result = await listRepositories(connection, {
+            ...args,
+            projectId: args.projectId ?? defaultProject,
+          });
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
@@ -549,7 +569,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
 
           const result = await getFileContent(
             connection,
-            args.projectId,
+            args.projectId ?? defaultProject,
             args.repositoryId,
             args.path,
             versionTypeEnum !== undefined && args.version
@@ -569,7 +589,11 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           const args = GetAllRepositoriesTreeSchema.parse(
             request.params.arguments,
           );
-          const result = await getAllRepositoriesTree(connection, args);
+          const result = await getAllRepositoriesTree(connection, {
+            ...args,
+            projectId: args.projectId ?? defaultProject,
+            organizationId: args.organizationId ?? defaultOrg,
+          });
 
           // Format the output as plain text tree representation
           let formattedOutput = '';

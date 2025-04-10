@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+import { defaultProject, defaultOrg } from '../../utils/environment';
 
 /**
  * Schema for getting a work item
@@ -18,7 +19,14 @@ export const GetWorkItemSchema = z.object({
  * Schema for listing work items
  */
 export const ListWorkItemsSchema = z.object({
-  projectId: z.string().describe('The ID or name of the project'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
   teamId: z.string().optional().describe('The ID of the team'),
   queryId: z.string().optional().describe('ID of a saved work item query'),
   wiql: z.string().optional().describe('Work Item Query Language (WIQL) query'),
@@ -30,7 +38,14 @@ export const ListWorkItemsSchema = z.object({
  * Schema for creating a work item
  */
 export const CreateWorkItemSchema = z.object({
-  projectId: z.string().describe('The ID or name of the project'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
   workItemType: z
     .string()
     .describe(
@@ -100,7 +115,14 @@ export const UpdateWorkItemSchema = z.object({
 export const ManageWorkItemLinkSchema = z.object({
   sourceWorkItemId: z.number().describe('The ID of the source work item'),
   targetWorkItemId: z.number().describe('The ID of the target work item'),
-  projectId: z.string().describe('The ID or name of the project'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
   operation: z
     .enum(['add', 'remove', 'update'])
     .describe('The operation to perform on the link'),
