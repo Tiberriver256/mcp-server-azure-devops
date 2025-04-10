@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.23](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.22...mcp-server-azure-devops-v0.1.23) (2025-04-10)
+
+
+### Features
+
+* **repositories:** add get_all_repositories_tree tool for viewing multi-repository file structure ([adbe206](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/adbe206300d55ba06063c675492b3a8153b688f7))
+* support default project and organization in all tools ([96d61bd](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/96d61bd1098146dfafd1faf7dade1a37725cd7b7))
+
 ## [0.1.22](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.21...mcp-server-azure-devops-v0.1.22) (2025-04-08)
 
 
