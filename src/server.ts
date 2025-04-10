@@ -71,6 +71,12 @@ import {
 } from './features/search';
 
 import { GetMeSchema, getMe } from './features/users';
+
+import {
+  CreatePullRequestSchema,
+  createPullRequest,
+} from './features/pull-requests';
+
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 // Create a safe console logging function that won't interfere with MCP protocol
@@ -213,6 +219,12 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           name: 'search_work_items',
           description: 'Search for work items across projects in Azure DevOps',
           inputSchema: zodToJsonSchema(SearchWorkItemsSchema),
+        },
+        // Pull request tools
+        {
+          name: 'create_pull_request',
+          description: 'Create a new pull request',
+          inputSchema: zodToJsonSchema(CreatePullRequestSchema),
         },
       ],
     };
@@ -630,6 +642,20 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         case 'search_work_items': {
           const args = SearchWorkItemsSchema.parse(request.params.arguments);
           const result = await searchWorkItems(connection, args);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        // Pull request tools
+        case 'create_pull_request': {
+          const args = CreatePullRequestSchema.parse(request.params.arguments);
+          const result = await createPullRequest(
+            connection,
+            args.projectId ?? defaultProject,
+            args.repositoryId,
+            args,
+          );
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
