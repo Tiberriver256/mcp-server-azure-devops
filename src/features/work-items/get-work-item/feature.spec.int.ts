@@ -170,4 +170,52 @@ describe('getWorkItem integration', () => {
       AzureDevOpsResourceNotFoundError,
     );
   });
+
+  test('should include all possible fields with null values for empty fields', async () => {
+    // Skip if no connection is available
+    if (shouldSkipIntegrationTest() || !connection || !testWorkItemId) {
+      return;
+    }
+
+    // Act - get work item by ID
+    const result = await getWorkItem(connection, testWorkItemId);
+
+    // Assert
+    expect(result).toBeDefined();
+    expect(result.fields).toBeDefined();
+
+    if (result.fields) {
+      // Get a direct connection to WorkItemTrackingApi to fetch field info for comparison
+      const witApi = await connection.getWorkItemTrackingApi();
+      const projectName = result.fields['System.TeamProject'];
+      const workItemType = result.fields['System.WorkItemType'];
+
+      expect(projectName).toBeDefined();
+      expect(workItemType).toBeDefined();
+
+      if (projectName && workItemType) {
+        // Get all possible field references for this work item type
+        const allFields = await witApi.getWorkItemTypeFieldsWithReferences(
+          projectName.toString(),
+          workItemType.toString(),
+        );
+
+        // Check that all fields from the reference are present in the result
+        // Some might be null, but they should exist in the fields object
+        for (const field of allFields) {
+          if (field.referenceName) {
+            expect(Object.keys(result.fields)).toContain(field.referenceName);
+          }
+        }
+
+        // There should be at least one field with a null value
+        // (This is a probabilistic test but very likely to pass since work items
+        // typically have many optional fields that aren't filled in)
+        const hasNullField = Object.values(result.fields).some(
+          (value) => value === null,
+        );
+        expect(hasNullField).toBe(true);
+      }
+    }
+  });
 });
