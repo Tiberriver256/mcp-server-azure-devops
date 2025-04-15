@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.26](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.25...mcp-server-azure-devops-v0.1.26) (2025-04-15)
+
+
+### Features
+
+* **getWorkItem:** enhance get_work_item to include all available fields ([3810660](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/38106600f04842a44e5e5b6e824716ebb6f69e61))
+* support default project and organization in all tools ([5beca06](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/5beca063057bdbc2dd869c865fb01e0d311c8917))
+
+
+### Bug Fixes
+
+* return actual field information from get_project_details tool ([64a030a](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/64a030a8c14fd1f9e7f871ae409f0dded23dbe98))
+
 ## [0.1.25](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.24...mcp-server-azure-devops-v0.1.25) (2025-04-11)
 
 
