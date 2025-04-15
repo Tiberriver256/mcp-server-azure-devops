@@ -217,6 +217,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       const result = await client.callTool({
         name: 'list_projects',
         // No arguments provided
+        arguments: {},
       });
 
       // Assert
@@ -228,7 +229,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       // Verify we got a valid JSON response
       const resultText = content[0].text;
       const projects = JSON.parse(resultText);
-      expect(Array.isArray(projects.value)).toBe(true);
+      expect(Array.isArray(projects)).toBe(true);
     });
 
     test('should call get_project without arguments', async () => {
@@ -236,6 +237,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       const result = await client.callTool({
         name: 'get_project',
         // No arguments provided
+        arguments: {},
       });
 
       // Assert
@@ -256,6 +258,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       const result = await client.callTool({
         name: 'list_repositories',
         // No arguments provided
+        arguments: {},
       });
 
       // Assert
@@ -267,7 +270,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       // Verify we got a valid JSON response
       const resultText = content[0].text;
       const repositories = JSON.parse(resultText);
-      expect(Array.isArray(repositories.value)).toBe(true);
+      expect(Array.isArray(repositories)).toBe(true);
     });
   });
 });
