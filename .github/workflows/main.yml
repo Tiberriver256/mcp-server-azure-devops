@@ -32,6 +32,7 @@ jobs:
           AZURE_DEVOPS_ORG_URL: ${{ secrets.AZURE_DEVOPS_ORG_URL }}
           AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
           AZURE_DEVOPS_DEFAULT_PROJECT: ${{ secrets.AZURE_DEVOPS_DEFAULT_PROJECT }}
+          AZURE_DEVOPS_DEFAULT_REPOSITORY: eShopOnWeb
           AZURE_DEVOPS_AUTH_METHOD: pat
       - name: E2E Tests
         run: npm run test:e2e
@@ -40,4 +41,5 @@ jobs:
           AZURE_DEVOPS_ORG_URL: ${{ secrets.AZURE_DEVOPS_ORG_URL }}
           AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
           AZURE_DEVOPS_DEFAULT_PROJECT: ${{ secrets.AZURE_DEVOPS_DEFAULT_PROJECT }}
+          AZURE_DEVOPS_DEFAULT_REPOSITORY: eShopOnWeb
           AZURE_DEVOPS_AUTH_METHOD: pat
