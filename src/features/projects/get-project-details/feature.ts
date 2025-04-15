@@ -53,8 +53,6 @@ interface WorkItemTypeInfo {
   name: string;
   referenceName: string;
   description?: string;
-  color?: string;
-  icon?: string;
   isDisabled: boolean;
   states?: {
     name: string;
@@ -66,6 +64,9 @@ interface WorkItemTypeInfo {
     referenceName: string;
     type: string;
     required?: boolean;
+    isIdentity?: boolean;
+    isPicklist?: boolean;
+    description?: string;
   }[];
 }
 
@@ -165,8 +166,6 @@ export async function getProjectDetails(
               referenceName:
                 wit.referenceName || `System.Unknown.${Date.now()}`,
               description: wit.description,
-              color: wit.color,
-              icon: wit.icon ? String(wit.icon) : undefined,
               isDisabled: false,
               states: [
                 { name: 'New', stateCategory: 'Proposed' },
@@ -176,9 +175,64 @@ export async function getProjectDetails(
               ],
             };
 
-            // If fields are requested, add some common fields
-            if (includeFields) {
-              workItemTypeInfo.fields = [
+            // If fields are requested, don't add fields here - we'll add them after fetching from API
+            return workItemTypeInfo;
+          },
+        );
+
+        // If fields are requested, get the field definitions from the API
+        if (includeFields) {
+          try {
+            // Instead of getting all fields and applying them to all work item types,
+            // let's get the fields specific to each work item type
+            for (const wit of processWorkItemTypes) {
+              try {
+                // Get fields specific to this work item type using the specialized method
+                const typeSpecificFields =
+                  await workItemTrackingApi.getWorkItemTypeFieldsWithReferences(
+                    projectId,
+                    wit.name,
+                  );
+
+                // Map the fields to our format
+                wit.fields = typeSpecificFields.map((field: any) => ({
+                  name: field.name || 'Unknown',
+                  referenceName: field.referenceName || 'Unknown',
+                  type: field.type?.toString().toLowerCase() || 'string',
+                  required: field.isRequired || false,
+                  isIdentity: field.isIdentity || false,
+                  isPicklist: field.isPicklist || false,
+                  description: field.description,
+                }));
+              } catch (typeFieldError) {
+                console.error(
+                  `Error fetching fields for work item type ${wit.name}:`,
+                  typeFieldError,
+                );
+
+                // Fallback to basic fields
+                wit.fields = [
+                  {
+                    name: 'Title',
+                    referenceName: 'System.Title',
+                    type: 'string',
+                    required: true,
+                  },
+                  {
+                    name: 'Description',
+                    referenceName: 'System.Description',
+                    type: 'html',
+                    required: false,
+                  },
+                ];
+              }
+            }
+          } catch (fieldError) {
+            console.error('Error in field processing:', fieldError);
+
+            // Fallback to default fields if API call fails
+            processWorkItemTypes.forEach((wit) => {
+              wit.fields = [
                 {
                   name: 'Title',
                   referenceName: 'System.Title',
@@ -192,11 +246,9 @@ export async function getProjectDetails(
                   required: false,
                 },
               ];
-            }
-
-            return workItemTypeInfo;
-          },
-        );
+            });
+          }
+        }
 
         processInfo.workItemTypes = processWorkItemTypes;
 
