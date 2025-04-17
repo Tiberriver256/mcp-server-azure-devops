@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.28](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.27...mcp-server-azure-devops-v0.1.28) (2025-04-17)
+
+
+### Features
+
+* **pipeline:** implement get-pipeline functionality ([#166](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/166)) ([e307340](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/e3073401e141b566191be16ed4f9b7925c2849eb))
+
 ## [0.1.27](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.26...mcp-server-azure-devops-v0.1.27) (2025-04-16)
 
 
