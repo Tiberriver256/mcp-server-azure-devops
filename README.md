@@ -178,6 +178,11 @@ The Azure DevOps MCP server provides a variety of tools for interacting with Azu
 - get_pipeline: Get details of a specific pipeline
 - trigger_pipeline: Trigger a pipeline run with customizable parameters
 
+### Wiki Tools
+
+- `get_wikis`: List all wikis in a project
+- `get_wiki_page`: Get content of a specific wiki page as plain text
+
 For comprehensive documentation on all tools, see the [Tools Documentation](docs/tools/).
 
 ## Contributing
