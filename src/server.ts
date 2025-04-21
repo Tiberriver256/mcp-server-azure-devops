@@ -89,8 +89,12 @@ import {
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 // Import wikis feature modules
-import { GetWikisSchema, getWikisHandler } from './features/wikis/get-wikis';
-import { GetWikiPageSchema, getWikiPage } from './features/wikis/get-wiki-page';
+import {
+  GetWikisSchema,
+  getWikis,
+  GetWikiPageSchema,
+  getWikiPage,
+} from './features/wikis';
 
 // Create a safe console logging function that won't interfere with MCP protocol
 function safeLog(message: string) {
@@ -741,7 +745,10 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         // Wiki tools
         case 'get_wikis': {
           const args = GetWikisSchema.parse(request.params.arguments);
-          const result = await getWikisHandler(connection, args);
+          const result = await getWikis(connection, {
+            organizationId: args.organizationId ?? defaultOrg,
+            projectId: args.projectId ?? defaultProject,
+          });
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };

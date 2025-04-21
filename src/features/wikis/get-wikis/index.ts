@@ -1,2 +1,2 @@
-export { getWikisHandler } from './handler';
+export { getWikis } from './feature';
 export { GetWikisSchema } from './schema';
