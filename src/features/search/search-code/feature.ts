@@ -6,6 +6,7 @@ import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
   AzureDevOpsPermissionError,
+  AzureDevOpsAuthenticationError,
 } from '../../../shared/errors';
 import {
   SearchCodeOptions,
@@ -80,37 +81,39 @@ export async function searchCode(
 
     return results;
   } catch (error) {
-    // If it's already an AzureDevOpsError, rethrow it
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
 
-    // Handle axios errors
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
-      const message = error.response?.data?.message || error.message;
-
       if (status === 404) {
         throw new AzureDevOpsResourceNotFoundError(
-          `Resource not found: ${message}`,
+          'Repository or project not found',
+          { cause: error },
         );
-      } else if (status === 400) {
+      }
+      if (status === 400) {
         throw new AzureDevOpsValidationError(
-          `Invalid request: ${message}`,
+          'Invalid search parameters',
           error.response?.data,
+          { cause: error },
         );
-      } else if (status === 401 || status === 403) {
-        throw new AzureDevOpsPermissionError(`Permission denied: ${message}`);
-      } else {
-        // For other axios errors, wrap in a generic AzureDevOpsError
-        throw new AzureDevOpsError(`Azure DevOps API error: ${message}`);
+      }
+      if (status === 401) {
+        throw new AzureDevOpsAuthenticationError('Authentication failed', {
+          cause: error,
+        });
+      }
+      if (status === 403) {
+        throw new AzureDevOpsPermissionError(
+          'Permission denied to access repository',
+          { cause: error },
+        );
       }
     }
 
-    // Otherwise, wrap it in a generic error
-    throw new AzureDevOpsError(
-      `Failed to search code: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    throw new AzureDevOpsError('Failed to search code', { cause: error });
   }
 }
 

@@ -6,8 +6,8 @@
  * @extends {Error}
  */
 export class AzureDevOpsError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = 'AzureDevOpsError';
   }
 }
@@ -20,8 +20,8 @@ export class AzureDevOpsError extends Error {
  * @extends {AzureDevOpsError}
  */
 export class AzureDevOpsAuthenticationError extends AzureDevOpsError {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = 'AzureDevOpsAuthenticationError';
   }
 }
@@ -47,8 +47,12 @@ export type ApiErrorResponse = {
 export class AzureDevOpsValidationError extends AzureDevOpsError {
   response?: ApiErrorResponse;
 
-  constructor(message: string, response?: ApiErrorResponse) {
-    super(message);
+  constructor(
+    message: string,
+    response?: ApiErrorResponse,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
     this.name = 'AzureDevOpsValidationError';
     this.response = response;
   }
@@ -62,8 +66,8 @@ export class AzureDevOpsValidationError extends AzureDevOpsError {
  * @extends {AzureDevOpsError}
  */
 export class AzureDevOpsResourceNotFoundError extends AzureDevOpsError {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = 'AzureDevOpsResourceNotFoundError';
   }
 }
@@ -76,8 +80,8 @@ export class AzureDevOpsResourceNotFoundError extends AzureDevOpsError {
  * @extends {AzureDevOpsError}
  */
 export class AzureDevOpsPermissionError extends AzureDevOpsError {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = 'AzureDevOpsPermissionError';
   }
 }
@@ -93,8 +97,8 @@ export class AzureDevOpsPermissionError extends AzureDevOpsError {
 export class AzureDevOpsRateLimitError extends AzureDevOpsError {
   resetAt: Date;
 
-  constructor(message: string, resetAt: Date) {
-    super(message);
+  constructor(message: string, resetAt: Date, options?: ErrorOptions) {
+    super(message, options);
     this.name = 'AzureDevOpsRateLimitError';
     this.resetAt = resetAt;
   }

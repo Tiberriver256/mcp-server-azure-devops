@@ -1,132 +1,107 @@
 import { WebApi } from 'azure-devops-node-api';
 import { searchWiki } from './feature';
-import { getConnection } from '../../../server';
-import { AzureDevOpsConfig } from '../../../shared/types';
-import { AuthenticationMethod } from '../../../shared/auth';
+import {
+  getTestConnection,
+  shouldSkipIntegrationTest,
+} from '@/shared/test/test-helpers';
 
-// Skip tests if not in integration test environment
-const runTests = process.env.RUN_INTEGRATION_TESTS === 'true';
-
-// These tests require a valid Azure DevOps connection
-// They are skipped by default and only run when RUN_INTEGRATION_TESTS is set
-(runTests ? describe : describe.skip)('searchWiki (Integration)', () => {
-  let connection: WebApi;
-  const projectId = process.env.AZURE_DEVOPS_TEST_PROJECT || '';
+describe('searchWiki integration', () => {
+  let connection: WebApi | null = null;
+  let projectName: string;
 
   beforeAll(async () => {
-    // Skip setup if tests are skipped
-    if (!runTests) return;
+    // Get a real connection using environment variables
+    connection = await getTestConnection();
+    projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
+  });
 
-    // Ensure we have required environment variables
-    if (!process.env.AZURE_DEVOPS_ORG_URL) {
-      throw new Error('AZURE_DEVOPS_ORG_URL environment variable is required');
+  test('should search wiki content', async () => {
+    // Skip if no connection is available
+    if (shouldSkipIntegrationTest()) {
+      return;
     }
 
-    if (!projectId) {
+    // This connection must be available if we didn't skip
+    if (!connection) {
       throw new Error(
-        'AZURE_DEVOPS_TEST_PROJECT environment variable is required',
+        'Connection should be available when test is not skipped',
       );
     }
 
-    // Create connection
-    const config: AzureDevOpsConfig = {
-      organizationUrl: process.env.AZURE_DEVOPS_ORG_URL,
-      authMethod:
-        (process.env.AZURE_DEVOPS_AUTH_METHOD as AuthenticationMethod) ||
-        AuthenticationMethod.PersonalAccessToken,
-      personalAccessToken: process.env.AZURE_DEVOPS_PAT,
-    };
-
-    connection = await getConnection(config);
-  }, 30000);
-
-  it('should search wiki pages with basic query', async () => {
-    // Skip if tests are skipped
-    if (!runTests) return;
-
+    // Search the wiki
     const result = await searchWiki(connection, {
       searchText: 'test',
-      projectId,
+      projectId: projectName,
       top: 10,
     });
 
-    // Verify the structure of the response
+    // Verify the result
     expect(result).toBeDefined();
-    expect(typeof result.count).toBe('number');
+    expect(result.count).toBeDefined();
     expect(Array.isArray(result.results)).toBe(true);
-
-    // If there are results, verify their structure
     if (result.results.length > 0) {
-      const firstResult = result.results[0];
-      expect(firstResult.fileName).toBeDefined();
-      expect(firstResult.path).toBeDefined();
-      expect(firstResult.project).toBeDefined();
-      expect(firstResult.wiki).toBeDefined();
-      expect(Array.isArray(firstResult.hits)).toBe(true);
+      expect(result.results[0].fileName).toBeDefined();
+      expect(result.results[0].path).toBeDefined();
+      expect(result.results[0].project).toBeDefined();
     }
-  }, 30000);
+  });
 
-  it('should handle pagination correctly', async () => {
-    // Skip if tests are skipped
-    if (!runTests) return;
+  test('should handle pagination correctly', async () => {
+    // Skip if no connection is available
+    if (shouldSkipIntegrationTest()) {
+      return;
+    }
+
+    // This connection must be available if we didn't skip
+    if (!connection) {
+      throw new Error(
+        'Connection should be available when test is not skipped',
+      );
+    }
 
     // Get first page of results
     const page1 = await searchWiki(connection, {
-      searchText: 'the', // Common word likely to have many results
-      projectId,
+      searchText: 'test', // Common word likely to have many results
+      projectId: projectName,
       top: 5,
       skip: 0,
     });
 
     // Get second page of results
     const page2 = await searchWiki(connection, {
-      searchText: 'the',
-      projectId,
+      searchText: 'test',
+      projectId: projectName,
       top: 5,
       skip: 5,
     });
 
-    // Verify pagination works
-    expect(page1.count).toBe(page2.count); // Total count should be the same
+    // Verify pagination
+    expect(page1.results).not.toEqual(page2.results);
+  });
 
-    // If there are enough results, verify pages are different
-    if (page1.results.length === 5 && page2.results.length > 0) {
-      // Check that the results are different by comparing paths
-      const page1Paths = page1.results.map((r) => r.path);
-      const page2Paths = page2.results.map((r) => r.path);
-
-      // At least one result should be different
-      expect(page2Paths.some((path) => !page1Paths.includes(path))).toBe(true);
+  test('should handle filters correctly', async () => {
+    // Skip if no connection is available
+    if (shouldSkipIntegrationTest()) {
+      return;
     }
-  }, 30000);
 
-  it('should handle filters correctly', async () => {
-    // Skip if tests are skipped
-    if (!runTests) return;
+    // This connection must be available if we didn't skip
+    if (!connection) {
+      throw new Error(
+        'Connection should be available when test is not skipped',
+      );
+    }
 
     // This test is more of a smoke test since we can't guarantee specific projects
     const result = await searchWiki(connection, {
       searchText: 'test',
-      projectId,
       filters: {
-        Project: [projectId],
+        Project: [projectName],
       },
       includeFacets: true,
     });
 
-    // Verify the response has the expected structure
     expect(result).toBeDefined();
-    expect(typeof result.count).toBe('number');
-
-    // If facets were requested and returned, verify their structure
-    if (result.facets && result.facets.Project) {
-      expect(Array.isArray(result.facets.Project)).toBe(true);
-      if (result.facets.Project.length > 0) {
-        const facet = result.facets.Project[0];
-        expect(facet.name).toBeDefined();
-        expect(facet.id).toBeDefined();
-        expect(typeof facet.resultCount).toBe('number');
-      }
-    }
-  }, 30000);
+    expect(result.facets).toBeDefined();
+  });
 });

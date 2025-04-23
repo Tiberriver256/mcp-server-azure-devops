@@ -1,35 +1,19 @@
-import axios from 'axios';
 import { getWikiPage, GetWikiPageOptions } from './feature';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsPermissionError,
   AzureDevOpsError,
 } from '../../../shared/errors';
+import * as azureDevOpsClient from '../../../clients/azure-devops';
 
-// Mock Azure Identity
-jest.mock('@azure/identity', () => {
-  const mockGetToken = jest.fn().mockResolvedValue({ token: 'mock-token' });
-  return {
-    DefaultAzureCredential: jest.fn().mockImplementation(() => ({
-      getToken: mockGetToken,
-    })),
-    AzureCliCredential: jest.fn().mockImplementation(() => ({
-      getToken: mockGetToken,
-    })),
-  };
-});
+// Mock Azure DevOps client
+jest.mock('../../../clients/azure-devops');
+const mockGetPage = jest.fn();
 
-// Mock axios module
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
-
-// Mock getAuthorizationHeader function
-jest.mock('./feature', () => {
-  const originalModule = jest.requireActual('./feature');
-  return {
-    ...originalModule,
-    getAuthorizationHeader: jest.fn().mockResolvedValue('Bearer mock-token'),
-  };
+(azureDevOpsClient.getWikiClient as jest.Mock).mockImplementation(() => {
+  return Promise.resolve({
+    getPage: mockGetPage,
+  });
 });
 
 describe('getWikiPage unit', () => {
@@ -37,14 +21,11 @@ describe('getWikiPage unit', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedAxios.get.mockResolvedValue({
-      status: 200,
-      data: mockWikiPageContent,
-    });
+    mockGetPage.mockResolvedValue({ content: mockWikiPageContent });
   });
 
   it('should return wiki page content as text', async () => {
-    // Act
+    // Arrange
     const options: GetWikiPageOptions = {
       organizationId: 'testOrg',
       projectId: 'testProject',
@@ -52,30 +33,23 @@ describe('getWikiPage unit', () => {
       pagePath: '/Home',
     };
 
+    // Act
     const result = await getWikiPage(options);
 
     // Assert
     expect(result).toBe(mockWikiPageContent);
-    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
-    expect(mockedAxios.get).toHaveBeenCalledWith(
-      'https://dev.azure.com/testOrg/testProject/_apis/wiki/wikis/testWiki/pages',
-      expect.objectContaining({
-        params: expect.objectContaining({
-          'api-version': '7.0',
-          path: '/Home',
-        }),
-        headers: expect.objectContaining({
-          Accept: 'text/plain',
-          Authorization: 'Bearer mock-token',
-          'Content-Type': 'application/json',
-        }),
-        responseType: 'text',
-      }),
+    expect(azureDevOpsClient.getWikiClient).toHaveBeenCalledWith({
+      organizationId: 'testOrg',
+    });
+    expect(mockGetPage).toHaveBeenCalledWith(
+      'testProject',
+      'testWiki',
+      '/Home',
     );
   });
 
-  it('should properly encode wiki page path in URL', async () => {
-    // Act
+  it('should properly handle wiki page path', async () => {
+    // Arrange
     const options: GetWikiPageOptions = {
       organizationId: 'testOrg',
       projectId: 'testProject',
@@ -83,27 +57,22 @@ describe('getWikiPage unit', () => {
       pagePath: '/Path with spaces/And special chars $&+,/:;=?@',
     };
 
+    // Act
     await getWikiPage(options);
 
     // Assert
-    expect(mockedAxios.get).toHaveBeenCalledWith(
-      'https://dev.azure.com/testOrg/testProject/_apis/wiki/wikis/testWiki/pages',
-      expect.objectContaining({
-        params: expect.objectContaining({
-          path: '/Path%20with%20spaces/And%20special%20chars%20%24%26%2B%2C/%3A%3B%3D%3F%40',
-        }),
-      }),
+    expect(mockGetPage).toHaveBeenCalledWith(
+      'testProject',
+      'testWiki',
+      '/Path with spaces/And special chars $&+,/:;=?@',
     );
   });
 
   it('should throw ResourceNotFoundError when wiki page is not found', async () => {
     // Arrange
-    mockedAxios.get.mockRejectedValue({
-      response: {
-        status: 404,
-        data: { message: 'Page not found' },
-      },
-    });
+    mockGetPage.mockRejectedValue(
+      new AzureDevOpsResourceNotFoundError('Page not found'),
+    );
 
     // Act & Assert
     const options: GetWikiPageOptions = {
@@ -120,12 +89,9 @@ describe('getWikiPage unit', () => {
 
   it('should throw PermissionError when user lacks permissions', async () => {
     // Arrange
-    mockedAxios.get.mockRejectedValue({
-      response: {
-        status: 403,
-        data: { message: 'Permission denied' },
-      },
-    });
+    mockGetPage.mockRejectedValue(
+      new AzureDevOpsPermissionError('Permission denied'),
+    );
 
     // Act & Assert
     const options: GetWikiPageOptions = {
@@ -142,7 +108,7 @@ describe('getWikiPage unit', () => {
 
   it('should throw generic error for other failures', async () => {
     // Arrange
-    mockedAxios.get.mockRejectedValue(new Error('Network error'));
+    mockGetPage.mockRejectedValue(new Error('Network error'));
 
     // Act & Assert
     const options: GetWikiPageOptions = {

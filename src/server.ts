@@ -94,6 +94,10 @@ import {
   getWikis,
   GetWikiPageSchema,
   getWikiPage,
+  CreateWikiSchema,
+  createWiki,
+  UpdateWikiPageSchema,
+  updateWikiPage,
 } from './features/wikis';
 
 // Create a safe console logging function that won't interfere with MCP protocol
@@ -269,6 +273,16 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           name: 'get_wiki_page',
           description: 'Get the content of a wiki page',
           inputSchema: zodToJsonSchema(GetWikiPageSchema),
+        },
+        {
+          name: 'create_wiki',
+          description: 'Create a new wiki in the project',
+          inputSchema: zodToJsonSchema(CreateWikiSchema),
+        },
+        {
+          name: 'update_wiki_page',
+          description: 'Update content of a wiki page',
+          inputSchema: zodToJsonSchema(UpdateWikiPageSchema),
         },
       ],
     };
@@ -756,13 +770,41 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         case 'get_wiki_page': {
           const args = GetWikiPageSchema.parse(request.params.arguments);
           const result = await getWikiPage({
-            organizationId: args.organizationId || defaultOrg,
+            organizationId: args.organizationId ?? defaultOrg,
             projectId: args.projectId ?? defaultProject,
             wikiId: args.wikiId,
             pagePath: args.pagePath,
           });
           return {
             content: [{ type: 'text', text: result }],
+          };
+        }
+        case 'create_wiki': {
+          const args = CreateWikiSchema.parse(request.params.arguments);
+          const result = await createWiki(connection, {
+            organizationId: args.organizationId ?? defaultOrg,
+            projectId: args.projectId ?? defaultProject,
+            name: args.name,
+            type: args.type,
+            repositoryId: args.repositoryId ?? undefined,
+            mappedPath: args.mappedPath ?? undefined,
+          });
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        case 'update_wiki_page': {
+          const args = UpdateWikiPageSchema.parse(request.params.arguments);
+          const result = await updateWikiPage({
+            organizationId: args.organizationId ?? defaultOrg,
+            projectId: args.projectId ?? defaultProject,
+            wikiId: args.wikiId,
+            pagePath: args.pagePath,
+            content: args.content,
+            comment: args.comment,
+          });
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
 
