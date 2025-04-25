@@ -77,6 +77,8 @@ import {
   createPullRequest,
   ListPullRequestsSchema,
   listPullRequests,
+  GetPullRequestCommentsSchema,
+  getPullRequestComments,
 } from './features/pull-requests';
 
 import {
@@ -269,6 +271,11 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           name: 'list_pull_requests',
           description: 'List pull requests in a repository',
           inputSchema: zodToJsonSchema(ListPullRequestsSchema),
+        },
+        {
+          name: 'get_pull_request_comments',
+          description: 'Get comments from a specific pull request',
+          inputSchema: zodToJsonSchema(GetPullRequestCommentsSchema),
         },
         // Wiki tools
         {
@@ -776,6 +783,28 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
               reviewerId: params.reviewerId,
               sourceRefName: params.sourceRefName,
               targetRefName: params.targetRefName,
+              top: params.top,
+            },
+          );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        case 'get_pull_request_comments': {
+          const params = GetPullRequestCommentsSchema.parse(
+            request.params.arguments,
+          );
+          const result = await getPullRequestComments(
+            connection,
+            params.projectId ?? defaultProject,
+            params.repositoryId,
+            params.pullRequestId,
+            {
+              projectId: params.projectId ?? defaultProject,
+              repositoryId: params.repositoryId,
+              pullRequestId: params.pullRequestId,
+              threadId: params.threadId,
+              includeDeleted: params.includeDeleted,
               top: params.top,
             },
           );

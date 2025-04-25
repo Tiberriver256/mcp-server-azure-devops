@@ -69,3 +69,31 @@ export const ListPullRequestsSchema = z.object({
     .optional()
     .describe('Maximum number of pull requests to return'),
 });
+
+/**
+ * Schema for getting pull request comments
+ */
+export const GetPullRequestCommentsSchema = z.object({
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  repositoryId: z.string().describe('The ID or name of the repository'),
+  pullRequestId: z.number().describe('The ID of the pull request'),
+  threadId: z
+    .number()
+    .optional()
+    .describe('The ID of the specific thread to get comments from'),
+  includeDeleted: z
+    .boolean()
+    .optional()
+    .describe('Whether to include deleted comments'),
+  top: z
+    .number()
+    .optional()
+    .describe('Maximum number of threads/comments to return'),
+});

@@ -318,3 +318,192 @@ The `list_pull_requests` tool:
 
 This implementation provides a robust and flexible way to retrieve pull requests from Azure DevOps repositories.
 
+## get_pull_request_comments
+
+Gets comments and comment threads from a specific pull request.
+
+### Description
+
+The `get_pull_request_comments` tool retrieves comment threads and their associated comments from a specific pull request in an Azure DevOps Git repository. It allows you to get all comments or filter for a specific thread, and supports options for including deleted comments and limiting the number of results. This tool is useful for reviewing feedback on code changes, monitoring discussions, and integrating pull request comments into external workflows.
+
+### Parameters
+
+```json
+{
+  "projectId": "MyProject", // Required: The ID or name of the project
+  "repositoryId": "MyRepo", // Required: The ID or name of the repository
+  "pullRequestId": 42, // Required: The ID of the pull request
+  "threadId": 123, // Optional: The ID of a specific thread to retrieve
+  "includeDeleted": false, // Optional: Whether to include deleted comments
+  "top": 50 // Optional: Maximum number of threads to return
+}
+```
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `projectId` | string | Yes | The ID or name of the project containing the repository |
+| `repositoryId` | string | Yes | The ID or name of the repository containing the pull request |
+| `pullRequestId` | number | Yes | The ID of the pull request to get comments from |
+| `threadId` | number | No | The ID of a specific thread to retrieve (if omitted, all threads are returned) |
+| `includeDeleted` | boolean | No | Whether to include deleted comments in the results |
+| `top` | number | No | Maximum number of comment threads to return |
+
+### Response
+
+The tool returns an array of `GitPullRequestCommentThread` objects, each containing:
+
+- `id`: The unique identifier of the thread
+- `status`: The status of the thread (active, fixed, closed, etc.)
+- `threadContext`: Information about the location of the thread in the code (file path, line numbers)
+- `comments`: An array of comments within the thread
+- And various other fields and references
+
+Each comment in the thread contains:
+
+- `id`: The unique identifier of the comment
+- `content`: The text content of the comment
+- `commentType`: The type of comment (code change, general, etc.)
+- `author`: Information about the user who created the comment
+- `publishedDate`: The date and time when the comment was published
+- And various other fields and references
+
+Example response:
+
+```json
+[
+  {
+    "id": 123,
+    "status": 1,
+    "threadContext": {
+      "filePath": "/src/app.ts",
+      "rightFileStart": {
+        "line": 10,
+        "offset": 5
+      },
+      "rightFileEnd": {
+        "line": 10,
+        "offset": 15
+      }
+    },
+    "comments": [
+      {
+        "id": 456,
+        "content": "This variable name is not descriptive enough.",
+        "commentType": 1,
+        "author": {
+          "displayName": "Jane Smith",
+          "id": "user-guid",
+          "uniqueName": "jane.smith@example.com"
+        },
+        "publishedDate": "2023-04-15T14:30:00Z"
+      },
+      {
+        "id": 457,
+        "parentCommentId": 456,
+        "content": "Good point, I'll rename it to be more descriptive.",
+        "commentType": 1,
+        "author": {
+          "displayName": "John Doe",
+          "id": "user-guid-2",
+          "uniqueName": "john.doe@example.com"
+        },
+        "publishedDate": "2023-04-15T14:35:00Z"
+      }
+    ],
+    "isDeleted": false
+  },
+  {
+    "id": 124,
+    "status": 2,
+    "comments": [
+      {
+        "id": 458,
+        "content": "Can you add more validation here?",
+        "commentType": 1,
+        "author": {
+          "displayName": "Jane Smith",
+          "id": "user-guid",
+          "uniqueName": "jane.smith@example.com"
+        },
+        "publishedDate": "2023-04-15T14:40:00Z"
+      }
+    ],
+    "isDeleted": false
+  }
+]
+```
+
+### Error Handling
+
+The tool may throw the following errors:
+
+- ValidationError: If required parameters are missing or invalid
+- AuthenticationError: If authentication fails
+- PermissionError: If the user doesn't have permission to access the pull request comments
+- ResourceNotFoundError: If the project, repository, pull request, or thread doesn't exist
+- GeneralError: For other unexpected errors
+
+Error messages will include details about what went wrong and suggestions for resolution.
+
+### Example Usage
+
+```typescript
+// Get all comments from a pull request
+const allComments = await mcpClient.callTool('get_pull_request_comments', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42
+});
+console.log(`Found ${allComments.length} comment threads`);
+
+// Count total comments across all threads
+let totalComments = 0;
+for (const thread of allComments) {
+  totalComments += thread.comments?.length || 0;
+}
+console.log(`Total number of comments: ${totalComments}`);
+
+// Get a specific comment thread
+const specificThread = await mcpClient.callTool('get_pull_request_comments', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  threadId: 123
+});
+if (specificThread.length > 0) {
+  console.log(`Thread ${specificThread[0].id} has ${specificThread[0].comments?.length || 0} comments`);
+}
+
+// Get only active threads, including deleted comments
+const activeThreads = await mcpClient.callTool('get_pull_request_comments', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  includeDeleted: true
+});
+console.log(`Found ${activeThreads.length} threads (including any with deleted comments)`);
+
+// Limit the number of returned threads
+const limitedThreads = await mcpClient.callTool('get_pull_request_comments', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  top: 10
+});
+console.log(`Showing first ${limitedThreads.length} comment threads`);
+```
+
+### Implementation Details
+
+The `get_pull_request_comments` tool:
+
+1. Establishes a connection to Azure DevOps using the provided credentials
+2. Retrieves the Git API client
+3. Determines whether to fetch a specific thread or all threads based on the provided parameters
+4. Makes the appropriate API call to retrieve the comment threads
+5. Applies pagination if the `top` parameter is specified
+6. Returns the results or an empty array if none are found
+7. Handles errors and provides meaningful error messages
+
+This implementation provides a robust way to retrieve and analyze pull request comments from Azure DevOps repositories.
+

@@ -1,6 +1,10 @@
-import { GitPullRequest } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import {
+  GitPullRequest,
+  Comment,
+} from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 export type PullRequest = GitPullRequest;
+export type PullRequestComment = Comment;
 
 /**
  * Options for creating a pull request
@@ -27,6 +31,18 @@ export interface ListPullRequestsOptions {
   reviewerId?: string;
   sourceRefName?: string;
   targetRefName?: string;
+  top?: number;
+}
+
+/**
+ * Options for getting pull request comments
+ */
+export interface GetPullRequestCommentsOptions {
+  projectId: string;
+  repositoryId: string;
+  pullRequestId: number;
+  threadId?: number;
+  includeDeleted?: boolean;
   top?: number;
 }
 
