@@ -79,6 +79,8 @@ import {
   listPullRequests,
   GetPullRequestCommentsSchema,
   getPullRequestComments,
+  AddPullRequestCommentSchema,
+  addPullRequestComment,
 } from './features/pull-requests';
 
 import {
@@ -276,6 +278,12 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           name: 'get_pull_request_comments',
           description: 'Get comments from a specific pull request',
           inputSchema: zodToJsonSchema(GetPullRequestCommentsSchema),
+        },
+        {
+          name: 'add_pull_request_comment',
+          description:
+            'Add a comment to a pull request (reply to existing comments or create new threads)',
+          inputSchema: zodToJsonSchema(AddPullRequestCommentSchema),
         },
         // Wiki tools
         {
@@ -806,6 +814,31 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
               threadId: params.threadId,
               includeDeleted: params.includeDeleted,
               top: params.top,
+            },
+          );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        case 'add_pull_request_comment': {
+          const params = AddPullRequestCommentSchema.parse(
+            request.params.arguments,
+          );
+          const result = await addPullRequestComment(
+            connection,
+            params.projectId ?? defaultProject,
+            params.repositoryId,
+            params.pullRequestId,
+            {
+              projectId: params.projectId ?? defaultProject,
+              repositoryId: params.repositoryId,
+              pullRequestId: params.pullRequestId,
+              content: params.content,
+              threadId: params.threadId,
+              parentCommentId: params.parentCommentId,
+              filePath: params.filePath,
+              lineNumber: params.lineNumber,
+              status: params.status,
             },
           );
           return {

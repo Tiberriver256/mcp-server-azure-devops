@@ -47,6 +47,24 @@ export interface GetPullRequestCommentsOptions {
 }
 
 /**
+ * Options for adding a comment to a pull request
+ */
+export interface AddPullRequestCommentOptions {
+  projectId: string;
+  repositoryId: string;
+  pullRequestId: number;
+  content: string;
+  // For responding to an existing comment
+  threadId?: number;
+  parentCommentId?: number;
+  // For file comments (new threads)
+  filePath?: string;
+  lineNumber?: number;
+  // Additional options
+  status?: 'active' | 'fixed' | 'wontFix' | 'closed' | 'pending';
+}
+
+/**
  * Options for updating a pull request
  */
 export interface UpdatePullRequestOptions {

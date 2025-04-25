@@ -507,3 +507,206 @@ The `get_pull_request_comments` tool:
 
 This implementation provides a robust way to retrieve and analyze pull request comments from Azure DevOps repositories.
 
+## add_pull_request_comment
+
+Adds a comment to a pull request, either as a reply to an existing comment or as a new thread.
+
+### Description
+
+The `add_pull_request_comment` tool allows you to create new comments in pull requests in Azure DevOps. You can either:
+1. Add a reply to an existing comment thread
+2. Create a new thread with a comment in the general discussion
+3. Create a new thread with a comment on a specific file at a specific line
+
+This tool is useful for providing feedback on pull requests, engaging in code review discussions, and automating comment workflows.
+
+### Parameters
+
+```json
+{
+  "projectId": "MyProject", // Required: The ID or name of the project
+  "repositoryId": "MyRepo", // Required: The ID or name of the repository
+  "pullRequestId": 42, // Required: The ID of the pull request
+  "content": "This looks good, let's merge!", // Required: The content of the comment
+  "threadId": 123, // Optional: The ID of the thread to add the comment to (for replying)
+  "parentCommentId": 456, // Optional: The ID of the parent comment (for threaded replies)
+  "filePath": "/src/app.ts", // Optional: The path of the file to comment on (for file comments)
+  "lineNumber": 42, // Optional: The line number to comment on (for file comments)
+  "status": "active" // Optional: The status to set for a new thread (active, fixed, wontFix, closed, pending)
+}
+```
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `projectId` | string | Yes | The ID or name of the project containing the repository |
+| `repositoryId` | string | Yes | The ID or name of the repository containing the pull request |
+| `pullRequestId` | number | Yes | The ID of the pull request to comment on |
+| `content` | string | Yes | The text content of the comment |
+| `threadId` | number | No | The ID of an existing thread to add the comment to. Required when replying to an existing thread |
+| `parentCommentId` | number | No | ID of the parent comment when replying to a specific comment in a thread |
+| `filePath` | string | No | The path of the file to comment on (for creating a new thread on a file) |
+| `lineNumber` | number | No | The line number to comment on (for creating a new thread on a file) |
+| `status` | string | No | The status to set for a new thread: "active", "fixed", "wontFix", "closed", or "pending" |
+
+### Response
+
+When adding a comment to an existing thread, the tool returns an object containing:
+
+- `comment`: The created comment object with details like ID, content, and author
+
+When creating a new thread with a comment, the tool returns an object containing:
+
+- `comment`: The created comment object
+- `thread`: The created thread object with details like ID, status, and context 
+
+Example response for replying to an existing thread:
+
+```json
+{
+  "comment": {
+    "id": 101,
+    "content": "I agree with the suggestion",
+    "commentType": 1,
+    "parentCommentId": 100,
+    "author": {
+      "displayName": "John Doe",
+      "id": "user-guid",
+      "uniqueName": "john.doe@example.com"
+    },
+    "publishedDate": "2023-05-15T10:23:45Z"
+  }
+}
+```
+
+Example response for creating a new thread on a file:
+
+```json
+{
+  "comment": {
+    "id": 200,
+    "content": "This variable name should be more descriptive",
+    "commentType": 1,
+    "author": {
+      "displayName": "John Doe",
+      "id": "user-guid",
+      "uniqueName": "john.doe@example.com"
+    },
+    "publishedDate": "2023-05-15T10:30:12Z"
+  },
+  "thread": {
+    "id": 50,
+    "status": 1,
+    "threadContext": {
+      "filePath": "/src/app.ts",
+      "rightFileStart": {
+        "line": 42,
+        "offset": 1
+      },
+      "rightFileEnd": {
+        "line": 42,
+        "offset": 1
+      }
+    },
+    "comments": [
+      {
+        "id": 200,
+        "content": "This variable name should be more descriptive",
+        "commentType": 1,
+        "author": {
+          "displayName": "John Doe",
+          "id": "user-guid",
+          "uniqueName": "john.doe@example.com"
+        },
+        "publishedDate": "2023-05-15T10:30:12Z"
+      }
+    ]
+  }
+}
+```
+
+### Error Handling
+
+The tool may throw the following errors:
+
+- ValidationError: If required parameters are missing or invalid
+- AuthenticationError: If authentication fails
+- PermissionError: If the user doesn't have permission to comment on the pull request
+- ResourceNotFoundError: If the project, repository, pull request, or thread doesn't exist
+- GeneralError: For other unexpected errors
+
+Error messages will include details about what went wrong and suggestions for resolution.
+
+### Example Usage
+
+```typescript
+// Reply to an existing thread in a pull request
+const reply = await mcpClient.callTool('add_pull_request_comment', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  threadId: 123,
+  content: 'I agree with the suggestion, let me implement this change.'
+});
+console.log(`Created reply with ID ${reply.comment.id}`);
+
+// Reply to a specific comment in a thread
+const threadedReply = await mcpClient.callTool('add_pull_request_comment', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  threadId: 123,
+  parentCommentId: 456,
+  content: 'Specifically addressing your point about error handling.'
+});
+console.log(`Created threaded reply with ID ${threadedReply.comment.id}`);
+
+// Create a new general discussion thread in a pull request
+const newThread = await mcpClient.callTool('add_pull_request_comment', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  content: 'Overall this looks good, but let\'s discuss the error handling approach.'
+});
+console.log(`Created new thread with ID ${newThread.thread.id}`);
+
+// Create a comment on a specific file and line
+const fileComment = await mcpClient.callTool('add_pull_request_comment', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  content: 'This variable name should be more descriptive.',
+  filePath: '/src/app.ts',
+  lineNumber: 42
+});
+console.log(`Created file comment with ID ${fileComment.comment.id} in thread ${fileComment.thread.id}`);
+
+// Create a comment with thread status
+const statusComment = await mcpClient.callTool('add_pull_request_comment', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  content: 'There\'s an edge case not handled here.',
+  filePath: '/src/app.ts',
+  lineNumber: 87,
+  status: 'active'
+});
+console.log(`Created active thread with ID ${statusComment.thread.id}`);
+```
+
+### Implementation Details
+
+The `add_pull_request_comment` tool:
+
+1. Establishes a connection to Azure DevOps using the provided credentials
+2. Retrieves the Git API client
+3. Creates the comment object with the provided content
+4. Determines whether to add a comment to an existing thread or create a new thread:
+   - For existing threads, it calls `createComment` to add a comment to the thread
+   - For new threads, it creates a thread object and calls `createThread` to create a new thread with the comment
+5. For file comments, it adds file path and line information to the thread context
+6. Maps status strings to the appropriate CommentThreadStatus enum values
+7. Returns the created comment or thread information
+8. Handles errors and provides meaningful error messages
+
+This implementation provides a flexible way to add comments to pull requests, supporting both regular discussion comments and code review feedback.
+

@@ -188,6 +188,7 @@ The Azure DevOps MCP server provides a variety of tools for interacting with Azu
 - `create_pull_request`: Create a new pull request between branches in a repository
 - `list_pull_requests`: List and filter pull requests in a project or repository
 - `get_pull_request_comments`: Get comments and comment threads from a specific pull request
+- `add_pull_request_comment`: Add a comment to a pull request (reply to existing comments or create new threads)
 
 For comprehensive documentation on all tools, see the [Tools Documentation](docs/tools/).
 
