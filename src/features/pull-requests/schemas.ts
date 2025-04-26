@@ -18,7 +18,7 @@ export const CreatePullRequestSchema = z.object({
   description: z
     .string()
     .optional()
-    .describe('The description of the pull request'),
+    .describe('The description of the pull request (markdown is supported)'),
   sourceRefName: z
     .string()
     .describe('The source branch name (e.g., refs/heads/feature-branch)'),
@@ -101,36 +101,49 @@ export const GetPullRequestCommentsSchema = z.object({
 /**
  * Schema for adding a comment to a pull request
  */
-export const AddPullRequestCommentSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
-  repositoryId: z.string().describe('The ID or name of the repository'),
-  pullRequestId: z.number().describe('The ID of the pull request'),
-  content: z.string().describe('The content of the comment'),
-  threadId: z
-    .number()
-    .optional()
-    .describe('The ID of the thread to add the comment to'),
-  parentCommentId: z
-    .number()
-    .optional()
-    .describe('ID of the parent comment when replying to an existing comment'),
-  filePath: z
-    .string()
-    .optional()
-    .describe('The path of the file to comment on (for new thread on file)'),
-  lineNumber: z
-    .number()
-    .optional()
-    .describe('The line number to comment on (for new thread on file)'),
-  status: z
-    .enum(['active', 'fixed', 'wontFix', 'closed', 'pending'])
-    .optional()
-    .describe('The status to set for a new thread'),
-});
+export const AddPullRequestCommentSchema = z
+  .object({
+    projectId: z
+      .string()
+      .optional()
+      .describe(`The ID or name of the project (Default: ${defaultProject})`),
+    organizationId: z
+      .string()
+      .optional()
+      .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+    repositoryId: z.string().describe('The ID or name of the repository'),
+    pullRequestId: z.number().describe('The ID of the pull request'),
+    content: z.string().describe('The content of the comment in markdown'),
+    threadId: z
+      .number()
+      .optional()
+      .describe('The ID of the thread to add the comment to'),
+    parentCommentId: z
+      .number()
+      .optional()
+      .describe(
+        'ID of the parent comment when replying to an existing comment',
+      ),
+    filePath: z
+      .string()
+      .optional()
+      .describe('The path of the file to comment on (for new thread on file)'),
+    lineNumber: z
+      .number()
+      .optional()
+      .describe('The line number to comment on (for new thread on file)'),
+    status: z
+      .enum(['active', 'fixed', 'wontFix', 'closed', 'pending'])
+      .optional()
+      .describe('The status to set for a new thread'),
+  })
+  .superRefine((data, ctx) => {
+    // If we're creating a new thread (no threadId), status is required
+    if (!data.threadId && !data.status) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Status is required when creating a new thread',
+        path: ['status'],
+      });
+    }
+  });
