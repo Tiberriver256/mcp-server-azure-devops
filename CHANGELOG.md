@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.32](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.31...mcp-server-azure-devops-v0.1.32) (2025-04-26)
+
+
+### Features
+
+* add get_pull_request_comments ([2b7fb3a](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/2b7fb3a885466c633d2d2dfdd8906cc9573483d9))
+* add_pull_request_comment ([1df6161](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/1df616161835e11c0039bc344ccdc57742f79507))
+
 ## [0.1.31](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.30...mcp-server-azure-devops-v0.1.31) (2025-04-23)
 
 
