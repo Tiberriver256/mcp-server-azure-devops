@@ -106,7 +106,7 @@ export const UpdateWorkItemSchema = z.object({
   additionalFields: z
     .record(z.string(), z.any())
     .optional()
-    .describe('Additional fields to update on the work item'),
+    .describe('Additional fields to update on the work item, if it is System.History its best to format the comment as HTML.'),
 });
 
 /**
