@@ -55,7 +55,9 @@ export const CreateWorkItemSchema = z.object({
   description: z
     .string()
     .optional()
-    .describe('The description of the work item'),
+    .describe(
+      'Work item description in HTML format. HTML formatting required for multi-line fields like System.Description or AcceptanceCriteria. Do not use CDATA tags.',
+    ),
   assignedTo: z
     .string()
     .optional()
@@ -73,7 +75,9 @@ export const CreateWorkItemSchema = z.object({
   additionalFields: z
     .record(z.string(), z.any())
     .optional()
-    .describe('Additional fields to set on the work item'),
+    .describe(
+      'Additional fields to set on the work item. Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
+    ),
 });
 
 /**
@@ -85,7 +89,9 @@ export const UpdateWorkItemSchema = z.object({
   description: z
     .string()
     .optional()
-    .describe('The updated description of the work item'),
+    .describe(
+      'Work item description in HTML format. HTML formatting required for multi-line fields like System.Description or AcceptanceCriteria. Do not use CDATA tags.',
+    ),
   assignedTo: z
     .string()
     .optional()
@@ -106,7 +112,9 @@ export const UpdateWorkItemSchema = z.object({
   additionalFields: z
     .record(z.string(), z.any())
     .optional()
-    .describe('Additional fields to update on the work item, if it is System.History its best to format the comment as HTML.'),
+    .describe(
+      'Additional fields to update on the work item. Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
+    ),
 });
 
 /**
