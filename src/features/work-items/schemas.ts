@@ -56,7 +56,7 @@ export const CreateWorkItemSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Work item description in HTML format. HTML formatting required for multi-line fields like System.Description or AcceptanceCriteria. Do not use CDATA tags.',
+      'Work item description in HTML format. Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
     ),
   assignedTo: z
     .string()
@@ -90,7 +90,7 @@ export const UpdateWorkItemSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Work item description in HTML format. HTML formatting required for multi-line fields like System.Description or AcceptanceCriteria. Do not use CDATA tags.',
+      'Work item description in HTML format. Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
     ),
   assignedTo: z
     .string()
