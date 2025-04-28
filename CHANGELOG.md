@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.33](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.32...mcp-server-azure-devops-v0.1.33) (2025-04-28)
+
+
+### Bug Fixes
+
+* add guidance for HTML formatting in multi-line text fields ([#188](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/188)) ([25751cd](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/25751cd0d7cb8919a7bca80d0796784935f0fbed)), closes [#179](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/179)
+
 ## [0.1.32](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.31...mcp-server-azure-devops-v0.1.32) (2025-04-26)
 
 
