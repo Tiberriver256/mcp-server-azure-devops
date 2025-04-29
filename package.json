@@ -63,7 +63,7 @@
     "build": "tsc",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "start": "node dist/index.js",
-    "inspector": "npm run build && npx @modelcontextprotocol/inspector@0.4.1 node dist/index.js",
+    "inspector": "npm run build && npx @modelcontextprotocol/inspector node dist/index.js",
     "test": "npm run test:unit && npm run test:int && npm run test:e2e",
     "test:unit": "jest --config jest.unit.config.js",
     "test:int": "jest --config jest.int.config.js",

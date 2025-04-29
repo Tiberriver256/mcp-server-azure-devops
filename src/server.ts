@@ -121,7 +121,6 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
       ...pipelinesTools,
       ...wikisTools,
     ];
-
     return { tools };
   });
 

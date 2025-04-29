@@ -4,6 +4,7 @@ export * from './create-pull-request';
 export * from './list-pull-requests';
 export * from './get-pull-request-comments';
 export * from './add-pull-request-comment';
+export * from './update-pull-request';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -25,6 +26,7 @@ import {
   listPullRequests,
   getPullRequestComments,
   addPullRequestComment,
+  updatePullRequest,
 } from './';
 
 /**
@@ -39,6 +41,7 @@ export const isPullRequestsRequest: RequestIdentifier = (
     'list_pull_requests',
     'get_pull_request_comments',
     'add_pull_request_comment',
+    'update_pull_request',
   ].includes(toolName);
 };
 
@@ -125,6 +128,19 @@ export const handlePullRequestsRequest: RequestHandler = async (
           lineNumber: params.lineNumber,
           status: params.status,
         },
+      );
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'update_pull_request': {
+      const params = request.params.arguments;
+      const result = await updatePullRequest(
+        connection,
+        params.projectId ?? defaultProject,
+        params.repositoryId,
+        params.pullRequestId,
+        params,
       );
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],

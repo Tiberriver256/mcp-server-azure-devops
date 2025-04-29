@@ -147,3 +147,57 @@ export const AddPullRequestCommentSchema = z
       });
     }
   });
+
+/**
+ * Schema for updating a pull request
+ */
+export const UpdatePullRequestSchema = z.object({
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  repositoryId: z.string().describe('The ID or name of the repository'),
+  pullRequestId: z.number().describe('The ID of the pull request to update'),
+  title: z
+    .string()
+    .optional()
+    .describe('The updated title of the pull request'),
+  description: z
+    .string()
+    .optional()
+    .describe('The updated description of the pull request'),
+  status: z
+    .enum(['active', 'abandoned', 'completed'])
+    .optional()
+    .describe('The updated status of the pull request'),
+  isDraft: z
+    .boolean()
+    .optional()
+    .describe(
+      'Whether the pull request should be marked as a draft (true) or unmarked (false)',
+    ),
+  addWorkItemIds: z
+    .array(z.number())
+    .optional()
+    .describe('List of work item IDs to link to the pull request'),
+  removeWorkItemIds: z
+    .array(z.number())
+    .optional()
+    .describe('List of work item IDs to unlink from the pull request'),
+  addReviewers: z
+    .array(z.string())
+    .optional()
+    .describe('List of reviewer email addresses or IDs to add'),
+  removeReviewers: z
+    .array(z.string())
+    .optional()
+    .describe('List of reviewer email addresses or IDs to remove'),
+  additionalProperties: z
+    .record(z.string(), z.any())
+    .optional()
+    .describe('Additional properties to update on the pull request'),
+});

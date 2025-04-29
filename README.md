@@ -187,12 +187,13 @@ The Azure DevOps MCP server provides a variety of tools for interacting with Azu
 - `get_wikis`: List all wikis in a project
 - `get_wiki_page`: Get content of a specific wiki page as plain text
 
-### Pull Requests Tools
+### Pull Request Tools
 
-- `create_pull_request`: Create a new pull request between branches in a repository
-- `list_pull_requests`: List and filter pull requests in a project or repository
-- `get_pull_request_comments`: Get comments and comment threads from a specific pull request
-- `add_pull_request_comment`: Add a comment to a pull request (reply to existing comments or create new threads)
+- [`create_pull_request`](docs/tools/pull-requests.md#create_pull_request) - Create a new pull request
+- [`list_pull_requests`](docs/tools/pull-requests.md#list_pull_requests) - List pull requests in a repository
+- [`add_pull_request_comment`](docs/tools/pull-requests.md#add_pull_request_comment) - Add a comment to a pull request
+- [`get_pull_request_comments`](docs/tools/pull-requests.md#get_pull_request_comments) - Get comments from a pull request
+- [`update_pull_request`](docs/tools/pull-requests.md#update_pull_request) - Update an existing pull request (title, description, status, draft state, reviewers, work items)
 
 For comprehensive documentation on all tools, see the [Tools Documentation](docs/tools/).
 

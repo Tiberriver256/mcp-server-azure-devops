@@ -68,10 +68,16 @@ export interface AddPullRequestCommentOptions {
  * Options for updating a pull request
  */
 export interface UpdatePullRequestOptions {
+  projectId: string;
+  repositoryId: string;
+  pullRequestId: number;
   title?: string;
   description?: string;
-  status?: 'active' | 'completed' | 'abandoned';
-  reviewers?: string[];
+  status?: 'active' | 'abandoned' | 'completed';
   isDraft?: boolean;
+  addWorkItemIds?: number[];
+  removeWorkItemIds?: number[];
+  addReviewers?: string[]; // Array of reviewer identifiers (email or ID)
+  removeReviewers?: string[]; // Array of reviewer identifiers (email or ID)
   additionalProperties?: Record<string, any>;
 }

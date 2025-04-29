@@ -710,3 +710,193 @@ The `add_pull_request_comment` tool:
 
 This implementation provides a flexible way to add comments to pull requests, supporting both regular discussion comments and code review feedback.
 
+## update_pull_request
+
+Updates an existing pull request with new properties, links work items, and manages reviewers.
+
+### Description
+
+The `update_pull_request` tool allows you to update various aspects of an existing pull request in Azure DevOps. You can modify the title, description, status, draft state, add or remove linked work items, and add or remove reviewers. This tool is useful for automating pull request workflows, updating PR details based on new information, and managing the review process.
+
+### Parameters
+
+```json
+{
+  "projectId": "MyProject", // Required: The ID or name of the project
+  "repositoryId": "MyRepo", // Required: The ID or name of the repository
+  "pullRequestId": 42, // Required: The ID of the pull request to update
+  "title": "Updated PR Title", // Optional: The updated title of the pull request
+  "description": "Updated PR description", // Optional: The updated description
+  "status": "active", // Optional: The updated status (active, abandoned, completed)
+  "isDraft": false, // Optional: Whether to mark (true) or unmark (false) as draft
+  "addWorkItemIds": [123, 456], // Optional: Work item IDs to link to the PR
+  "removeWorkItemIds": [789], // Optional: Work item IDs to unlink from the PR
+  "addReviewers": ["user1@example.com"], // Optional: Reviewers to add
+  "removeReviewers": ["user2@example.com"], // Optional: Reviewers to remove
+  "additionalProperties": {} // Optional: Additional properties to update
+}
+```
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `projectId` | string | Yes | The ID or name of the project containing the repository |
+| `repositoryId` | string | Yes | The ID or name of the repository containing the pull request |
+| `pullRequestId` | number | Yes | The ID of the pull request to update |
+| `title` | string | No | The updated title of the pull request |
+| `description` | string | No | The updated description of the pull request |
+| `status` | string | No | The updated status: "active", "abandoned", or "completed" |
+| `isDraft` | boolean | No | Whether to mark (true) or unmark (false) the PR as a draft |
+| `addWorkItemIds` | number[] | No | Array of work item IDs to link to the pull request |
+| `removeWorkItemIds` | number[] | No | Array of work item IDs to unlink from the pull request |
+| `addReviewers` | string[] | No | Array of reviewer email addresses or IDs to add |
+| `removeReviewers` | string[] | No | Array of reviewer email addresses or IDs to remove |
+| `additionalProperties` | object | No | Additional properties to update on the pull request |
+
+### Response
+
+The tool returns the updated `PullRequest` object containing:
+
+- `pullRequestId`: The unique identifier of the updated pull request
+- `title`: The title of the pull request (updated if provided)
+- `description`: The description of the pull request (updated if provided)
+- `status`: The status of the pull request (active, abandoned, completed)
+- `isDraft`: Whether the pull request is a draft
+- And various other fields and references, including updated reviewers and work item references
+
+Example response:
+
+```json
+{
+  "repository": {
+    "id": "repo-guid",
+    "name": "MyRepo",
+    "url": "https://dev.azure.com/organization/MyProject/_apis/git/repositories/MyRepo",
+    "project": {
+      "id": "project-guid",
+      "name": "MyProject"
+    }
+  },
+  "pullRequestId": 42,
+  "codeReviewId": 42,
+  "status": 1,
+  "createdBy": {
+    "displayName": "John Doe",
+    "id": "user-guid",
+    "uniqueName": "john.doe@example.com"
+  },
+  "creationDate": "2023-01-01T12:00:00Z",
+  "title": "Updated PR Title",
+  "description": "Updated PR description",
+  "sourceRefName": "refs/heads/feature-branch",
+  "targetRefName": "refs/heads/main",
+  "mergeStatus": 3,
+  "isDraft": false,
+  "reviewers": [
+    {
+      "displayName": "Jane Smith",
+      "id": "reviewer-guid",
+      "uniqueName": "jane.smith@example.com",
+      "voteResult": 0
+    }
+  ],
+  "url": "https://dev.azure.com/organization/MyProject/_apis/git/repositories/MyRepo/pullRequests/42",
+  "workItemRefs": [
+    {
+      "id": "123",
+      "url": "https://dev.azure.com/organization/MyProject/_apis/wit/workItems/123"
+    },
+    {
+      "id": "456",
+      "url": "https://dev.azure.com/organization/MyProject/_apis/wit/workItems/456"
+    }
+  ]
+}
+```
+
+### Error Handling
+
+The tool may throw the following errors:
+
+- ValidationError: If required parameters are missing or invalid
+- AuthenticationError: If authentication fails
+- PermissionError: If the user doesn't have permission to update the pull request
+- ResourceNotFoundError: If the project, repository, or pull request doesn't exist
+- GeneralError: For other unexpected errors
+
+Error messages will include details about what went wrong and suggestions for resolution.
+
+### Example Usage
+
+```typescript
+// Update the title and description of a pull request
+const updatedPR = await mcpClient.callTool('update_pull_request', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  title: 'Updated PR Title',
+  description: 'This PR has been updated to add new features'
+});
+console.log(`Updated PR: ${updatedPR.title}`);
+
+// Mark a pull request as completed
+const completedPR = await mcpClient.callTool('update_pull_request', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  status: 'completed'
+});
+console.log(`PR status: ${completedPR.status === 3 ? 'Completed' : 'Not completed'}`);
+
+// Convert a draft PR to a normal PR
+const readyPR = await mcpClient.callTool('update_pull_request', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  isDraft: false
+});
+console.log(`PR is draft: ${readyPR.isDraft ? 'Yes' : 'No'}`);
+
+// Add and remove work items from a PR
+const workItemPR = await mcpClient.callTool('update_pull_request', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  addWorkItemIds: [123, 456],
+  removeWorkItemIds: [789]
+});
+console.log(`PR now has ${workItemPR.workItemRefs?.length || 0} linked work items`);
+
+// Add and remove reviewers
+const reviewersPR = await mcpClient.callTool('update_pull_request', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  addReviewers: ['alex@example.com', 'taylor@example.com'],
+  removeReviewers: ['old-reviewer@example.com']
+});
+console.log(`PR now has ${reviewersPR.reviewers?.length || 0} reviewers`);
+```
+
+### Implementation Details
+
+The `update_pull_request` tool:
+
+1. Establishes a connection to Azure DevOps using the provided credentials
+2. Retrieves the Git API client
+3. Gets the current pull request to verify it exists
+4. Creates an update object with only the properties that are being updated:
+   - Basic properties (title, description, isDraft)
+   - Status (active, abandoned, completed)
+   - Any additional properties provided
+5. Updates the pull request with the provided changes
+6. If specified, handles adding and removing work item associations:
+   - Adds work items by creating links between the PR and work items
+   - Removes work items by deleting links between the PR and work items
+7. If specified, handles adding and removing reviewers:
+   - Adds reviewers by creating reviewer references
+   - Removes reviewers by deleting reviewer references
+8. Gets the final updated pull request to return all changes
+9. Handles errors and provides meaningful error messages
+
+This implementation provides a comprehensive way to update pull requests in Azure DevOps repositories, supporting all common update scenarios.
+
