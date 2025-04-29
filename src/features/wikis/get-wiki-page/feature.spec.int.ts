@@ -7,12 +7,18 @@ import {
 } from '@/shared/test/test-helpers';
 import { getOrgNameFromUrl } from '@/utils/environment';
 
+process.env.AZURE_DEVOPS_DEFAULT_PROJECT =
+  process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'default-project';
+
 describe('getWikiPage integration', () => {
   let connection: WebApi | null = null;
   let projectName: string;
   let orgUrl: string;
 
   beforeAll(async () => {
+    // Mock the required environment variable for testing
+    process.env.AZURE_DEVOPS_ORG_URL =
+      process.env.AZURE_DEVOPS_ORG_URL || 'https://example.visualstudio.com';
     // Get a real connection using environment variables
     connection = await getTestConnection();
 

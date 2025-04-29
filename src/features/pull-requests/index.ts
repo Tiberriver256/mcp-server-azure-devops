@@ -22,6 +22,7 @@ import {
   ListPullRequestsSchema,
   GetPullRequestCommentsSchema,
   AddPullRequestCommentSchema,
+  UpdatePullRequestSchema,
   createPullRequest,
   listPullRequests,
   getPullRequestComments,
@@ -134,14 +135,12 @@ export const handlePullRequestsRequest: RequestHandler = async (
       };
     }
     case 'update_pull_request': {
-      const params = request.params.arguments;
-      const result = await updatePullRequest(
-        connection,
-        params.projectId ?? defaultProject,
-        params.repositoryId,
-        params.pullRequestId,
-        params,
-      );
+      const params = UpdatePullRequestSchema.parse(request.params.arguments);
+      const fixedParams = {
+        ...params,
+        projectId: params.projectId ?? defaultProject,
+      };
+      const result = await updatePullRequest(fixedParams);
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
