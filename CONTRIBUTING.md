@@ -28,6 +28,37 @@ This project follows Test-Driven Development practices. Each new feature should:
 2. Implement the minimal code to make the test pass
 3. Refactor while keeping tests green
 
+## Project Structure
+
+The server is organized into feature-specific modules:
+
+```
+src/
+ └── features/
+     ├── organizations/
+     ├── pipelines/
+     ├── projects/
+     ├── pull-requests/
+     ├── repositories/
+     ├── search/
+     ├── users/
+     ├── wikis/
+     └── work-items/
+```
+
+Each feature module:
+1. Exports its schemas, types, and individual tool functions
+2. Provides an `is<FeatureName>Request` function to identify if a request is for this feature
+3. Provides a `handle<FeatureName>Request` function to handle requests for this feature
+
+### Adding a New Feature or Tool
+
+When adding a new feature or tool:
+1. Create a new directory under `src/features/` if needed
+2. Implement your tool functions
+3. Update the feature's `index.ts` to export your functions and add them to the request handlers
+4. No changes to server.ts should be needed!
+
 ## Testing
 
 ### Unit Tests
@@ -157,4 +188,4 @@ This automation ensures consistent and well-documented releases that accurately 
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the project's license. 
+By contributing, you agree that your contributions will be licensed under the project's license.

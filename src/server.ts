@@ -5,7 +5,6 @@ import {
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import { WebApi } from 'azure-devops-node-api';
 import { VERSION } from './shared/config';
 import { AzureDevOpsConfig } from './shared/types';
@@ -14,96 +13,64 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-  isAzureDevOpsError,
 } from './shared/errors';
+import { handleResponseError } from './shared/errors/handle-request-error';
 import { AuthenticationMethod, AzureDevOpsClient } from './shared/auth';
-import { defaultProject, defaultOrg } from './utils/environment';
+// Import environment defaults when needed in feature handlers
 
-// Import our new feature modules
+// Import feature modules with request handlers and tool definitions
 import {
-  ListWorkItemsSchema,
-  GetWorkItemSchema,
-  CreateWorkItemSchema,
-  UpdateWorkItemSchema,
-  ManageWorkItemLinkSchema,
-  listWorkItems,
-  getWorkItem,
-  createWorkItem,
-  updateWorkItem,
-  manageWorkItemLink,
+  workItemsTools,
+  isWorkItemsRequest,
+  handleWorkItemsRequest,
 } from './features/work-items';
 
 import {
-  GetProjectSchema,
-  GetProjectDetailsSchema,
-  ListProjectsSchema,
-  getProject,
-  getProjectDetails,
-  listProjects,
+  projectsTools,
+  isProjectsRequest,
+  handleProjectsRequest,
 } from './features/projects';
 
 import {
-  GetRepositorySchema,
-  GetRepositoryDetailsSchema,
-  ListRepositoriesSchema,
-  getRepository,
-  getRepositoryDetails,
-  listRepositories,
-  getFileContent,
-  GetFileContentSchema,
-  GetAllRepositoriesTreeSchema,
-  getAllRepositoriesTree,
-  formatRepositoryTree,
+  repositoriesTools,
+  isRepositoriesRequest,
+  handleRepositoriesRequest,
 } from './features/repositories';
 
 import {
-  ListOrganizationsSchema,
-  listOrganizations,
+  organizationsTools,
+  isOrganizationsRequest,
+  handleOrganizationsRequest,
 } from './features/organizations';
 
 import {
-  SearchCodeSchema,
-  SearchWikiSchema,
-  SearchWorkItemsSchema,
-  searchCode,
-  searchWiki,
-  searchWorkItems,
+  searchTools,
+  isSearchRequest,
+  handleSearchRequest,
 } from './features/search';
 
-import { GetMeSchema, getMe } from './features/users';
+import {
+  usersTools,
+  isUsersRequest,
+  handleUsersRequest,
+} from './features/users';
 
 import {
-  CreatePullRequestSchema,
-  createPullRequest,
-  ListPullRequestsSchema,
-  listPullRequests,
-  GetPullRequestCommentsSchema,
-  getPullRequestComments,
-  AddPullRequestCommentSchema,
-  addPullRequestComment,
+  pullRequestsTools,
+  isPullRequestsRequest,
+  handlePullRequestsRequest,
 } from './features/pull-requests';
 
 import {
-  ListPipelinesSchema,
-  listPipelines,
-  GetPipelineSchema,
-  getPipeline,
-  TriggerPipelineSchema,
-  triggerPipeline,
+  pipelinesTools,
+  isPipelinesRequest,
+  handlePipelinesRequest,
 } from './features/pipelines';
 
-import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-
-// Import wikis feature modules
 import {
-  GetWikisSchema,
-  getWikis,
-  GetWikiPageSchema,
-  getWikiPage,
-  CreateWikiSchema,
-  createWiki,
-  UpdateWikiPageSchema,
-  updateWikiPage,
+  wikisTools,
+  isWikisRequest,
+  handleWikisRequest,
 } from './features/wikis';
 
 // Create a safe console logging function that won't interfere with MCP protocol
@@ -142,172 +109,20 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
 
   // Register the ListTools request handler
   server.setRequestHandler(ListToolsRequestSchema, () => {
-    return {
-      tools: [
-        // User tools
-        {
-          name: 'get_me',
-          description:
-            'Get details of the authenticated user (id, displayName, email)',
-          inputSchema: zodToJsonSchema(GetMeSchema),
-        },
-        // Organization tools
-        {
-          name: 'list_organizations',
-          description:
-            'List all Azure DevOps organizations accessible to the current authentication',
-          inputSchema: zodToJsonSchema(ListOrganizationsSchema),
-        },
-        // Project tools
-        {
-          name: 'list_projects',
-          description: 'List all projects in an organization',
-          inputSchema: zodToJsonSchema(ListProjectsSchema),
-        },
-        {
-          name: 'get_project',
-          description: 'Get details of a specific project',
-          inputSchema: zodToJsonSchema(GetProjectSchema),
-        },
-        {
-          name: 'get_project_details',
-          description:
-            'Get comprehensive details of a project including process, work item types, and teams',
-          inputSchema: zodToJsonSchema(GetProjectDetailsSchema),
-        },
-        // Work item tools
-        {
-          name: 'get_work_item',
-          description: 'Get details of a specific work item',
-          inputSchema: zodToJsonSchema(GetWorkItemSchema),
-        },
-        {
-          name: 'list_work_items',
-          description: 'List work items in a project',
-          inputSchema: zodToJsonSchema(ListWorkItemsSchema),
-        },
-        {
-          name: 'create_work_item',
-          description: 'Create a new work item',
-          inputSchema: zodToJsonSchema(CreateWorkItemSchema),
-        },
-        {
-          name: 'update_work_item',
-          description: 'Update an existing work item',
-          inputSchema: zodToJsonSchema(UpdateWorkItemSchema),
-        },
-        {
-          name: 'manage_work_item_link',
-          description: 'Add or remove a link between work items',
-          inputSchema: zodToJsonSchema(ManageWorkItemLinkSchema),
-        },
-        // Pipeline tools
-        {
-          name: 'list_pipelines',
-          description: 'List pipelines in a project',
-          inputSchema: zodToJsonSchema(ListPipelinesSchema),
-        },
-        {
-          name: 'get_pipeline',
-          description: 'Get details of a specific pipeline',
-          inputSchema: zodToJsonSchema(GetPipelineSchema),
-        },
-        {
-          name: 'trigger_pipeline',
-          description: 'Trigger a pipeline run',
-          inputSchema: zodToJsonSchema(TriggerPipelineSchema),
-        },
-        // Repository tools
-        {
-          name: 'get_repository',
-          description: 'Get details of a specific repository',
-          inputSchema: zodToJsonSchema(GetRepositorySchema),
-        },
-        {
-          name: 'get_repository_details',
-          description:
-            'Get detailed information about a repository including statistics and refs',
-          inputSchema: zodToJsonSchema(GetRepositoryDetailsSchema),
-        },
-        {
-          name: 'list_repositories',
-          description: 'List repositories in a project',
-          inputSchema: zodToJsonSchema(ListRepositoriesSchema),
-        },
-        // File content tool
-        {
-          name: 'get_file_content',
-          description: 'Get content of a file or directory from a repository',
-          inputSchema: zodToJsonSchema(GetFileContentSchema),
-        },
-        // Multi-repository tree tool
-        {
-          name: 'get_all_repositories_tree',
-          description:
-            'Displays a hierarchical tree view of files and directories across multiple Azure DevOps repositories within a project, based on their default branches',
-          inputSchema: zodToJsonSchema(GetAllRepositoriesTreeSchema),
-        },
-        // Search tools
-        {
-          name: 'search_code',
-          description: 'Search for code across repositories in a project',
-          inputSchema: zodToJsonSchema(SearchCodeSchema),
-        },
-        {
-          name: 'search_wiki',
-          description: 'Search for content across wiki pages in a project',
-          inputSchema: zodToJsonSchema(SearchWikiSchema),
-        },
-        {
-          name: 'search_work_items',
-          description: 'Search for work items across projects in Azure DevOps',
-          inputSchema: zodToJsonSchema(SearchWorkItemsSchema),
-        },
-        // Pull request tools
-        {
-          name: 'create_pull_request',
-          description: 'Create a new pull request',
-          inputSchema: zodToJsonSchema(CreatePullRequestSchema),
-        },
-        {
-          name: 'list_pull_requests',
-          description: 'List pull requests in a repository',
-          inputSchema: zodToJsonSchema(ListPullRequestsSchema),
-        },
-        {
-          name: 'get_pull_request_comments',
-          description: 'Get comments from a specific pull request',
-          inputSchema: zodToJsonSchema(GetPullRequestCommentsSchema),
-        },
-        {
-          name: 'add_pull_request_comment',
-          description:
-            'Add a comment to a pull request (reply to existing comments or create new threads)',
-          inputSchema: zodToJsonSchema(AddPullRequestCommentSchema),
-        },
-        // Wiki tools
-        {
-          name: 'get_wikis',
-          description: 'Get details of wikis in a project',
-          inputSchema: zodToJsonSchema(GetWikisSchema),
-        },
-        {
-          name: 'get_wiki_page',
-          description: 'Get the content of a wiki page',
-          inputSchema: zodToJsonSchema(GetWikiPageSchema),
-        },
-        {
-          name: 'create_wiki',
-          description: 'Create a new wiki in the project',
-          inputSchema: zodToJsonSchema(CreateWikiSchema),
-        },
-        {
-          name: 'update_wiki_page',
-          description: 'Update content of a wiki page',
-          inputSchema: zodToJsonSchema(UpdateWikiPageSchema),
-        },
-      ],
-    };
+    // Combine tools from all features
+    const tools = [
+      ...usersTools,
+      ...organizationsTools,
+      ...projectsTools,
+      ...repositoriesTools,
+      ...workItemsTools,
+      ...searchTools,
+      ...pullRequestsTools,
+      ...pipelinesTools,
+      ...wikisTools,
+    ];
+
+    return { tools };
   });
 
   // Register the resource handlers
@@ -388,11 +203,11 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
       }
 
       // Determine version control parameters based on URI pattern
-      let versionType: GitVersionType | undefined;
+      let versionType: number | undefined;
       let version: string | undefined;
 
       if (segments[3] === 'branches' && segments.length >= 5) {
-        versionType = GitVersionType.Branch;
+        versionType = 2; // GitVersionType.Branch
         version = segments[4];
 
         // Extract path if present
@@ -400,7 +215,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           path = '/' + segments.slice(6).join('/');
         }
       } else if (segments[3] === 'commits' && segments.length >= 5) {
-        versionType = GitVersionType.Commit;
+        versionType = 1; // GitVersionType.Commit
         version = segments[4];
 
         // Extract path if present
@@ -408,7 +223,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           path = '/' + segments.slice(6).join('/');
         }
       } else if (segments[3] === 'tags' && segments.length >= 5) {
-        versionType = GitVersionType.Tag;
+        versionType = 3; // GitVersionType.Tag
         version = segments[4];
 
         // Extract path if present
@@ -430,6 +245,11 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
       // Get the content
       const versionDescriptor =
         versionType && version ? { versionType, version } : undefined;
+
+      // Import the getFileContent function from repositories feature
+      const { getFileContent } = await import(
+        './features/repositories/get-file-content/index.js'
+      );
 
       const fileContent = await getFileContent(
         connection,
@@ -473,469 +293,52 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
       // Get a connection to Azure DevOps
       const connection = await getConnection(config);
 
-      switch (request.params.name) {
-        // User tools
-        case 'get_me': {
-          const result = await getMe(connection);
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-
-        // Organization tools
-        case 'list_organizations': {
-          const result = await listOrganizations(config);
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-
-        // Project tools
-        case 'list_projects': {
-          const args = ListProjectsSchema.parse(request.params.arguments);
-          const result = await listProjects(connection, {
-            stateFilter: args.stateFilter,
-            top: args.top,
-            skip: args.skip,
-            continuationToken: args.continuationToken,
-          });
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'get_project': {
-          const args = GetProjectSchema.parse(request.params.arguments);
-          const result = await getProject(
-            connection,
-            args.projectId ?? defaultProject,
-          );
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'get_project_details': {
-          const args = GetProjectDetailsSchema.parse(request.params.arguments);
-          const result = await getProjectDetails(connection, {
-            ...args,
-            projectId: args.projectId ?? defaultProject,
-          });
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-
-        // Work item tools
-        case 'get_work_item': {
-          const args = GetWorkItemSchema.parse(request.params.arguments);
-          const result = await getWorkItem(
-            connection,
-            args.workItemId,
-            args.expand,
-          );
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'list_work_items': {
-          const args = ListWorkItemsSchema.parse(request.params.arguments);
-          const result = await listWorkItems(connection, {
-            projectId: args.projectId ?? defaultProject,
-            teamId: args.teamId,
-            queryId: args.queryId,
-            wiql: args.wiql,
-            top: args.top,
-            skip: args.skip,
-          });
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'create_work_item': {
-          const args = CreateWorkItemSchema.parse(request.params.arguments);
-          const result = await createWorkItem(
-            connection,
-            args.projectId ?? defaultProject,
-            args.workItemType,
-            {
-              title: args.title,
-              description: args.description,
-              assignedTo: args.assignedTo,
-              areaPath: args.areaPath,
-              iterationPath: args.iterationPath,
-              priority: args.priority,
-              parentId: args.parentId,
-              additionalFields: args.additionalFields,
-            },
-          );
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'update_work_item': {
-          const args = UpdateWorkItemSchema.parse(request.params.arguments);
-          const result = await updateWorkItem(connection, args.workItemId, {
-            title: args.title,
-            description: args.description,
-            assignedTo: args.assignedTo,
-            areaPath: args.areaPath,
-            iterationPath: args.iterationPath,
-            priority: args.priority,
-            state: args.state,
-            additionalFields: args.additionalFields,
-          });
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'manage_work_item_link': {
-          const args = ManageWorkItemLinkSchema.parse(request.params.arguments);
-          const result = await manageWorkItemLink(
-            connection,
-            args.projectId ?? defaultProject,
-            {
-              sourceWorkItemId: args.sourceWorkItemId,
-              targetWorkItemId: args.targetWorkItemId,
-              operation: args.operation,
-              relationType: args.relationType,
-              newRelationType: args.newRelationType,
-              comment: args.comment,
-            },
-          );
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-
-        // Pipeline tools
-        case 'list_pipelines': {
-          const args = ListPipelinesSchema.parse(request.params.arguments);
-          const result = await listPipelines(connection, {
-            ...args,
-            projectId: args.projectId ?? defaultProject,
-          });
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'get_pipeline': {
-          const args = GetPipelineSchema.parse(request.params.arguments);
-          const result = await getPipeline(connection, {
-            projectId: args.projectId ?? defaultProject,
-            pipelineId: args.pipelineId,
-            pipelineVersion: args.pipelineVersion,
-          });
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'trigger_pipeline': {
-          const args = TriggerPipelineSchema.parse(request.params.arguments);
-          const result = await triggerPipeline(connection, {
-            projectId: args.projectId ?? defaultProject,
-            pipelineId: args.pipelineId,
-            branch: args.branch,
-            variables: args.variables,
-            templateParameters: args.templateParameters,
-            stagesToSkip: args.stagesToSkip,
-          });
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-
-        // Repository tools
-        case 'get_repository': {
-          const args = GetRepositorySchema.parse(request.params.arguments);
-          const result = await getRepository(
-            connection,
-            args.projectId ?? defaultProject,
-            args.repositoryId,
-          );
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'get_repository_details': {
-          const args = GetRepositoryDetailsSchema.parse(
-            request.params.arguments,
-          );
-          const result = await getRepositoryDetails(connection, {
-            projectId: args.projectId ?? defaultProject,
-            repositoryId: args.repositoryId,
-            includeStatistics: args.includeStatistics,
-            includeRefs: args.includeRefs,
-            refFilter: args.refFilter,
-            branchName: args.branchName,
-          });
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'list_repositories': {
-          const args = ListRepositoriesSchema.parse(request.params.arguments);
-          const result = await listRepositories(connection, {
-            ...args,
-            projectId: args.projectId ?? defaultProject,
-          });
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'get_file_content': {
-          const args = GetFileContentSchema.parse(request.params.arguments);
-
-          // Map the string version type to the GitVersionType enum
-          let versionTypeEnum: GitVersionType | undefined;
-          if (args.versionType && args.version) {
-            if (args.versionType === 'branch') {
-              versionTypeEnum = GitVersionType.Branch;
-            } else if (args.versionType === 'commit') {
-              versionTypeEnum = GitVersionType.Commit;
-            } else if (args.versionType === 'tag') {
-              versionTypeEnum = GitVersionType.Tag;
-            }
-          }
-
-          const result = await getFileContent(
-            connection,
-            args.projectId ?? defaultProject,
-            args.repositoryId,
-            args.path,
-            versionTypeEnum !== undefined && args.version
-              ? { versionType: versionTypeEnum, version: args.version }
-              : undefined,
-          );
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(result, null, 2),
-              },
-            ],
-          };
-        }
-        case 'get_all_repositories_tree': {
-          const args = GetAllRepositoriesTreeSchema.parse(
-            request.params.arguments,
-          );
-          const result = await getAllRepositoriesTree(connection, {
-            ...args,
-            projectId: args.projectId ?? defaultProject,
-            organizationId: args.organizationId ?? defaultOrg,
-          });
-
-          // Format the output as plain text tree representation
-          let formattedOutput = '';
-          for (const repo of result.repositories) {
-            formattedOutput += formatRepositoryTree(
-              repo.name,
-              repo.tree,
-              repo.stats,
-              repo.error,
-            );
-            formattedOutput += '\n'; // Add blank line between repositories
-          }
-
-          return {
-            content: [{ type: 'text', text: formattedOutput }],
-          };
-        }
-
-        // Search tools
-        case 'search_code': {
-          const args = SearchCodeSchema.parse(request.params.arguments);
-          const result = await searchCode(connection, args);
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'search_wiki': {
-          const args = SearchWikiSchema.parse(request.params.arguments);
-          const result = await searchWiki(connection, args);
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'search_work_items': {
-          const args = SearchWorkItemsSchema.parse(request.params.arguments);
-          const result = await searchWorkItems(connection, args);
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-
-        // Pull request tools
-        case 'create_pull_request': {
-          const args = CreatePullRequestSchema.parse(request.params.arguments);
-          const result = await createPullRequest(
-            connection,
-            args.projectId ?? defaultProject,
-            args.repositoryId,
-            args,
-          );
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'list_pull_requests': {
-          const params = ListPullRequestsSchema.parse(request.params.arguments);
-          const result = await listPullRequests(
-            connection,
-            params.projectId ?? defaultProject,
-            params.repositoryId,
-            {
-              projectId: params.projectId ?? defaultProject,
-              repositoryId: params.repositoryId,
-              status: params.status,
-              creatorId: params.creatorId,
-              reviewerId: params.reviewerId,
-              sourceRefName: params.sourceRefName,
-              targetRefName: params.targetRefName,
-              top: params.top,
-            },
-          );
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'get_pull_request_comments': {
-          const params = GetPullRequestCommentsSchema.parse(
-            request.params.arguments,
-          );
-          const result = await getPullRequestComments(
-            connection,
-            params.projectId ?? defaultProject,
-            params.repositoryId,
-            params.pullRequestId,
-            {
-              projectId: params.projectId ?? defaultProject,
-              repositoryId: params.repositoryId,
-              pullRequestId: params.pullRequestId,
-              threadId: params.threadId,
-              includeDeleted: params.includeDeleted,
-              top: params.top,
-            },
-          );
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'add_pull_request_comment': {
-          const params = AddPullRequestCommentSchema.parse(
-            request.params.arguments,
-          );
-          const result = await addPullRequestComment(
-            connection,
-            params.projectId ?? defaultProject,
-            params.repositoryId,
-            params.pullRequestId,
-            {
-              projectId: params.projectId ?? defaultProject,
-              repositoryId: params.repositoryId,
-              pullRequestId: params.pullRequestId,
-              content: params.content,
-              threadId: params.threadId,
-              parentCommentId: params.parentCommentId,
-              filePath: params.filePath,
-              lineNumber: params.lineNumber,
-              status: params.status,
-            },
-          );
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-
-        // Wiki tools
-        case 'get_wikis': {
-          const args = GetWikisSchema.parse(request.params.arguments);
-          const result = await getWikis(connection, {
-            organizationId: args.organizationId ?? defaultOrg,
-            projectId: args.projectId ?? defaultProject,
-          });
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'get_wiki_page': {
-          const args = GetWikiPageSchema.parse(request.params.arguments);
-          const result = await getWikiPage({
-            organizationId: args.organizationId ?? defaultOrg,
-            projectId: args.projectId ?? defaultProject,
-            wikiId: args.wikiId,
-            pagePath: args.pagePath,
-          });
-          return {
-            content: [{ type: 'text', text: result }],
-          };
-        }
-        case 'create_wiki': {
-          const args = CreateWikiSchema.parse(request.params.arguments);
-          const result = await createWiki(connection, {
-            organizationId: args.organizationId ?? defaultOrg,
-            projectId: args.projectId ?? defaultProject,
-            name: args.name,
-            type: args.type,
-            repositoryId: args.repositoryId ?? undefined,
-            mappedPath: args.mappedPath ?? undefined,
-          });
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-        case 'update_wiki_page': {
-          const args = UpdateWikiPageSchema.parse(request.params.arguments);
-          const result = await updateWikiPage({
-            organizationId: args.organizationId ?? defaultOrg,
-            projectId: args.projectId ?? defaultProject,
-            wikiId: args.wikiId,
-            pagePath: args.pagePath,
-            content: args.content,
-            comment: args.comment,
-          });
-          return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          };
-        }
-
-        default:
-          throw new Error(`Unknown tool: ${request.params.name}`);
+      // Route the request to the appropriate feature handler
+      if (isWorkItemsRequest(request)) {
+        return await handleWorkItemsRequest(connection, request);
       }
+
+      if (isProjectsRequest(request)) {
+        return await handleProjectsRequest(connection, request);
+      }
+
+      if (isRepositoriesRequest(request)) {
+        return await handleRepositoriesRequest(connection, request);
+      }
+
+      if (isOrganizationsRequest(request)) {
+        // Organizations feature doesn't need the config object anymore
+        return await handleOrganizationsRequest(connection, request);
+      }
+
+      if (isSearchRequest(request)) {
+        return await handleSearchRequest(connection, request);
+      }
+
+      if (isUsersRequest(request)) {
+        return await handleUsersRequest(connection, request);
+      }
+
+      if (isPullRequestsRequest(request)) {
+        return await handlePullRequestsRequest(connection, request);
+      }
+
+      if (isPipelinesRequest(request)) {
+        return await handlePipelinesRequest(connection, request);
+      }
+
+      if (isWikisRequest(request)) {
+        return await handleWikisRequest(connection, request);
+      }
+
+      // If we get here, the tool is not recognized by any feature handler
+      throw new Error(`Unknown tool: ${request.params.name}`);
     } catch (error) {
-      safeLog(`Error handling tool call: ${error}`);
-
-      // Format the error message
-      const errorMessage = isAzureDevOpsError(error)
-        ? formatAzureDevOpsError(error)
-        : `Error: ${error instanceof Error ? error.message : String(error)}`;
-
-      return {
-        content: [{ type: 'text', text: errorMessage }],
-      };
+      return handleResponseError(error);
     }
   });
 
   return server;
-}
-
-/**
- * Format an Azure DevOps error for display
- *
- * @param error The error to format
- * @returns Formatted error message
- */
-function formatAzureDevOpsError(error: AzureDevOpsError): string {
-  let message = `Azure DevOps API Error: ${error.message}`;
-
-  if (error instanceof AzureDevOpsValidationError) {
-    message = `Validation Error: ${error.message}`;
-  } else if (error instanceof AzureDevOpsResourceNotFoundError) {
-    message = `Not Found: ${error.message}`;
-  } else if (error instanceof AzureDevOpsAuthenticationError) {
-    message = `Authentication Failed: ${error.message}`;
-  }
-
-  return message;
 }
 
 /**

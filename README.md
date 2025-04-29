@@ -26,8 +26,12 @@ The server is structured around the Model Context Protocol (MCP) for communicati
 ### Core Components
 
 - **AzureDevOpsServer**: Main server class that initializes the MCP server and registers tools
+- **Feature Modules**: Organized by feature area (work-items, projects, repositories, etc.)
+- **Request Handlers**: Each feature module provides request identification and handling functions
 - **Tool Handlers**: Modular functions for each Azure DevOps operation
 - **Configuration**: Environment-based configuration for organization URL, PAT, etc.
+
+The server uses a feature-based architecture where each feature area (like work-items, projects, repositories) is encapsulated in its own module. This makes the codebase more maintainable and easier to extend with new features.
 
 ## Getting Started
 
