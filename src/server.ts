@@ -1,13 +1,14 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
+  CallToolRequest,
   CallToolRequestSchema,
-  ListToolsRequestSchema,
   ListResourcesRequestSchema,
+  ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
+import { AuthenticationMethod, AzureDevOpsClient } from './shared/auth';
 import { VERSION } from './shared/config';
-import { AzureDevOpsConfig } from './shared/types';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
@@ -15,63 +16,72 @@ import {
   AzureDevOpsValidationError,
 } from './shared/errors';
 import { handleResponseError } from './shared/errors/handle-request-error';
-import { AuthenticationMethod, AzureDevOpsClient } from './shared/auth';
+import { AzureDevOpsConfig } from './shared/types';
 // Import environment defaults when needed in feature handlers
 
 // Import feature modules with request handlers and tool definitions
 import {
-  workItemsTools,
-  isWorkItemsRequest,
   handleWorkItemsRequest,
+  isWorkItemsRequest,
+  workItemsTools,
 } from './features/work-items';
 
 import {
-  projectsTools,
-  isProjectsRequest,
   handleProjectsRequest,
+  isProjectsRequest,
+  projectsTools,
 } from './features/projects';
 
 import {
-  repositoriesTools,
-  isRepositoriesRequest,
   handleRepositoriesRequest,
+  isRepositoriesRequest,
+  repositoriesTools,
 } from './features/repositories';
 
 import {
-  organizationsTools,
-  isOrganizationsRequest,
   handleOrganizationsRequest,
+  isOrganizationsRequest,
+  organizationsTools,
 } from './features/organizations';
 
 import {
-  searchTools,
-  isSearchRequest,
   handleSearchRequest,
+  isSearchRequest,
+  searchTools,
 } from './features/search';
 
 import {
-  usersTools,
-  isUsersRequest,
   handleUsersRequest,
+  isUsersRequest,
+  usersTools,
 } from './features/users';
 
 import {
-  pullRequestsTools,
-  isPullRequestsRequest,
   handlePullRequestsRequest,
+  isPullRequestsRequest,
+  pullRequestsTools,
 } from './features/pull-requests';
 
 import {
-  pipelinesTools,
-  isPipelinesRequest,
   handlePipelinesRequest,
+  isPipelinesRequest,
+  pipelinesTools,
 } from './features/pipelines';
 
 import {
-  wikisTools,
-  isWikisRequest,
   handleWikisRequest,
+  isWikisRequest,
+  wikisTools,
 } from './features/wikis';
+
+// Import dynamic toolset feature
+import {
+  dynamicTools,
+  handleDynamicRequest,
+  initializeToolsets,
+  isDynamicRequest,
+  toolsets,
+} from './features/dynamic';
 
 // Create a safe console logging function that won't interfere with MCP protocol
 function safeLog(message: string) {
@@ -101,26 +111,41 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
     },
     {
       capabilities: {
-        tools: {},
+        tools: { listChanged: true }, // Enable dynamic tool updates
         resources: {},
       },
     },
   );
 
+  // Group all tools by feature
+  const allTools = {
+    users: usersTools,
+    organizations: organizationsTools,
+    projects: projectsTools,
+    repositories: repositoriesTools,
+    workItems: workItemsTools,
+    search: searchTools,
+    pullRequests: pullRequestsTools,
+    pipelines: pipelinesTools,
+    wikis: wikisTools,
+    dynamic: dynamicTools,
+  };
+
+  // Initialize toolsets with all available tools
+  initializeToolsets(allTools);
+
   // Register the ListTools request handler
   server.setRequestHandler(ListToolsRequestSchema, () => {
-    // Combine tools from all features
-    const tools = [
-      ...usersTools,
-      ...organizationsTools,
-      ...projectsTools,
-      ...repositoriesTools,
-      ...workItemsTools,
-      ...searchTools,
-      ...pullRequestsTools,
-      ...pipelinesTools,
-      ...wikisTools,
-    ];
+    // Get all enabled tools
+    const tools = Object.entries(allTools).flatMap(([name, toolset]) => {
+      // Dynamic toolset is always enabled
+      if (name === 'dynamic') {
+        return toolset;
+      }
+      // For other toolsets, check if they're enabled
+      const ts = toolsets.get(name);
+      return ts?.enabled ? toolset : [];
+    });
 
     return { tools };
   });
@@ -283,60 +308,42 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
   });
 
   // Register the CallTool request handler
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    try {
-      // Note: We don't need to validate the presence of arguments here because:
-      // 1. The schema validations (via zod.parse) will check for required parameters
-      // 2. Default values from environment.ts are applied for optional parameters (projectId, organizationId)
-      // 3. Arguments can be omitted entirely for tools with no required parameters
+  server.setRequestHandler(
+    CallToolRequestSchema,
+    async (request: CallToolRequest) => {
+      try {
+        // Get a connection to Azure DevOps
+        const connection = await getConnection(config);
 
-      // Get a connection to Azure DevOps
-      const connection = await getConnection(config);
+        // Handle the request based on the tool type
+        if (isDynamicRequest(request)) {
+          return handleDynamicRequest(connection, request);
+        } else if (isWorkItemsRequest(request)) {
+          return handleWorkItemsRequest(connection, request);
+        } else if (isProjectsRequest(request)) {
+          return handleProjectsRequest(connection, request);
+        } else if (isRepositoriesRequest(request)) {
+          return handleRepositoriesRequest(connection, request);
+        } else if (isOrganizationsRequest(request)) {
+          return handleOrganizationsRequest(connection, request);
+        } else if (isSearchRequest(request)) {
+          return handleSearchRequest(connection, request);
+        } else if (isUsersRequest(request)) {
+          return handleUsersRequest(connection, request);
+        } else if (isPullRequestsRequest(request)) {
+          return handlePullRequestsRequest(connection, request);
+        } else if (isPipelinesRequest(request)) {
+          return handlePipelinesRequest(connection, request);
+        } else if (isWikisRequest(request)) {
+          return handleWikisRequest(connection, request);
+        }
 
-      // Route the request to the appropriate feature handler
-      if (isWorkItemsRequest(request)) {
-        return await handleWorkItemsRequest(connection, request);
+        throw new Error(`Unknown tool: ${request.params.name}`);
+      } catch (error) {
+        return handleResponseError(error);
       }
-
-      if (isProjectsRequest(request)) {
-        return await handleProjectsRequest(connection, request);
-      }
-
-      if (isRepositoriesRequest(request)) {
-        return await handleRepositoriesRequest(connection, request);
-      }
-
-      if (isOrganizationsRequest(request)) {
-        // Organizations feature doesn't need the config object anymore
-        return await handleOrganizationsRequest(connection, request);
-      }
-
-      if (isSearchRequest(request)) {
-        return await handleSearchRequest(connection, request);
-      }
-
-      if (isUsersRequest(request)) {
-        return await handleUsersRequest(connection, request);
-      }
-
-      if (isPullRequestsRequest(request)) {
-        return await handlePullRequestsRequest(connection, request);
-      }
-
-      if (isPipelinesRequest(request)) {
-        return await handlePipelinesRequest(connection, request);
-      }
-
-      if (isWikisRequest(request)) {
-        return await handleWikisRequest(connection, request);
-      }
-
-      // If we get here, the tool is not recognized by any feature handler
-      throw new Error(`Unknown tool: ${request.params.name}`);
-    } catch (error) {
-      return handleResponseError(error);
-    }
-  });
+    },
+  );
 
   return server;
 }
