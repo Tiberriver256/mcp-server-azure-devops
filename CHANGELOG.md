@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.34](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.33...mcp-server-azure-devops-v0.1.34) (2025-05-02)
+
+
+### Features
+
+* add update-pull-request tool to tool-definitions and implement reviewer management ([b7b5398](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/b7b539813baadb84e15022fdb93d24f440491d94))
+
 ## [0.1.33](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.32...mcp-server-azure-devops-v0.1.33) (2025-04-28)
 
 
