@@ -22,6 +22,8 @@ export const updatePullRequest = async (
     isDraft,
     addWorkItemIds,
     removeWorkItemIds,
+    addReviewers,
+    removeReviewers,
     additionalProperties,
   } = options;
 
@@ -48,6 +50,9 @@ export const updatePullRequest = async (
         `Pull request ${pullRequestId} not found in repository ${repositoryId}`,
       );
     }
+
+    // Store the artifactId for work item linking
+    const artifactId = pullRequest.artifactId;
 
     // Create an object with the properties to update
     const updateObject: Partial<GitPullRequest> = {};
@@ -106,6 +111,21 @@ export const updatePullRequest = async (
         projectId,
         workItemIdsToAdd: addIds,
         workItemIdsToRemove: removeIds,
+        artifactId,
+      });
+    }
+
+    // Handle reviewers separately if needed
+    const addReviewerIds = addReviewers ?? [];
+    const removeReviewerIds = removeReviewers ?? [];
+    if (addReviewerIds.length > 0 || removeReviewerIds.length > 0) {
+      await handleReviewers({
+        connection,
+        pullRequestId,
+        repositoryId,
+        projectId,
+        reviewersToAdd: addReviewerIds,
+        reviewersToRemove: removeReviewerIds,
       });
     }
 
@@ -127,6 +147,7 @@ interface WorkItemHandlingOptions {
   projectId?: string;
   workItemIdsToAdd: number[];
   workItemIdsToRemove: number[];
+  artifactId?: string;
 }
 
 async function handleWorkItems(
@@ -139,6 +160,7 @@ async function handleWorkItems(
     projectId,
     workItemIdsToAdd,
     workItemIdsToRemove,
+    artifactId,
   } = options;
 
   try {
@@ -156,7 +178,10 @@ async function handleWorkItems(
               path: '/relations/-',
               value: {
                 rel: 'ArtifactLink',
-                url: `vstfs:///Git/PullRequestId/${projectId ?? ''}/${repositoryId}/${pullRequestId}`,
+                // Use the artifactId if available, otherwise fall back to the old format
+                url:
+                  artifactId ||
+                  `vstfs:///Git/PullRequestId/${projectId ?? ''}/${repositoryId}/${pullRequestId}`,
                 attributes: {
                   name: 'Pull Request',
                 },
@@ -173,37 +198,129 @@ async function handleWorkItems(
       const workItemTrackingApi = await connection.getWorkItemTrackingApi();
 
       for (const workItemId of workItemIdsToRemove) {
-        // First, get the work item to find the relationship index
-        const workItem = await workItemTrackingApi.getWorkItem(workItemId);
-
-        if (workItem.relations) {
-          const prLinkUrl = `vstfs:///Git/PullRequestId/${projectId ?? ''}/${repositoryId}/${pullRequestId}`;
-          const prRelationIndex = workItem.relations.findIndex(
-            (rel: any) =>
-              rel.url === prLinkUrl &&
-              rel.rel === 'ArtifactLink' &&
-              rel.attributes.name === 'Pull Request',
+        try {
+          // First, get the work item with relations expanded
+          const workItem = await workItemTrackingApi.getWorkItem(
+            workItemId,
+            undefined, // fields
+            undefined, // asOf
+            4, // 4 = WorkItemExpand.Relations
           );
 
-          if (prRelationIndex !== -1) {
-            // Remove the relationship
-            await workItemTrackingApi.updateWorkItem(
-              null,
-              [
-                {
-                  op: 'remove',
-                  path: `/relations/${prRelationIndex}`,
-                },
-              ],
-              workItemId,
+          if (workItem.relations) {
+            // Find the relationship to the pull request using the artifactId
+            const prRelationIndex = workItem.relations.findIndex(
+              (rel: any) =>
+                rel.rel === 'ArtifactLink' &&
+                rel.attributes &&
+                rel.attributes.name === 'Pull Request' &&
+                rel.url === artifactId,
             );
+
+            if (prRelationIndex !== -1) {
+              // Remove the relationship
+              await workItemTrackingApi.updateWorkItem(
+                null,
+                [
+                  {
+                    op: 'remove',
+                    path: `/relations/${prRelationIndex}`,
+                  },
+                ],
+                workItemId,
+              );
+            }
           }
+        } catch (error) {
+          console.log(
+            `Error removing work item ${workItemId} from pull request ${pullRequestId}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
         }
       }
     }
   } catch (error) {
     throw new AzureDevOpsError(
       `Failed to update work item links for pull request ${pullRequestId}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/**
+ * Handle adding or removing reviewers from a pull request
+ */
+interface ReviewerHandlingOptions {
+  connection: any;
+  pullRequestId: number;
+  repositoryId: string;
+  projectId?: string;
+  reviewersToAdd: string[];
+  reviewersToRemove: string[];
+}
+
+async function handleReviewers(
+  options: ReviewerHandlingOptions,
+): Promise<void> {
+  const {
+    connection,
+    pullRequestId,
+    repositoryId,
+    projectId,
+    reviewersToAdd,
+    reviewersToRemove,
+  } = options;
+
+  try {
+    const gitApi = await connection.getGitApi();
+
+    // Add reviewers
+    if (reviewersToAdd.length > 0) {
+      for (const reviewer of reviewersToAdd) {
+        try {
+          // Create a reviewer object with the identifier
+          await gitApi.createPullRequestReviewer(
+            {
+              id: reviewer, // This can be email or ID
+              isRequired: false,
+            },
+            repositoryId,
+            pullRequestId,
+            reviewer,
+            projectId,
+          );
+        } catch (error) {
+          console.log(
+            `Error adding reviewer ${reviewer} to pull request ${pullRequestId}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+    }
+
+    // Remove reviewers
+    if (reviewersToRemove.length > 0) {
+      for (const reviewer of reviewersToRemove) {
+        try {
+          await gitApi.deletePullRequestReviewer(
+            repositoryId,
+            pullRequestId,
+            reviewer,
+            projectId,
+          );
+        } catch (error) {
+          console.log(
+            `Error removing reviewer ${reviewer} from pull request ${pullRequestId}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+    }
+  } catch (error) {
+    throw new AzureDevOpsError(
+      `Failed to update reviewers for pull request ${pullRequestId}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }

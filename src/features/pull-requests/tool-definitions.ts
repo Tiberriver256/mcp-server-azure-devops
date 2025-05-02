@@ -5,6 +5,7 @@ import {
   ListPullRequestsSchema,
   GetPullRequestCommentsSchema,
   AddPullRequestCommentSchema,
+  UpdatePullRequestSchema,
 } from './schemas';
 
 /**
@@ -31,5 +32,11 @@ export const pullRequestsTools: ToolDefinition[] = [
     description:
       'Add a comment to a pull request (reply to existing comments or create new threads)',
     inputSchema: zodToJsonSchema(AddPullRequestCommentSchema),
+  },
+  {
+    name: 'update_pull_request',
+    description:
+      'Update an existing pull request with new properties, link work items, and manage reviewers',
+    inputSchema: zodToJsonSchema(UpdatePullRequestSchema),
   },
 ];
