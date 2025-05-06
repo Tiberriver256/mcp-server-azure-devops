@@ -44,8 +44,18 @@ describe('searchCode unit', () => {
     serverUrl: 'https://dev.azure.com/testorg',
   } as unknown as WebApi;
 
+  // Store original console.error
+  const originalConsoleError = console.error;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    // Mock console.error to prevent error messages from being displayed during tests
+    console.error = jest.fn();
+  });
+
+  afterEach(() => {
+    // Restore original console.error
+    console.error = originalConsoleError;
   });
 
   test('should return search results with content', async () => {
@@ -488,8 +498,12 @@ describe('searchCode unit', () => {
     expect(result.results[0].content).toBeUndefined();
   });
 
-  test('should perform organization-wide search when projectId is not provided', async () => {
+  test('should use default project when projectId is not provided', async () => {
     // Arrange
+    // Set up environment variable for default project
+    const originalEnv = process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
+    process.env.AZURE_DEVOPS_DEFAULT_PROJECT = 'DefaultProject';
+
     const mockSearchResponse = {
       data: {
         count: 2,
@@ -509,8 +523,8 @@ describe('searchCode unit', () => {
               name: 'DefaultCollection',
             },
             project: {
-              name: 'Project1',
-              id: 'project-id-1',
+              name: 'DefaultProject',
+              id: 'default-project-id',
             },
             repository: {
               name: 'Repo1',
@@ -540,8 +554,8 @@ describe('searchCode unit', () => {
               name: 'DefaultCollection',
             },
             project: {
-              name: 'Project2',
-              id: 'project-id-2',
+              name: 'DefaultProject',
+              id: 'default-project-id',
             },
             repository: {
               name: 'Repo2',
@@ -562,30 +576,55 @@ describe('searchCode unit', () => {
 
     mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
 
-    // Act
-    const result = await searchCode(mockConnection, {
-      searchText: 'example',
-      includeContent: false,
-    });
+    try {
+      // Act
+      const result = await searchCode(mockConnection, {
+        searchText: 'example',
+        includeContent: false,
+      });
 
-    // Assert
-    expect(result).toBeDefined();
-    expect(result.count).toBe(2);
-    expect(result.results).toHaveLength(2);
-    expect(result.results[0].project.name).toBe('Project1');
-    expect(result.results[1].project.name).toBe('Project2');
-    expect(mockedAxios.post).toHaveBeenCalledTimes(1);
-    expect(mockedAxios.post).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'https://almsearch.dev.azure.com/testorg/_apis/search/codesearchresults',
-      ),
-      expect.not.objectContaining({
-        filters: expect.objectContaining({
-          Project: expect.anything(),
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.count).toBe(2);
+      expect(result.results).toHaveLength(2);
+      expect(result.results[0].project.name).toBe('DefaultProject');
+      expect(result.results[1].project.name).toBe('DefaultProject');
+      expect(mockedAxios.post).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'https://almsearch.dev.azure.com/testorg/DefaultProject/_apis/search/codesearchresults',
+        ),
+        expect.objectContaining({
+          filters: expect.objectContaining({
+            Project: ['DefaultProject'],
+          }),
         }),
-      }),
-      expect.any(Object),
-    );
+        expect.any(Object),
+      );
+    } finally {
+      // Restore original environment variable
+      process.env.AZURE_DEVOPS_DEFAULT_PROJECT = originalEnv;
+    }
+  });
+
+  test('should throw error when no projectId is provided and no default project is set', async () => {
+    // Arrange
+    // Ensure no default project is set
+    const originalEnv = process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
+    process.env.AZURE_DEVOPS_DEFAULT_PROJECT = '';
+
+    try {
+      // Act & Assert
+      await expect(
+        searchCode(mockConnection, {
+          searchText: 'example',
+          includeContent: false,
+        }),
+      ).rejects.toThrow('Project ID is required');
+    } finally {
+      // Restore original environment variable
+      process.env.AZURE_DEVOPS_DEFAULT_PROJECT = originalEnv;
+    }
   });
 
   test('should handle includeContent for different content types', async () => {
@@ -962,8 +1001,18 @@ describe('searchCode unit', () => {
 
     mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
 
+    // For this test, we don't need to mock the Git API since we're only testing the top parameter
+    // We'll create a connection that doesn't have includeContent functionality
+    const mockConnectionWithoutContent = {
+      ...mockConnection,
+      getGitApi: jest.fn().mockImplementation(() => {
+        throw new Error('Git API not available');
+      }),
+      serverUrl: 'https://dev.azure.com/testorg',
+    } as unknown as WebApi;
+
     // Act
-    await searchCode(mockConnection, {
+    await searchCode(mockConnectionWithoutContent, {
       searchText: 'example',
       projectId: 'TestProject',
       top: 50, // User tries to get 50 results

@@ -273,4 +273,71 @@ describe('searchCode integration', () => {
       throw error;
     }
   });
+
+  test('should use default project when no projectId is provided', async () => {
+    // Skip if no connection is available
+    if (shouldSkipIntegrationTest()) {
+      console.log('Skipping test: No Azure DevOps connection available');
+      return;
+    }
+
+    // This connection must be available if we didn't skip
+    if (!connection) {
+      throw new Error(
+        'Connection should be available when test is not skipped',
+      );
+    }
+
+    // Store original environment variable
+    const originalEnv = process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
+
+    try {
+      // Set the default project to the current project name for testing
+      process.env.AZURE_DEVOPS_DEFAULT_PROJECT = projectName;
+
+      // Search without specifying a project ID
+      const options: SearchCodeOptions = {
+        searchText: 'function',
+        top: 5,
+      };
+
+      // Act - make an actual API call to Azure DevOps
+      const result = await searchCode(connection, options);
+
+      // Assert on the actual response
+      expect(result).toBeDefined();
+      expect(typeof result.count).toBe('number');
+      expect(Array.isArray(result.results)).toBe(true);
+
+      // Check structure of returned items (if any)
+      if (result.results.length > 0) {
+        const firstResult = result.results[0];
+        expect(firstResult.fileName).toBeDefined();
+        expect(firstResult.path).toBeDefined();
+        expect(firstResult.project).toBeDefined();
+        expect(firstResult.repository).toBeDefined();
+
+        if (firstResult.project) {
+          expect(firstResult.project.name).toBe(projectName);
+        }
+      }
+    } catch (error) {
+      // Skip test if the code search extension is not installed
+      if (
+        error instanceof Error &&
+        (error.message.includes('ms.vss-code-search is not installed') ||
+          error.message.includes('Resource not found') ||
+          error.message.includes('Failed to search code'))
+      ) {
+        console.log(
+          'Skipping test: Code Search extension is not installed or not available in this Azure DevOps organization',
+        );
+        return;
+      }
+      throw error;
+    } finally {
+      // Restore original environment variable
+      process.env.AZURE_DEVOPS_DEFAULT_PROJECT = originalEnv;
+    }
+  });
 });

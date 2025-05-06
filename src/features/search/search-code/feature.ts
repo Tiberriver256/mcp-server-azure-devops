@@ -33,14 +33,24 @@ export async function searchCode(
       ? Math.min(options.top || 10, 10)
       : options.top;
 
+    // Get the project ID (either provided or default)
+    const projectId =
+      options.projectId || process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
+
+    if (!projectId) {
+      throw new AzureDevOpsValidationError(
+        'Project ID is required. Either provide a projectId or set the AZURE_DEVOPS_DEFAULT_PROJECT environment variable.',
+      );
+    }
+
     // Prepare the search request
     const searchRequest: CodeSearchRequest = {
       searchText: options.searchText,
       $skip: options.skip,
       $top: top, // Use limited top value when includeContent is true
       filters: {
-        ...(options.projectId ? { Project: [options.projectId] } : {}),
-        ...options.filters,
+        Project: [projectId],
+        ...(options.filters || {}),
       },
       includeFacets: true,
       includeSnippet: options.includeSnippet,
@@ -50,16 +60,10 @@ export async function searchCode(
     const authHeader = await getAuthorizationHeader();
 
     // Extract organization from the connection URL
-    const { organization, project } = extractOrgAndProject(
-      connection,
-      options.projectId,
-    );
+    const { organization } = extractOrgFromUrl(connection);
 
-    // Make the search API request
-    // If projectId is provided, include it in the URL, otherwise perform organization-wide search
-    const searchUrl = options.projectId
-      ? `https://almsearch.dev.azure.com/${organization}/${project}/_apis/search/codesearchresults?api-version=7.1`
-      : `https://almsearch.dev.azure.com/${organization}/_apis/search/codesearchresults?api-version=7.1`;
+    // Make the search API request with the project ID
+    const searchUrl = `https://almsearch.dev.azure.com/${organization}/${projectId}/_apis/search/codesearchresults?api-version=7.1`;
 
     const searchResponse = await axios.post<CodeSearchResponse>(
       searchUrl,
@@ -118,16 +122,12 @@ export async function searchCode(
 }
 
 /**
- * Extract organization and project from the connection URL
+ * Extract organization from the connection URL
  *
  * @param connection The Azure DevOps WebApi connection
- * @param projectId The project ID or name (optional)
- * @returns The organization and project
+ * @returns The organization
  */
-function extractOrgAndProject(
-  connection: WebApi,
-  projectId?: string,
-): { organization: string; project: string } {
+function extractOrgFromUrl(connection: WebApi): { organization: string } {
   // Extract organization from the connection URL
   const url = connection.serverUrl;
   const match = url.match(/https?:\/\/dev\.azure\.com\/([^/]+)/);
@@ -141,7 +141,6 @@ function extractOrgAndProject(
 
   return {
     organization,
-    project: projectId || '',
   };
 }
 
