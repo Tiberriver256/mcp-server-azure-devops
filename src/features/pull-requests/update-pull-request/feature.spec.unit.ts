@@ -199,13 +199,18 @@ describe('updatePullRequest', () => {
   });
 
   it('should handle work item links', async () => {
+    // Define the artifactId that will be used
+    const artifactId = 'vstfs:///Git/PullRequestId/project-1/repo1/123';
+
     mockGetPullRequestById.mockResolvedValueOnce({
       repository: { id: 'repo1' },
+      artifactId: artifactId, // Add the artifactId to the mock response
     });
 
     mockUpdatePullRequest.mockResolvedValueOnce({
       pullRequestId: 123,
       repository: { id: 'repo1' },
+      artifactId: artifactId,
     });
 
     // Mocks for work items to remove
@@ -213,7 +218,7 @@ describe('updatePullRequest', () => {
       relations: [
         {
           rel: 'ArtifactLink',
-          url: 'vstfs:///Git/PullRequestId/project-1/repo1/123',
+          url: artifactId, // Use the same artifactId here
           attributes: {
             name: 'Pull Request',
           },
@@ -225,7 +230,7 @@ describe('updatePullRequest', () => {
       relations: [
         {
           rel: 'ArtifactLink',
-          url: 'vstfs:///Git/PullRequestId/project-1/repo1/123',
+          url: artifactId, // Use the same artifactId here
           attributes: {
             name: 'Pull Request',
           },
