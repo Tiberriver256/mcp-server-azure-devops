@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.35](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.34...mcp-server-azure-devops-v0.1.35) (2025-05-07)
+
+
+### Bug Fixes
+
+* update creatorId and reviewerId to require UUIDs instead of allowing emails ([09e82ef](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/09e82ef5e7dfdcd07d1851450ea8c488ea8bb82a))
+* use default project for code search when no projectId is specified ([#202](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/202)) ([3bf118f](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/3bf118f45b4222bbfaf888deb67d546b87afc2fe))
+
 ## [0.1.34](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.33...mcp-server-azure-devops-v0.1.34) (2025-05-02)
 
 
