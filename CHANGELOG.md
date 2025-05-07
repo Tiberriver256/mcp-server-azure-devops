@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.36](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.35...mcp-server-azure-devops-v0.1.36) (2025-05-07)
+
+
+### Bug Fixes
+
+* implement pagination for list-pull-requests to prevent infinite loop ([#196](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/196)) ([e3d7f32](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/e3d7f321f11241bd7b45a4f0e6810509cc8c01c1))
+
 ## [0.1.35](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.34...mcp-server-azure-devops-v0.1.35) (2025-05-07)
 
 
