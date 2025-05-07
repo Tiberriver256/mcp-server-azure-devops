@@ -160,8 +160,8 @@ The `list_pull_requests` tool retrieves pull requests from a specified Azure Dev
   "projectId": "MyProject", // Required: The ID or name of the project
   "repositoryId": "MyRepo", // Required: The ID or name of the repository
   "status": "active", // Optional: The status of pull requests to return (active, completed, abandoned, all)
-  "creatorId": "user@example.com", // Optional: Filter by creator ID or email
-  "reviewerId": "reviewer@example.com", // Optional: Filter by reviewer ID or email
+  "creatorId": "a8a8a8a8-a8a8-a8a8-a8a8-a8a8a8a8a8a8", // Optional: Filter by creator ID (must be a UUID)
+  "reviewerId": "b9b9b9b9-b9b9-b9b9-b9b9-b9b9b9b9b9b9", // Optional: Filter by reviewer ID (must be a UUID)
   "sourceRefName": "refs/heads/feature-branch", // Optional: Filter by source branch name
   "targetRefName": "refs/heads/main", // Optional: Filter by target branch name
   "top": 10 // Optional: Maximum number of pull requests to return
@@ -173,8 +173,8 @@ The `list_pull_requests` tool retrieves pull requests from a specified Azure Dev
 | `projectId`     | string | Yes      | The ID or name of the project containing the repository                             |
 | `repositoryId`  | string | Yes      | The ID or name of the repository to list pull requests from                         |
 | `status`        | string | No       | The status of pull requests to return: "active", "completed", "abandoned", or "all" |
-| `creatorId`     | string | No       | Filter pull requests by creator ID or email                                         |
-| `reviewerId`    | string | No       | Filter pull requests by reviewer ID or email                                        |
+| `creatorId`     | string | No       | Filter pull requests by creator ID (must be a UUID)                                 |
+| `reviewerId`    | string | No       | Filter pull requests by reviewer ID (must be a UUID)                                |
 | `sourceRefName` | string | No       | Filter pull requests by source branch name                                          |
 | `targetRefName` | string | No       | Filter pull requests by target branch name                                          |
 | `top`           | number | No       | Maximum number of pull requests to return                                           |
@@ -272,13 +272,13 @@ const activePRs = await mcpClient.callTool('list_pull_requests', {
 });
 console.log(`Found ${activePRs.length} active pull requests`);
 
-// List pull requests created by a specific user
+// List pull requests created by a specific user (using their UUID)
 const userPRs = await mcpClient.callTool('list_pull_requests', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
-  creatorId: 'john.doe@example.com',
+  creatorId: 'a8a8a8a8-a8a8-a8a8-a8a8-a8a8a8a8a8a8',
 });
-console.log(`Found ${userPRs.length} pull requests created by John Doe`);
+console.log(`Found ${userPRs.length} pull requests created by this user`);
 
 // List pull requests targeting a specific branch
 const mainPRs = await mcpClient.callTool('list_pull_requests', {
@@ -339,14 +339,14 @@ The `get_pull_request_comments` tool retrieves comment threads and their associa
 }
 ```
 
-| Parameter | Type | Required | Description |
-| --------- | ---- | -------- | ----------- |
-| `projectId` | string | Yes | The ID or name of the project containing the repository |
-| `repositoryId` | string | Yes | The ID or name of the repository containing the pull request |
-| `pullRequestId` | number | Yes | The ID of the pull request to get comments from |
-| `threadId` | number | No | The ID of a specific thread to retrieve (if omitted, all threads are returned) |
-| `includeDeleted` | boolean | No | Whether to include deleted comments in the results |
-| `top` | number | No | Maximum number of comment threads to return |
+| Parameter        | Type    | Required | Description                                                                    |
+| ---------------- | ------- | -------- | ------------------------------------------------------------------------------ |
+| `projectId`      | string  | Yes      | The ID or name of the project containing the repository                        |
+| `repositoryId`   | string  | Yes      | The ID or name of the repository containing the pull request                   |
+| `pullRequestId`  | number  | Yes      | The ID of the pull request to get comments from                                |
+| `threadId`       | number  | No       | The ID of a specific thread to retrieve (if omitted, all threads are returned) |
+| `includeDeleted` | boolean | No       | Whether to include deleted comments in the results                             |
+| `top`            | number  | No       | Maximum number of comment threads to return                                    |
 
 ### Response
 
@@ -452,7 +452,7 @@ Error messages will include details about what went wrong and suggestions for re
 const allComments = await mcpClient.callTool('get_pull_request_comments', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
-  pullRequestId: 42
+  pullRequestId: 42,
 });
 console.log(`Found ${allComments.length} comment threads`);
 
@@ -468,10 +468,12 @@ const specificThread = await mcpClient.callTool('get_pull_request_comments', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   pullRequestId: 42,
-  threadId: 123
+  threadId: 123,
 });
 if (specificThread.length > 0) {
-  console.log(`Thread ${specificThread[0].id} has ${specificThread[0].comments?.length || 0} comments`);
+  console.log(
+    `Thread ${specificThread[0].id} has ${specificThread[0].comments?.length || 0} comments`,
+  );
 }
 
 // Get only active threads, including deleted comments
@@ -479,16 +481,18 @@ const activeThreads = await mcpClient.callTool('get_pull_request_comments', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   pullRequestId: 42,
-  includeDeleted: true
+  includeDeleted: true,
 });
-console.log(`Found ${activeThreads.length} threads (including any with deleted comments)`);
+console.log(
+  `Found ${activeThreads.length} threads (including any with deleted comments)`,
+);
 
 // Limit the number of returned threads
 const limitedThreads = await mcpClient.callTool('get_pull_request_comments', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   pullRequestId: 42,
-  top: 10
+  top: 10,
 });
 console.log(`Showing first ${limitedThreads.length} comment threads`);
 ```
@@ -514,6 +518,7 @@ Adds a comment to a pull request, either as a reply to an existing comment or as
 ### Description
 
 The `add_pull_request_comment` tool allows you to create new comments in pull requests in Azure DevOps. You can either:
+
 1. Add a reply to an existing comment thread
 2. Create a new thread with a comment in the general discussion
 3. Create a new thread with a comment on a specific file at a specific line
@@ -536,17 +541,17 @@ This tool is useful for providing feedback on pull requests, engaging in code re
 }
 ```
 
-| Parameter | Type | Required | Description |
-| --------- | ---- | -------- | ----------- |
-| `projectId` | string | Yes | The ID or name of the project containing the repository |
-| `repositoryId` | string | Yes | The ID or name of the repository containing the pull request |
-| `pullRequestId` | number | Yes | The ID of the pull request to comment on |
-| `content` | string | Yes | The text content of the comment |
-| `threadId` | number | No | The ID of an existing thread to add the comment to. Required when replying to an existing thread |
-| `parentCommentId` | number | No | ID of the parent comment when replying to a specific comment in a thread |
-| `filePath` | string | No | The path of the file to comment on (for creating a new thread on a file) |
-| `lineNumber` | number | No | The line number to comment on (for creating a new thread on a file) |
-| `status` | string | No | The status to set for a new thread: "active", "fixed", "wontFix", "closed", or "pending" |
+| Parameter         | Type   | Required | Description                                                                                      |
+| ----------------- | ------ | -------- | ------------------------------------------------------------------------------------------------ |
+| `projectId`       | string | Yes      | The ID or name of the project containing the repository                                          |
+| `repositoryId`    | string | Yes      | The ID or name of the repository containing the pull request                                     |
+| `pullRequestId`   | number | Yes      | The ID of the pull request to comment on                                                         |
+| `content`         | string | Yes      | The text content of the comment                                                                  |
+| `threadId`        | number | No       | The ID of an existing thread to add the comment to. Required when replying to an existing thread |
+| `parentCommentId` | number | No       | ID of the parent comment when replying to a specific comment in a thread                         |
+| `filePath`        | string | No       | The path of the file to comment on (for creating a new thread on a file)                         |
+| `lineNumber`      | number | No       | The line number to comment on (for creating a new thread on a file)                              |
+| `status`          | string | No       | The status to set for a new thread: "active", "fixed", "wontFix", "closed", or "pending"         |
 
 ### Response
 
@@ -557,7 +562,7 @@ When adding a comment to an existing thread, the tool returns an object containi
 When creating a new thread with a comment, the tool returns an object containing:
 
 - `comment`: The created comment object
-- `thread`: The created thread object with details like ID, status, and context 
+- `thread`: The created thread object with details like ID, status, and context
 
 Example response for replying to an existing thread:
 
@@ -645,7 +650,7 @@ const reply = await mcpClient.callTool('add_pull_request_comment', {
   repositoryId: 'MyRepo',
   pullRequestId: 42,
   threadId: 123,
-  content: 'I agree with the suggestion, let me implement this change.'
+  content: 'I agree with the suggestion, let me implement this change.',
 });
 console.log(`Created reply with ID ${reply.comment.id}`);
 
@@ -656,7 +661,7 @@ const threadedReply = await mcpClient.callTool('add_pull_request_comment', {
   pullRequestId: 42,
   threadId: 123,
   parentCommentId: 456,
-  content: 'Specifically addressing your point about error handling.'
+  content: 'Specifically addressing your point about error handling.',
 });
 console.log(`Created threaded reply with ID ${threadedReply.comment.id}`);
 
@@ -665,7 +670,8 @@ const newThread = await mcpClient.callTool('add_pull_request_comment', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   pullRequestId: 42,
-  content: 'Overall this looks good, but let\'s discuss the error handling approach.'
+  content:
+    "Overall this looks good, but let's discuss the error handling approach.",
 });
 console.log(`Created new thread with ID ${newThread.thread.id}`);
 
@@ -676,19 +682,21 @@ const fileComment = await mcpClient.callTool('add_pull_request_comment', {
   pullRequestId: 42,
   content: 'This variable name should be more descriptive.',
   filePath: '/src/app.ts',
-  lineNumber: 42
+  lineNumber: 42,
 });
-console.log(`Created file comment with ID ${fileComment.comment.id} in thread ${fileComment.thread.id}`);
+console.log(
+  `Created file comment with ID ${fileComment.comment.id} in thread ${fileComment.thread.id}`,
+);
 
 // Create a comment with thread status
 const statusComment = await mcpClient.callTool('add_pull_request_comment', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   pullRequestId: 42,
-  content: 'There\'s an edge case not handled here.',
+  content: "There's an edge case not handled here.",
   filePath: '/src/app.ts',
   lineNumber: 87,
-  status: 'active'
+  status: 'active',
 });
 console.log(`Created active thread with ID ${statusComment.thread.id}`);
 ```
@@ -737,20 +745,20 @@ The `update_pull_request` tool allows you to update various aspects of an existi
 }
 ```
 
-| Parameter | Type | Required | Description |
-| --------- | ---- | -------- | ----------- |
-| `projectId` | string | Yes | The ID or name of the project containing the repository |
-| `repositoryId` | string | Yes | The ID or name of the repository containing the pull request |
-| `pullRequestId` | number | Yes | The ID of the pull request to update |
-| `title` | string | No | The updated title of the pull request |
-| `description` | string | No | The updated description of the pull request |
-| `status` | string | No | The updated status: "active", "abandoned", or "completed" |
-| `isDraft` | boolean | No | Whether to mark (true) or unmark (false) the PR as a draft |
-| `addWorkItemIds` | number[] | No | Array of work item IDs to link to the pull request |
-| `removeWorkItemIds` | number[] | No | Array of work item IDs to unlink from the pull request |
-| `addReviewers` | string[] | No | Array of reviewer email addresses or IDs to add |
-| `removeReviewers` | string[] | No | Array of reviewer email addresses or IDs to remove |
-| `additionalProperties` | object | No | Additional properties to update on the pull request |
+| Parameter              | Type     | Required | Description                                                  |
+| ---------------------- | -------- | -------- | ------------------------------------------------------------ |
+| `projectId`            | string   | Yes      | The ID or name of the project containing the repository      |
+| `repositoryId`         | string   | Yes      | The ID or name of the repository containing the pull request |
+| `pullRequestId`        | number   | Yes      | The ID of the pull request to update                         |
+| `title`                | string   | No       | The updated title of the pull request                        |
+| `description`          | string   | No       | The updated description of the pull request                  |
+| `status`               | string   | No       | The updated status: "active", "abandoned", or "completed"    |
+| `isDraft`              | boolean  | No       | Whether to mark (true) or unmark (false) the PR as a draft   |
+| `addWorkItemIds`       | number[] | No       | Array of work item IDs to link to the pull request           |
+| `removeWorkItemIds`    | number[] | No       | Array of work item IDs to unlink from the pull request       |
+| `addReviewers`         | string[] | No       | Array of reviewer email addresses or IDs to add              |
+| `removeReviewers`      | string[] | No       | Array of reviewer email addresses or IDs to remove           |
+| `additionalProperties` | object   | No       | Additional properties to update on the pull request          |
 
 ### Response
 
@@ -834,7 +842,7 @@ const updatedPR = await mcpClient.callTool('update_pull_request', {
   repositoryId: 'MyRepo',
   pullRequestId: 42,
   title: 'Updated PR Title',
-  description: 'This PR has been updated to add new features'
+  description: 'This PR has been updated to add new features',
 });
 console.log(`Updated PR: ${updatedPR.title}`);
 
@@ -843,16 +851,18 @@ const completedPR = await mcpClient.callTool('update_pull_request', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   pullRequestId: 42,
-  status: 'completed'
+  status: 'completed',
 });
-console.log(`PR status: ${completedPR.status === 3 ? 'Completed' : 'Not completed'}`);
+console.log(
+  `PR status: ${completedPR.status === 3 ? 'Completed' : 'Not completed'}`,
+);
 
 // Convert a draft PR to a normal PR
 const readyPR = await mcpClient.callTool('update_pull_request', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   pullRequestId: 42,
-  isDraft: false
+  isDraft: false,
 });
 console.log(`PR is draft: ${readyPR.isDraft ? 'Yes' : 'No'}`);
 
@@ -862,9 +872,11 @@ const workItemPR = await mcpClient.callTool('update_pull_request', {
   repositoryId: 'MyRepo',
   pullRequestId: 42,
   addWorkItemIds: [123, 456],
-  removeWorkItemIds: [789]
+  removeWorkItemIds: [789],
 });
-console.log(`PR now has ${workItemPR.workItemRefs?.length || 0} linked work items`);
+console.log(
+  `PR now has ${workItemPR.workItemRefs?.length || 0} linked work items`,
+);
 
 // Add and remove reviewers
 const reviewersPR = await mcpClient.callTool('update_pull_request', {
@@ -872,7 +884,7 @@ const reviewersPR = await mcpClient.callTool('update_pull_request', {
   repositoryId: 'MyRepo',
   pullRequestId: 42,
   addReviewers: ['alex@example.com', 'taylor@example.com'],
-  removeReviewers: ['old-reviewer@example.com']
+  removeReviewers: ['old-reviewer@example.com'],
 });
 console.log(`PR now has ${reviewersPR.reviewers?.length || 0} reviewers`);
 ```
@@ -899,4 +911,3 @@ The `update_pull_request` tool:
 9. Handles errors and provides meaningful error messages
 
 This implementation provides a comprehensive way to update pull requests in Azure DevOps repositories, supporting all common update scenarios.
-

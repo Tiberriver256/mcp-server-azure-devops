@@ -60,8 +60,16 @@ export const ListPullRequestsSchema = z.object({
     .enum(['all', 'active', 'completed', 'abandoned'])
     .optional()
     .describe('Filter by pull request status'),
-  creatorId: z.string().optional().describe('Filter by creator ID or email'),
-  reviewerId: z.string().optional().describe('Filter by reviewer ID or email'),
+  creatorId: z
+    .string()
+    .uuid()
+    .optional()
+    .describe('Filter by creator ID (must be a UUID)'),
+  reviewerId: z
+    .string()
+    .uuid()
+    .optional()
+    .describe('Filter by reviewer ID (must be a UUID)'),
   sourceRefName: z.string().optional().describe('Filter by source branch name'),
   targetRefName: z.string().optional().describe('Filter by target branch name'),
   top: z
