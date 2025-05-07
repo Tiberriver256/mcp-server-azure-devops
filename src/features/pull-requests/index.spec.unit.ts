@@ -87,10 +87,14 @@ describe('Pull Requests Request Handlers', () => {
     });
 
     it('should handle list_pull_requests request', async () => {
-      const mockPullRequests = [
-        { id: 1, title: 'PR 1' },
-        { id: 2, title: 'PR 2' },
-      ];
+      const mockPullRequests = {
+        count: 2,
+        value: [
+          { id: 1, title: 'PR 1' },
+          { id: 2, title: 'PR 2' },
+        ],
+        hasMoreResults: false,
+      };
       (listPullRequests as jest.Mock).mockResolvedValue(mockPullRequests);
 
       const request = {

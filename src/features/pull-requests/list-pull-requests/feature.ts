@@ -13,14 +13,19 @@ import {
  * @param projectId The ID or name of the project
  * @param repositoryId The ID or name of the repository
  * @param options Options for filtering pull requests
- * @returns Array of pull requests
+ * @returns Object containing pull requests array and pagination metadata
  */
 export async function listPullRequests(
   connection: WebApi,
   projectId: string,
   repositoryId: string,
   options: ListPullRequestsOptions,
-): Promise<PullRequest[]> {
+): Promise<{
+  count: number;
+  value: PullRequest[];
+  hasMoreResults: boolean;
+  warning?: string;
+}> {
   try {
     const gitApi = await connection.getGitApi();
 
@@ -62,15 +67,39 @@ export async function listPullRequests(
       searchCriteria.targetRefName = options.targetRefName;
     }
 
+    // Set default values for pagination
+    const top = options.top ?? 10;
+    const skip = options.skip ?? 0;
+
     // List pull requests with search criteria
     const pullRequests = await gitApi.getPullRequests(
       repositoryId,
       searchCriteria,
       projectId,
-      options.top,
+      undefined, // maxCommentLength
+      skip,
+      top,
     );
 
-    return pullRequests || [];
+    const results = pullRequests || [];
+    const count = results.length;
+
+    // Determine if there are likely more results
+    // If we got exactly the number requested, there are probably more
+    const hasMoreResults = count === top;
+
+    // Add a warning message if results were truncated
+    let warning: string | undefined;
+    if (hasMoreResults) {
+      warning = `Results limited to ${top} items. Use 'skip: ${skip + top}' to get the next page.`;
+    }
+
+    return {
+      count,
+      value: results,
+      hasMoreResults,
+      warning,
+    };
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
       throw error;

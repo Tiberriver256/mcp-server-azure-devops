@@ -44,11 +44,11 @@ describe('addPullRequestComment integration', () => {
         },
       );
 
-      if (!pullRequests || pullRequests.length === 0) {
+      if (!pullRequests || pullRequests.value.length === 0) {
         throw new Error('No active pull requests found for testing');
       }
 
-      pullRequestId = pullRequests[0].pullRequestId!;
+      pullRequestId = pullRequests.value[0].pullRequestId!;
       console.log(`Using existing pull request #${pullRequestId} for testing`);
     } catch (error) {
       console.error('Error in test setup:', error);

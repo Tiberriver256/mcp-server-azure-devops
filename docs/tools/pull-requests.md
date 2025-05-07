@@ -164,7 +164,8 @@ The `list_pull_requests` tool retrieves pull requests from a specified Azure Dev
   "reviewerId": "b9b9b9b9-b9b9-b9b9-b9b9-b9b9b9b9b9b9", // Optional: Filter by reviewer ID (must be a UUID)
   "sourceRefName": "refs/heads/feature-branch", // Optional: Filter by source branch name
   "targetRefName": "refs/heads/main", // Optional: Filter by target branch name
-  "top": 10 // Optional: Maximum number of pull requests to return
+  "top": 10, // Optional: Maximum number of pull requests to return (default: 10)
+  "skip": 0 // Optional: Number of pull requests to skip for pagination
 }
 ```
 
@@ -181,7 +182,14 @@ The `list_pull_requests` tool retrieves pull requests from a specified Azure Dev
 
 ### Response
 
-The tool returns an array of `PullRequest` objects, each containing:
+The tool returns an object containing:
+
+- `count`: The number of pull requests returned
+- `value`: An array of `PullRequest` objects
+- `hasMoreResults`: A boolean indicating if there are more results available
+- `warning`: A message with pagination guidance (only present when hasMoreResults is true)
+
+Each pull request in the `value` array contains:
 
 - `pullRequestId`: The unique identifier of the pull request
 - `title`: The title of the pull request
@@ -195,58 +203,62 @@ The tool returns an array of `PullRequest` objects, each containing:
 Example response:
 
 ```json
-[
-  {
-    "repository": {
-      "id": "repo-guid",
-      "name": "MyRepo",
-      "project": {
-        "id": "project-guid",
-        "name": "MyProject"
-      }
+{
+  "count": 2,
+  "value": [
+    {
+      "repository": {
+        "id": "repo-guid",
+        "name": "MyRepo",
+        "project": {
+          "id": "project-guid",
+          "name": "MyProject"
+        }
+      },
+      "pullRequestId": 42,
+      "codeReviewId": 42,
+      "status": 1,
+      "createdBy": {
+        "displayName": "John Doe",
+        "uniqueName": "john.doe@example.com"
+      },
+      "creationDate": "2023-01-01T12:00:00Z",
+      "title": "Update feature X",
+      "description": "This PR implements feature X",
+      "sourceRefName": "refs/heads/feature-branch",
+      "targetRefName": "refs/heads/main",
+      "mergeStatus": 3,
+      "isDraft": false,
+      "url": "https://dev.azure.com/organization/MyProject/_apis/git/repositories/MyRepo/pullRequests/42"
     },
-    "pullRequestId": 42,
-    "codeReviewId": 42,
-    "status": 1,
-    "createdBy": {
-      "displayName": "John Doe",
-      "uniqueName": "john.doe@example.com"
-    },
-    "creationDate": "2023-01-01T12:00:00Z",
-    "title": "Update feature X",
-    "description": "This PR implements feature X",
-    "sourceRefName": "refs/heads/feature-branch",
-    "targetRefName": "refs/heads/main",
-    "mergeStatus": 3,
-    "isDraft": false,
-    "url": "https://dev.azure.com/organization/MyProject/_apis/git/repositories/MyRepo/pullRequests/42"
-  },
-  {
-    "repository": {
-      "id": "repo-guid",
-      "name": "MyRepo",
-      "project": {
-        "id": "project-guid",
-        "name": "MyProject"
-      }
-    },
-    "pullRequestId": 43,
-    "codeReviewId": 43,
-    "status": 1,
-    "createdBy": {
-      "displayName": "Jane Smith",
-      "uniqueName": "jane.smith@example.com"
-    },
-    "creationDate": "2023-01-02T14:30:00Z",
-    "title": "Fix bug in login flow",
-    "description": "This PR fixes a critical bug in the login flow",
-    "sourceRefName": "refs/heads/bugfix/login",
-    "targetRefName": "refs/heads/main",
-    "mergeStatus": 3,
-    "isDraft": false,
-    "url": "https://dev.azure.com/organization/MyProject/_apis/git/repositories/MyRepo/pullRequests/43"
-  }
-]
+    {
+      "repository": {
+        "id": "repo-guid",
+        "name": "MyRepo",
+        "project": {
+          "id": "project-guid",
+          "name": "MyProject"
+        }
+      },
+      "pullRequestId": 43,
+      "codeReviewId": 43,
+      "status": 1,
+      "createdBy": {
+        "displayName": "Jane Smith",
+        "uniqueName": "jane.smith@example.com"
+      },
+      "creationDate": "2023-01-02T14:30:00Z",
+      "title": "Fix bug in login flow",
+      "description": "This PR fixes a critical bug in the login flow",
+      "sourceRefName": "refs/heads/bugfix/login",
+      "targetRefName": "refs/heads/main",
+      "mergeStatus": 3,
+      "isDraft": false,
+      "url": "https://dev.azure.com/organization/MyProject/_apis/git/repositories/MyRepo/pullRequests/43"
+    }
+  ],
+  "hasMoreResults": false
+}
 ```
 
 ### Error Handling
@@ -270,7 +282,7 @@ const activePRs = await mcpClient.callTool('list_pull_requests', {
   repositoryId: 'MyRepo',
   status: 'active',
 });
-console.log(`Found ${activePRs.length} active pull requests`);
+console.log(`Found ${activePRs.count} active pull requests`);
 
 // List pull requests created by a specific user (using their UUID)
 const userPRs = await mcpClient.callTool('list_pull_requests', {
@@ -278,7 +290,7 @@ const userPRs = await mcpClient.callTool('list_pull_requests', {
   repositoryId: 'MyRepo',
   creatorId: 'a8a8a8a8-a8a8-a8a8-a8a8-a8a8a8a8a8a8',
 });
-console.log(`Found ${userPRs.length} pull requests created by this user`);
+console.log(`Found ${userPRs.count} pull requests created by this user`);
 
 // List pull requests targeting a specific branch
 const mainPRs = await mcpClient.callTool('list_pull_requests', {
@@ -286,23 +298,73 @@ const mainPRs = await mcpClient.callTool('list_pull_requests', {
   repositoryId: 'MyRepo',
   targetRefName: 'refs/heads/main',
 });
-console.log(`Found ${mainPRs.length} pull requests targeting main branch`);
+console.log(`Found ${mainPRs.count} pull requests targeting main branch`);
 
 // Paginate through pull requests
 const page1 = await mcpClient.callTool('list_pull_requests', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   top: 10,
+  skip: 0,
 });
-const page2 = await mcpClient.callTool('list_pull_requests', {
+
+// Check if there are more results and get the next page
+let page2 = { count: 0, value: [] };
+if (page1.hasMoreResults) {
+  page2 = await mcpClient.callTool('list_pull_requests', {
+    projectId: 'MyProject',
+    repositoryId: 'MyRepo',
+    top: 10,
+    skip: 10,
+  });
+}
+
+console.log(`Retrieved ${page1.count + page2.count} pull requests in 2 pages`);
+```
+
+### Pagination
+
+The `list_pull_requests` tool supports pagination to handle large result sets. By default, results are limited to 10 pull requests per request to prevent performance issues.
+
+#### Pagination Parameters
+
+- `top`: Maximum number of pull requests to return (default: 10)
+- `skip`: Number of pull requests to skip for pagination
+
+#### Example: Paginating through all pull requests
+
+```typescript
+// Get first page (10 items)
+const firstPage = await mcpClient.callTool('list_pull_requests', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
-  top: 10,
 });
-console.log(
-  `Retrieved ${page1.length + page2.length} pull requests in 2 pages`,
-);
+
+// Check if there are more results
+if (firstPage.hasMoreResults) {
+  // Get second page
+  const secondPage = await mcpClient.callTool('list_pull_requests', {
+    projectId: 'MyProject',
+    repositoryId: 'MyRepo',
+    skip: 10,
+  });
+
+  // Continue until no more results
+  if (secondPage.hasMoreResults) {
+    const thirdPage = await mcpClient.callTool('list_pull_requests', {
+      projectId: 'MyProject',
+      repositoryId: 'MyRepo',
+      skip: 20,
+    });
+  }
+}
 ```
+
+#### Handling Large Repositories
+
+When working with repositories that have many pull requests, it's recommended to use pagination to avoid performance issues. The `list_pull_requests` tool now limits results to 10 by default to prevent issues with very large responses.
+
+If you need to process all pull requests, use the pagination pattern shown above to iterate through the results in manageable chunks.
 
 ### Implementation Details
 
@@ -312,11 +374,12 @@ The `list_pull_requests` tool:
 2. Retrieves the Git API client
 3. Constructs a search criteria object based on the provided filters
 4. Maps status strings to Azure DevOps PullRequestStatus enum values
-5. Makes the API call to retrieve the pull requests
-6. Returns the results or an empty array if none are found
-7. Handles errors and provides meaningful error messages
+5. Makes the API call to retrieve the pull requests with pagination parameters
+6. Determines if there are more results available
+7. Returns an enhanced response object with count, value, hasMoreResults, and warning
+8. Handles errors and provides meaningful error messages
 
-This implementation provides a robust and flexible way to retrieve pull requests from Azure DevOps repositories.
+This implementation provides a robust and flexible way to retrieve pull requests from Azure DevOps repositories while preventing infinite loop issues.
 
 ## get_pull_request_comments
 

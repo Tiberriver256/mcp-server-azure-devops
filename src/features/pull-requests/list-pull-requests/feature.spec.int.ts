@@ -149,10 +149,13 @@ describe('listPullRequests integration', () => {
 
       // Verify
       expect(pullRequests).toBeDefined();
-      expect(Array.isArray(pullRequests)).toBe(true);
+      expect(pullRequests.value).toBeDefined();
+      expect(Array.isArray(pullRequests.value)).toBe(true);
+      expect(typeof pullRequests.count).toBe('number');
+      expect(typeof pullRequests.hasMoreResults).toBe('boolean');
 
       // Find our test PR in the list
-      const foundPR = pullRequests.find(
+      const foundPR = pullRequests.value.find(
         (pr) => pr.pullRequestId === testPullRequest?.pullRequestId,
       );
       expect(foundPR).toBeDefined();
@@ -172,8 +175,9 @@ describe('listPullRequests integration', () => {
       );
 
       expect(filteredPRs).toBeDefined();
-      expect(Array.isArray(filteredPRs)).toBe(true);
-      expect(filteredPRs.length).toBeGreaterThanOrEqual(0);
+      expect(filteredPRs.value).toBeDefined();
+      expect(Array.isArray(filteredPRs.value)).toBe(true);
+      expect(filteredPRs.count).toBeGreaterThanOrEqual(0);
     } catch (error) {
       console.error('Test error:', error);
       throw error;

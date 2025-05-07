@@ -74,8 +74,12 @@ export const ListPullRequestsSchema = z.object({
   targetRefName: z.string().optional().describe('Filter by target branch name'),
   top: z
     .number()
+    .default(10)
+    .describe('Maximum number of pull requests to return (default: 10)'),
+  skip: z
+    .number()
     .optional()
-    .describe('Maximum number of pull requests to return'),
+    .describe('Number of pull requests to skip for pagination'),
 });
 
 /**
