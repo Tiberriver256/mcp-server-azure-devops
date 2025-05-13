@@ -75,8 +75,14 @@ export async function getMe(connection: WebApi): Promise<UserProfile> {
  * @returns The organization
  */
 function extractOrgFromUrl(url: string): { organization: string } {
-  // Extract organization from the URL
-  const match = url.match(/https?:\/\/dev\.azure\.com\/([^/]+)/);
+  // First try modern dev.azure.com format
+  let match = url.match(/https?:\/\/dev\.azure\.com\/([^/]+)/);
+
+  // If not found, try legacy visualstudio.com format
+  if (!match) {
+    match = url.match(/https?:\/\/([^.]+)\.visualstudio\.com/);
+  }
+
   const organization = match ? match[1] : '';
 
   if (!organization) {

@@ -150,4 +150,36 @@ describe('getMe', () => {
       'Failed to get user information: Test API error',
     );
   });
+
+  // Test the legacy URL format of project.visualstudio.com
+  it('should work with legacy visualstudio.com URL format', async () => {
+    mockConnection = {
+      serverUrl: 'https://legacy_test_org.visualstudio.com',
+    } as WebApi;
+
+    const mockProfile = {
+      id: 'user-id-123',
+      displayName: 'Test User',
+      emailAddress: 'test.user@example.com',
+      coreRevision: 1647,
+      timeStamp: '2023-01-01T00:00:00.000Z',
+      revision: 1647,
+    };
+
+    mockAxios.get.mockResolvedValue({ data: mockProfile });
+
+    const result = await getMe(mockConnection);
+
+    // Verify that the organization name was correctly extracted from the legacy URL
+    expect(mockAxios.get).toHaveBeenCalledWith(
+      'https://vssps.dev.azure.com/legacy_test_org/_apis/profile/profiles/me?api-version=7.1',
+      expect.any(Object),
+    );
+
+    expect(result).toEqual({
+      id: 'user-id-123',
+      displayName: 'Test User',
+      email: 'test.user@example.com',
+    });
+  });
 });
