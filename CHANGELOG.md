@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.37](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.36...mcp-server-azure-devops-v0.1.37) (2025-05-14)
+
+
+### Bug Fixes
+
+* get_me support for visualstudio.com urls ([ffd3c8a](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/ffd3c8a34bcee1856911e5eed7b719d524c25fef))
+
 ## [0.1.36](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.35...mcp-server-azure-devops-v0.1.36) (2025-05-07)
 
 
