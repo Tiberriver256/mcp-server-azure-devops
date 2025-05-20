@@ -83,6 +83,11 @@ function extractOrgFromUrl(url: string): { organization: string } {
     match = url.match(/https?:\/\/([^.]+)\.visualstudio\.com/);
   }
 
+  // Fallback: capture the first path segment for any URL
+  if (!match) {
+    match = url.match(/https?:\/\/[^/]+\/([^/]+)/);
+  }
+
   const organization = match ? match[1] : '';
 
   if (!organization) {
