@@ -11,7 +11,11 @@ dotenv.config();
  */
 export function getOrgNameFromUrl(url?: string): string {
   if (!url) return 'unknown-organization';
-  const match = url.match(/https?:\/\/dev\.azure\.com\/([^/]+)/);
+  let match = url.match(/https?:\/\/dev\.azure\.com\/([^/]+)/);
+  if (match) {
+    return match[1];
+  }
+  match = url.match(/https?:\/\/[^/]+\/([^/]+)/);
   return match ? match[1] : 'unknown-organization';
 }
 
