@@ -11,12 +11,16 @@ dotenv.config();
  */
 export function getOrgNameFromUrl(url?: string): string {
   if (!url) return 'unknown-organization';
-  let match = url.match(/https?:\/\/dev\.azure\.com\/([^/]+)/);
-  if (match) {
-    return match[1];
+  const devMatch = url.match(/https?:\/\/dev\.azure\.com\/([^/]+)/);
+  if (devMatch) {
+    return devMatch[1];
   }
-  match = url.match(/https?:\/\/[^/]+\/([^/]+)/);
-  return match ? match[1] : 'unknown-organization';
+  // Fallback only for Azure DevOps Server URLs
+  if (url.includes('azure')) {
+    const fallbackMatch = url.match(/https?:\/\/[^/]+\/([^/]+)/);
+    return fallbackMatch ? fallbackMatch[1] : 'unknown-organization';
+  }
+  return 'unknown-organization';
 }
 
 /**
