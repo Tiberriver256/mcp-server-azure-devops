@@ -2,6 +2,7 @@ export { getWikis, GetWikisSchema } from './get-wikis';
 export { getWikiPage, GetWikiPageSchema } from './get-wiki-page';
 export { createWiki, CreateWikiSchema, WikiType } from './create-wiki';
 export { updateWikiPage, UpdateWikiPageSchema } from './update-wiki-page';
+export * from './create-wiki-page'; // New export
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -19,10 +20,12 @@ import {
   GetWikiPageSchema,
   CreateWikiSchema,
   UpdateWikiPageSchema,
+  CreateWikiPageSchema, // Added this
   getWikis,
   getWikiPage,
   createWiki,
   updateWikiPage,
+  createWikiPage, // Added this
 } from './';
 
 /**
@@ -37,6 +40,7 @@ export const isWikisRequest: RequestIdentifier = (
     'get_wiki_page',
     'create_wiki',
     'update_wiki_page',
+    'create_wiki_page', // Added this
   ].includes(toolName);
 };
 
@@ -94,6 +98,29 @@ export const handleWikisRequest: RequestHandler = async (
         content: args.content,
         comment: args.comment,
       });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'create_wiki_page': { // Added this case
+      const args = CreateWikiPageSchema.parse(request.params.arguments);
+      // Note: createWikiPage in feature.ts expects AzureDevOpsClient as second param.
+      // The handleWikisRequest function gets `connection: WebApi`.
+      // Assuming AzureDevOpsClient can be instantiated or obtained from WebApi, or feature needs adjustment.
+      // For now, let's assume direct usage and that AzureDevOpsClient might be compatible or wrapped.
+      // This might require creating a new AzureDevOpsClient instance here using the connection details if necessary.
+      // For simplicity, passing connection, but this might need refinement based on AzureDevOpsClient constructor/usage.
+      // If AzureDevOpsClient is a wrapper around WebApi, this might work if it accepts WebApi in constructor
+      // or if createWikiPage is adapted.
+      // Let's assume client is created within createWikiPage or passed correctly.
+      // The current createWikiPage expects an AzureDevOpsClient.
+      // We'll need to instantiate it.
+      const client = new AzureDevOpsClient({ // This instantiation might be specific
+        personalAccessToken: connection.options.personalAccessToken!, // Assuming PAT is in options
+        organizationId: args.organizationId ?? defaultOrg, // Org can be from args or default
+        // projectId: args.projectId ?? defaultProject, // Project can be from args or default - client doesn't always need default project
+      });
+      const result = await createWikiPage(args, client);
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };

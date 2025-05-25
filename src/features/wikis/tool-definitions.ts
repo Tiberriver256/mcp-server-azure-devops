@@ -4,6 +4,7 @@ import { GetWikisSchema } from './get-wikis/schema';
 import { GetWikiPageSchema } from './get-wiki-page/schema';
 import { CreateWikiSchema } from './create-wiki/schema';
 import { UpdateWikiPageSchema } from './update-wiki-page/schema';
+import { CreateWikiPageSchema } from './create-wiki-page/schema';
 
 /**
  * List of wikis tools
@@ -28,5 +29,10 @@ export const wikisTools: ToolDefinition[] = [
     name: 'update_wiki_page',
     description: 'Update content of a wiki page',
     inputSchema: zodToJsonSchema(UpdateWikiPageSchema),
+  },
+  {
+    name: 'create_wiki_page',
+    description: 'Create a new page in a wiki. If the page already exists at the specified path, it will be updated.',
+    inputSchema: zodToJsonSchema(CreateWikiPageSchema),
   },
 ];
