@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.38](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.37...mcp-server-azure-devops-v0.1.38) (2025-05-25)
+
+
+### Bug Fixes
+
+* improve org name extraction from url ([496abc7](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/496abc7a9c5fd0867cf8484f8c33c47a3cc42edf))
+
 ## [0.1.37](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.36...mcp-server-azure-devops-v0.1.37) (2025-05-14)
 
 
