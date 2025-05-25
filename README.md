@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/tiberriver256-mcp-server-azure-devops-badge.png)](https://mseep.ai/app/tiberriver256-mcp-server-azure-devops)
+
 # Azure DevOps MCP Server
 
 A Model Context Protocol (MCP) server implementation for Azure DevOps, allowing AI assistants to interact with Azure DevOps APIs through a standardized protocol.
