@@ -7,6 +7,7 @@ import { ITestApi } from 'azure-devops-node-api/TestApi';
 import { IReleaseApi } from 'azure-devops-node-api/ReleaseApi';
 import { ITaskAgentApi } from 'azure-devops-node-api/TaskAgentApi';
 import { ITaskApi } from 'azure-devops-node-api/TaskApi';
+import { IProfileApi } from 'azure-devops-node-api/ProfileApi';
 import { AzureDevOpsError, AzureDevOpsAuthenticationError } from '../errors';
 import { AuthConfig, createAuthClient } from './auth-factory';
 
@@ -279,7 +280,7 @@ export class AzureDevOpsClient {
    * @returns The Profile API client
    * @throws {AzureDevOpsAuthenticationError} If authentication fails
    */
-  public async getProfileApi(): Promise<any> {
+  public async getProfileApi(): Promise<IProfileApi> {
     try {
       const client = await this.getClient();
       return await client.getProfileApi();

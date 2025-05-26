@@ -8,6 +8,13 @@ import {
 } from '../shared/errors';
 import { defaultOrg, defaultProject } from '../utils/environment';
 
+interface AzureDevOpsApiErrorResponse {
+  message?: string;
+  typeKey?: string;
+  errorCode?: number;
+  eventId?: number;
+}
+
 interface ClientOptions {
   organizationId?: string;
 }
@@ -75,7 +82,8 @@ export class WikiClient {
         const errorMessage =
           typeof axiosError.response.data === 'object' &&
           axiosError.response.data
-            ? (axiosError.response.data as any).message || axiosError.message
+            ? (axiosError.response.data as AzureDevOpsApiErrorResponse)
+                .message || axiosError.message
             : axiosError.message;
 
         if (status === 404) {
@@ -155,7 +163,8 @@ export class WikiClient {
         const errorMessage =
           typeof axiosError.response.data === 'object' &&
           axiosError.response.data
-            ? (axiosError.response.data as any).message || axiosError.message
+            ? (axiosError.response.data as AzureDevOpsApiErrorResponse)
+                .message || axiosError.message
             : axiosError.message;
 
         // Handle 404 Not Found
@@ -241,7 +250,8 @@ export class WikiClient {
         const errorMessage =
           typeof axiosError.response.data === 'object' &&
           axiosError.response.data
-            ? (axiosError.response.data as any).message || axiosError.message
+            ? (axiosError.response.data as AzureDevOpsApiErrorResponse)
+                .message || axiosError.message
             : axiosError.message;
 
         // Handle 404 Not Found
@@ -302,7 +312,7 @@ export class WikiClient {
     };
 
     // Prepare the request payload
-    const payload: Record<string, any> = {
+    const payload: Record<string, string> = {
       content,
     };
 
@@ -342,7 +352,8 @@ export class WikiClient {
         const errorMessage =
           typeof axiosError.response.data === 'object' &&
           axiosError.response.data
-            ? (axiosError.response.data as any).message || axiosError.message
+            ? (axiosError.response.data as AzureDevOpsApiErrorResponse)
+                .message || axiosError.message
             : axiosError.message;
 
         // Handle 404 Not Found - usually means the parent path doesn't exist
@@ -450,7 +461,7 @@ export class WikiClient {
       }
 
       // Create a properly typed payload
-      const payload: Record<string, any> = {
+      const payload: Record<string, string> = {
         content: content.content,
       };
 
@@ -481,7 +492,8 @@ export class WikiClient {
         const errorMessage =
           typeof axiosError.response.data === 'object' &&
           axiosError.response.data
-            ? (axiosError.response.data as any).message || axiosError.message
+            ? (axiosError.response.data as AzureDevOpsApiErrorResponse)
+                .message || axiosError.message
             : axiosError.message;
 
         // Handle 404 Not Found

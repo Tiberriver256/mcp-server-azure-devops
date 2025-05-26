@@ -73,7 +73,9 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text)).toEqual(mockPullRequest);
+      expect(JSON.parse(response.content[0].text as string)).toEqual(
+        mockPullRequest,
+      );
       expect(createPullRequest).toHaveBeenCalledWith(
         mockConnection,
         expect.any(String),
@@ -110,7 +112,9 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text)).toEqual(mockPullRequests);
+      expect(JSON.parse(response.content[0].text as string)).toEqual(
+        mockPullRequests,
+      );
       expect(listPullRequests).toHaveBeenCalledWith(
         mockConnection,
         expect.any(String),
@@ -145,7 +149,9 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text)).toEqual(mockComments);
+      expect(JSON.parse(response.content[0].text as string)).toEqual(
+        mockComments,
+      );
       expect(getPullRequestComments).toHaveBeenCalledWith(
         mockConnection,
         expect.any(String),
@@ -193,7 +199,9 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text)).toEqual(mockResult);
+      expect(JSON.parse(response.content[0].text as string)).toEqual(
+        mockResult,
+      );
       expect(addPullRequestComment).toHaveBeenCalledWith(
         mockConnection,
         expect.any(String),

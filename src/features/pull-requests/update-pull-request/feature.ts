@@ -1,7 +1,10 @@
 import { GitPullRequest } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { WebApi } from 'azure-devops-node-api';
+import { WorkItemRelation } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import { AzureDevOpsClient } from '../../../shared/auth/client-factory';
 import { AzureDevOpsError } from '../../../shared/errors';
 import { UpdatePullRequestOptions } from '../types';
+import { AuthenticationMethod } from '../../../shared/auth/auth-factory';
 
 /**
  * Updates an existing pull request in Azure DevOps with the specified changes.
@@ -30,7 +33,8 @@ export const updatePullRequest = async (
   try {
     // Get connection to Azure DevOps
     const client = new AzureDevOpsClient({
-      method: (process.env.AZURE_DEVOPS_AUTH_METHOD as any) ?? 'pat',
+      method:
+        (process.env.AZURE_DEVOPS_AUTH_METHOD as AuthenticationMethod) ?? 'pat',
       organizationUrl: process.env.AZURE_DEVOPS_ORG_URL ?? '',
       personalAccessToken: process.env.AZURE_DEVOPS_PAT,
     });
@@ -141,7 +145,7 @@ export const updatePullRequest = async (
  * Handle adding or removing work items from a pull request
  */
 interface WorkItemHandlingOptions {
-  connection: any;
+  connection: WebApi;
   pullRequestId: number;
   repositoryId: string;
   projectId?: string;
@@ -210,7 +214,7 @@ async function handleWorkItems(
           if (workItem.relations) {
             // Find the relationship to the pull request using the artifactId
             const prRelationIndex = workItem.relations.findIndex(
-              (rel: any) =>
+              (rel: WorkItemRelation) =>
                 rel.rel === 'ArtifactLink' &&
                 rel.attributes &&
                 rel.attributes.name === 'Pull Request' &&
@@ -251,7 +255,7 @@ async function handleWorkItems(
  * Handle adding or removing reviewers from a pull request
  */
 interface ReviewerHandlingOptions {
-  connection: any;
+  connection: WebApi;
   pullRequestId: number;
   repositoryId: string;
   projectId?: string;

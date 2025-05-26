@@ -1,4 +1,5 @@
 import { WebApi } from 'azure-devops-node-api';
+import { IGitApi } from 'azure-devops-node-api/GitApi';
 import {
   GitVersionType,
   VersionControlRecursionType,
@@ -228,7 +229,7 @@ function processItemsNonRecursive(
  * Process items recursively up to the specified depth
  */
 async function processItems(
-  gitApi: any,
+  gitApi: IGitApi,
   repoId: string,
   projectId: string,
   items: GitItem[],

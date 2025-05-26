@@ -7,6 +7,14 @@ import {
   TeamProject,
   WebApiTeam,
 } from 'azure-devops-node-api/interfaces/CoreInterfaces';
+import { WorkItemField } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+
+// Type for work item type field with additional properties
+interface WorkItemTypeField extends WorkItemField {
+  isRequired?: boolean;
+  isIdentity?: boolean;
+  isPicklist?: boolean;
+}
 
 /**
  * Options for getting project details
@@ -195,15 +203,17 @@ export async function getProjectDetails(
                   );
 
                 // Map the fields to our format
-                wit.fields = typeSpecificFields.map((field: any) => ({
-                  name: field.name || 'Unknown',
-                  referenceName: field.referenceName || 'Unknown',
-                  type: field.type?.toString().toLowerCase() || 'string',
-                  required: field.isRequired || false,
-                  isIdentity: field.isIdentity || false,
-                  isPicklist: field.isPicklist || false,
-                  description: field.description,
-                }));
+                wit.fields = typeSpecificFields.map(
+                  (field: WorkItemTypeField) => ({
+                    name: field.name || 'Unknown',
+                    referenceName: field.referenceName || 'Unknown',
+                    type: field.type?.toString().toLowerCase() || 'string',
+                    required: field.isRequired || false,
+                    isIdentity: field.isIdentity || false,
+                    isPicklist: field.isPicklist || false,
+                    description: field.description,
+                  }),
+                );
               } catch (typeFieldError) {
                 console.error(
                   `Error fetching fields for work item type ${wit.name}:`,

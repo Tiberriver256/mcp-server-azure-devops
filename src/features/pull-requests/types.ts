@@ -17,7 +17,7 @@ export interface CreatePullRequestOptions {
   reviewers?: string[];
   isDraft?: boolean;
   workItemRefs?: number[];
-  additionalProperties?: Record<string, any>;
+  additionalProperties?: Record<string, string | number | boolean>;
 }
 
 /**
@@ -80,5 +80,5 @@ export interface UpdatePullRequestOptions {
   removeWorkItemIds?: number[];
   addReviewers?: string[]; // Array of reviewer identifiers (email or ID)
   removeReviewers?: string[]; // Array of reviewer identifiers (email or ID)
-  additionalProperties?: Record<string, any>;
+  additionalProperties?: Record<string, string | number | boolean>;
 }
