@@ -4,6 +4,7 @@ import { GetWikisSchema } from './get-wikis/schema';
 import { GetWikiPageSchema } from './get-wiki-page/schema';
 import { CreateWikiSchema } from './create-wiki/schema';
 import { UpdateWikiPageSchema } from './update-wiki-page/schema';
+import { ListWikiPagesSchema } from './list-wiki-pages/schema';
 
 /**
  * List of wikis tools
@@ -28,5 +29,10 @@ export const wikisTools: ToolDefinition[] = [
     name: 'update_wiki_page',
     description: 'Update content of a wiki page',
     inputSchema: zodToJsonSchema(UpdateWikiPageSchema),
+  },
+  {
+    name: 'list_wiki_pages',
+    description: 'List pages within an Azure DevOps wiki',
+    inputSchema: zodToJsonSchema(ListWikiPagesSchema),
   },
 ];

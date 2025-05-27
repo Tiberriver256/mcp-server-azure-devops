@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "shrimp-task-manager": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-shrimp-task-manager"
+      ],
+      "env": {
+        "DATA_DIR": "D:/mcp-server-azure-devops",
+        "TEMPLATES_USE": "en",
+        "ENABLE_GUI": "false"
+      },
+      "alwaysAllow": [
+        "init_project_rules",
+        "process_thought",
+        "plan_task",
+        "analyze_task",
+        "reflect_task",
+        "split_tasks",
+        "execute_task",
+        "verify_task",
+        "get_task_detail"
+      ]
+    }
+  }
+}

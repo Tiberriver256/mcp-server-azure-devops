@@ -35,6 +35,25 @@ interface WikiPageContent {
   content: string;
 }
 
+export interface WikiPageSummary {
+  id: number;
+  path: string;
+  url?: string;
+  order?: number;
+}
+
+interface WikiPagesBatchRequest {
+  top: number;
+  continuationToken?: string;
+  path?: string;
+  recursionLevel?: number;
+}
+
+interface WikiPagesBatchResponse {
+  value: WikiPageSummary[];
+  continuationToken?: string;
+}
+
 interface PageUpdateOptions {
   comment?: string;
   versionDescriptor?: {
@@ -526,6 +545,117 @@ export class WikiClient {
       // Handle network errors
       throw new AzureDevOpsError(
         `Network error when updating wiki page: ${axiosError.message}`,
+      );
+    }
+  }
+
+  /**
+   * Lists wiki pages from a wiki using the Pages Batch API
+   * @param projectId - Project ID or name
+   * @param wikiId - Wiki ID or name
+   * @param options - Optional parameters for path and recursion level
+   * @returns Array of wiki page summaries sorted by order then path
+   */
+  async listWikiPages(
+    projectId: string,
+    wikiId: string,
+    options?: { path?: string; recursionLevel?: number },
+  ): Promise<WikiPageSummary[]> {
+    // Use the default project if not provided
+    const project = projectId || defaultProject;
+
+    // Construct the URL for the Pages Batch API
+    const url = `${this.baseUrl}/${project}/_apis/wiki/wikis/${wikiId}/pagesbatch`;
+
+    const allPages: WikiPageSummary[] = [];
+    let continuationToken: string | undefined;
+
+    try {
+      // Get authorization header
+      const authHeader = await getAuthorizationHeader();
+
+      do {
+        // Prepare the request body
+        const requestBody: WikiPagesBatchRequest = {
+          top: 100,
+          ...(continuationToken && { continuationToken }),
+          ...(options?.path && { path: options.path }),
+          ...(options?.recursionLevel && {
+            recursionLevel: options.recursionLevel,
+          }),
+        };
+
+        // Make the API request
+        const response = await axios.post<WikiPagesBatchResponse>(
+          url,
+          requestBody,
+          {
+            params: {
+              'api-version': '7.1',
+            },
+            headers: {
+              Authorization: authHeader,
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+
+        // Add the pages from this batch to our collection
+        if (response.data.value && Array.isArray(response.data.value)) {
+          allPages.push(...response.data.value);
+        }
+
+        // Update continuation token for next iteration
+        continuationToken = response.data.continuationToken;
+      } while (continuationToken);
+
+      // Sort results by order then path
+      return allPages.sort((a, b) => {
+        // Handle optional order field
+        const aOrder = a.order ?? Number.MAX_SAFE_INTEGER;
+        const bOrder = b.order ?? Number.MAX_SAFE_INTEGER;
+
+        if (aOrder !== bOrder) {
+          return aOrder - bOrder;
+        }
+        return a.path.localeCompare(b.path);
+      });
+    } catch (error) {
+      const axiosError = error as AxiosError;
+
+      // Handle specific error cases
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const errorMessage =
+          typeof axiosError.response.data === 'object' &&
+          axiosError.response.data
+            ? (axiosError.response.data as AzureDevOpsApiErrorResponse)
+                .message || axiosError.message
+            : axiosError.message;
+
+        // Handle 404 Not Found
+        if (status === 404) {
+          throw new AzureDevOpsResourceNotFoundError(
+            `Wiki not found: ${wikiId} in project ${projectId}`,
+          );
+        }
+
+        // Handle 401 Unauthorized or 403 Forbidden
+        if (status === 401 || status === 403) {
+          throw new AzureDevOpsPermissionError(
+            `Permission denied to list wiki pages in wiki: ${wikiId}`,
+          );
+        }
+
+        // Handle other error statuses
+        throw new AzureDevOpsError(
+          `Failed to list wiki pages: ${errorMessage}`,
+        );
+      }
+
+      // Handle network errors
+      throw new AzureDevOpsError(
+        `Network error when listing wiki pages: ${axiosError.message}`,
       );
     }
   }

@@ -1,0 +1,109 @@
+{
+  "tasks": [
+    {
+      "id": "1c881b0f-7fd6-4184-89f5-1676a56e3719",
+      "name": "Fix shared type definitions with explicit any warnings",
+      "description": "Replace explicit 'any' types in shared type definitions with proper TypeScript types to resolve ESLint warnings. This includes RequestHandler return type and ToolDefinition inputSchema type.",
+      "notes": "These are core type definitions used throughout the project, so changes must maintain backward compatibility. The CallToolResult type is the standard MCP SDK return type for tool responses.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-05-26T15:23:09.065Z",
+      "updatedAt": "2025-05-26T15:33:17.167Z",
+      "relatedFiles": [
+        {
+          "path": "src/shared/types/request-handler.ts",
+          "type": "TO_MODIFY",
+          "description": "Contains RequestHandler interface with 'any' return type",
+          "lineStart": 14,
+          "lineEnd": 16
+        },
+        {
+          "path": "src/shared/types/tool-definition.ts",
+          "type": "TO_MODIFY",
+          "description": "Contains ToolDefinition interface with 'any' inputSchema type",
+          "lineStart": 4,
+          "lineEnd": 8
+        }
+      ],
+      "implementationGuide": "1. Update src/shared/types/request-handler.ts line 15: Change 'any' to 'Promise<CallToolResult>' where CallToolResult is imported from '@modelcontextprotocol/sdk/types.js'\n2. Update src/shared/types/tool-definition.ts line 7: Change 'any' to 'JSONSchema7' where JSONSchema7 is imported from 'json-schema'\n3. Add necessary imports at the top of each file\n4. Ensure all existing functionality remains unchanged",
+      "verificationCriteria": "1. ESLint warnings for these files should be resolved\n2. TypeScript compilation should succeed\n3. All existing tests should continue to pass\n4. Import statements should be properly added",
+      "analysisResult": "Fix lint issues and get unit tests passing in the MCP Azure DevOps server project. The solution addresses 18 TypeScript 'any' type warnings by replacing them with proper types from Azure DevOps Node API and MCP SDK, and resolves 1 failing unit test by handling empty test files. All changes maintain backward compatibility and follow existing project patterns.",
+      "summary": "Successfully replaced explicit 'any' types in shared type definitions with proper TypeScript types. Updated RequestHandler return type to use CallToolResult union type for backward compatibility, and ToolDefinition inputSchema to use JsonSchema7Type from zod-to-json-schema. ESLint warnings for these files are resolved, TypeScript compilation succeeds for the core types, and all existing functionality remains unchanged with proper imports added.",
+      "completedAt": "2025-05-26T15:33:17.165Z"
+    },
+    {
+      "id": "17aa94fe-24d4-4a8b-a127-ef27e121de38",
+      "name": "Fix Azure DevOps client type warnings",
+      "description": "Replace 'any' types in Azure DevOps client files with proper types from the azure-devops-node-api library to resolve 7 ESLint warnings in src/clients/azure-devops.ts.",
+      "notes": "The azure-devops-node-api library provides comprehensive TypeScript interfaces. Prefer using existing library types over creating custom ones.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "1c881b0f-7fd6-4184-89f5-1676a56e3719"
+        }
+      ],
+      "createdAt": "2025-05-26T15:23:09.065Z",
+      "updatedAt": "2025-05-26T15:39:30.003Z",
+      "relatedFiles": [
+        {
+          "path": "src/clients/azure-devops.ts",
+          "type": "TO_MODIFY",
+          "description": "Contains 7 'any' type warnings that need proper typing",
+          "lineStart": 1,
+          "lineEnd": 500
+        }
+      ],
+      "implementationGuide": "1. Examine each 'any' usage in src/clients/azure-devops.ts at lines 78, 158, 244, 305, 345, 453, 484\n2. Replace with appropriate types from azure-devops-node-api interfaces\n3. Common patterns: Use TeamProject, GitRepository, WorkItem, BuildDefinition types\n4. For API responses, use the specific interface types provided by the library\n5. If no specific type exists, create a minimal interface with required properties",
+      "verificationCriteria": "1. All 7 ESLint warnings in src/clients/azure-devops.ts should be resolved\n2. TypeScript compilation should succeed\n3. Existing functionality should remain unchanged\n4. Types should be imported from azure-devops-node-api where available",
+      "analysisResult": "Fix lint issues and get unit tests passing in the MCP Azure DevOps server project. The solution addresses 18 TypeScript 'any' type warnings by replacing them with proper types from Azure DevOps Node API and MCP SDK, and resolves 1 failing unit test by handling empty test files. All changes maintain backward compatibility and follow existing project patterns.",
+      "summary": "Successfully fixed all 7 ESLint warnings in src/clients/azure-devops.ts by replacing 'any' types with proper TypeScript interfaces. Created AzureDevOpsApiErrorResponse interface for Azure DevOps API error responses and replaced Record<string, any> with Record<string, string> for payload objects. All ESLint warnings are now resolved while maintaining existing functionality and backward compatibility.",
+      "completedAt": "2025-05-26T15:39:30.002Z"
+    },
+    {
+      "id": "d971e510-94cc-4f12-a1e8-a0ac35d57b7f",
+      "name": "Fix feature-specific type warnings",
+      "description": "Replace 'any' types in feature modules with proper Azure DevOps API types to resolve remaining ESLint warnings in projects, pull-requests, and repositories features.",
+      "notes": "Each feature module should use the most specific Azure DevOps API type available. Check existing working features for type usage patterns.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "1c881b0f-7fd6-4184-89f5-1676a56e3719"
+        }
+      ],
+      "createdAt": "2025-05-26T15:23:09.065Z",
+      "updatedAt": "2025-05-26T15:51:24.788Z",
+      "relatedFiles": [
+        {
+          "path": "src/features/projects/get-project-details/feature.ts",
+          "type": "TO_MODIFY",
+          "description": "Contains 'any' type warning at line 198"
+        },
+        {
+          "path": "src/features/pull-requests/types.ts",
+          "type": "TO_MODIFY",
+          "description": "Contains 'any' type warnings at lines 20, 83"
+        },
+        {
+          "path": "src/features/pull-requests/update-pull-request/feature.ts",
+          "type": "TO_MODIFY",
+          "description": "Contains 'any' type warnings at lines 33, 144, 213, 254"
+        },
+        {
+          "path": "src/features/repositories/get-all-repositories-tree/feature.ts",
+          "type": "TO_MODIFY",
+          "description": "Contains 'any' type warning at line 231"
+        },
+        {
+          "path": "src/shared/auth/client-factory.ts",
+          "type": "TO_MODIFY",
+          "description": "Contains 'any' type warning at line 282"
+        }
+      ],
+      "implementationGuide": "1. Fix src/features/projects/get-project-details/feature.ts line 198: Use TeamProject or TeamProjectReference type\n2. Fix src/features/pull-requests/types.ts lines 20, 83: Use GitPullRequest related interfaces\n3. Fix src/features/pull-requests/update-pull-request/feature.ts lines 33, 144, 213, 254: Use GitPullRequest and JsonPatchOperation types\n4. Fix src/features/repositories/get-all-repositories-tree/feature.ts line 231: Use GitTreeRef or GitItem type\n5. Fix src/shared/auth/client-factory.ts line 282: Use proper authentication credential type\n6. Import types from azure-devops-node-api/interfaces/",
+      "verificationCriteria": "1. All remaining ESLint 'any' type warnings should be resolved\n2. TypeScript compilation should succeed\n3. All existing tests should continue to pass\n4. Types should be consistent with Azure DevOps API documentation",
+      "analysisResult": "Fix lint issues and get unit tests passing in the MCP Azure DevOps server project. The solution addresses 18 TypeScript 'any' type warnings by replacing them with proper types from Azure DevOps Node API and MCP SDK, and resolves 1 failing unit test by handling empty test files. All changes maintain backward compatibility and follow existing project patterns.",
+      "summary": "Successfully fixed all feature-specific type warnings by replacing 'any' types with proper Azure DevOps API types. Fixed src/features/projects/get-project-details/feature.ts by using WorkItemTypeField interface, src/features/pull-requests/types.ts by replacing 'any' with specific union types, src/features/pull-requests/update-pull-request/feature.ts by using WebApi, AuthenticationMethod, and WorkItemRelation types, src/features/repositories/get-all-repositories-tree/feature.ts by using IGitApi type, and src/shared/auth/client-factory.ts by using IProfileApi type. All ESLint 'any' type warnings in the specified files have been resolved while maintaining type safety and consistency with Azure DevOps API documentation.",
+      "completedAt": "2025-05-26T15:51:24.787Z"
+    }
+  ]
+}
