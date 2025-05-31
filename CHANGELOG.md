@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.39](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.38...mcp-server-azure-devops-v0.1.39) (2025-05-31)
+
+
+### Features
+
+* add listWikiPages functionality to Azure DevOps wiki client ([bb9ddc0](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/bb9ddc077e80be0caeda106a7e75dc336a62c9ae))
+
+
+### Bug Fixes
+
+* remove uuid() validator to resolve unknown format error ([b251252](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/b251252c7c455ee11d8076380b70a546ebf40a6e))
+
 ## [0.1.38](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.37...mcp-server-azure-devops-v0.1.38) (2025-05-25)
 
 
