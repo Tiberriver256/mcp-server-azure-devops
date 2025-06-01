@@ -3,6 +3,7 @@ export { getWikiPage, GetWikiPageSchema } from './get-wiki-page';
 export { createWiki, CreateWikiSchema, WikiType } from './create-wiki';
 export { updateWikiPage, UpdateWikiPageSchema } from './update-wiki-page';
 export { listWikiPages, ListWikiPagesSchema } from './list-wiki-pages';
+export { createWikiPage, CreateWikiPageSchema } from './create-wiki-page';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -21,11 +22,13 @@ import {
   CreateWikiSchema,
   UpdateWikiPageSchema,
   ListWikiPagesSchema,
+  CreateWikiPageSchema,
   getWikis,
   getWikiPage,
   createWiki,
   updateWikiPage,
   listWikiPages,
+  createWikiPage,
 } from './';
 
 /**
@@ -41,6 +44,7 @@ export const isWikisRequest: RequestIdentifier = (
     'create_wiki',
     'update_wiki_page',
     'list_wiki_pages',
+    'create_wiki_page',
   ].includes(toolName);
 };
 
@@ -110,6 +114,20 @@ export const handleWikisRequest: RequestHandler = async (
         wikiId: args.wikiId,
         path: args.path,
         recursionLevel: args.recursionLevel,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'create_wiki_page': {
+      const args = CreateWikiPageSchema.parse(request.params.arguments);
+      const result = await createWikiPage({
+        organizationId: args.organizationId ?? defaultOrg,
+        projectId: args.projectId ?? defaultProject,
+        wikiId: args.wikiId,
+        pagePath: args.pagePath,
+        content: args.content,
+        comment: args.comment,
       });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
