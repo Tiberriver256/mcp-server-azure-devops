@@ -7,7 +7,7 @@ describe('getPullRequestComments', () => {
     jest.resetAllMocks();
   });
 
-  test('should return pull request comment threads successfully', async () => {
+  test('should return pull request comment threads with file path and line number', async () => {
     // Mock data for a comment thread
     const mockCommentThreads: GitPullRequestCommentThread[] = [
       {
@@ -79,7 +79,15 @@ describe('getPullRequestComments', () => {
     );
 
     // Verify results
-    expect(result).toEqual(mockCommentThreads);
+    expect(result).toHaveLength(1);
+    expect(result[0].comments).toHaveLength(2);
+    
+    // Verify file path and line number are added to each comment
+    result[0].comments?.forEach(comment => {
+      expect(comment).toHaveProperty('filePath', '/src/app.ts');
+      expect(comment).toHaveProperty('lineNumber', 10);
+    });
+
     expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
     expect(mockGitApi.getThreads).toHaveBeenCalledTimes(1);
     expect(mockGitApi.getThreads).toHaveBeenCalledWith(
@@ -92,12 +100,132 @@ describe('getPullRequestComments', () => {
     expect(mockGitApi.getPullRequestThread).not.toHaveBeenCalled();
   });
 
+  test('should handle comments without thread context', async () => {
+    // Mock data for a comment thread without thread context
+    const mockCommentThreads: GitPullRequestCommentThread[] = [
+      {
+        id: 1,
+        status: 1, // Active
+        comments: [
+          {
+            id: 100,
+            content: 'General comment',
+            commentType: 1,
+            author: {
+              displayName: 'Test User',
+              id: 'test-user-id',
+            },
+            publishedDate: new Date(),
+          },
+        ],
+      },
+    ];
+
+    // Setup mock connection
+    const mockGitApi = {
+      getThreads: jest.fn().mockResolvedValue(mockCommentThreads),
+      getPullRequestThread: jest.fn(),
+    };
+
+    const mockConnection: any = {
+      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    };
+
+    const result = await getPullRequestComments(
+      mockConnection as WebApi,
+      'test-project',
+      'test-repo',
+      123,
+      {
+        projectId: 'test-project',
+        repositoryId: 'test-repo',
+        pullRequestId: 123,
+      },
+    );
+
+    // Verify results
+    expect(result).toHaveLength(1);
+    expect(result[0].comments).toHaveLength(1);
+    
+    // Verify file path and line number are null for comments without thread context
+    const comment = result[0].comments![0];
+    expect(comment).toHaveProperty('filePath', undefined);
+    expect(comment).toHaveProperty('lineNumber', null);
+  });
+
+  test('should use leftFileStart when rightFileStart is not available', async () => {
+    // Mock data for a comment thread with only leftFileStart
+    const mockCommentThreads: GitPullRequestCommentThread[] = [
+      {
+        id: 1,
+        status: 1,
+        threadContext: {
+          filePath: '/src/app.ts',
+          leftFileStart: {
+            line: 5,
+            offset: 1,
+          },
+        },
+        comments: [
+          {
+            id: 100,
+            content: 'Comment on deleted line',
+            commentType: 1,
+            author: {
+              displayName: 'Test User',
+              id: 'test-user-id',
+            },
+            publishedDate: new Date(),
+          },
+        ],
+      },
+    ];
+
+    // Setup mock connection
+    const mockGitApi = {
+      getThreads: jest.fn().mockResolvedValue(mockCommentThreads),
+      getPullRequestThread: jest.fn(),
+    };
+
+    const mockConnection: any = {
+      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    };
+
+    const result = await getPullRequestComments(
+      mockConnection as WebApi,
+      'test-project',
+      'test-repo',
+      123,
+      {
+        projectId: 'test-project',
+        repositoryId: 'test-repo',
+        pullRequestId: 123,
+      },
+    );
+
+    // Verify results
+    expect(result).toHaveLength(1);
+    expect(result[0].comments).toHaveLength(1);
+    
+    // Verify line number is taken from leftFileStart
+    const comment = result[0].comments![0];
+    expect(comment).toHaveProperty('filePath', '/src/app.ts');
+    expect(comment).toHaveProperty('lineNumber', 5);
+  });
+
   test('should return a specific comment thread when threadId is provided', async () => {
     // Mock data for a specific comment thread
     const threadId = 42;
     const mockCommentThread: GitPullRequestCommentThread = {
       id: threadId,
       status: 1, // Active
+      threadContext: {
+        filePath: '/src/utils.ts',
+        rightFileStart: {
+          line: 15,
+          offset: 1,
+        },
+      },
       comments: [
         {
           id: 100,
@@ -142,7 +270,15 @@ describe('getPullRequestComments', () => {
     );
 
     // Verify results
-    expect(result).toEqual([mockCommentThread]);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(threadId);
+    expect(result[0].comments).toHaveLength(1);
+    
+    // Verify file path and line number are added
+    const comment = result[0].comments![0];
+    expect(comment).toHaveProperty('filePath', '/src/utils.ts');
+    expect(comment).toHaveProperty('lineNumber', 15);
+
     expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
     expect(mockGitApi.getPullRequestThread).toHaveBeenCalledTimes(1);
     expect(mockGitApi.getPullRequestThread).toHaveBeenCalledWith(
@@ -160,16 +296,28 @@ describe('getPullRequestComments', () => {
       {
         id: 1,
         status: 1,
+        threadContext: {
+          filePath: '/src/file1.ts',
+          rightFileStart: { line: 1, offset: 1 },
+        },
         comments: [{ id: 100, content: 'Comment 1' }],
       },
       {
         id: 2,
         status: 1,
+        threadContext: {
+          filePath: '/src/file2.ts',
+          rightFileStart: { line: 2, offset: 1 },
+        },
         comments: [{ id: 101, content: 'Comment 2' }],
       },
       {
         id: 3,
         status: 1,
+        threadContext: {
+          filePath: '/src/file3.ts',
+          rightFileStart: { line: 3, offset: 1 },
+        },
         comments: [{ id: 102, content: 'Comment 3' }],
       },
     ];
@@ -205,7 +353,14 @@ describe('getPullRequestComments', () => {
 
     // Verify results (should only include first 2 threads)
     expect(result).toHaveLength(2);
-    expect(result).toEqual(mockCommentThreads.slice(0, 2));
+    expect(result).toEqual(mockCommentThreads.slice(0, 2).map(thread => ({
+      ...thread,
+      comments: thread.comments?.map(comment => ({
+        ...comment,
+        filePath: thread.threadContext?.filePath,
+        lineNumber: thread.threadContext?.rightFileStart?.line ?? null,
+      })),
+    })));
     expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
     expect(mockGitApi.getThreads).toHaveBeenCalledTimes(1);
   });
