@@ -45,8 +45,31 @@ The server uses a feature-based architecture where each feature area (like work-
   - Azure Identity credentials, or
   - Azure CLI login
 
-### Running with NPX
+### Installation (Clone & Run Locally)
 
+To install and run the server manually:
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/Tiberriver256/mcp-server-azure-devops.git
+   cd mcp-server-azure-devops
+   ```
+
+2. **Install dependencies**
+
+   Using npm:
+
+   ```bash
+   npm install
+   ```
+
+   Or using yarn:
+
+   ```bash
+   yarn install
+   ```
+   
 ### Usage with Claude Desktop/Cursor AI
 
 To integrate with Claude Desktop or Cursor AI, add one of the following configurations to your configuration file.
