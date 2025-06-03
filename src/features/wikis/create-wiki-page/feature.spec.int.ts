@@ -122,7 +122,6 @@ describe('createWikiPage Integration Tests', () => {
         projectId: projectName,
         wikiId,
         pagePath: testPagePath,
-        includeContent: true,
       });
 
       expect(fetchedPage).toBeDefined();
@@ -190,7 +189,6 @@ describe('createWikiPage Integration Tests', () => {
         projectId: projectName,
         wikiId,
         pagePath: testPagePathSub,
-        includeContent: true,
       });
 
       expect(fetchedSubPage).toBeDefined();
@@ -254,7 +252,6 @@ describe('createWikiPage Integration Tests', () => {
         projectId: projectName,
         wikiId,
         pagePath: testPagePath,
-        includeContent: true,
       });
 
       expect(fetchedPage).toBeDefined();
@@ -309,7 +306,6 @@ describe('createWikiPage Integration Tests', () => {
         projectId: projectName,
         wikiId,
         pagePath: testPagePathDefault,
-        includeContent: true,
       });
 
       expect(fetchedPage).toBeDefined();
@@ -365,7 +361,6 @@ describe('createWikiPage Integration Tests', () => {
         projectId: projectName,
         wikiId,
         pagePath: testPagePathComment,
-        includeContent: true,
       });
 
       expect(fetchedPage).toBeDefined();
