@@ -118,10 +118,13 @@ describe('getPullRequestComments integration', () => {
     expect(firstComment.id).toBeDefined();
     expect(firstComment.publishedDate).toBeDefined();
     expect(firstComment.author).toBeDefined();
-    
+
     // Verify new fields are present (may be undefined/null for general comments)
     expect(firstComment).toHaveProperty('filePath');
-    expect(firstComment).toHaveProperty('lineNumber');
+    expect(firstComment).toHaveProperty('rightFileStart');
+    expect(firstComment).toHaveProperty('rightFileEnd');
+    expect(firstComment).toHaveProperty('leftFileStart');
+    expect(firstComment).toHaveProperty('leftFileEnd');
   }, 30000);
 
   test('should get a specific comment thread by ID with file path and line number', async () => {
@@ -170,7 +173,10 @@ describe('getPullRequestComments integration', () => {
 
     // Verify new fields are present (may be undefined/null for general comments)
     expect(comment).toHaveProperty('filePath');
-    expect(comment).toHaveProperty('lineNumber');
+    expect(comment).toHaveProperty('rightFileStart');
+    expect(comment).toHaveProperty('rightFileEnd');
+    expect(comment).toHaveProperty('leftFileStart');
+    expect(comment).toHaveProperty('leftFileEnd');
   }, 30000);
 
   test('should handle pagination with top parameter', async () => {
@@ -229,7 +235,10 @@ describe('getPullRequestComments integration', () => {
     // Verify new fields are present in paginated results
     const comment = thread.comments![0];
     expect(comment).toHaveProperty('filePath');
-    expect(comment).toHaveProperty('lineNumber');
+    expect(comment).toHaveProperty('rightFileStart');
+    expect(comment).toHaveProperty('rightFileEnd');
+    expect(comment).toHaveProperty('leftFileStart');
+    expect(comment).toHaveProperty('leftFileEnd');
   }, 30000);
 
   test('should handle includeDeleted parameter', async () => {
@@ -268,7 +277,10 @@ describe('getPullRequestComments integration', () => {
       if (thread.comments && thread.comments.length > 0) {
         const comment = thread.comments[0];
         expect(comment).toHaveProperty('filePath');
-        expect(comment).toHaveProperty('lineNumber');
+        expect(comment).toHaveProperty('rightFileStart');
+        expect(comment).toHaveProperty('rightFileEnd');
+        expect(comment).toHaveProperty('leftFileStart');
+        expect(comment).toHaveProperty('leftFileEnd');
       }
     }
   }, 30000); // 30 second timeout for integration test
