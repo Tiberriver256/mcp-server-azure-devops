@@ -1,6 +1,6 @@
 import { WebApi } from 'azure-devops-node-api';
 import { getPersonalAccessTokenHandler } from 'azure-devops-node-api';
-import { AzureDevOpsConfig } from '../types';
+import { AzureDevOpsConfig, TransportProtocol } from '../types';
 import { AuthenticationMethod } from '../auth';
 
 /**
@@ -38,6 +38,8 @@ export function getTestConfig(): AzureDevOpsConfig | null {
       authMethod: AuthenticationMethod.PersonalAccessToken,
       personalAccessToken: pat,
       defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT,
+      transport: TransportProtocol.Stdio,
+      http_port: 8000,
     };
   }
 

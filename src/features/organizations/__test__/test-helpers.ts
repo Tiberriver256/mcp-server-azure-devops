@@ -1,4 +1,4 @@
-import { AzureDevOpsConfig } from '../../../shared/types';
+import { AzureDevOpsConfig, TransportProtocol } from '../../../shared/types';
 import { AuthenticationMethod } from '../../../shared/auth';
 
 /**
@@ -17,6 +17,8 @@ export function getTestConfig(): AzureDevOpsConfig | null {
       authMethod: AuthenticationMethod.PersonalAccessToken,
       personalAccessToken: pat,
       defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT,
+      transport: TransportProtocol.Stdio,
+      http_port: 8000,
     };
   }
 

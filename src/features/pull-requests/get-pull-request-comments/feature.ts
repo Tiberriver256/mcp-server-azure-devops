@@ -64,19 +64,22 @@ export async function getPullRequestComments(
  * @param thread The original comment thread
  * @returns Transformed comment thread with additional fields
  */
-function transformThread(thread: GitPullRequestCommentThread): GitPullRequestCommentThread {
+function transformThread(
+  thread: GitPullRequestCommentThread,
+): GitPullRequestCommentThread {
   if (!thread.comments) {
     return thread;
   }
 
   // Get file path and line number from thread context
   const filePath = thread.threadContext?.filePath;
-  const lineNumber = thread.threadContext?.rightFileStart?.line ?? 
-                    thread.threadContext?.leftFileStart?.line ?? 
-                    null;
+  const lineNumber =
+    thread.threadContext?.rightFileStart?.line ??
+    thread.threadContext?.leftFileStart?.line ??
+    null;
 
   // Transform each comment to include the new fields
-  const transformedComments = thread.comments.map(comment => ({
+  const transformedComments = thread.comments.map((comment) => ({
     ...comment,
     filePath,
     lineNumber,
