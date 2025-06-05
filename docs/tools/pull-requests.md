@@ -429,7 +429,10 @@ Each comment in the thread contains:
 - `author`: Information about the user who created the comment
 - `publishedDate`: The date and time when the comment was published
 - `filePath`: The path of the file the comment is associated with (if any)
-- `lineNumber`: The line number the comment is associated with (if any)
+- `leftFileStart`: The start position in the left file (object with `line` and `offset`), or null
+- `leftFileEnd`: The end position in the left file (object with `line` and `offset`), or null
+- `rightFileStart`: The start position in the right file (object with `line` and `offset`), or null
+- `rightFileEnd`: The end position in the right file (object with `line` and `offset`), or null
 - And various other fields and references
 
 Example response:
@@ -462,7 +465,10 @@ Example response:
         },
         "publishedDate": "2023-04-15T14:30:00Z",
         "filePath": "/src/app.ts",
-        "lineNumber": 10
+        "rightFileStart": { "line": 10, "offset": 5 },
+        "rightFileEnd": { "line": 10, "offset": 15 },
+        "leftFileStart": undefined,
+        "leftFileEnd": undefined
       },
       {
         "id": 457,
@@ -476,7 +482,10 @@ Example response:
         },
         "publishedDate": "2023-04-15T14:35:00Z",
         "filePath": "/src/app.ts",
-        "lineNumber": 10
+        "rightFileStart": { "line": 10, "offset": 5 },
+        "rightFileEnd": { "line": 10, "offset": 15 },
+        "leftFileStart": undefined,
+        "leftFileEnd": undefined
       }
     ],
     "isDeleted": false
@@ -496,7 +505,10 @@ Example response:
         },
         "publishedDate": "2023-04-15T14:40:00Z",
         "filePath": null,
-        "lineNumber": null
+        "rightFileStart": undefined,
+        "rightFileEnd": undefined,
+        "leftFileStart": undefined,
+        "leftFileEnd": undefined
       }
     ],
     "isDeleted": false
@@ -529,8 +541,8 @@ const comments = await mcpClient.callTool('get_pull_request_comments', {
 // Get comments with file path and line number information
 comments.forEach(thread => {
   thread.comments?.forEach(comment => {
-    if (comment.filePath && comment.lineNumber) {
-      console.log(`Comment on ${comment.filePath}:${comment.lineNumber}: ${comment.content}`);
+    if (comment.filePath && comment.rightFileStart && comment.rightFileEnd) {
+      console.log(`Comment on ${comment.filePath}:${comment.rightFileStart.line}-${comment.rightFileEnd.line}: ${comment.content}`);
     } else {
       console.log(`General comment: ${comment.content}`);
     }
