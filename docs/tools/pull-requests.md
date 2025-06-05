@@ -467,8 +467,8 @@ Example response:
         "filePath": "/src/app.ts",
         "rightFileStart": { "line": 10, "offset": 5 },
         "rightFileEnd": { "line": 10, "offset": 15 },
-        "leftFileStart": null,
-        "leftFileEnd": null
+        "leftFileStart": undefined,
+        "leftFileEnd": undefined
       },
       {
         "id": 457,
@@ -484,8 +484,8 @@ Example response:
         "filePath": "/src/app.ts",
         "rightFileStart": { "line": 10, "offset": 5 },
         "rightFileEnd": { "line": 10, "offset": 15 },
-        "leftFileStart": null,
-        "leftFileEnd": null
+        "leftFileStart": undefined,
+        "leftFileEnd": undefined
       }
     ],
     "isDeleted": false
@@ -505,10 +505,10 @@ Example response:
         },
         "publishedDate": "2023-04-15T14:40:00Z",
         "filePath": null,
-        "rightFileStart": null,
-        "rightFileEnd": null,
-        "leftFileStart": null,
-        "leftFileEnd": null
+        "rightFileStart": undefined,
+        "rightFileEnd": undefined,
+        "leftFileStart": undefined,
+        "leftFileEnd": undefined
       }
     ],
     "isDeleted": false
