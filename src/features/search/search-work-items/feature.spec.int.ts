@@ -1,7 +1,7 @@
 import { WebApi } from 'azure-devops-node-api';
 import { searchWorkItems } from './feature';
 import { getConnection } from '../../../server';
-import { AzureDevOpsConfig } from '../../../shared/types';
+import { AzureDevOpsConfig, TransportProtocol } from '../../../shared/types';
 import { AuthenticationMethod } from '../../../shared/auth';
 
 // Skip tests if no PAT is available
@@ -20,6 +20,8 @@ describeOrSkip('searchWorkItems (Integration)', () => {
       authMethod: AuthenticationMethod.PersonalAccessToken,
       personalAccessToken: process.env.AZURE_DEVOPS_PAT || '',
       defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '',
+      transport: TransportProtocol.Stdio,
+      http_port: 8000,
     };
 
     connection = await getConnection(config);
@@ -186,6 +188,8 @@ describeOrSkip('searchWorkItems (Integration)', () => {
         organizationUrl: process.env.AZURE_DEVOPS_ORG_URL,
         authMethod: AuthenticationMethod.AzureIdentity,
         defaultProject: process.env.TEST_PROJECT_ID,
+        transport: TransportProtocol.Stdio,
+        http_port: 8000,
       };
 
       // Create the connection using the config

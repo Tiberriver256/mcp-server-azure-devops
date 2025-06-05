@@ -81,9 +81,9 @@ describe('getPullRequestComments', () => {
     // Verify results
     expect(result).toHaveLength(1);
     expect(result[0].comments).toHaveLength(2);
-    
+
     // Verify file path and line number are added to each comment
-    result[0].comments?.forEach(comment => {
+    result[0].comments?.forEach((comment) => {
       expect(comment).toHaveProperty('filePath', '/src/app.ts');
       expect(comment).toHaveProperty('lineNumber', 10);
     });
@@ -146,7 +146,7 @@ describe('getPullRequestComments', () => {
     // Verify results
     expect(result).toHaveLength(1);
     expect(result[0].comments).toHaveLength(1);
-    
+
     // Verify file path and line number are null for comments without thread context
     const comment = result[0].comments![0];
     expect(comment).toHaveProperty('filePath', undefined);
@@ -206,7 +206,7 @@ describe('getPullRequestComments', () => {
     // Verify results
     expect(result).toHaveLength(1);
     expect(result[0].comments).toHaveLength(1);
-    
+
     // Verify line number is taken from leftFileStart
     const comment = result[0].comments![0];
     expect(comment).toHaveProperty('filePath', '/src/app.ts');
@@ -273,7 +273,7 @@ describe('getPullRequestComments', () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(threadId);
     expect(result[0].comments).toHaveLength(1);
-    
+
     // Verify file path and line number are added
     const comment = result[0].comments![0];
     expect(comment).toHaveProperty('filePath', '/src/utils.ts');
@@ -353,14 +353,16 @@ describe('getPullRequestComments', () => {
 
     // Verify results (should only include first 2 threads)
     expect(result).toHaveLength(2);
-    expect(result).toEqual(mockCommentThreads.slice(0, 2).map(thread => ({
-      ...thread,
-      comments: thread.comments?.map(comment => ({
-        ...comment,
-        filePath: thread.threadContext?.filePath,
-        lineNumber: thread.threadContext?.rightFileStart?.line ?? null,
+    expect(result).toEqual(
+      mockCommentThreads.slice(0, 2).map((thread) => ({
+        ...thread,
+        comments: thread.comments?.map((comment) => ({
+          ...comment,
+          filePath: thread.threadContext?.filePath,
+          lineNumber: thread.threadContext?.rightFileStart?.line ?? null,
+        })),
       })),
-    })));
+    );
     expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
     expect(mockGitApi.getThreads).toHaveBeenCalledTimes(1);
   });
