@@ -153,10 +153,10 @@ describe('getPullRequestComments', () => {
     // Verify file path and line number are null for comments without thread context
     const comment = result[0].comments![0];
     expect(comment).toHaveProperty('filePath', undefined);
-    expect(comment).toHaveProperty('rightFileStart', null);
-    expect(comment).toHaveProperty('rightFileEnd', null);
-    expect(comment).toHaveProperty('leftFileStart', null);
-    expect(comment).toHaveProperty('leftFileEnd', null);
+    expect(comment).toHaveProperty('rightFileStart', undefined);
+    expect(comment).toHaveProperty('rightFileEnd', undefined);
+    expect(comment).toHaveProperty('leftFileStart', undefined);
+    expect(comment).toHaveProperty('leftFileEnd', undefined);
   });
 
   test('should use leftFileStart when rightFileStart is not available', async () => {
@@ -371,10 +371,10 @@ describe('getPullRequestComments', () => {
         comments: thread.comments?.map((comment) => ({
           ...comment,
           filePath: thread.threadContext?.filePath,
-          rightFileStart: thread.threadContext?.rightFileStart ?? null,
-          rightFileEnd: thread.threadContext?.rightFileEnd ?? null,
-          leftFileStart: thread.threadContext?.leftFileStart ?? null,
-          leftFileEnd: thread.threadContext?.leftFileEnd ?? null,
+          rightFileStart: thread.threadContext?.rightFileStart ?? undefined,
+          rightFileEnd: thread.threadContext?.rightFileEnd ?? undefined,
+          leftFileStart: thread.threadContext?.leftFileStart ?? undefined,
+          leftFileEnd: thread.threadContext?.leftFileEnd ?? undefined,
         })),
       })),
     );

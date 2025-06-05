@@ -73,10 +73,22 @@ function transformThread(
 
   // Get file path and positions from thread context
   const filePath = thread.threadContext?.filePath;
-  const leftFileStart = thread.threadContext?.leftFileStart ?? null;
-  const leftFileEnd = thread.threadContext?.leftFileEnd ?? null;
-  const rightFileStart = thread.threadContext?.rightFileStart ?? null;
-  const rightFileEnd = thread.threadContext?.rightFileEnd ?? null;
+  const leftFileStart =
+    thread.threadContext && 'leftFileStart' in thread.threadContext
+      ? thread.threadContext.leftFileStart
+      : undefined;
+  const leftFileEnd =
+    thread.threadContext && 'leftFileEnd' in thread.threadContext
+      ? thread.threadContext.leftFileEnd
+      : undefined;
+  const rightFileStart =
+    thread.threadContext && 'rightFileStart' in thread.threadContext
+      ? thread.threadContext.rightFileStart
+      : undefined;
+  const rightFileEnd =
+    thread.threadContext && 'rightFileEnd' in thread.threadContext
+      ? thread.threadContext.rightFileEnd
+      : undefined;
 
   // Transform each comment to include the new fields
   const transformedComments = thread.comments.map((comment) => ({
