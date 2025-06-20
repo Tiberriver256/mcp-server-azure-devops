@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.40](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.39...mcp-server-azure-devops-v0.1.40) (2025-06-20)
+
+
+### Bug Fixes
+
+* simplify listWikiPages API by removing unused parameters ([fff7238](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/fff72384f69433942ee8439de0dda90d7fc85c38))
+
 ## [0.1.39](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.38...mcp-server-azure-devops-v0.1.39) (2025-06-03)
 
 
