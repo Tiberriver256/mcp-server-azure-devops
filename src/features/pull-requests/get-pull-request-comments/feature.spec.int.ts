@@ -118,7 +118,7 @@ describe('getPullRequestComments integration', () => {
     expect(firstComment.id).toBeDefined();
     expect(firstComment.publishedDate).toBeDefined();
     expect(firstComment.author).toBeDefined();
-    
+
     // Verify new fields are present (may be undefined/null for general comments)
     expect(firstComment).toHaveProperty('filePath');
     expect(firstComment).toHaveProperty('lineNumber');

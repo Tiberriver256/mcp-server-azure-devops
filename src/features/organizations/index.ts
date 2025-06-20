@@ -15,7 +15,7 @@ import {
   RequestHandler,
 } from '../../shared/types/request-handler';
 import { listOrganizations } from './list-organizations';
-import { AzureDevOpsConfig } from '../../shared/types';
+import { AzureDevOpsConfig, TransportProtocol } from '../../shared/types';
 import { AuthenticationMethod } from '../../shared/auth';
 
 /**
@@ -49,6 +49,8 @@ export const handleOrganizationsRequest: RequestHandler = async (
               : AuthenticationMethod.AzureIdentity,
         personalAccessToken: process.env.AZURE_DEVOPS_PAT,
         organizationUrl: connection.serverUrl || '',
+        transport: TransportProtocol.Stdio,
+        http_port: 8000,
       };
 
       const result = await listOrganizations(config);

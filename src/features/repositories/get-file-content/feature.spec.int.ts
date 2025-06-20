@@ -2,7 +2,7 @@ import { getConnection } from '../../../server';
 import { shouldSkipIntegrationTest } from '../../../shared/test/test-helpers';
 import { getFileContent } from './feature';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { AzureDevOpsConfig } from '../../../shared/types';
+import { AzureDevOpsConfig, TransportProtocol } from '../../../shared/types';
 import { WebApi } from 'azure-devops-node-api';
 import { AuthenticationMethod } from '../../../shared/auth';
 
@@ -28,6 +28,8 @@ describeOrSkip('getFileContent (Integration)', () => {
       authMethod: AuthenticationMethod.PersonalAccessToken,
       personalAccessToken: process.env.AZURE_DEVOPS_PAT || '',
       defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '',
+      transport: TransportProtocol.Stdio,
+      http_port: 8000,
     };
 
     // Use a test repository/project - should be defined in .env file
