@@ -2,6 +2,7 @@ import { listOrganizations } from './feature';
 import { AzureDevOpsAuthenticationError } from '../../../shared/errors';
 import axios from 'axios';
 import { AuthenticationMethod } from '../../../shared/auth';
+import { TransportProtocol } from '@/shared/types';
 
 // Mock axios
 jest.mock('axios');
@@ -27,6 +28,8 @@ describe('listOrganizations unit', () => {
     const config = {
       organizationUrl: 'https://dev.azure.com/test-org',
       authMethod: AuthenticationMethod.PersonalAccessToken,
+      transport: TransportProtocol.Stdio,
+      http_port: 8000,
       // No PAT provided
     };
 
@@ -45,6 +48,8 @@ describe('listOrganizations unit', () => {
       organizationUrl: 'https://dev.azure.com/test-org',
       authMethod: AuthenticationMethod.PersonalAccessToken,
       personalAccessToken: 'test-pat',
+      transport: TransportProtocol.Stdio,
+      http_port: 8000,
     };
 
     // Mock axios to throw an error with properties expected by axios.isAxiosError
@@ -78,6 +83,8 @@ describe('listOrganizations unit', () => {
       organizationUrl: 'https://dev.azure.com/test-org',
       authMethod: AuthenticationMethod.PersonalAccessToken,
       personalAccessToken: 'test-pat',
+      transport: TransportProtocol.Stdio,
+      http_port: 8000,
     };
 
     // Mock profile API response

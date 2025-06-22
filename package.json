@@ -85,10 +85,11 @@
   "license": "MIT",
   "dependencies": {
     "@azure/identity": "^4.8.0",
-    "@modelcontextprotocol/sdk": "^1.6.0",
+    "@modelcontextprotocol/sdk": "^1.12.1",
     "axios": "^1.8.3",
     "azure-devops-node-api": "^13.0.0",
     "dotenv": "^16.3.1",
+    "express": "^5.1.0",
     "minimatch": "^10.0.1",
     "zod": "^3.24.2",
     "zod-to-json-schema": "^3.24.5"
@@ -96,6 +97,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",
     "@commitlint/config-conventional": "^19.8.0",
+    "@types/express": "^5.0.2",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^8.27.0",

@@ -1,7 +1,7 @@
 import { getConnection } from '../../../server';
 import { shouldSkipIntegrationTest } from '../../../shared/test/test-helpers';
 import { getAllRepositoriesTree } from './feature';
-import { AzureDevOpsConfig } from '../../../shared/types';
+import { AzureDevOpsConfig, TransportProtocol } from '../../../shared/types';
 import { WebApi } from 'azure-devops-node-api';
 import { AuthenticationMethod } from '../../../shared/auth';
 
@@ -26,6 +26,8 @@ describeOrSkip('getAllRepositoriesTree (Integration)', () => {
       authMethod: AuthenticationMethod.PersonalAccessToken,
       personalAccessToken: process.env.AZURE_DEVOPS_PAT || '',
       defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '',
+      transport: TransportProtocol.Stdio,
+      http_port: 8000,
     };
 
     // Use test project - should be defined in .env file
