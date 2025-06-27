@@ -67,7 +67,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
       const result = await getWorkItem(
         connection,
         args.workItemId,
-        args.expand,
+        args.expand ?? 'all',
       );
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
