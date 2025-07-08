@@ -16,28 +16,38 @@ const workItemTypeFieldsCache: Record<
 > = {};
 
 /**
+ * Maps string-based expansion options to the WorkItemExpand enum
+ */
+const expandMap: Record<string, WorkItemExpand> = {
+  none: WorkItemExpand.None,
+  relations: WorkItemExpand.Relations,
+  fields: WorkItemExpand.Fields,
+  links: WorkItemExpand.Links,
+  all: WorkItemExpand.All,
+};
+
+/**
  * Get a work item by ID
  *
  * @param connection The Azure DevOps WebApi connection
  * @param workItemId The ID of the work item
- * @param expand Optional expansion options (defaults to WorkItemExpand.All)
- * @returns The work item details with all fields (null for empty fields)
+ * @param expand Optional expansion options (defaults to 'all')
+ * @returns The work item details
  * @throws {AzureDevOpsResourceNotFoundError} If the work item is not found
  */
 export async function getWorkItem(
   connection: WebApi,
   workItemId: number,
-  expand: WorkItemExpand = WorkItemExpand.All,
+  expand: string = 'all',
 ): Promise<WorkItem> {
   try {
     const witApi = await connection.getWorkItemTrackingApi();
 
-    // Always use expand parameter for consistent behavior
     const workItem = await witApi.getWorkItem(
       workItemId,
       undefined,
       undefined,
-      expand,
+      expandMap[expand.toLowerCase()],
     );
 
     if (!workItem) {
