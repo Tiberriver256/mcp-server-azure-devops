@@ -1,3 +1,5 @@
+# ℹ️ DISCUSSION: [Microsoft launched an official ADO MCP Server! 🎉🎉🎉](https://github.com/Tiberriver256/mcp-server-azure-devops/discussions/237)
+
 # Azure DevOps MCP Server
 
 A Model Context Protocol (MCP) server implementation for Azure DevOps, allowing AI assistants to interact with Azure DevOps APIs through a standardized protocol.

@@ -70,13 +70,12 @@ describe('listWikiPages unit', () => {
       expect(mockWikiClient.listWikiPages).toHaveBeenCalledWith(
         'test-project',
         'test-wiki',
-        {},
       );
       expect(result).toEqual(mockPages);
       expect(result.length).toBe(2);
     });
 
-    test('should handle path filtering parameter', async () => {
+    test('should handle basic listing without parameters', async () => {
       const mockPages: WikiPageSummary[] = [
         {
           id: 3,
@@ -92,18 +91,16 @@ describe('listWikiPages unit', () => {
         organizationId: 'test-org',
         projectId: 'test-project',
         wikiId: 'test-wiki',
-        path: '/docs',
       });
 
       expect(mockWikiClient.listWikiPages).toHaveBeenCalledWith(
         'test-project',
         'test-wiki',
-        { path: '/docs' },
       );
       expect(result).toEqual(mockPages);
     });
 
-    test('should handle recursionLevel parameter', async () => {
+    test('should handle nested pages correctly', async () => {
       const mockPages: WikiPageSummary[] = [
         {
           id: 4,
@@ -119,18 +116,16 @@ describe('listWikiPages unit', () => {
         organizationId: 'test-org',
         projectId: 'test-project',
         wikiId: 'test-wiki',
-        recursionLevel: 10,
       });
 
       expect(mockWikiClient.listWikiPages).toHaveBeenCalledWith(
         'test-project',
         'test-wiki',
-        { recursionLevel: 10 },
       );
       expect(result).toEqual(mockPages);
     });
 
-    test('should handle both path and recursionLevel parameters', async () => {
+    test('should handle empty wiki correctly', async () => {
       const mockPages: WikiPageSummary[] = [];
 
       mockWikiClient.listWikiPages.mockResolvedValue(mockPages);
@@ -139,14 +134,11 @@ describe('listWikiPages unit', () => {
         organizationId: 'test-org',
         projectId: 'test-project',
         wikiId: 'test-wiki',
-        path: '/api',
-        recursionLevel: 5,
       });
 
       expect(mockWikiClient.listWikiPages).toHaveBeenCalledWith(
         'test-project',
         'test-wiki',
-        { path: '/api', recursionLevel: 5 },
       );
       expect(result).toEqual(mockPages);
     });
@@ -409,36 +401,30 @@ describe('listWikiPages unit', () => {
   });
 
   describe('Parameter Validation Edge Cases', () => {
-    test('should handle boundary recursionLevel values', async () => {
+    test('should handle basic parameter validation', async () => {
       const mockPages: WikiPageSummary[] = [];
       mockWikiClient.listWikiPages.mockResolvedValue(mockPages);
 
-      // Test minimum value
       await listWikiPages({
         organizationId: 'test-org',
         projectId: 'test-project',
         wikiId: 'test-wiki',
-        recursionLevel: 1,
       });
 
       expect(mockWikiClient.listWikiPages).toHaveBeenCalledWith(
         'test-project',
         'test-wiki',
-        { recursionLevel: 1 },
       );
 
-      // Test maximum value
       await listWikiPages({
         organizationId: 'test-org',
         projectId: 'test-project',
         wikiId: 'test-wiki',
-        recursionLevel: 50,
       });
 
       expect(mockWikiClient.listWikiPages).toHaveBeenCalledWith(
         'test-project',
         'test-wiki',
-        { recursionLevel: 50 },
       );
     });
 
@@ -450,7 +436,6 @@ describe('listWikiPages unit', () => {
         organizationId: '',
         projectId: '',
         wikiId: 'test-wiki',
-        path: '',
       });
 
       expect(mockGetWikiClient).toHaveBeenCalledWith({
@@ -459,26 +444,6 @@ describe('listWikiPages unit', () => {
       expect(mockWikiClient.listWikiPages).toHaveBeenCalledWith(
         'eShopOnWeb', // Empty string gets overridden by default project
         'test-wiki',
-        { path: '' },
-      );
-    });
-
-    test('should handle very long path values', async () => {
-      const longPath = '/' + 'a'.repeat(1000);
-      const mockPages: WikiPageSummary[] = [];
-      mockWikiClient.listWikiPages.mockResolvedValue(mockPages);
-
-      await listWikiPages({
-        organizationId: 'test-org',
-        projectId: 'test-project',
-        wikiId: 'test-wiki',
-        path: longPath,
-      });
-
-      expect(mockWikiClient.listWikiPages).toHaveBeenCalledWith(
-        'test-project',
-        'test-wiki',
-        { path: longPath },
       );
     });
   });

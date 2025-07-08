@@ -45,8 +45,6 @@ export interface WikiPageSummary {
 interface WikiPagesBatchRequest {
   top: number;
   continuationToken?: string;
-  path?: string;
-  recursionLevel?: number;
 }
 
 interface WikiPagesBatchResponse {
@@ -553,13 +551,11 @@ export class WikiClient {
    * Lists wiki pages from a wiki using the Pages Batch API
    * @param projectId - Project ID or name
    * @param wikiId - Wiki ID or name
-   * @param options - Optional parameters for path and recursion level
    * @returns Array of wiki page summaries sorted by order then path
    */
   async listWikiPages(
     projectId: string,
     wikiId: string,
-    options?: { path?: string; recursionLevel?: number },
   ): Promise<WikiPageSummary[]> {
     // Use the default project if not provided
     const project = projectId || defaultProject;
@@ -579,10 +575,6 @@ export class WikiClient {
         const requestBody: WikiPagesBatchRequest = {
           top: 100,
           ...(continuationToken && { continuationToken }),
-          ...(options?.path && { path: options.path }),
-          ...(options?.recursionLevel && {
-            recursionLevel: options.recursionLevel,
-          }),
         };
 
         // Make the API request

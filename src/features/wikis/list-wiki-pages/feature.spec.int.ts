@@ -97,7 +97,7 @@ describe('listWikiPages integration', () => {
       }
     });
 
-    test('should handle path filtering with real wiki structure', async () => {
+    test('should handle wiki listing for different wiki structures', async () => {
       // Skip if integration tests are disabled or no connection available
       if (shouldSkipIntegrationTest()) {
         return;
@@ -126,43 +126,33 @@ describe('listWikiPages integration', () => {
         throw new Error('Wiki name is undefined');
       }
 
-      // First get all pages to find a valid path
+      // Get all pages for different wiki structures
       const allPages = await listWikiPages({
         organizationId,
         projectId: projectName,
         wikiId: wiki.name,
       });
 
-      // If we have pages, test filtering by path
+      expect(Array.isArray(allPages)).toBe(true);
+
+      // If we have pages, verify they have expected structure
       if (allPages.length > 0) {
-        // Try to find a page with a nested path
-        const nestedPage = allPages.find((page) => page.path.includes('/'));
+        const firstPage = allPages[0];
+        expect(firstPage).toHaveProperty('id');
+        expect(firstPage).toHaveProperty('path');
+        expect(firstPage).toHaveProperty('url');
 
-        if (nestedPage) {
-          // Extract parent path
-          const pathParts = nestedPage.path.split('/');
-          const parentPath = pathParts.slice(0, -1).join('/');
-
-          if (parentPath) {
-            // Test filtering by parent path
-            const filteredResult = await listWikiPages({
-              organizationId,
-              projectId: projectName,
-              wikiId: wiki.name,
-              path: parentPath,
-            });
-
-            expect(Array.isArray(filteredResult)).toBe(true);
-            // All returned pages should be under the specified path
-            filteredResult.forEach((page) => {
-              expect(page.path.startsWith(parentPath)).toBe(true);
-            });
-          }
-        }
+        // Verify nested pages if they exist
+        const nestedPages = allPages.filter(
+          (page) => page.path.includes('/') && page.path !== '/',
+        );
+        console.log(
+          `Found ${nestedPages.length} nested pages out of ${allPages.length} total pages`,
+        );
       }
     });
 
-    test('should handle recursionLevel parameter with various values', async () => {
+    test('should handle basic wiki page listing consistently', async () => {
       // Skip if integration tests are disabled or no connection available
       if (shouldSkipIntegrationTest()) {
         return;
@@ -191,28 +181,26 @@ describe('listWikiPages integration', () => {
         throw new Error('Wiki name is undefined');
       }
 
-      // Test with recursionLevel 1 (shallow)
-      const shallowResult = await listWikiPages({
+      // Test basic page listing
+      const firstResult = await listWikiPages({
         organizationId,
         projectId: projectName,
         wikiId: wiki.name,
-        recursionLevel: 1,
       });
 
-      expect(Array.isArray(shallowResult)).toBe(true);
+      expect(Array.isArray(firstResult)).toBe(true);
 
-      // Test with recursionLevel 5 (deeper)
-      const deeperResult = await listWikiPages({
+      // Test again to ensure consistency
+      const secondResult = await listWikiPages({
         organizationId,
         projectId: projectName,
         wikiId: wiki.name,
-        recursionLevel: 5,
       });
 
-      expect(Array.isArray(deeperResult)).toBe(true);
+      expect(Array.isArray(secondResult)).toBe(true);
 
-      // Deeper recursion should return same or more pages
-      expect(deeperResult.length).toBeGreaterThanOrEqual(shallowResult.length);
+      // Results should be consistent
+      expect(secondResult.length).toBe(firstResult.length);
     });
   });
 
@@ -304,7 +292,6 @@ describe('listWikiPages integration', () => {
         organizationId,
         projectId: projectName,
         wikiId: wiki.name,
-        path: '/non-existent-path-12345',
       });
 
       // Should return an array (may be empty or contain all pages depending on API behavior)
@@ -342,16 +329,15 @@ describe('listWikiPages integration', () => {
         throw new Error('Wiki name is undefined');
       }
 
-      // Test with maximum recursion level
+      // Test with default parameters
       const result = await listWikiPages({
         organizationId,
         projectId: projectName,
         wikiId: wiki.name,
-        recursionLevel: 50, // Maximum allowed
       });
 
       expect(Array.isArray(result)).toBe(true);
-      // Should not throw error even with max recursion
+      // Should not throw error with basic parameters
     });
 
     test('should handle boundary recursionLevel values', async () => {
@@ -383,25 +369,23 @@ describe('listWikiPages integration', () => {
         throw new Error('Wiki name is undefined');
       }
 
-      // Test minimum recursion level
-      const minResult = await listWikiPages({
+      // Test basic page listing
+      const firstResult = await listWikiPages({
         organizationId,
         projectId: projectName,
         wikiId: wiki.name,
-        recursionLevel: 1,
       });
 
-      expect(Array.isArray(minResult)).toBe(true);
+      expect(Array.isArray(firstResult)).toBe(true);
 
-      // Test maximum recursion level
-      const maxResult = await listWikiPages({
+      // Test again for consistency
+      const secondResult = await listWikiPages({
         organizationId,
         projectId: projectName,
         wikiId: wiki.name,
-        recursionLevel: 50,
       });
 
-      expect(Array.isArray(maxResult)).toBe(true);
+      expect(Array.isArray(secondResult)).toBe(true);
     });
   });
 
@@ -508,7 +492,6 @@ describe('listWikiPages integration', () => {
         organizationId,
         projectId: projectName,
         wikiId: wiki.name,
-        recursionLevel: 50, // Maximum depth to test performance
       });
 
       const endTime = Date.now();

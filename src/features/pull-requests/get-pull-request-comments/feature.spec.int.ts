@@ -75,7 +75,7 @@ describe('getPullRequestComments integration', () => {
     }
   });
 
-  test('should get all comment threads from pull request', async () => {
+  test('should get all comment threads from pull request with file path and line number', async () => {
     // Skip if integration tests should be skipped
     if (shouldSkipIntegrationTest() || !connection) {
       console.log('Skipping test due to missing connection');
@@ -112,15 +112,19 @@ describe('getPullRequestComments integration', () => {
     expect(Array.isArray(firstThread.comments)).toBe(true);
     expect(firstThread.comments!.length).toBeGreaterThan(0);
 
-    // Verify comment structure
+    // Verify comment structure including new fields
     const firstComment = firstThread.comments![0];
     expect(firstComment.content).toBeDefined();
     expect(firstComment.id).toBeDefined();
     expect(firstComment.publishedDate).toBeDefined();
     expect(firstComment.author).toBeDefined();
-  }, 30000); // 30 second timeout for integration test
+    
+    // Verify new fields are present (may be undefined/null for general comments)
+    expect(firstComment).toHaveProperty('filePath');
+    expect(firstComment).toHaveProperty('lineNumber');
+  }, 30000);
 
-  test('should get a specific comment thread by ID', async () => {
+  test('should get a specific comment thread by ID with file path and line number', async () => {
     // Skip if integration tests should be skipped
     if (shouldSkipIntegrationTest() || !connection) {
       console.log('Skipping test due to missing connection');
@@ -163,7 +167,11 @@ describe('getPullRequestComments integration', () => {
     expect(comment.content).toBe(
       `Test comment thread ${timestamp}-${randomSuffix}`,
     );
-  }, 30000); // 30 second timeout for integration test
+
+    // Verify new fields are present (may be undefined/null for general comments)
+    expect(comment).toHaveProperty('filePath');
+    expect(comment).toHaveProperty('lineNumber');
+  }, 30000);
 
   test('should handle pagination with top parameter', async () => {
     // Skip if integration tests should be skipped
@@ -217,7 +225,12 @@ describe('getPullRequestComments integration', () => {
     expect(thread.comments).toBeDefined();
     expect(Array.isArray(thread.comments)).toBe(true);
     expect(thread.comments!.length).toBeGreaterThan(0);
-  }, 30000); // 30 second timeout for integration test
+
+    // Verify new fields are present in paginated results
+    const comment = thread.comments![0];
+    expect(comment).toHaveProperty('filePath');
+    expect(comment).toHaveProperty('lineNumber');
+  }, 30000);
 
   test('should handle includeDeleted parameter', async () => {
     // Skip if integration tests should be skipped
@@ -248,5 +261,15 @@ describe('getPullRequestComments integration', () => {
     // We can only verify the call succeeds, as we can't guarantee deleted comments exist
     expect(threads).toBeDefined();
     expect(Array.isArray(threads)).toBe(true);
+
+    // If there are any threads, verify they have the new fields
+    if (threads.length > 0) {
+      const thread = threads[0];
+      if (thread.comments && thread.comments.length > 0) {
+        const comment = thread.comments[0];
+        expect(comment).toHaveProperty('filePath');
+        expect(comment).toHaveProperty('lineNumber');
+      }
+    }
   }, 30000); // 30 second timeout for integration test
 });

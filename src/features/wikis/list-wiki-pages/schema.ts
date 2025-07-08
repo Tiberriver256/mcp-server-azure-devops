@@ -17,14 +17,6 @@ export const ListWikiPagesSchema = z.object({
     .nullable()
     .describe(`The ID or name of the project (Default: ${defaultProject})`),
   wikiId: z.string().describe('The ID or name of the wiki'),
-  path: z.string().optional().describe('Optional path within the wiki'),
-  recursionLevel: z
-    .number()
-    .int()
-    .min(1)
-    .max(50)
-    .optional()
-    .describe('Optional recursion depth (1-50)'),
 });
 
 export type ListWikiPagesOptions = z.infer<typeof ListWikiPagesSchema>;

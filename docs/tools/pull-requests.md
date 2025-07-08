@@ -428,6 +428,8 @@ Each comment in the thread contains:
 - `commentType`: The type of comment (code change, general, etc.)
 - `author`: Information about the user who created the comment
 - `publishedDate`: The date and time when the comment was published
+- `filePath`: The path of the file the comment is associated with (if any)
+- `lineNumber`: The line number the comment is associated with (if any)
 - And various other fields and references
 
 Example response:
@@ -458,7 +460,9 @@ Example response:
           "id": "user-guid",
           "uniqueName": "jane.smith@example.com"
         },
-        "publishedDate": "2023-04-15T14:30:00Z"
+        "publishedDate": "2023-04-15T14:30:00Z",
+        "filePath": "/src/app.ts",
+        "lineNumber": 10
       },
       {
         "id": 457,
@@ -470,7 +474,9 @@ Example response:
           "id": "user-guid-2",
           "uniqueName": "john.doe@example.com"
         },
-        "publishedDate": "2023-04-15T14:35:00Z"
+        "publishedDate": "2023-04-15T14:35:00Z",
+        "filePath": "/src/app.ts",
+        "lineNumber": 10
       }
     ],
     "isDeleted": false
@@ -488,7 +494,9 @@ Example response:
           "id": "user-guid",
           "uniqueName": "jane.smith@example.com"
         },
-        "publishedDate": "2023-04-15T14:40:00Z"
+        "publishedDate": "2023-04-15T14:40:00Z",
+        "filePath": null,
+        "lineNumber": null
       }
     ],
     "isDeleted": false
@@ -512,52 +520,38 @@ Error messages will include details about what went wrong and suggestions for re
 
 ```typescript
 // Get all comments from a pull request
-const allComments = await mcpClient.callTool('get_pull_request_comments', {
+const comments = await mcpClient.callTool('get_pull_request_comments', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   pullRequestId: 42,
 });
-console.log(`Found ${allComments.length} comment threads`);
 
-// Count total comments across all threads
-let totalComments = 0;
-for (const thread of allComments) {
-  totalComments += thread.comments?.length || 0;
-}
-console.log(`Total number of comments: ${totalComments}`);
+// Get comments with file path and line number information
+comments.forEach(thread => {
+  thread.comments?.forEach(comment => {
+    if (comment.filePath && comment.lineNumber) {
+      console.log(`Comment on ${comment.filePath}:${comment.lineNumber}: ${comment.content}`);
+    } else {
+      console.log(`General comment: ${comment.content}`);
+    }
+  });
+});
 
-// Get a specific comment thread
-const specificThread = await mcpClient.callTool('get_pull_request_comments', {
+// Get a specific thread by ID
+const thread = await mcpClient.callTool('get_pull_request_comments', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   pullRequestId: 42,
   threadId: 123,
 });
-if (specificThread.length > 0) {
-  console.log(
-    `Thread ${specificThread[0].id} has ${specificThread[0].comments?.length || 0} comments`,
-  );
-}
 
-// Get only active threads, including deleted comments
-const activeThreads = await mcpClient.callTool('get_pull_request_comments', {
-  projectId: 'MyProject',
-  repositoryId: 'MyRepo',
-  pullRequestId: 42,
-  includeDeleted: true,
-});
-console.log(
-  `Found ${activeThreads.length} threads (including any with deleted comments)`,
-);
-
-// Limit the number of returned threads
-const limitedThreads = await mcpClient.callTool('get_pull_request_comments', {
+// Get comments with pagination
+const firstPage = await mcpClient.callTool('get_pull_request_comments', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   pullRequestId: 42,
   top: 10,
 });
-console.log(`Showing first ${limitedThreads.length} comment threads`);
 ```
 
 ### Implementation Details
@@ -566,13 +560,15 @@ The `get_pull_request_comments` tool:
 
 1. Establishes a connection to Azure DevOps using the provided credentials
 2. Retrieves the Git API client
-3. Determines whether to fetch a specific thread or all threads based on the provided parameters
-4. Makes the appropriate API call to retrieve the comment threads
-5. Applies pagination if the `top` parameter is specified
-6. Returns the results or an empty array if none are found
-7. Handles errors and provides meaningful error messages
+3. Gets the comment threads from the pull request
+4. For each thread:
+   - Extracts file path and line number information from the thread context
+   - Adds these fields to each comment in the thread
+   - Uses rightFileStart.line for line number if available, falls back to leftFileStart.line
+5. Returns the transformed threads with enhanced comment information
+6. Handles errors and provides meaningful error messages
 
-This implementation provides a robust way to retrieve and analyze pull request comments from Azure DevOps repositories.
+This implementation provides a robust way to retrieve and analyze pull request comments from Azure DevOps repositories, with enhanced file and line number information for better code review integration.
 
 ## add_pull_request_comment
 

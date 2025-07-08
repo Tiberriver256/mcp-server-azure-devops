@@ -31,7 +31,7 @@ export async function getPullRequestComments(
         options.threadId,
         projectId,
       );
-      return thread ? [thread] : [];
+      return thread ? [transformThread(thread)] : [];
     } else {
       // Otherwise, get all threads
       const threads = await gitApi.getThreads(
@@ -42,11 +42,12 @@ export async function getPullRequestComments(
         options.includeDeleted ? 1 : undefined, // Convert boolean to number (1 = include deleted)
       );
 
-      // Return all threads (with pagination if top is specified)
-      if (options.top && threads) {
-        return threads.slice(0, options.top);
+      // Transform and return all threads (with pagination if top is specified)
+      const transformedThreads = (threads || []).map(transformThread);
+      if (options.top) {
+        return transformedThreads.slice(0, options.top);
       }
-      return threads || [];
+      return transformedThreads;
     }
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
@@ -56,4 +57,33 @@ export async function getPullRequestComments(
       `Failed to get pull request comments: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
+}
+
+/**
+ * Transform a comment thread to include filePath and lineNumber fields
+ * @param thread The original comment thread
+ * @returns Transformed comment thread with additional fields
+ */
+function transformThread(thread: GitPullRequestCommentThread): GitPullRequestCommentThread {
+  if (!thread.comments) {
+    return thread;
+  }
+
+  // Get file path and line number from thread context
+  const filePath = thread.threadContext?.filePath;
+  const lineNumber = thread.threadContext?.rightFileStart?.line ?? 
+                    thread.threadContext?.leftFileStart?.line ?? 
+                    null;
+
+  // Transform each comment to include the new fields
+  const transformedComments = thread.comments.map(comment => ({
+    ...comment,
+    filePath,
+    lineNumber,
+  }));
+
+  return {
+    ...thread,
+    comments: transformedComments,
+  };
 }

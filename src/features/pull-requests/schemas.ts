@@ -62,14 +62,12 @@ export const ListPullRequestsSchema = z.object({
     .describe('Filter by pull request status'),
   creatorId: z
     .string()
-    .uuid()
     .optional()
-    .describe('Filter by creator ID (must be a UUID)'),
+    .describe('Filter by creator ID (must be a UUID string)'),
   reviewerId: z
     .string()
-    .uuid()
     .optional()
-    .describe('Filter by reviewer ID (must be a UUID)'),
+    .describe('Filter by reviewer ID (must be a UUID string)'),
   sourceRefName: z.string().optional().describe('Filter by source branch name'),
   targetRefName: z.string().optional().describe('Filter by target branch name'),
   top: z
