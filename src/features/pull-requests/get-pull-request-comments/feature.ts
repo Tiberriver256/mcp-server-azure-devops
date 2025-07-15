@@ -1,7 +1,14 @@
 import { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { GetPullRequestCommentsOptions } from '../types';
+import {
+  GetPullRequestCommentsOptions,
+  CommentThreadWithStringEnums,
+} from '../types';
 import { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import {
+  transformCommentThreadStatus,
+  transformCommentType,
+} from '../../../shared/enums';
 
 /**
  * Get comments from a pull request
@@ -19,7 +26,7 @@ export async function getPullRequestComments(
   repositoryId: string,
   pullRequestId: number,
   options: GetPullRequestCommentsOptions,
-): Promise<GitPullRequestCommentThread[]> {
+): Promise<CommentThreadWithStringEnums[]> {
   try {
     const gitApi = await connection.getGitApi();
 
@@ -66,9 +73,13 @@ export async function getPullRequestComments(
  */
 function transformThread(
   thread: GitPullRequestCommentThread,
-): GitPullRequestCommentThread {
+): CommentThreadWithStringEnums {
   if (!thread.comments) {
-    return thread;
+    return {
+      ...thread,
+      status: transformCommentThreadStatus(thread.status),
+      comments: undefined,
+    };
   }
 
   // Get file path and positions from thread context
@@ -90,7 +101,7 @@ function transformThread(
       ? thread.threadContext.rightFileEnd
       : undefined;
 
-  // Transform each comment to include the new fields
+  // Transform each comment to include the new fields and string enums
   const transformedComments = thread.comments.map((comment) => ({
     ...comment,
     filePath,
@@ -98,10 +109,14 @@ function transformThread(
     leftFileEnd,
     rightFileStart,
     rightFileEnd,
+    // Transform enum values to strings
+    commentType: transformCommentType(comment.commentType),
   }));
 
   return {
     ...thread,
     comments: transformedComments,
+    // Transform thread status to string
+    status: transformCommentThreadStatus(thread.status),
   };
 }

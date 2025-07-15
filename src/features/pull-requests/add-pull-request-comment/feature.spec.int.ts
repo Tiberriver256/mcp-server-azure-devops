@@ -1,5 +1,4 @@
 import { WebApi } from 'azure-devops-node-api';
-import { CommentThreadStatus } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { addPullRequestComment } from './feature';
 import { listPullRequests } from '../list-pull-requests/feature';
 import {
@@ -89,7 +88,7 @@ describe('addPullRequestComment integration', () => {
     expect(result.comment).toBeDefined();
     expect(result.comment.content).toBe(commentContent);
     expect(result.thread).toBeDefined();
-    expect(result.thread!.status).toBe(CommentThreadStatus.Active);
+    expect(result.thread!.status).toBe('active'); // Transformed to string
   }, 30000); // 30 second timeout for integration test
 
   test('should add a file comment to pull request', async () => {

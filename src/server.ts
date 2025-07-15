@@ -6,6 +6,7 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
+import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { VERSION } from './shared/config';
 import { AzureDevOpsConfig } from './shared/types';
 import {
@@ -207,7 +208,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
       let version: string | undefined;
 
       if (segments[3] === 'branches' && segments.length >= 5) {
-        versionType = 2; // GitVersionType.Branch
+        versionType = GitVersionType.Branch;
         version = segments[4];
 
         // Extract path if present
@@ -215,7 +216,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           path = '/' + segments.slice(6).join('/');
         }
       } else if (segments[3] === 'commits' && segments.length >= 5) {
-        versionType = 1; // GitVersionType.Commit
+        versionType = GitVersionType.Commit;
         version = segments[4];
 
         // Extract path if present
@@ -223,7 +224,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
           path = '/' + segments.slice(6).join('/');
         }
       } else if (segments[3] === 'tags' && segments.length >= 5) {
-        versionType = 3; // GitVersionType.Tag
+        versionType = GitVersionType.Tag;
         version = segments[4];
 
         // Extract path if present

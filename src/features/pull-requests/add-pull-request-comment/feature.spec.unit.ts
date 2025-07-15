@@ -56,8 +56,13 @@ describe('addPullRequestComment', () => {
       options,
     );
 
-    // Verify results
-    expect(result).toEqual({ comment: mockComment });
+    // Verify results (with transformed commentType)
+    expect(result).toEqual({
+      comment: {
+        ...mockComment,
+        commentType: 'text', // Transform enum to string
+      },
+    });
     expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
     expect(mockGitApi.createComment).toHaveBeenCalledTimes(1);
     expect(mockGitApi.createComment).toHaveBeenCalledWith(
@@ -121,8 +126,18 @@ describe('addPullRequestComment', () => {
 
     // Verify results
     expect(result).toEqual({
-      comment: mockComment,
-      thread: mockThread,
+      comment: {
+        ...mockComment,
+        commentType: 'text',
+      },
+      thread: {
+        ...mockThread,
+        status: 'active',
+        comments: mockThread.comments?.map((comment) => ({
+          ...comment,
+          commentType: 'text',
+        })),
+      },
     });
     expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
     expect(mockGitApi.createThread).toHaveBeenCalledTimes(1);
@@ -155,6 +170,7 @@ describe('addPullRequestComment', () => {
 
     const mockThread: GitPullRequestCommentThread = {
       id: 789,
+      status: CommentThreadStatus.Active, // Add missing status
       comments: [mockComment],
       threadContext: {
         filePath: '/src/app.ts',
@@ -202,8 +218,18 @@ describe('addPullRequestComment', () => {
 
     // Verify results
     expect(result).toEqual({
-      comment: mockComment,
-      thread: mockThread,
+      comment: {
+        ...mockComment,
+        commentType: 'text',
+      },
+      thread: {
+        ...mockThread,
+        status: 'active',
+        comments: mockThread.comments?.map((comment) => ({
+          ...comment,
+          commentType: 'text',
+        })),
+      },
     });
     expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
     expect(mockGitApi.createThread).toHaveBeenCalledTimes(1);
