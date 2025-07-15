@@ -149,6 +149,7 @@ describe('getPullRequestComments', () => {
     // Verify results
     expect(result).toHaveLength(1);
     expect(result[0].comments).toHaveLength(1);
+    expect(result[0].status).toBe('active');
 
     // Verify file path and line number are null for comments without thread context
     const comment = result[0].comments![0];
@@ -157,6 +158,7 @@ describe('getPullRequestComments', () => {
     expect(comment).toHaveProperty('rightFileEnd', undefined);
     expect(comment).toHaveProperty('leftFileStart', undefined);
     expect(comment).toHaveProperty('leftFileEnd', undefined);
+    expect(comment).toHaveProperty('commentType', 'text');
   });
 
   test('should use leftFileStart when rightFileStart is not available', async () => {
@@ -368,8 +370,10 @@ describe('getPullRequestComments', () => {
     expect(result).toEqual(
       mockCommentThreads.slice(0, 2).map((thread) => ({
         ...thread,
+        status: 'active', // Transform enum to string
         comments: thread.comments?.map((comment) => ({
           ...comment,
+          commentType: undefined, // Will be undefined since mock doesn't have commentType
           filePath: thread.threadContext?.filePath,
           rightFileStart: thread.threadContext?.rightFileStart ?? undefined,
           rightFileEnd: thread.threadContext?.rightFileEnd ?? undefined,
