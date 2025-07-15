@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.42](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.41...mcp-server-azure-devops-v0.1.42) (2025-07-15)
+
+
+### Features
+
+* implement human-readable string enums for Azure DevOps API responses ([8168bcb](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/8168bcbe8e4957e9632927f57ecbe9632c911735))
+
 ## [0.1.41](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.40...mcp-server-azure-devops-v0.1.41) (2025-07-14)
 
 
