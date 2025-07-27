@@ -44,6 +44,7 @@ This directory contains documentation for all tools available in the Azure DevOp
 - [`get_work_item`](./work-items.md#get_work_item) - Retrieve a work item by ID
 - [`create_work_item`](./work-items.md#create_work_item) - Create a new work item
 - [`list_work_items`](./work-items.md#list_work_items) - List work items in a project
+- [`get_work_item_comments`](./work-items.md#get_work_item_comments): Retrieve a work item by ID
 
 ### Pipeline Tools
 

@@ -44,6 +44,7 @@ describe('Work Items Request Handlers', () => {
         'create_work_item',
         'update_work_item',
         'manage_work_item_link',
+        'get-work-item-comments',
       ];
 
       workItemsRequests.forEach((name) => {

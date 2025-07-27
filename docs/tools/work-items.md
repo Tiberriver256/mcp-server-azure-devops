@@ -7,6 +7,7 @@ This document describes the tools available for working with Azure DevOps work i
 - [`get_work_item`](#get_work_item) - Retrieve a specific work item by ID
 - [`create_work_item`](#create_work_item) - Create a new work item
 - [`list_work_items`](#list_work_items) - List work items in a project
+- [`get_work_item_comments`](#get_work_item_comments) - Retrieve a specific work item by ID
 
 ## get_work_item
 
@@ -180,3 +181,89 @@ const result = await callTool('list_work_items', {
   top: 10,
 });
 ```
+
+## get_work_item_comments
+
+Retrieves comments for a specific work item.
+
+### Parameters
+
+| Parameter           | Type    | Required | Description                                                                       |
+| ------------------ | ------- | -------- | --------------------------------------------------------------------------------- |
+| `workItemId`       | number  | Yes      | The ID of the work item to retrieve comments for                                  |
+| `project`          | string  | No       | Project ID or name. If not specified, uses the default project                    |
+| `top`              | number  | No       | Maximum number of comments to return (default is 200)                             |
+| `continuationToken`| string  | No       | Token for retrieving the next page of comments                                    |
+| `includeDeleted`   | boolean | No       | Whether to include deleted comments (default is false)                            |
+| `expand`           | string  | No       | Additional data retrieval options for comments                                    |
+| `order`            | string  | No       | Sort order for comments ("asc" or "desc", default is "asc")                      |
+
+### Response
+
+Returns a comment list object with the following structure:
+
+```json
+{
+  "totalCount": 2,
+  "count": 2,
+  "comments": [
+    {
+      "id": 1,
+      "workItemId": 100,
+      "text": "First comment",
+      "createdBy": {
+        "id": "user1",
+        "displayName": "User One"
+      },
+      "createdDate": "2024-01-01T10:00:00Z",
+      "url": "https://dev.azure.com/organization/project/_apis/wit/workItems/100/comments/1"
+    },
+    {
+      "id": 2,
+      "workItemId": 100,
+      "text": "Second comment",
+      "createdBy": {
+        "id": "user2",
+        "displayName": "User Two"
+      },
+      "createdDate": "2024-01-02T10:00:00Z",
+      "url": "https://dev.azure.com/organization/project/_apis/wit/workItems/100/comments/2"
+    }
+  ],
+  "continuationToken": null,
+  "nextPage": null
+}
+```
+
+### Error Handling
+
+- Returns `AzureDevOpsResourceNotFoundError` if the work item does not exist
+- Returns `AzureDevOpsAuthenticationError` if authentication fails
+- Returns generic error messages for other failures
+
+### Example Usage
+
+```javascript
+// Get all comments for a work item
+const result = await callTool('get-work-item-comments', {
+  workItemId: 100
+});
+
+// Get comments with pagination and sorting
+const pagedResult = await callTool('get-work-item-comments', {
+  workItemId: 100,
+  project: 'my-project',
+  top: 50,
+  order: 'desc'
+});
+
+// Get next page of comments
+const nextPage = await callTool('get-work-item-comments', {
+  workItemId: 100,
+  continuationToken: pagedResult.continuationToken
+});
+```
+
+### Implementation Details
+
+The tool uses the Azure DevOps REST API's work item tracking endpoint to retrieve comments. It supports pagination through the `continuationToken` parameter and can be configured to include deleted comments and additional data through the `expand` parameter.

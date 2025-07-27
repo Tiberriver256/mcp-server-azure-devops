@@ -1,6 +1,9 @@
 import {
   WorkItem,
   WorkItemReference,
+  Comment as AzureComment,
+  CommentList as AzureCommentList,
+  CommentReaction as AzureCommentReaction,
 } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 
 /**
@@ -45,3 +48,6 @@ export interface UpdateWorkItemOptions {
 
 // Re-export WorkItem and WorkItemReference types for convenience
 export type { WorkItem, WorkItemReference };
+export type Comment = AzureComment;
+export type CommentReaction = AzureCommentReaction;
+export type CommentList = AzureCommentList;

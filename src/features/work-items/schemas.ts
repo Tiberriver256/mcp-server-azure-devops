@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { defaultProject, defaultOrg } from '../../utils/environment';
+import {
+  CommentSortOrder,
+  CommentExpandOptions,
+} from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 
 /**
  * Schema for getting a work item
@@ -146,4 +150,14 @@ export const ManageWorkItemLinkSchema = z.object({
     .string()
     .optional()
     .describe('Optional comment explaining the link'),
+});
+
+export const GetWorkItemCommentsSchema = z.object({
+  workItemId: z.number(),
+  project: z.string().optional(),
+  top: z.number().optional(),
+  continuationToken: z.string().optional(),
+  includeDeleted: z.boolean().optional(),
+  expand: z.nativeEnum(CommentExpandOptions).optional(),
+  order: z.nativeEnum(CommentSortOrder).optional(),
 });
