@@ -153,8 +153,8 @@ export const ManageWorkItemLinkSchema = z.object({
 });
 
 export const GetWorkItemCommentsSchema = z.object({
-  workItemId: z.number(),
   project: z.string().optional(),
+  workItemId: z.number(),
   top: z.number().optional(),
   continuationToken: z.string().optional(),
   includeDeleted: z.boolean().optional(),

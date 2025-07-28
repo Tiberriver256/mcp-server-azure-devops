@@ -54,7 +54,7 @@ export const isWorkItemsRequest: RequestIdentifier = (
     'create_work_item',
     'update_work_item',
     'manage_work_item_link',
-    'get-work-item-comments',
+    'get_work_item_comments',
   ].includes(toolName);
 };
 
@@ -146,17 +146,19 @@ export const handleWorkItemsRequest: RequestHandler = async (
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
     }
-    case 'get-work-item-comments': {
+    case 'get_work_item_comments': {
       const args = GetWorkItemCommentsSchema.parse(request.params.arguments);
       const result = await getWorkItemComments(
         connection,
+        args.project ?? defaultProject,
         args.workItemId,
-        args.project,
-        args.top,
-        args.continuationToken,
-        args.includeDeleted,
-        args.expand,
-        args.order,
+        {
+          top: args.top,
+          continuationToken: args.continuationToken,
+          includeDeleted: args.includeDeleted,
+          expand: args.expand,
+          order: args.order,
+        },
       );
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],

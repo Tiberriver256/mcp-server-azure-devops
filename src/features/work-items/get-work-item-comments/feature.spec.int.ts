@@ -15,7 +15,11 @@ describe('getWorkItemComments', () => {
   });
 
   it('should get comments for a work item', async () => {
-    const result = await getWorkItemComments(connection, 1, defaultProject);
+    // This test requires a valid work item ID to exist in the project.
+    // Please replace 1 with a valid work item ID.
+    const result = await getWorkItemComments(connection, defaultProject, 1, {
+      top: 1,
+    });
 
     expect(result).toBeDefined();
     expect(result.comments).toBeDefined();
@@ -24,12 +28,16 @@ describe('getWorkItemComments', () => {
 
   it('should throw error for non-existent work item', async () => {
     await expect(
-      getWorkItemComments(connection, 999999, defaultProject),
+      getWorkItemComments(connection, defaultProject, 999999),
     ).rejects.toThrow();
   });
 
   it('should handle pagination parameters', async () => {
-    const result = await getWorkItemComments(connection, 1, defaultProject, 5);
+    // This test requires a valid work item ID to exist in the project.
+    // Please replace 1 with a valid work item ID.
+    const result = await getWorkItemComments(connection, defaultProject, 1, {
+      top: 5,
+    });
 
     expect(result).toBeDefined();
     if (result.comments) {

@@ -49,11 +49,15 @@ describe('getWorkItemComments', () => {
 
     mockWorkItemTrackingApi.getComments.mockResolvedValue(mockComments);
 
-    const result = await getWorkItemComments(mockConnection, 100);
+    const result = await getWorkItemComments(
+      mockConnection,
+      'mock-project',
+      100,
+    );
 
     expect(mockConnection.getWorkItemTrackingApi).toHaveBeenCalled();
     expect(mockWorkItemTrackingApi.getComments).toHaveBeenCalledWith(
-      '',
+      'mock-project',
       100,
       200,
       undefined,
@@ -69,18 +73,18 @@ describe('getWorkItemComments', () => {
       undefined as unknown as CommentList,
     );
 
-    await expect(getWorkItemComments(mockConnection, 100)).rejects.toThrow(
-      AzureDevOpsResourceNotFoundError,
-    );
+    await expect(
+      getWorkItemComments(mockConnection, 'mock-project', 100),
+    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
   });
 
   it('should throw AzureDevOpsError when API call fails', async () => {
     const error = new Error('API error');
     mockWorkItemTrackingApi.getComments.mockRejectedValue(error);
 
-    await expect(getWorkItemComments(mockConnection, 100)).rejects.toThrow(
-      AzureDevOpsError,
-    );
+    await expect(
+      getWorkItemComments(mockConnection, 'mock-project', 100),
+    ).rejects.toThrow(AzureDevOpsError);
   });
 
   it('should use provided parameters', async () => {
@@ -92,16 +96,13 @@ describe('getWorkItemComments', () => {
 
     mockWorkItemTrackingApi.getComments.mockResolvedValue(mockComments);
 
-    await getWorkItemComments(
-      mockConnection,
-      100,
-      'project1',
-      50,
-      'token1',
-      true,
-      CommentExpandOptions.All,
-      CommentSortOrder.Desc,
-    );
+    await getWorkItemComments(mockConnection, 'project1', 100, {
+      top: 50,
+      continuationToken: 'token1',
+      includeDeleted: true,
+      expand: CommentExpandOptions.All,
+      order: CommentSortOrder.Desc,
+    });
 
     expect(mockWorkItemTrackingApi.getComments).toHaveBeenCalledWith(
       'project1',
@@ -123,7 +124,11 @@ describe('getWorkItemComments', () => {
 
     mockWorkItemTrackingApi.getComments.mockResolvedValue(mockComments);
 
-    const result = await getWorkItemComments(mockConnection, 100);
+    const result = await getWorkItemComments(
+      mockConnection,
+      'mock-project',
+      100,
+    );
     expect(result.comments).toHaveLength(0);
   });
 
@@ -149,7 +154,12 @@ describe('getWorkItemComments', () => {
 
     mockWorkItemTrackingApi.getComments.mockResolvedValue(mockComments);
 
-    const result = await getWorkItemComments(mockConnection, 100, undefined, 1);
+    const result = await getWorkItemComments(
+      mockConnection,
+      'mock-project',
+      100,
+      { top: 1 },
+    );
     expect(result.continuationToken).toBe('next-page');
   });
 
@@ -182,15 +192,28 @@ describe('getWorkItemComments', () => {
 
     const result = await getWorkItemComments(
       mockConnection,
+      'mock-project',
       100,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      CommentExpandOptions.All,
+      {
+        expand: CommentExpandOptions.All,
+      },
     );
 
     const comments = result.comments || [];
     expect(comments[0]?.reactions).toBeDefined();
+  });
+
+  it('should throw AzureDevOpsError when "top" is less than or equal to 0', async () => {
+    await expect(
+      getWorkItemComments(mockConnection, 'project1', 100, { top: 0 }),
+    ).rejects.toThrow(
+      new AzureDevOpsError('The "top" parameter must be a positive number.'),
+    );
+
+    await expect(
+      getWorkItemComments(mockConnection, 'project1', 100, { top: -1 }),
+    ).rejects.toThrow(
+      new AzureDevOpsError('The "top" parameter must be a positive number.'),
+    );
   });
 });

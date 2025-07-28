@@ -39,7 +39,7 @@ export const workItemsTools: ToolDefinition[] = [
     inputSchema: zodToJsonSchema(ManageWorkItemLinkSchema),
   },
   {
-    name: 'get-work-item-comments',
+    name: 'get_work_item_comments',
     description: 'List comments in a work item',
     inputSchema: zodToJsonSchema(GetWorkItemCommentsSchema),
   },

@@ -171,7 +171,7 @@ The Azure DevOps MCP server provides a variety of tools for interacting with Azu
 - `update_work_item`: Update an existing work item
 - `list_work_items`: List work items in a project
 - `manage_work_item_link`: Add, remove, or update links between work items
-- `get_work_item_comments`: Retrieve a work item by ID
+- `get_work_item_comments`: Retrieve comments by work item ID
 
 ### Search Tools
 

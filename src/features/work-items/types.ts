@@ -4,6 +4,8 @@ import {
   Comment as AzureComment,
   CommentList as AzureCommentList,
   CommentReaction as AzureCommentReaction,
+  CommentSortOrder,
+  CommentExpandOptions,
 } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 
 /**
@@ -44,6 +46,22 @@ export interface UpdateWorkItemOptions {
   priority?: number;
   state?: string;
   additionalFields?: Record<string, string | number | boolean | null>;
+}
+
+/**
+ * Options for work item comments
+ */
+export interface GetWorkItemCommentsOptions {
+  top?: number;
+  continuationToken?: string;
+  includeDeleted?: boolean;
+  expand?: CommentExpandOptions;
+  order?: CommentSortOrder;
+
+  additionalFields?: Record<
+    number,
+    string | boolean | CommentExpandOptions | CommentSortOrder
+  >;
 }
 
 // Re-export WorkItem and WorkItemReference types for convenience

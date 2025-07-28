@@ -190,13 +190,13 @@ Retrieves comments for a specific work item.
 
 | Parameter           | Type    | Required | Description                                                                       |
 | ------------------ | ------- | -------- | --------------------------------------------------------------------------------- |
-| `workItemId`       | number  | Yes      | The ID of the work item to retrieve comments for                                  |
-| `project`          | string  | No       | Project ID or name. If not specified, uses the default project                    |
+| `project`          | string  | YES      | Project ID or name. If not specified, uses the default project                    |
+| `workItemId`       | number  | Yes      | Id of a work item to get comments for.for                                  |
 | `top`              | number  | No       | Maximum number of comments to return (default is 200)                             |
 | `continuationToken`| string  | No       | Token for retrieving the next page of comments                                    |
 | `includeDeleted`   | boolean | No       | Whether to include deleted comments (default is false)                            |
 | `expand`           | string  | No       | Additional data retrieval options for comments                                    |
-| `order`            | string  | No       | Sort order for comments ("asc" or "desc", default is "asc")                      |
+| `order`            | string  | No       | Sort order for comments ("asc(1)" or "desc(2)", default is "asc")                      |
 
 ### Response
 
@@ -245,12 +245,12 @@ Returns a comment list object with the following structure:
 
 ```javascript
 // Get all comments for a work item
-const result = await callTool('get-work-item-comments', {
+const result = await callTool('get_work_item_comments', {
   workItemId: 100
 });
 
 // Get comments with pagination and sorting
-const pagedResult = await callTool('get-work-item-comments', {
+const pagedResult = await callTool('get_work_item_comments', {
   workItemId: 100,
   project: 'my-project',
   top: 50,
@@ -258,7 +258,7 @@ const pagedResult = await callTool('get-work-item-comments', {
 });
 
 // Get next page of comments
-const nextPage = await callTool('get-work-item-comments', {
+const nextPage = await callTool('get_work_item_comments', {
   workItemId: 100,
   continuationToken: pagedResult.continuationToken
 });
