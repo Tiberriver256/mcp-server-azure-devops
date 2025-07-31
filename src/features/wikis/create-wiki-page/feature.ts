@@ -13,7 +13,13 @@ import { defaultOrg, defaultProject } from '../../../utils/environment';
  */
 export const createWikiPage = async (
   params: z.infer<typeof CreateWikiPageSchema>,
-  client?: any, // For testing purposes only
+  client?: {
+    defaults?: { organizationId?: string; projectId?: string };
+    put: (
+      url: string,
+      data: Record<string, unknown>,
+    ) => Promise<{ data: unknown }>;
+  }, // For testing purposes only
 ) => {
   try {
     const { organizationId, projectId, wikiId, pagePath, content, comment } =
@@ -38,7 +44,7 @@ export const createWikiPage = async (
       )}&api-version=7.1-preview.1`;
 
       // Prepare the request body
-      const requestBody: Record<string, any> = { content };
+      const requestBody: Record<string, unknown> = { content };
       if (comment) {
         requestBody.comment = comment;
       }
@@ -78,7 +84,7 @@ export const createWikiPage = async (
         },
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     throw await handleRequestError(
       error,
       'Failed to create or update wiki page',

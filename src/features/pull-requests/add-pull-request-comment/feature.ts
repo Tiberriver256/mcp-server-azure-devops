@@ -6,7 +6,11 @@ import {
   GitPullRequestCommentThread,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { AddPullRequestCommentOptions } from '../types';
+import { AddPullRequestCommentOptions, AddCommentResponse } from '../types';
+import {
+  transformCommentThreadStatus,
+  transformCommentType,
+} from '../../../shared/enums';
 
 /**
  * Add a comment to a pull request
@@ -24,7 +28,7 @@ export async function addPullRequestComment(
   repositoryId: string,
   pullRequestId: number,
   options: AddPullRequestCommentOptions,
-): Promise<{ comment: Comment; thread?: GitPullRequestCommentThread }> {
+): Promise<AddCommentResponse> {
   try {
     const gitApi = await connection.getGitApi();
 
@@ -49,7 +53,12 @@ export async function addPullRequestComment(
         throw new Error('Failed to create pull request comment');
       }
 
-      return { comment: createdComment };
+      return {
+        comment: {
+          ...createdComment,
+          commentType: transformCommentType(createdComment.commentType),
+        },
+      };
     }
     // Case 2: Create new thread with comment
     else {
@@ -71,6 +80,12 @@ export async function addPullRequestComment(
             break;
           case 'pending':
             threadStatus = CommentThreadStatus.Pending;
+            break;
+          case 'byDesign':
+            threadStatus = CommentThreadStatus.ByDesign;
+            break;
+          case 'unknown':
+            threadStatus = CommentThreadStatus.Unknown;
             break;
         }
       }
@@ -117,8 +132,20 @@ export async function addPullRequestComment(
       }
 
       return {
-        comment: createdThread.comments[0],
-        thread: createdThread,
+        comment: {
+          ...createdThread.comments[0],
+          commentType: transformCommentType(
+            createdThread.comments[0].commentType,
+          ),
+        },
+        thread: {
+          ...createdThread,
+          status: transformCommentThreadStatus(createdThread.status),
+          comments: createdThread.comments?.map((comment) => ({
+            ...comment,
+            commentType: transformCommentType(comment.commentType),
+          })),
+        },
       };
     }
   } catch (error) {

@@ -4,7 +4,7 @@ import {
   getTestConnection,
   shouldSkipIntegrationTest,
 } from '../__test__/test-helpers';
-import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+
 import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
 import { createWorkItem } from '../create-work-item/feature';
 import { manageWorkItemLink } from '../manage-work-item-link/feature';
@@ -108,11 +108,7 @@ describe('getWorkItem integration', () => {
     }
 
     // Act - get work item with relations expansion
-    const result = await getWorkItem(
-      connection,
-      testWorkItemId,
-      WorkItemExpand.Relations,
-    );
+    const result = await getWorkItem(connection, testWorkItemId, 'relations');
 
     // Assert
     expect(result).toBeDefined();
@@ -141,11 +137,7 @@ describe('getWorkItem integration', () => {
     }
 
     // Act - get work item with no expansion
-    const result = await getWorkItem(
-      connection,
-      testWorkItemId,
-      WorkItemExpand.None,
-    );
+    const result = await getWorkItem(connection, testWorkItemId, 'none');
 
     // Assert
     expect(result).toBeDefined();

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import { defaultProject, defaultOrg } from '../../utils/environment';
 
 /**
@@ -8,7 +7,7 @@ import { defaultProject, defaultOrg } from '../../utils/environment';
 export const GetWorkItemSchema = z.object({
   workItemId: z.number().describe('The ID of the work item'),
   expand: z
-    .nativeEnum(WorkItemExpand)
+    .enum(['none', 'relations', 'fields', 'links', 'all'])
     .optional()
     .describe(
       'The level of detail to include in the response. Defaults to "all" if not specified.',

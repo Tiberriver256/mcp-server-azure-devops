@@ -81,11 +81,14 @@ describe('getPullRequestComments', () => {
     // Verify results
     expect(result).toHaveLength(1);
     expect(result[0].comments).toHaveLength(2);
-    
+
     // Verify file path and line number are added to each comment
-    result[0].comments?.forEach(comment => {
+    result[0].comments?.forEach((comment) => {
       expect(comment).toHaveProperty('filePath', '/src/app.ts');
-      expect(comment).toHaveProperty('lineNumber', 10);
+      expect(comment).toHaveProperty('rightFileStart', { line: 10, offset: 5 });
+      expect(comment).toHaveProperty('rightFileEnd', { line: 10, offset: 15 });
+      expect(comment).toHaveProperty('leftFileStart', undefined);
+      expect(comment).toHaveProperty('leftFileEnd', undefined);
     });
 
     expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
@@ -146,11 +149,16 @@ describe('getPullRequestComments', () => {
     // Verify results
     expect(result).toHaveLength(1);
     expect(result[0].comments).toHaveLength(1);
-    
+    expect(result[0].status).toBe('active');
+
     // Verify file path and line number are null for comments without thread context
     const comment = result[0].comments![0];
     expect(comment).toHaveProperty('filePath', undefined);
-    expect(comment).toHaveProperty('lineNumber', null);
+    expect(comment).toHaveProperty('rightFileStart', undefined);
+    expect(comment).toHaveProperty('rightFileEnd', undefined);
+    expect(comment).toHaveProperty('leftFileStart', undefined);
+    expect(comment).toHaveProperty('leftFileEnd', undefined);
+    expect(comment).toHaveProperty('commentType', 'text');
   });
 
   test('should use leftFileStart when rightFileStart is not available', async () => {
@@ -206,11 +214,14 @@ describe('getPullRequestComments', () => {
     // Verify results
     expect(result).toHaveLength(1);
     expect(result[0].comments).toHaveLength(1);
-    
-    // Verify line number is taken from leftFileStart
+
+    // Verify rightFileStart is undefined, leftFileStart is present
     const comment = result[0].comments![0];
     expect(comment).toHaveProperty('filePath', '/src/app.ts');
-    expect(comment).toHaveProperty('lineNumber', 5);
+    expect(comment).toHaveProperty('leftFileStart', { line: 5, offset: 1 });
+    expect(comment).toHaveProperty('rightFileStart', undefined);
+    expect(comment).toHaveProperty('leftFileEnd', undefined);
+    expect(comment).toHaveProperty('rightFileEnd', undefined);
   });
 
   test('should return a specific comment thread when threadId is provided', async () => {
@@ -273,11 +284,14 @@ describe('getPullRequestComments', () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(threadId);
     expect(result[0].comments).toHaveLength(1);
-    
+
     // Verify file path and line number are added
     const comment = result[0].comments![0];
     expect(comment).toHaveProperty('filePath', '/src/utils.ts');
-    expect(comment).toHaveProperty('lineNumber', 15);
+    expect(comment).toHaveProperty('rightFileStart', { line: 15, offset: 1 });
+    expect(comment).toHaveProperty('leftFileStart', undefined);
+    expect(comment).toHaveProperty('leftFileEnd', undefined);
+    expect(comment).toHaveProperty('rightFileEnd', undefined);
 
     expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
     expect(mockGitApi.getPullRequestThread).toHaveBeenCalledTimes(1);
@@ -353,16 +367,31 @@ describe('getPullRequestComments', () => {
 
     // Verify results (should only include first 2 threads)
     expect(result).toHaveLength(2);
-    expect(result).toEqual(mockCommentThreads.slice(0, 2).map(thread => ({
-      ...thread,
-      comments: thread.comments?.map(comment => ({
-        ...comment,
-        filePath: thread.threadContext?.filePath,
-        lineNumber: thread.threadContext?.rightFileStart?.line ?? null,
+    expect(result).toEqual(
+      mockCommentThreads.slice(0, 2).map((thread) => ({
+        ...thread,
+        status: 'active', // Transform enum to string
+        comments: thread.comments?.map((comment) => ({
+          ...comment,
+          commentType: undefined, // Will be undefined since mock doesn't have commentType
+          filePath: thread.threadContext?.filePath,
+          rightFileStart: thread.threadContext?.rightFileStart ?? undefined,
+          rightFileEnd: thread.threadContext?.rightFileEnd ?? undefined,
+          leftFileStart: thread.threadContext?.leftFileStart ?? undefined,
+          leftFileEnd: thread.threadContext?.leftFileEnd ?? undefined,
+        })),
       })),
-    })));
+    );
     expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
     expect(mockGitApi.getThreads).toHaveBeenCalledTimes(1);
+    expect(result[0].comments![0]).toHaveProperty('rightFileStart', {
+      line: 1,
+      offset: 1,
+    });
+    expect(result[1].comments![0]).toHaveProperty('rightFileStart', {
+      line: 2,
+      offset: 1,
+    });
   });
 
   test('should handle error when API call fails', async () => {

@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.42](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.41...mcp-server-azure-devops-v0.1.42) (2025-07-15)
+
+
+### Features
+
+* implement human-readable string enums for Azure DevOps API responses ([8168bcb](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/8168bcbe8e4957e9632927f57ecbe9632c911735))
+
+## [0.1.41](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.40...mcp-server-azure-devops-v0.1.41) (2025-07-14)
+
+
+### Features
+
+* **pull-requests:** enhance get_pull_request_comments response with … ([#229](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/229)) ([6997a04](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/6997a04e92b4fe453354b8fd9f0f25c974fcad2b))
+
+
+### Bug Fixes
+
+* **work-items:** make expand enum compatible with Gemini CLI ([#240](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/240)) ([ac1dcac](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/ac1dcace4cd6f63d5decd4820307b52a4d0d431d))
+
 ## [0.1.40](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.39...mcp-server-azure-devops-v0.1.40) (2025-06-20)
 
 

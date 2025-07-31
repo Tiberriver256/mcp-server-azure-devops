@@ -143,7 +143,15 @@ export const AddPullRequestCommentSchema = z
       .optional()
       .describe('The line number to comment on (for new thread on file)'),
     status: z
-      .enum(['active', 'fixed', 'wontFix', 'closed', 'pending'])
+      .enum([
+        'active',
+        'fixed',
+        'wontFix',
+        'closed',
+        'pending',
+        'byDesign',
+        'unknown',
+      ])
       .optional()
       .describe('The status to set for a new thread'),
   })
