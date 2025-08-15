@@ -25,6 +25,42 @@ export async function searchWorkItems(
   options: SearchWorkItemsOptions,
 ): Promise<WorkItemSearchResponse> {
   try {
+    // Check if searchText is a work item ID (pure number)
+    const workItemIdMatch = options.searchText.trim().match(/^\d+$/);
+    if (workItemIdMatch) {
+      const workItemId = parseInt(workItemIdMatch[0]);
+
+      try {
+        // Import the get work item function
+        const { getWorkItem } = await import(
+          '../../work-items/get-work-item/feature'
+        );
+
+        // Get the work item directly
+        const workItem = await getWorkItem(connection, { workItemId });
+
+        // Return in search response format
+        return {
+          count: 1,
+          results: [
+            {
+              searchText: options.searchText,
+              workItem: workItem,
+              hits: [],
+              highlights: {},
+            },
+          ],
+          facets: {},
+          infoCode: 0,
+        };
+      } catch {
+        // If work item doesn't exist, fall through to regular search
+        console.log(
+          `Work item ${workItemId} not found, falling back to search`,
+        );
+      }
+    }
+
     // Prepare the search request
     const searchRequest: WorkItemSearchRequest = {
       searchText: options.searchText,
@@ -50,10 +86,15 @@ export async function searchWorkItems(
     );
 
     // Make the search API request
+    // Determine the base URL based on connection type
+    const baseUrl = connection.serverUrl.includes('dev.azure.com')
+      ? 'https://almsearch.dev.azure.com'
+      : connection.serverUrl; // Use the TFS server URL directly
+
     // If projectId is provided, include it in the URL, otherwise perform organization-wide search
     const searchUrl = options.projectId
-      ? `https://almsearch.dev.azure.com/${organization}/${project}/_apis/search/workitemsearchresults?api-version=7.1`
-      : `https://almsearch.dev.azure.com/${organization}/_apis/search/workitemsearchresults?api-version=7.1`;
+      ? `${baseUrl}/${organization}/${project}/_apis/search/workitemsearchresults?api-version=7.1`
+      : `${baseUrl}/${organization}/_apis/search/workitemsearchresults?api-version=7.1`;
 
     const searchResponse = await axios.post<WorkItemSearchResponse>(
       searchUrl,
@@ -116,8 +157,16 @@ function extractOrgAndProject(
 ): { organization: string; project: string } {
   // Extract organization from the connection URL
   const url = connection.serverUrl;
+
+  // Try Azure DevOps Services (cloud) first
   const match = url.match(/https?:\/\/dev\.azure\.com\/([^/]+)/);
-  const organization = match ? match[1] : '';
+  let organization = match ? match[1] : '';
+
+  // If not found, try Azure DevOps Server (on-prem TFS)
+  if (!organization) {
+    const tfsMatch = url.match(/https?:\/\/[^/]+\/tfs\/([^/]+)/);
+    organization = tfsMatch ? tfsMatch[1] : '';
+  }
 
   if (!organization) {
     throw new AzureDevOpsValidationError(

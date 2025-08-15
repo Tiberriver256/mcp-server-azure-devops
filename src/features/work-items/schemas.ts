@@ -147,3 +147,142 @@ export const ManageWorkItemLinkSchema = z.object({
     .optional()
     .describe('Optional comment explaining the link'),
 });
+
+/**
+ * Schema for getting work item comments
+ */
+export const GetWorkItemCommentsSchema = z.object({
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  workItemId: z.number().describe('The work item ID'),
+  top: z
+    .number()
+    .optional()
+    .default(100)
+    .describe('Maximum number of comments to return'),
+  continuationToken: z
+    .string()
+    .optional()
+    .describe('Continuation token for pagination'),
+  includeDeleted: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Include deleted comments'),
+  order: z
+    .enum(['asc', 'desc'])
+    .optional()
+    .default('asc')
+    .describe('Sort order for comments'),
+  expand: z
+    .enum(['none', 'reactions'])
+    .optional()
+    .default('none')
+    .describe('Additional data to include'),
+  processImages: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Process images in comments and convert to base64 data URLs'),
+  maxImageSize: z
+    .number()
+    .optional()
+    .default(2097152)
+    .describe('Maximum image size in bytes (default: 2MB)'),
+  timeoutMs: z
+    .number()
+    .optional()
+    .default(30000)
+    .describe('Image download timeout in milliseconds'),
+  imagePreviewMode: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'Replace images with descriptive previews instead of full base64 to reduce token usage',
+    ),
+  separateImages: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe(
+      'Return images as separate MCP content blocks (like copy-paste screenshots) instead of embedded HTML',
+    ),
+});
+
+/**
+ * Schema for getting work item attachments
+ */
+export const GetWorkItemAttachmentsSchema = z.object({
+  workItemId: z.number().describe('The work item ID'),
+  projectId: z.string().optional().describe('The project ID or name'),
+  includeContent: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Whether to download attachment content'),
+  maxAttachmentSize: z
+    .number()
+    .optional()
+    .default(10 * 1024 * 1024)
+    .describe('Maximum attachment size in bytes (default 10MB)'),
+  imageFormats: z
+    .array(z.string())
+    .optional()
+    .default([
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/gif',
+      'image/bmp',
+      'image/webp',
+    ])
+    .describe('Supported image MIME types'),
+  convertImagesToBase64: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Convert images to base64 data URLs'),
+  includeImageMetadata: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Include image metadata in response'),
+  filterByType: z
+    .enum(['images', 'documents', 'all'])
+    .optional()
+    .default('all')
+    .describe('Filter attachments by type'),
+  concurrentDownloads: z
+    .number()
+    .optional()
+    .default(3)
+    .describe('Maximum concurrent downloads'),
+  timeoutMs: z
+    .number()
+    .optional()
+    .default(30000)
+    .describe('Request timeout in milliseconds'),
+});
+
+/**
+ * Schema for getting work item attachment summary
+ */
+export const GetWorkItemAttachmentSummarySchema = z.object({
+  workItemId: z.number().describe('The work item ID'),
+});
+
+/**
+ * Schema for getting work item attachment by ID
+ */
+export const GetWorkItemAttachmentByIdSchema = z.object({
+  workItemId: z.number().describe('The work item ID'),
+  attachmentId: z.string().describe('The attachment ID'),
+  includeContent: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Whether to download attachment content'),
+});

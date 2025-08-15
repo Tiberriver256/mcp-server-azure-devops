@@ -22,7 +22,8 @@ export const searchTools: ToolDefinition[] = [
   },
   {
     name: 'search_work_items',
-    description: 'Search for work items across projects in Azure DevOps',
+    description:
+      'Search for work items using text queries, keywords, or filters. Use this for finding multiple items by title, description, or content - NOT for getting details of a specific work item by ID (use get_work_item instead).',
     inputSchema: zodToJsonSchema(SearchWorkItemsSchema),
   },
 ];

@@ -11,7 +11,10 @@ export * from './list-projects';
 export * from './tool-definitions';
 
 // New exports for request handling
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequest,
+  CallToolResult,
+} from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
 import {
   RequestIdentifier,
@@ -45,7 +48,7 @@ export const isProjectsRequest: RequestIdentifier = (
 export const handleProjectsRequest: RequestHandler = async (
   connection: WebApi,
   request: CallToolRequest,
-): Promise<{ content: Array<{ type: string; text: string }> }> => {
+): Promise<CallToolResult> => {
   switch (request.params.name) {
     case 'list_projects': {
       const args = ListProjectsSchema.parse(request.params.arguments);

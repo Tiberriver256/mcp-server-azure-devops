@@ -13,14 +13,8 @@ export interface RequestIdentifier {
 
 /**
  * Function type for handling feature-specific requests.
- * Returns either the standard MCP CallToolResult or a simplified response structure
- * for backward compatibility.
+ * Returns the standard MCP CallToolResult which supports text and image content blocks.
  */
 export interface RequestHandler {
-  (
-    connection: WebApi,
-    request: CallToolRequest,
-  ): Promise<
-    CallToolResult | { content: Array<{ type: string; text: string }> }
-  >;
+  (connection: WebApi, request: CallToolRequest): Promise<CallToolResult>;
 }
