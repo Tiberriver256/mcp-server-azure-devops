@@ -9,6 +9,7 @@ This document describes the tools available for working with Azure DevOps pipeli
 - [`trigger_pipeline`](#trigger_pipeline) - Trigger a pipeline run
 - [`list_pipeline_runs`](#list_pipeline_runs) - List recent runs for a specific pipeline
 - [`get_pipeline_run`](#get_pipeline_run) - Get details of a specific pipeline run
+- [`get_pipeline_run_logs`](#get_pipeline_run_logs) - Get logs from a specific pipeline run
 
 ## list_pipelines
 
@@ -399,3 +400,103 @@ const projectRunDetails = await callTool('get_pipeline_run', {
   runId: 12345,
 });
 ```
+
+## get_pipeline_run_logs
+
+Gets logs from a specific pipeline run. Can retrieve all logs for a run or a specific log by ID, with optional content fetching.
+
+### Parameters
+
+| Parameter      | Type    | Required | Description                                                                                              |
+| -------------- | ------- | -------- | -------------------------------------------------------------------------------------------------------- |
+| `projectId`    | string  | No       | The ID or name of the project (Default: from environment)                                                |
+| `pipelineId`   | number  | Yes      | The ID of the pipeline                                                                                   |
+| `runId`        | number  | Yes      | The ID of the run                                                                                        |
+| `logId`        | number  | No       | Optional: The ID of a specific log to retrieve. If not provided, all logs are listed                     |
+| `fetchContent` | boolean | No       | Whether to fetch the actual log content (default: false)                                                 |
+| `expand`       | string  | No       | The level of detail to include: "none" or "signedContent" (default: "signedContent" for URLs to download logs) |
+
+### Response
+
+Returns an object containing logs metadata and optionally the actual log content:
+
+```json
+{
+  "logs": {
+    "count": 3,
+    "value": [
+      {
+        "id": 1,
+        "createdOn": "2023-02-15T10:30:00Z",
+        "lineCount": 150,
+        "url": "https://dev.azure.com/.../logs/1"
+      },
+      {
+        "id": 2,
+        "createdOn": "2023-02-15T10:31:00Z",
+        "lineCount": 200,
+        "url": "https://dev.azure.com/.../logs/2"
+      },
+      {
+        "id": 3,
+        "createdOn": "2023-02-15T10:32:00Z",
+        "lineCount": 75,
+        "url": "https://dev.azure.com/.../logs/3"
+      }
+    ]
+  },
+  "content": [
+    "2023-02-15T10:30:00 Starting pipeline...\n2023-02-15T10:30:01 Checking out repository...",
+    "2023-02-15T10:31:00 Building application...\n2023-02-15T10:31:05 Running npm install...",
+    "2023-02-15T10:32:00 Running tests...\n2023-02-15T10:32:10 All tests passed!"
+  ]
+}
+```
+
+### Error Handling
+
+- Returns `AzureDevOpsResourceNotFoundError` if the run, pipeline, or project does not exist
+- Returns `AzureDevOpsAuthenticationError` if authentication fails
+- Returns generic error messages for other failures
+- Failed content fetches are logged but don't fail the operation
+
+### Example Usage
+
+```javascript
+// List all logs for a run (metadata only)
+const logsMetadata = await callTool('get_pipeline_run_logs', {
+  pipelineId: 4,
+  runId: 12345,
+});
+
+// List all logs and fetch their content
+const logsWithContent = await callTool('get_pipeline_run_logs', {
+  pipelineId: 4,
+  runId: 12345,
+  fetchContent: true,
+});
+
+// Get a specific log by ID with content
+const specificLog = await callTool('get_pipeline_run_logs', {
+  projectId: 'my-project',
+  pipelineId: 4,
+  runId: 12345,
+  logId: 2,
+  fetchContent: true,
+});
+
+// Get logs without signed URLs (metadata only)
+const logsNoUrls = await callTool('get_pipeline_run_logs', {
+  pipelineId: 4,
+  runId: 12345,
+  expand: 'none',
+});
+```
+
+### Notes
+
+- The `expand` parameter controls whether signed URLs are included for downloading log content
+- When `fetchContent` is true, the tool will attempt to download and include the actual log text
+- Large log files may take time to download and could impact performance
+- Log content is returned as an array of strings, with each string corresponding to a log in the same order as the logs array
+- If a specific log's content cannot be fetched (e.g., network error), an empty string is returned for that log
