@@ -18,23 +18,15 @@ describe('listPipelineRuns', () => {
     };
   });
 
-  it('should successfully list pipeline runs', async () => {
-    const mockRuns = [
-      {
-        id: 123,
-        name: 'Run 123',
-        state: 'completed',
-        result: 'succeeded',
-        createdDate: '2024-01-01T00:00:00Z',
-        finishedDate: '2024-01-01T01:00:00Z',
-      },
-      {
-        id: 124,
-        name: 'Run 124',
-        state: 'inProgress',
-        createdDate: '2024-01-02T00:00:00Z',
-      },
-    ];
+  it('should successfully list pipeline runs with default limit', async () => {
+    const mockRuns = Array.from({ length: 100 }, (_, i) => ({
+      id: 100 + i,
+      name: `Run ${100 + i}`,
+      state: 'completed',
+      result: 'succeeded',
+      createdDate: `2024-01-${(i + 1).toString().padStart(2, '0')}T00:00:00Z`,
+      finishedDate: `2024-01-${(i + 1).toString().padStart(2, '0')}T01:00:00Z`,
+    }));
 
     mockPipelinesApi.listRuns.mockResolvedValue(mockRuns);
 
@@ -44,7 +36,28 @@ describe('listPipelineRuns', () => {
     });
 
     expect(mockPipelinesApi.listRuns).toHaveBeenCalledWith('test-project', 1);
-    expect(result).toEqual(mockRuns);
+    expect(result).toHaveLength(50); // Default limit
+    expect(result[0]).toEqual(mockRuns[0]);
+  });
+
+  it('should respect custom top parameter', async () => {
+    const mockRuns = Array.from({ length: 100 }, (_, i) => ({
+      id: 100 + i,
+      name: `Run ${100 + i}`,
+      state: 'completed',
+      result: 'succeeded',
+    }));
+
+    mockPipelinesApi.listRuns.mockResolvedValue(mockRuns);
+
+    const result = await listPipelineRuns(mockConnection as any, {
+      projectId: 'test-project',
+      pipelineId: 1,
+      top: 10,
+    });
+
+    expect(result).toHaveLength(10);
+    expect(result[0]).toEqual(mockRuns[0]);
   });
 
   it('should return empty array when no runs exist', async () => {

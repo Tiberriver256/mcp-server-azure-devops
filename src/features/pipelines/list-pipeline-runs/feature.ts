@@ -21,12 +21,15 @@ export async function listPipelineRuns(
 ): Promise<Run[]> {
   try {
     const pipelinesApi = await connection.getPipelinesApi();
-    const { projectId = defaultProject, pipelineId } = options;
+    const { projectId = defaultProject, pipelineId, top = 50 } = options;
 
     // Call pipeline API to list runs
     const runs = await pipelinesApi.listRuns(projectId, pipelineId);
 
-    return runs || [];
+    // Apply client-side limiting
+    const limitedRuns = runs ? runs.slice(0, top) : [];
+
+    return limitedRuns;
   } catch (error) {
     // Handle specific error types
     if (error instanceof AzureDevOpsError) {

@@ -42,6 +42,7 @@ export interface TriggerPipelineOptions {
 export interface ListPipelineRunsOptions {
   projectId: string;
   pipelineId: number;
+  top?: number;
 }
 
 /**
