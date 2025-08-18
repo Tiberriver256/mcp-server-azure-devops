@@ -3,6 +3,8 @@ import { ToolDefinition } from '../../shared/types/tool-definition';
 import { ListPipelinesSchema } from './list-pipelines/schema';
 import { GetPipelineSchema } from './get-pipeline/schema';
 import { TriggerPipelineSchema } from './trigger-pipeline/schema';
+import { ListPipelineRunsSchema } from './list-pipeline-runs/schema';
+import { GetPipelineRunSchema } from './get-pipeline-run/schema';
 
 /**
  * List of pipelines tools
@@ -22,5 +24,15 @@ export const pipelinesTools: ToolDefinition[] = [
     name: 'trigger_pipeline',
     description: 'Trigger a pipeline run',
     inputSchema: zodToJsonSchema(TriggerPipelineSchema),
+  },
+  {
+    name: 'list_pipeline_runs',
+    description: 'List recent runs for a specific pipeline',
+    inputSchema: zodToJsonSchema(ListPipelineRunsSchema),
+  },
+  {
+    name: 'get_pipeline_run',
+    description: 'Get details of a specific pipeline run',
+    inputSchema: zodToJsonSchema(GetPipelineRunSchema),
   },
 ];
