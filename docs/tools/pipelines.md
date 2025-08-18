@@ -221,14 +221,15 @@ const runWithOptions = await callTool('trigger_pipeline', {
 
 ## list_pipeline_runs
 
-Lists recent runs for a specific pipeline. Returns up to 10,000 most recent runs.
+Lists recent runs for a specific pipeline with optional limiting.
 
 ### Parameters
 
-| Parameter    | Type   | Required | Description                                               |
-| ------------ | ------ | -------- | --------------------------------------------------------- |
-| `projectId`  | string | No       | The ID or name of the project (Default: from environment) |
-| `pipelineId` | number | Yes      | The ID of the pipeline to get runs for                    |
+| Parameter    | Type   | Required | Description                                                            |
+| ------------ | ------ | -------- | ---------------------------------------------------------------------- |
+| `projectId`  | string | No       | The ID or name of the project (Default: from environment)              |
+| `pipelineId` | number | Yes      | The ID of the pipeline to get runs for                                 |
+| `top`        | number | No       | Maximum number of runs to return (default: 50, max: 1000)              |
 
 ### Response
 
@@ -278,17 +279,28 @@ Returns an array of run objects with details about each pipeline run:
 ### Example Usage
 
 ```javascript
-// List runs for a pipeline
+// List runs for a pipeline (default: 50 runs)
 const runs = await callTool('list_pipeline_runs', {
   pipelineId: 4,
 });
 
-// List runs with specific project
+// List only the 10 most recent runs
+const recentRuns = await callTool('list_pipeline_runs', {
+  pipelineId: 4,
+  top: 10,
+});
+
+// List runs with specific project and limit
 const projectRuns = await callTool('list_pipeline_runs', {
   projectId: 'my-project',
   pipelineId: 4,
+  top: 100,
 });
 ```
+
+### Note on Large Result Sets
+
+The Azure DevOps API can return up to 10,000 runs for a pipeline. For pipelines with extensive history, use the `top` parameter to limit the response size and avoid potential token limit issues when using through MCP.
 
 ## get_pipeline_run
 

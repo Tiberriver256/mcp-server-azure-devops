@@ -10,4 +10,11 @@ export const ListPipelineRunsSchema = z.object({
     .int()
     .positive()
     .describe('The ID of the pipeline to get runs for'),
+  top: z
+    .number()
+    .int()
+    .positive()
+    .max(1000)
+    .optional()
+    .describe('Maximum number of runs to return (default: 50, max: 1000)'),
 });
