@@ -46,6 +46,17 @@ export async function getPipelineRunLogs(
         expandEnum,
       );
 
+      // Check if log is null or undefined
+      if (!log) {
+        console.warn(
+          `Log ${logId} not found for pipeline ${pipelineId}, run ${runId}`,
+        );
+        return {
+          logs: null,
+          content: undefined,
+        };
+      }
+
       // Log the structure for debugging
       console.log('Log object structure:', {
         id: log.id,
@@ -110,6 +121,15 @@ export async function getPipelineRunLogs(
         runId,
         expandEnum,
       );
+
+      // Check if logs is null or undefined
+      if (!logs) {
+        console.warn(`No logs found for pipeline ${pipelineId}, run ${runId}`);
+        return {
+          logs: null,
+          content: undefined,
+        };
+      }
 
       // Optionally fetch content for all logs
       const contents: string[] = [];
