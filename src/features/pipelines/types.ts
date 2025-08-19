@@ -86,4 +86,17 @@ export interface ReadDownloadedLogOptions {
   limit?: number;
 }
 
+/**
+ * Options for getting pipeline log content directly
+ */
+export interface GetPipelineLogContentOptions {
+  projectId?: string;
+  pipelineId: number;
+  runId: number;
+  logId: number;
+  offset?: number;
+  limit?: number;
+  includeDownloadPath?: boolean;
+}
+
 export { Pipeline, Run };

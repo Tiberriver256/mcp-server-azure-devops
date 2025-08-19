@@ -11,6 +11,7 @@ import {
   ReadDownloadedLogSchema,
   ListDownloadedLogsSchema,
 } from './read-downloaded-log/schema';
+import { GetPipelineLogContentSchema } from './get-pipeline-log-content/schema';
 
 /**
  * List of pipelines tools
@@ -45,6 +46,12 @@ export const pipelinesTools: ToolDefinition[] = [
     name: 'get_pipeline_run_logs',
     description: 'Get logs from a specific pipeline run',
     inputSchema: zodToJsonSchema(GetPipelineRunLogsSchema),
+  },
+  {
+    name: 'get_pipeline_log_content',
+    description:
+      'Get specific log content from a pipeline run (auto-downloads and caches)',
+    inputSchema: zodToJsonSchema(GetPipelineLogContentSchema),
   },
   {
     name: 'download_pipeline_run_logs',
