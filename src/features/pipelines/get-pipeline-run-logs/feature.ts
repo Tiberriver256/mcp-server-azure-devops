@@ -19,7 +19,7 @@ import * as PipelinesInterfaces from 'azure-devops-node-api/interfaces/Pipelines
 export async function getPipelineRunLogs(
   connection: WebApi,
   options: GetPipelineRunLogsOptions,
-): Promise<{ logs: LogCollection; content?: string[] }> {
+): Promise<{ logs: LogCollection | null; content?: string[] }> {
   try {
     const pipelinesApi = await connection.getPipelinesApi();
     const {

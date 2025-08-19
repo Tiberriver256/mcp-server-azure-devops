@@ -242,4 +242,46 @@ describe('getPipelineRunLogs', () => {
 
     consoleSpy.mockRestore();
   });
+
+  it('should handle null response from listLogs', async () => {
+    mockPipelinesApi.listLogs.mockResolvedValue(null);
+
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    const result = await getPipelineRunLogs(mockConnection as any, {
+      projectId: 'test-project',
+      pipelineId: 1,
+      runId: 123,
+      fetchContent: true,
+    });
+
+    expect(result.logs).toBeNull();
+    expect(result.content).toBeUndefined();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'No logs found for pipeline 1, run 123',
+    );
+
+    consoleSpy.mockRestore();
+  });
+
+  it('should handle null response from getLog', async () => {
+    mockPipelinesApi.getLog.mockResolvedValue(null);
+
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    const result = await getPipelineRunLogs(mockConnection as any, {
+      projectId: 'test-project',
+      pipelineId: 1,
+      runId: 123,
+      logId: 5,
+    });
+
+    expect(result.logs).toBeNull();
+    expect(result.content).toBeUndefined();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Log 5 not found for pipeline 1, run 123',
+    );
+
+    consoleSpy.mockRestore();
+  });
 });
