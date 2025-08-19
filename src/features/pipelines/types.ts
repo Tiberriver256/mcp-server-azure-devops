@@ -66,4 +66,14 @@ export interface GetPipelineRunLogsOptions {
   expand?: 'none' | 'signedContent';
 }
 
+/**
+ * Options for downloading pipeline run logs
+ */
+export interface DownloadPipelineRunLogsOptions {
+  projectId?: string;
+  pipelineId: number;
+  runId: number;
+  outputDir?: string;
+}
+
 export { Pipeline, Run };

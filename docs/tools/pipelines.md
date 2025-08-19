@@ -497,6 +497,71 @@ const logsNoUrls = await callTool('get_pipeline_run_logs', {
 
 - The `expand` parameter controls whether signed URLs are included for downloading log content
 - When `fetchContent` is true, the tool will attempt to download and include the actual log text
+- For large logs that exceed MCP token limits, use `download_pipeline_run_logs` instead
+
+## download_pipeline_run_logs
+
+Downloads all logs from a pipeline run to local files. Useful for working with large logs that exceed MCP token limits.
+
+### Parameters
+
+| Parameter   | Type   | Required | Description                                                       |
+| ----------- | ------ | -------- | ----------------------------------------------------------------- |
+| `projectId` | string | No       | The ID or name of the project (Default: from environment)         |
+| `pipelineId`| number | Yes      | The ID of the pipeline                                            |
+| `runId`     | number | Yes      | The ID of the run                                                 |
+| `outputDir` | string | No       | Output directory for downloaded logs (defaults to current directory) |
+
+### Response
+
+Returns information about the downloaded files:
+
+```json
+{
+  "downloadPath": "/path/to/pipeline-83-run-12345-logs",
+  "files": [
+    {
+      "logId": 1,
+      "fileName": "log-001.txt",
+      "lineCount": 150,
+      "size": 4096
+    },
+    {
+      "logId": 2,
+      "fileName": "log-002.txt",
+      "lineCount": 200,
+      "size": 8192
+    }
+  ],
+  "totalSize": 12288
+}
+```
+
+### Example Usage
+
+```javascript
+// Download all logs to current directory
+const download = await callTool('download_pipeline_run_logs', {
+  pipelineId: 83,
+  runId: 92527,
+});
+
+// Download to specific directory
+const download = await callTool('download_pipeline_run_logs', {
+  projectId: 'my-project',
+  pipelineId: 83,
+  runId: 92527,
+  outputDir: '/tmp/pipeline-logs',
+});
+```
+
+### Notes
+
+- Creates a subdirectory named `pipeline-{pipelineId}-run-{runId}-logs` in the output directory
+- Each log is saved as a separate file named `log-XXX.txt` (with zero-padded IDs)
+- A `summary.json` file is created with metadata about all downloaded logs
+- Failed downloads are logged but don't stop the process from downloading other logs
+- Uses signed URLs for authentication when available
 - Large log files may take time to download and could impact performance
 - Log content is returned as an array of strings, with each string corresponding to a log in the same order as the logs array
 - If a specific log's content cannot be fetched (e.g., network error), an empty string is returned for that log

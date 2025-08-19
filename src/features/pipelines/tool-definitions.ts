@@ -6,6 +6,7 @@ import { TriggerPipelineSchema } from './trigger-pipeline/schema';
 import { ListPipelineRunsSchema } from './list-pipeline-runs/schema';
 import { GetPipelineRunSchema } from './get-pipeline-run/schema';
 import { GetPipelineRunLogsSchema } from './get-pipeline-run-logs/schema';
+import { DownloadPipelineRunLogsSchema } from './download-pipeline-run-logs/schema';
 
 /**
  * List of pipelines tools
@@ -40,5 +41,10 @@ export const pipelinesTools: ToolDefinition[] = [
     name: 'get_pipeline_run_logs',
     description: 'Get logs from a specific pipeline run',
     inputSchema: zodToJsonSchema(GetPipelineRunLogsSchema),
+  },
+  {
+    name: 'download_pipeline_run_logs',
+    description: 'Download all logs from a pipeline run to local files',
+    inputSchema: zodToJsonSchema(DownloadPipelineRunLogsSchema),
   },
 ];

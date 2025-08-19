@@ -8,6 +8,7 @@ export * from './trigger-pipeline';
 export * from './list-pipeline-runs';
 export * from './get-pipeline-run';
 export * from './get-pipeline-run-logs';
+export * from './download-pipeline-run-logs';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -24,12 +25,14 @@ import { TriggerPipelineSchema } from './trigger-pipeline';
 import { ListPipelineRunsSchema } from './list-pipeline-runs/schema';
 import { GetPipelineRunSchema } from './get-pipeline-run/schema';
 import { GetPipelineRunLogsSchema } from './get-pipeline-run-logs/schema';
+import { DownloadPipelineRunLogsSchema } from './download-pipeline-run-logs/schema';
 import { listPipelines } from './list-pipelines';
 import { getPipeline } from './get-pipeline';
 import { triggerPipeline } from './trigger-pipeline';
 import { listPipelineRuns } from './list-pipeline-runs/feature';
 import { getPipelineRun } from './get-pipeline-run/feature';
 import { getPipelineRunLogs } from './get-pipeline-run-logs/feature';
+import { downloadPipelineRunLogs } from './download-pipeline-run-logs/feature';
 import { defaultProject } from '../../utils/environment';
 
 /**
@@ -46,6 +49,7 @@ export const isPipelinesRequest: RequestIdentifier = (
     'list_pipeline_runs',
     'get_pipeline_run',
     'get_pipeline_run_logs',
+    'download_pipeline_run_logs',
   ].includes(toolName);
 };
 
@@ -110,6 +114,18 @@ export const handlePipelinesRequest: RequestHandler = async (
     case 'get_pipeline_run_logs': {
       const args = GetPipelineRunLogsSchema.parse(request.params.arguments);
       const result = await getPipelineRunLogs(connection, {
+        ...args,
+        projectId: args.projectId ?? defaultProject,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'download_pipeline_run_logs': {
+      const args = DownloadPipelineRunLogsSchema.parse(
+        request.params.arguments,
+      );
+      const result = await downloadPipelineRunLogs(connection, {
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
