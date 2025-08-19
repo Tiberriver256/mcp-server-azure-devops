@@ -13,6 +13,7 @@ import {
 } from './read-downloaded-log/schema';
 import { GetPipelineLogContentSchema } from './get-pipeline-log-content/schema';
 import { SearchPipelineLogsSchema } from './search-pipeline-logs/schema';
+import { CancelPipelineRunSchema } from './cancel-pipeline-run/schema';
 
 /**
  * List of pipelines tools
@@ -59,6 +60,11 @@ export const pipelinesTools: ToolDefinition[] = [
     description:
       'Search for text patterns across pipeline logs (grep-like functionality)',
     inputSchema: zodToJsonSchema(SearchPipelineLogsSchema),
+  },
+  {
+    name: 'cancel_pipeline_run',
+    description: 'Cancel a running pipeline',
+    inputSchema: zodToJsonSchema(CancelPipelineRunSchema),
   },
   {
     name: 'download_pipeline_run_logs',

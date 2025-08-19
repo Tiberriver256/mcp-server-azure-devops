@@ -115,4 +115,14 @@ export interface SearchPipelineLogsOptions {
   maxMatches?: number;
 }
 
+/**
+ * Options for cancelling a pipeline run
+ */
+export interface CancelPipelineRunOptions {
+  projectId?: string;
+  pipelineId: number;
+  runId: number;
+  reason?: string;
+}
+
 export { Pipeline, Run };

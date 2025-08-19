@@ -9,7 +9,13 @@ This document describes the tools available for working with Azure DevOps pipeli
 - [`trigger_pipeline`](#trigger_pipeline) - Trigger a pipeline run
 - [`list_pipeline_runs`](#list_pipeline_runs) - List recent runs for a specific pipeline
 - [`get_pipeline_run`](#get_pipeline_run) - Get details of a specific pipeline run
+- [`cancel_pipeline_run`](#cancel_pipeline_run) - Cancel a running pipeline
 - [`get_pipeline_run_logs`](#get_pipeline_run_logs) - Get logs from a specific pipeline run
+- [`get_pipeline_log_content`](#get_pipeline_log_content) - Get specific log content with auto-caching
+- [`search_pipeline_logs`](#search_pipeline_logs) - Search across logs with grep-like functionality
+- [`download_pipeline_run_logs`](#download_pipeline_run_logs) - Download all logs from a pipeline run
+- [`list_downloaded_logs`](#list_downloaded_logs) - List available downloaded log files
+- [`read_downloaded_log`](#read_downloaded_log) - Read a downloaded log file
 
 ## list_pipelines
 
@@ -739,10 +745,144 @@ console.log(`Found ${files.files.length} log files`);
 console.log(`Total size: ${files.summary.totalSize} bytes`);
 ```
 
+## search_pipeline_logs
+
+Search for text patterns across pipeline logs with grep-like functionality. Automatically downloads and caches logs if not already cached.
+
+### Parameters
+
+| Parameter      | Type    | Required | Description                                                   |
+| -------------- | ------- | -------- | ------------------------------------------------------------- |
+| `projectId`    | string  | No       | The ID or name of the project (Default: from environment)     |
+| `pipelineId`   | number  | Yes      | The ID of the pipeline                                        |
+| `runId`        | number  | Yes      | The ID of the run                                             |
+| `pattern`      | string  | Yes      | Regular expression pattern to search for                      |
+| `logIds`       | number[]| No       | Specific log IDs to search (searches all if not specified)    |
+| `ignoreCase`   | boolean | No       | Case-insensitive search (default: false)                      |
+| `invertMatch`  | boolean | No       | Show lines that do NOT match the pattern (default: false)     |
+| `beforeContext`| number  | No       | Number of lines to show before each match (0-10)              |
+| `afterContext` | number  | No       | Number of lines to show after each match (0-10)               |
+| `maxMatches`   | number  | No       | Maximum number of matches to return (default: 100, max: 1000) |
+
+### Response
+
+Returns search results with matching lines and context:
+
+```json
+{
+  "matches": [
+    {
+      "logId": 23,
+      "fileName": "log-023.txt",
+      "matches": [
+        {
+          "lineNumber": 1543,
+          "line": "##[error]Failed test: Southeastern region validation",
+          "beforeContext": ["Running test suite..."],
+          "afterContext": ["Test execution time: 2.3s"]
+        }
+      ],
+      "totalMatches": 1
+    }
+  ],
+  "pattern": "error.*southeastern",
+  "totalMatches": 1,
+  "cached": true
+}
+```
+
+### Example Usage
+
+```javascript
+// Search for errors
+const errors = await callTool('search_pipeline_logs', {
+  pipelineId: 83,
+  runId: 92527,
+  pattern: '##\\[error\\]',
+  ignoreCase: true,
+  afterContext: 2
+});
+
+// Find test failures with context
+const testFailures = await callTool('search_pipeline_logs', {
+  pipelineId: 83,
+  runId: 92527,
+  pattern: 'FAIL|Failed test',
+  beforeContext: 3,
+  afterContext: 3,
+  maxMatches: 50
+});
+
+// Find lines that don't contain "success"
+const notSuccess = await callTool('search_pipeline_logs', {
+  pipelineId: 83,
+  runId: 92527,
+  pattern: 'success',
+  invertMatch: true,
+  maxMatches: 20
+});
+```
+
+## cancel_pipeline_run
+
+Cancel a running pipeline. Uses the Azure DevOps Build API to cancel pipeline runs.
+
+### Parameters
+
+| Parameter   | Type   | Required | Description                                                |
+| ----------- | ------ | -------- | ---------------------------------------------------------- |
+| `projectId` | string | No       | The ID or name of the project (Default: from environment)  |
+| `pipelineId`| number | Yes      | The ID of the pipeline                                     |
+| `runId`     | number | Yes      | The ID of the run to cancel                                |
+| `reason`    | string | No       | Optional reason for cancelling the run                     |
+
+### Response
+
+Returns the updated run status:
+
+```json
+{
+  "pipelineId": 83,
+  "runId": 92527,
+  "status": "Cancelling",
+  "message": "Successfully initiated cancellation of pipeline run 92527",
+  "canceledBy": "John Doe",
+  "cancelTime": "2025-08-19T14:30:00Z"
+}
+```
+
+### Example Usage
+
+```javascript
+// Cancel a running pipeline
+const result = await callTool('cancel_pipeline_run', {
+  pipelineId: 83,
+  runId: 92527,
+  reason: "Build no longer needed"
+});
+
+// Cancel without a reason
+const result = await callTool('cancel_pipeline_run', {
+  pipelineId: 83,
+  runId: 92528
+});
+```
+
+### Notes
+
+- Only running pipelines can be cancelled
+- The status will change to "Cancelling" immediately
+- The pipeline may take some time to fully stop
+- Requires appropriate permissions to cancel builds
+
 ## Pipeline Log Tools Summary
 
 ### Quick Access (Recommended for Most Users)
 - **`get_pipeline_log_content`** - Direct access to specific logs with automatic caching and pagination
+- **`search_pipeline_logs`** - Search across logs with grep-like functionality
+
+### Pipeline Control
+- **`cancel_pipeline_run`** - Cancel a running pipeline
 
 ### Advanced Control (Power Users)
 - **`download_pipeline_run_logs`** - Bulk download all logs with custom storage locations
