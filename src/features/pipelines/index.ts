@@ -9,6 +9,7 @@ export * from './list-pipeline-runs';
 export * from './get-pipeline-run';
 export * from './get-pipeline-run-logs';
 export * from './download-pipeline-run-logs';
+export * from './read-downloaded-log';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -26,6 +27,10 @@ import { ListPipelineRunsSchema } from './list-pipeline-runs/schema';
 import { GetPipelineRunSchema } from './get-pipeline-run/schema';
 import { GetPipelineRunLogsSchema } from './get-pipeline-run-logs/schema';
 import { DownloadPipelineRunLogsSchema } from './download-pipeline-run-logs/schema';
+import {
+  ReadDownloadedLogSchema,
+  ListDownloadedLogsSchema,
+} from './read-downloaded-log/schema';
 import { listPipelines } from './list-pipelines';
 import { getPipeline } from './get-pipeline';
 import { triggerPipeline } from './trigger-pipeline';
@@ -33,6 +38,10 @@ import { listPipelineRuns } from './list-pipeline-runs/feature';
 import { getPipelineRun } from './get-pipeline-run/feature';
 import { getPipelineRunLogs } from './get-pipeline-run-logs/feature';
 import { downloadPipelineRunLogs } from './download-pipeline-run-logs/feature';
+import {
+  readDownloadedLog,
+  listDownloadedLogs,
+} from './read-downloaded-log/feature';
 import { defaultProject } from '../../utils/environment';
 
 /**
@@ -50,6 +59,8 @@ export const isPipelinesRequest: RequestIdentifier = (
     'get_pipeline_run',
     'get_pipeline_run_logs',
     'download_pipeline_run_logs',
+    'read_downloaded_log',
+    'list_downloaded_logs',
   ].includes(toolName);
 };
 
@@ -129,6 +140,20 @@ export const handlePipelinesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'read_downloaded_log': {
+      const args = ReadDownloadedLogSchema.parse(request.params.arguments);
+      const result = await readDownloadedLog(args);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'list_downloaded_logs': {
+      const args = ListDownloadedLogsSchema.parse(request.params.arguments);
+      const result = await listDownloadedLogs(args);
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };

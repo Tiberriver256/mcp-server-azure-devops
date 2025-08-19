@@ -76,4 +76,14 @@ export interface DownloadPipelineRunLogsOptions {
   outputDir?: string;
 }
 
+/**
+ * Options for reading a downloaded log file
+ */
+export interface ReadDownloadedLogOptions {
+  downloadPath: string;
+  fileName: string;
+  offset?: number;
+  limit?: number;
+}
+
 export { Pipeline, Run };

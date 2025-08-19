@@ -7,6 +7,10 @@ import { ListPipelineRunsSchema } from './list-pipeline-runs/schema';
 import { GetPipelineRunSchema } from './get-pipeline-run/schema';
 import { GetPipelineRunLogsSchema } from './get-pipeline-run-logs/schema';
 import { DownloadPipelineRunLogsSchema } from './download-pipeline-run-logs/schema';
+import {
+  ReadDownloadedLogSchema,
+  ListDownloadedLogsSchema,
+} from './read-downloaded-log/schema';
 
 /**
  * List of pipelines tools
@@ -46,5 +50,15 @@ export const pipelinesTools: ToolDefinition[] = [
     name: 'download_pipeline_run_logs',
     description: 'Download all logs from a pipeline run to local files',
     inputSchema: zodToJsonSchema(DownloadPipelineRunLogsSchema),
+  },
+  {
+    name: 'read_downloaded_log',
+    description: 'Read a previously downloaded log file from the MCP server',
+    inputSchema: zodToJsonSchema(ReadDownloadedLogSchema),
+  },
+  {
+    name: 'list_downloaded_logs',
+    description: 'List available files in a download directory',
+    inputSchema: zodToJsonSchema(ListDownloadedLogsSchema),
   },
 ];
