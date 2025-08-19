@@ -497,11 +497,85 @@ const logsNoUrls = await callTool('get_pipeline_run_logs', {
 
 - The `expand` parameter controls whether signed URLs are included for downloading log content
 - When `fetchContent` is true, the tool will attempt to download and include the actual log text
-- For large logs that exceed MCP token limits, use `download_pipeline_run_logs` instead
+- For large logs that exceed MCP token limits, use `get_pipeline_log_content` for direct access or `download_pipeline_run_logs` for bulk downloads
+
+## get_pipeline_log_content
+
+Get specific log content from a pipeline run with automatic download and caching. This is the recommended tool for accessing pipeline logs.
+
+### Parameters
+
+| Parameter          | Type    | Required | Description                                                            |
+| ------------------ | ------- | -------- | ---------------------------------------------------------------------- |
+| `projectId`        | string  | No       | The ID or name of the project (Default: from environment)              |
+| `pipelineId`       | number  | Yes      | The ID of the pipeline                                                 |
+| `runId`            | number  | Yes      | The ID of the run                                                      |
+| `logId`            | number  | Yes      | The ID of the specific log to retrieve                                 |
+| `offset`           | number  | No       | Line number to start reading from (0-based)                            |
+| `limit`            | number  | No       | Maximum number of lines to return (default: 1000, max: 5000)           |
+| `includeDownloadPath` | boolean | No    | Whether to include the local download path in the response             |
+
+### Response
+
+Returns the log content with metadata:
+
+```json
+{
+  "logId": 23,
+  "content": "2025-08-19T02:01:13.414Z Starting: Build\n...",
+  "lineCount": 100,
+  "totalLines": 7945,
+  "size": 1146865,
+  "offset": 0,
+  "limit": 100,
+  "hasMore": true,
+  "cached": false,
+  "downloadPath": "/tmp/azure-devops-logs/pipeline-83-run-92527"
+}
+```
+
+### Example Usage
+
+```javascript
+// Get specific log content directly (recommended approach)
+const logContent = await callTool('get_pipeline_log_content', {
+  pipelineId: 83,
+  runId: 92527,
+  logId: 23,
+  offset: 0,
+  limit: 1000,
+});
+
+// Read from the middle of a large log
+const middleContent = await callTool('get_pipeline_log_content', {
+  pipelineId: 83,
+  runId: 92527,
+  logId: 23,
+  offset: 3000,
+  limit: 500,
+});
+
+// Get the end of a log
+const endContent = await callTool('get_pipeline_log_content', {
+  pipelineId: 83,
+  runId: 92527,
+  logId: 23,
+  offset: 7900,
+  limit: 100,
+});
+```
+
+### Notes
+
+- **Automatic caching**: Downloads logs on first access, reuses for 15 minutes
+- **Smart pagination**: Handle massive logs with offset/limit parameters
+- **No path management**: Automatically manages download locations
+- **Efficient**: Subsequent reads from cache are instant
+- **Single-step access**: No need to manually download then read
 
 ## download_pipeline_run_logs
 
-Downloads all logs from a pipeline run to local files. Useful for working with large logs that exceed MCP token limits.
+Downloads all logs from a pipeline run to local files. Useful for bulk operations, archiving, or custom storage locations.
 
 ### Parameters
 
@@ -562,6 +636,118 @@ const download = await callTool('download_pipeline_run_logs', {
 - A `summary.json` file is created with metadata about all downloaded logs
 - Failed downloads are logged but don't stop the process from downloading other logs
 - Uses signed URLs for authentication when available
-- Large log files may take time to download and could impact performance
-- Log content is returned as an array of strings, with each string corresponding to a log in the same order as the logs array
-- If a specific log's content cannot be fetched (e.g., network error), an empty string is returned for that log
+- Best for archiving, compliance, or when you need persistent storage beyond the 15-minute cache
+
+## read_downloaded_log
+
+Read a previously downloaded log file from the MCP server. Supports pagination for large files.
+
+### Parameters
+
+| Parameter      | Type   | Required | Description                                                     |
+| -------------- | ------ | -------- | --------------------------------------------------------------- |
+| `downloadPath` | string | Yes      | The path returned by download_pipeline_run_logs                 |
+| `fileName`     | string | Yes      | The name of the file to read (e.g., "log-001.txt" or "summary.json") |
+| `offset`       | number | No       | Line number to start reading from (0-based)                     |
+| `limit`        | number | No       | Maximum number of lines to return (default: 1000, max: 5000)    |
+
+### Response
+
+Returns the file content with metadata:
+
+```json
+{
+  "fileName": "log-023.txt",
+  "content": "Log content here...",
+  "size": 1146865,
+  "lineCount": 100,
+  "offset": 0,
+  "limit": 100,
+  "totalLines": 7945,
+  "hasMore": true
+}
+```
+
+### Example Usage
+
+```javascript
+// Read a specific downloaded log
+const content = await callTool('read_downloaded_log', {
+  downloadPath: '/tmp/pipeline-83-run-92527-logs',
+  fileName: 'log-023.txt',
+  offset: 0,
+  limit: 1000,
+});
+
+// Read the summary file
+const summary = await callTool('read_downloaded_log', {
+  downloadPath: '/tmp/pipeline-83-run-92527-logs',
+  fileName: 'summary.json',
+});
+```
+
+## list_downloaded_logs
+
+List available files in a download directory.
+
+### Parameters
+
+| Parameter      | Type   | Required | Description                                     |
+| -------------- | ------ | -------- | ----------------------------------------------- |
+| `downloadPath` | string | Yes      | The path returned by download_pipeline_run_logs |
+
+### Response
+
+Returns a list of available files with metadata:
+
+```json
+{
+  "downloadPath": "/tmp/pipeline-83-run-92527-logs",
+  "files": [
+    {
+      "fileName": "log-001.txt",
+      "size": 7192,
+      "modifiedTime": "2025-08-19T11:28:35.121Z"
+    },
+    {
+      "fileName": "log-002.txt",
+      "size": 9577,
+      "modifiedTime": "2025-08-19T11:28:35.311Z"
+    }
+  ],
+  "summary": {
+    "pipelineId": 83,
+    "runId": 92527,
+    "projectId": "CCTV",
+    "downloadedAt": "2025-08-19T11:28:37.668Z",
+    "logsCount": 24,
+    "totalSize": 2316893
+  }
+}
+```
+
+### Example Usage
+
+```javascript
+// List all downloaded files
+const files = await callTool('list_downloaded_logs', {
+  downloadPath: '/tmp/pipeline-83-run-92527-logs',
+});
+
+// Check what's available before reading
+console.log(`Found ${files.files.length} log files`);
+console.log(`Total size: ${files.summary.totalSize} bytes`);
+```
+
+## Pipeline Log Tools Summary
+
+### Quick Access (Recommended for Most Users)
+- **`get_pipeline_log_content`** - Direct access to specific logs with automatic caching and pagination
+
+### Advanced Control (Power Users)
+- **`download_pipeline_run_logs`** - Bulk download all logs with custom storage locations
+- **`list_downloaded_logs`** - Explore previously downloaded files
+- **`read_downloaded_log`** - Read specific downloaded files with pagination
+
+### Legacy Tools
+- **`get_pipeline_run_logs`** - List log metadata or fetch content (limited by token size)
