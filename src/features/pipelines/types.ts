@@ -36,4 +36,34 @@ export interface TriggerPipelineOptions {
   stagesToSkip?: string[];
 }
 
+/**
+ * Options for listing pipeline runs
+ */
+export interface ListPipelineRunsOptions {
+  projectId: string;
+  pipelineId: number;
+  top?: number;
+}
+
+/**
+ * Options for getting a pipeline run
+ */
+export interface GetPipelineRunOptions {
+  projectId: string;
+  pipelineId: number;
+  runId: number;
+}
+
+/**
+ * Options for getting pipeline run logs
+ */
+export interface GetPipelineRunLogsOptions {
+  projectId: string;
+  pipelineId: number;
+  runId: number;
+  logId?: number;
+  fetchContent?: boolean;
+  expand?: 'none' | 'signedContent';
+}
+
 export { Pipeline, Run };

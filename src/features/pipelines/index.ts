@@ -5,6 +5,9 @@ export * from './types';
 export * from './list-pipelines';
 export * from './get-pipeline';
 export * from './trigger-pipeline';
+export * from './list-pipeline-runs';
+export * from './get-pipeline-run';
+export * from './get-pipeline-run-logs';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -18,9 +21,15 @@ import {
 import { ListPipelinesSchema } from './list-pipelines';
 import { GetPipelineSchema } from './get-pipeline';
 import { TriggerPipelineSchema } from './trigger-pipeline';
+import { ListPipelineRunsSchema } from './list-pipeline-runs/schema';
+import { GetPipelineRunSchema } from './get-pipeline-run/schema';
+import { GetPipelineRunLogsSchema } from './get-pipeline-run-logs/schema';
 import { listPipelines } from './list-pipelines';
 import { getPipeline } from './get-pipeline';
 import { triggerPipeline } from './trigger-pipeline';
+import { listPipelineRuns } from './list-pipeline-runs/feature';
+import { getPipelineRun } from './get-pipeline-run/feature';
+import { getPipelineRunLogs } from './get-pipeline-run-logs/feature';
 import { defaultProject } from '../../utils/environment';
 
 /**
@@ -30,9 +39,14 @@ export const isPipelinesRequest: RequestIdentifier = (
   request: CallToolRequest,
 ): boolean => {
   const toolName = request.params.name;
-  return ['list_pipelines', 'get_pipeline', 'trigger_pipeline'].includes(
-    toolName,
-  );
+  return [
+    'list_pipelines',
+    'get_pipeline',
+    'trigger_pipeline',
+    'list_pipeline_runs',
+    'get_pipeline_run',
+    'get_pipeline_run_logs',
+  ].includes(toolName);
 };
 
 /**
@@ -66,6 +80,36 @@ export const handlePipelinesRequest: RequestHandler = async (
     case 'trigger_pipeline': {
       const args = TriggerPipelineSchema.parse(request.params.arguments);
       const result = await triggerPipeline(connection, {
+        ...args,
+        projectId: args.projectId ?? defaultProject,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'list_pipeline_runs': {
+      const args = ListPipelineRunsSchema.parse(request.params.arguments);
+      const result = await listPipelineRuns(connection, {
+        ...args,
+        projectId: args.projectId ?? defaultProject,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'get_pipeline_run': {
+      const args = GetPipelineRunSchema.parse(request.params.arguments);
+      const result = await getPipelineRun(connection, {
+        ...args,
+        projectId: args.projectId ?? defaultProject,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'get_pipeline_run_logs': {
+      const args = GetPipelineRunLogsSchema.parse(request.params.arguments);
+      const result = await getPipelineRunLogs(connection, {
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
