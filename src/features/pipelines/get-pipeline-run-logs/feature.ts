@@ -46,13 +46,51 @@ export async function getPipelineRunLogs(
         expandEnum,
       );
 
+      // Log the structure for debugging
+      console.log('Log object structure:', {
+        id: log.id,
+        hasUrl: !!log.url,
+        urlLength: log.url?.length,
+        signedContent: log.signedContent
+          ? {
+              hasUrl: !!log.signedContent.url,
+              signatureExpires: log.signedContent.signatureExpires,
+            }
+          : undefined,
+      });
+
       // If we have a signed URL, fetch the content
       let content: string | undefined;
-      if (log.url) {
+      // Use signedContent.url if available (when expand=signedContent), otherwise fall back to log.url
+      const logUrl = log.signedContent?.url || log.url;
+
+      if (logUrl) {
         try {
-          const response = await fetch(log.url);
-          if (response.ok) {
+          console.log(
+            `Attempting to fetch log content from: ${logUrl.substring(0, 100)}...`,
+          );
+          const response = await fetch(logUrl);
+
+          if (!response.ok) {
+            console.warn(
+              `Failed to fetch log content - Status: ${response.status} ${response.statusText}`,
+            );
+
+            // Check if it's an HTML authentication page
+            const contentType = response.headers.get('content-type');
+            if (contentType?.includes('text/html')) {
+              console.warn(
+                'Received HTML response (likely authentication page) instead of log content',
+              );
+              console.warn(
+                'This may indicate the signed URL requires additional authentication or has expired',
+              );
+            }
+          } else {
             content = await response.text();
+            console.log(
+              `Successfully fetched log content (${content.length} characters)`,
+            );
           }
         } catch (fetchError) {
           // Log fetch error but don't fail the operation
@@ -76,12 +114,39 @@ export async function getPipelineRunLogs(
       // Optionally fetch content for all logs
       const contents: string[] = [];
       if (options.fetchContent && logs.logs) {
+        console.log(
+          `Attempting to fetch content for ${logs.logs.length} logs...`,
+        );
+
         for (const log of logs.logs) {
-          if (log.url) {
+          // Use signedContent.url if available (when expand=signedContent), otherwise fall back to log.url
+          const logUrl = log.signedContent?.url || log.url;
+
+          if (logUrl) {
             try {
-              const response = await fetch(log.url);
-              if (response.ok) {
+              console.log(
+                `Fetching log ${log.id} from: ${logUrl.substring(0, 100)}...`,
+              );
+              const response = await fetch(logUrl);
+
+              if (!response.ok) {
+                console.warn(
+                  `Failed to fetch log ${log.id} - Status: ${response.status} ${response.statusText}`,
+                );
+
+                // Check if it's an HTML authentication page
+                const contentType = response.headers.get('content-type');
+                if (contentType?.includes('text/html')) {
+                  console.warn(
+                    `Log ${log.id}: Received HTML (likely authentication page) instead of log content`,
+                  );
+                }
+                contents.push(''); // Add empty string to maintain index alignment
+              } else {
                 const content = await response.text();
+                console.log(
+                  `Successfully fetched log ${log.id} (${content.length} characters)`,
+                );
                 contents.push(content);
               }
             } catch (fetchError) {
@@ -93,6 +158,7 @@ export async function getPipelineRunLogs(
               contents.push(''); // Add empty string to maintain index alignment
             }
           } else {
+            console.warn(`Log ${log.id} has no URL available`);
             contents.push(''); // No URL available
           }
         }
