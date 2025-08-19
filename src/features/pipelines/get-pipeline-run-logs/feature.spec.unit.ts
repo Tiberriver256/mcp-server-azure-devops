@@ -28,8 +28,7 @@ describe('getPipelineRunLogs', () => {
 
   it('should successfully list all logs for a run', async () => {
     const mockLogs = {
-      count: 3,
-      value: [
+      logs: [
         {
           id: 1,
           createdOn: '2024-01-01T00:00:00Z',
@@ -71,8 +70,7 @@ describe('getPipelineRunLogs', () => {
 
   it('should fetch log content when requested', async () => {
     const mockLogs = {
-      count: 2,
-      value: [
+      logs: [
         { id: 1, url: 'https://example.com/log1' },
         { id: 2, url: 'https://example.com/log2' },
       ],
@@ -131,14 +129,13 @@ describe('getPipelineRunLogs', () => {
       5,
       1, // GetLogExpandOptions.SignedContent
     );
-    expect(result.logs).toEqual({ count: 1, value: [mockLog] });
+    expect(result.logs).toEqual({ logs: [mockLog] });
     expect(result.content).toEqual(['Specific log content']);
   });
 
   it('should handle logs without URLs gracefully', async () => {
     const mockLogs = {
-      count: 2,
-      value: [
+      logs: [
         { id: 1, url: 'https://example.com/log1' },
         { id: 2 }, // No URL
       ],
@@ -190,8 +187,7 @@ describe('getPipelineRunLogs', () => {
 
   it('should handle expand option of none', async () => {
     const mockLogs = {
-      count: 1,
-      value: [{ id: 1, lineCount: 100 }], // No URL when expand is none
+      logs: [{ id: 1, lineCount: 100 }], // No URL when expand is none
     };
 
     mockPipelinesApi.listLogs.mockResolvedValue(mockLogs);
@@ -214,8 +210,7 @@ describe('getPipelineRunLogs', () => {
 
   it('should handle fetch errors gracefully', async () => {
     const mockLogs = {
-      count: 2,
-      value: [
+      logs: [
         { id: 1, url: 'https://example.com/log1' },
         { id: 2, url: 'https://example.com/log2' },
       ],

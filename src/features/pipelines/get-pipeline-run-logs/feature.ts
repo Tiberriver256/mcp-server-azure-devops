@@ -61,7 +61,7 @@ export async function getPipelineRunLogs(
       }
 
       return {
-        logs: { count: 1, value: [log] },
+        logs: { logs: [log] },
         content: content ? [content] : undefined,
       };
     } else {
@@ -75,8 +75,8 @@ export async function getPipelineRunLogs(
 
       // Optionally fetch content for all logs
       const contents: string[] = [];
-      if (options.fetchContent && logs.value) {
-        for (const log of logs.value) {
+      if (options.fetchContent && logs.logs) {
+        for (const log of logs.logs) {
           if (log.url) {
             try {
               const response = await fetch(log.url);
