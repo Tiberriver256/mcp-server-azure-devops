@@ -50,7 +50,7 @@ export async function searchPipelineLogs(
   const cacheKey = `${projectId}:${options.pipelineId}:${options.runId}`;
 
   // Check if we have a recent cached download
-  let downloadPath: string;
+  let downloadPath: string = '';
   let cached = false;
   const cachedEntry = downloadCache.get(cacheKey);
 
