@@ -99,4 +99,20 @@ export interface GetPipelineLogContentOptions {
   includeDownloadPath?: boolean;
 }
 
+/**
+ * Options for searching pipeline logs
+ */
+export interface SearchPipelineLogsOptions {
+  projectId?: string;
+  pipelineId: number;
+  runId: number;
+  pattern: string;
+  logIds?: number[];
+  ignoreCase?: boolean;
+  invertMatch?: boolean;
+  beforeContext?: number;
+  afterContext?: number;
+  maxMatches?: number;
+}
+
 export { Pipeline, Run };

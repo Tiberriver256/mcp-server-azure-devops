@@ -11,6 +11,7 @@ export * from './get-pipeline-run-logs';
 export * from './download-pipeline-run-logs';
 export * from './read-downloaded-log';
 export * from './get-pipeline-log-content';
+export * from './search-pipeline-logs';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -45,6 +46,8 @@ import {
 } from './read-downloaded-log/feature';
 import { GetPipelineLogContentSchema } from './get-pipeline-log-content/schema';
 import { getPipelineLogContent } from './get-pipeline-log-content/feature';
+import { SearchPipelineLogsSchema } from './search-pipeline-logs/schema';
+import { searchPipelineLogs } from './search-pipeline-logs/feature';
 import { defaultProject } from '../../utils/environment';
 
 /**
@@ -62,6 +65,7 @@ export const isPipelinesRequest: RequestIdentifier = (
     'get_pipeline_run',
     'get_pipeline_run_logs',
     'get_pipeline_log_content',
+    'search_pipeline_logs',
     'download_pipeline_run_logs',
     'read_downloaded_log',
     'list_downloaded_logs',
@@ -141,6 +145,17 @@ export const handlePipelinesRequest: RequestHandler = async (
       const result = await getPipelineLogContent(connection, {
         ...args,
         projectId: args.projectId ?? defaultProject,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'search_pipeline_logs': {
+      const args = SearchPipelineLogsSchema.parse(request.params.arguments);
+      const result = await searchPipelineLogs(connection, {
+        ...args,
+        projectId: args.projectId ?? defaultProject,
+        maxMatches: args.maxMatches || 100,
       });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
