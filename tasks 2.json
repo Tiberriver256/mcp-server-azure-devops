@@ -1,0 +1,172 @@
+{
+  "tasks": [
+    {
+      "id": "42e6533a-f407-4286-be04-4d76fdfd8734",
+      "name": "Create list-wiki-pages directory structure and schema",
+      "description": "Create the folder structure src/features/wikis/list-wiki-pages/ with schema.ts and index.ts files. Implement Zod schema validation for ListWikiPagesSchema with organizationId, projectId, wikiId, path, and recursionLevel parameters following existing wiki patterns.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-05-26T16:18:03.641Z",
+      "updatedAt": "2025-05-26T16:18:03.641Z",
+      "relatedFiles": [
+        {
+          "path": "src/features/wikis/list-wiki-pages/schema.ts",
+          "type": "CREATE",
+          "description": "Zod schema for list wiki pages parameters"
+        },
+        {
+          "path": "src/features/wikis/list-wiki-pages/index.ts",
+          "type": "CREATE",
+          "description": "Export file for list wiki pages feature"
+        },
+        {
+          "path": "src/features/wikis/get-wikis/schema.ts",
+          "type": "REFERENCE",
+          "description": "Reference pattern for schema structure"
+        },
+        {
+          "path": "src/utils/environment.ts",
+          "type": "REFERENCE",
+          "description": "Default organization and project utilities"
+        }
+      ],
+      "implementationGuide": "1. Create directory: src/features/wikis/list-wiki-pages/\n2. Create schema.ts with ListWikiPagesSchema using z.object():\n   - organizationId: z.string().optional().describe()\n   - projectId: z.string().optional().describe()\n   - wikiId: z.string().describe()\n   - path: z.string().optional().describe()\n   - recursionLevel: z.number().int().min(1).max(50).optional().describe()\n3. Import defaultOrg, defaultProject from utils/environment\n4. Create index.ts with exports for schema and future feature function\n5. Follow exact patterns from src/features/wikis/get-wikis/schema.ts",
+      "verificationCriteria": "Schema compiles without errors, exports are properly defined, follows existing naming conventions, includes proper TypeScript types and Zod validation",
+      "analysisResult": "Implement list_wiki_pages tool for Azure DevOps MCP server following GitHub issue #184 requirements. The implementation extends existing WikiClient with Azure DevOps Pages Batch API support, includes comprehensive pagination handling, and maintains consistency with established codebase patterns for schema validation, error handling, and testing."
+    },
+    {
+      "id": "6b895c15-b337-444b-908a-e50a5ae07da3",
+      "name": "Extend WikiClient with listWikiPages method",
+      "description": "Add listWikiPages method to WikiClient class in src/clients/azure-devops.ts. Implement Azure DevOps Pages Batch API call with POST request, pagination loop using continuationToken, and proper error handling.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-05-26T16:18:03.641Z",
+      "updatedAt": "2025-05-26T21:57:06.473Z",
+      "relatedFiles": [
+        {
+          "path": "src/clients/azure-devops.ts",
+          "type": "TO_MODIFY",
+          "description": "Add listWikiPages method to WikiClient class",
+          "lineStart": 45,
+          "lineEnd": 532
+        }
+      ],
+      "implementationGuide": "1. Add listWikiPages method to WikiClient class\n2. Method signature: async listWikiPages(projectId: string, wikiId: string, options?: {path?: string, recursionLevel?: number})\n3. Implement POST request to: {baseUrl}/{project}/_apis/wiki/wikis/{wikiId}/pagesbatch?api-version=7.1\n4. Request body: {top: 1000, continuationToken?, path?, recursionLevel?}\n5. Pagination loop: while continuationToken exists, make subsequent requests\n6. Concatenate all results from response.data.value arrays\n7. Error handling: 404 -> AzureDevOpsResourceNotFoundError, 401/403 -> AzureDevOpsPermissionError\n8. Return WikiPageSummary[] with {id, path, url, order} fields\n9. Sort results by order then path",
+      "verificationCriteria": "Method compiles without errors, implements proper pagination loop, handles all error cases, returns correctly typed results, follows existing WikiClient method patterns",
+      "analysisResult": "Implement list_wiki_pages tool for Azure DevOps MCP server following GitHub issue #184 requirements. The implementation extends existing WikiClient with Azure DevOps Pages Batch API support, includes comprehensive pagination handling, and maintains consistency with established codebase patterns for schema validation, error handling, and testing.",
+      "summary": "Successfully implemented the listWikiPages method in WikiClient class. The implementation includes: 1) Added WikiPageSummary interface with id, path, url, and order fields as required. 2) Implemented POST request to Azure DevOps Pages Batch API with proper pagination using continuationToken. 3) Added comprehensive error handling for 404 (AzureDevOpsResourceNotFoundError) and 401/403 (AzureDevOpsPermissionError) status codes. 4) Implemented sorting by order then path as specified. 5) Method signature matches requirements with optional path and recursionLevel parameters. 6) Code compiles without errors and follows existing WikiClient patterns. 7) All TypeScript types are properly defined and exported.",
+      "completedAt": "2025-05-26T21:57:06.472Z"
+    },
+    {
+      "id": "6f042d63-fa61-42c9-b7b0-820495aec9ba",
+      "name": "Implement list-wiki-pages feature function",
+      "description": "Create feature.ts with listWikiPages function that uses the WikiClient method. Define WikiPageSummary interface and implement the main feature logic with proper error handling and type safety.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "42e6533a-f407-4286-be04-4d76fdfd8734"
+        },
+        {
+          "taskId": "6b895c15-b337-444b-908a-e50a5ae07da3"
+        }
+      ],
+      "createdAt": "2025-05-26T16:18:03.641Z",
+      "updatedAt": "2025-05-26T22:44:06.001Z",
+      "relatedFiles": [
+        {
+          "path": "src/features/wikis/list-wiki-pages/feature.ts",
+          "type": "CREATE",
+          "description": "Main feature implementation"
+        }
+      ],
+      "implementationGuide": "1. Create src/features/wikis/list-wiki-pages/feature.ts\n2. Define WikiPageSummary interface: {id: number, path: string, url: string, order?: number}\n3. Define ListWikiPagesOptions interface matching schema\n4. Implement listWikiPages function:\n   - Import WikiClient from clients/azure-devops\n   - Use organizationId || defaultOrg, projectId || defaultProject\n   - Call wikiClient.listWikiPages() with proper parameters\n   - Handle errors with try/catch and proper error type conversion\n   - Return WikiPageSummary[] array\n5. Follow patterns from src/features/wikis/get-wiki-page/feature.ts",
+      "verificationCriteria": "Feature function compiles and exports correctly, proper error handling, type safety maintained, follows existing feature patterns, integrates properly with WikiClient",
+      "analysisResult": "Implement list_wiki_pages tool for Azure DevOps MCP server following GitHub issue #184 requirements. The implementation extends existing WikiClient with Azure DevOps Pages Batch API support, includes comprehensive pagination handling, and maintains consistency with established codebase patterns for schema validation, error handling, and testing.",
+      "summary": "Successfully implemented the list-wiki-pages feature function with all required components: Created src/features/wikis/list-wiki-pages/feature.ts with WikiPageSummary interface {id: number, path: string, url: string, order?: number}, imported ListWikiPagesOptions from schema, implemented listWikiPages function using WikiClient.listWikiPages() method with proper error handling, default organization/project handling, and type conversion from client's string id to number id. The implementation follows established patterns from get-wiki-page feature, compiles without TypeScript errors, and integrates properly with the existing WikiClient.",
+      "completedAt": "2025-05-26T22:44:06.000Z"
+    },
+    {
+      "id": "29f527f5-a069-4c2d-900b-eb3c7ac478d2",
+      "name": "Add tool definition and update wikis module exports",
+      "description": "Add list_wiki_pages tool definition to tool-definitions.ts and update the main wikis index.ts to include the new feature exports and request handler case.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "42e6533a-f407-4286-be04-4d76fdfd8734"
+        },
+        {
+          "taskId": "6f042d63-fa61-42c9-b7b0-820495aec9ba"
+        }
+      ],
+      "createdAt": "2025-05-26T16:18:03.641Z",
+      "updatedAt": "2025-05-26T22:52:55.297Z",
+      "relatedFiles": [
+        {
+          "path": "src/features/wikis/tool-definitions.ts",
+          "type": "TO_MODIFY",
+          "description": "Add list_wiki_pages tool definition"
+        },
+        {
+          "path": "src/features/wikis/index.ts",
+          "type": "TO_MODIFY",
+          "description": "Add exports and request handler case"
+        }
+      ],
+      "implementationGuide": "1. Update src/features/wikis/tool-definitions.ts:\n   - Import ListWikiPagesSchema\n   - Add tool definition: {name: 'list_wiki_pages', description: 'List pages within an Azure DevOps wiki', inputSchema: zodToJsonSchema(ListWikiPagesSchema)}\n2. Update src/features/wikis/index.ts:\n   - Add exports: export {listWikiPages, ListWikiPagesSchema} from './list-wiki-pages'\n   - Add 'list_wiki_pages' to isWikisRequest array\n   - Add case in handleWikisRequest switch statement\n   - Parse args with ListWikiPagesSchema.parse()\n   - Call listWikiPages with proper parameters\n   - Return JSON.stringify(result, null, 2) in content array",
+      "verificationCriteria": "Tool definition is properly added, exports are correct, request handler case works, follows existing patterns for tool registration and handling",
+      "analysisResult": "Implement list_wiki_pages tool for Azure DevOps MCP server following GitHub issue #184 requirements. The implementation extends existing WikiClient with Azure DevOps Pages Batch API support, includes comprehensive pagination handling, and maintains consistency with established codebase patterns for schema validation, error handling, and testing.",
+      "summary": "Successfully implemented the list_wiki_pages tool definition and updated wikis module exports. Added ListWikiPagesSchema import to tool-definitions.ts, created the tool definition with proper name, description, and schema. Updated main wikis index.ts to export listWikiPages and ListWikiPagesSchema, added 'list_wiki_pages' to the request identifier array, and implemented the request handler case with proper argument parsing and function call. Also fixed the missing export in list-wiki-pages/index.ts. All changes follow existing patterns and the build compiles successfully without errors.",
+      "completedAt": "2025-05-26T22:52:55.296Z"
+    },
+    {
+      "id": "457c0d1b-3635-49d7-916e-0e9aeb4f370f",
+      "name": "Implement comprehensive integration tests",
+      "description": "Create feature.spec.int.ts with comprehensive integration tests that test against real Azure DevOps API. This is the primary testing approach, covering happy path, error scenarios, and edge cases with real API responses.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "6f042d63-fa61-42c9-b7b0-820495aec9ba"
+        }
+      ],
+      "createdAt": "2025-05-26T16:18:03.641Z",
+      "updatedAt": "2025-05-26T23:24:09.973Z",
+      "relatedFiles": [
+        {
+          "path": "src/features/wikis/list-wiki-pages/feature.spec.int.ts",
+          "type": "CREATE",
+          "description": "Integration tests for list wiki pages feature"
+        }
+      ],
+      "implementationGuide": "1. Create src/features/wikis/list-wiki-pages/feature.spec.int.ts\n2. Add environment guard: process.env.AZDO_INT_TESTS === 'true'\n3. Comprehensive test cases with real Azure DevOps API:\n   - List pages in real test wiki (happy path)\n   - Handle invalid wikiId (expect 404 error)\n   - Test path filtering with real wiki structure\n   - Test recursionLevel parameter with various values\n   - Test pagination with large wiki structures\n   - Verify returned data structure matches WikiPageSummary interface\n   - Test edge cases like empty wikis, deeply nested paths\n   - Error scenarios: permission errors, network issues\n4. Follow patterns from src/features/wikis/get-wikis/feature.spec.int.ts\n5. Use real Azure DevOps connection and test data\n6. Include proper cleanup and comprehensive error handling",
+      "verificationCriteria": "Integration tests provide comprehensive coverage with real Azure DevOps API, proper environment guards, tests validate real data structure and all major scenarios, follows existing integration test patterns",
+      "analysisResult": "Implement list_wiki_pages tool for Azure DevOps MCP server following GitHub issue #184 requirements. The implementation extends existing WikiClient with Azure DevOps Pages Batch API support, includes comprehensive pagination handling, and maintains consistency with established codebase patterns for schema validation, error handling, and testing.",
+      "summary": "Successfully implemented comprehensive integration tests for list-wiki-pages feature. Created src/features/wikis/list-wiki-pages/feature.spec.int.ts with complete test coverage including: environment guard (AZDO_INT_TESTS === 'true'), happy path tests with real Azure DevOps API, error scenarios for invalid wikiId/projectId/organizationId, edge cases for empty wikis and deeply nested paths, data structure validation matching WikiPageSummary interface, performance tests for large wiki structures, path filtering tests, recursionLevel parameter testing with boundary values (1-50), and proper cleanup with comprehensive error handling. All tests follow existing integration test patterns from get-wikis and get-wiki-page features.",
+      "completedAt": "2025-05-26T23:24:09.973Z"
+    },
+    {
+      "id": "68804833-8bdd-4dda-ab6b-dc22f540a0e3",
+      "name": "Implement unit tests for coverage gaps",
+      "description": "Create feature.spec.unit.ts with unit tests to fill coverage gaps not covered by integration tests. Use mocks only when absolutely necessary for scenarios that cannot be tested with real Azure DevOps API.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "457c0d1b-3635-49d7-916e-0e9aeb4f370f"
+        }
+      ],
+      "createdAt": "2025-05-26T16:18:03.641Z",
+      "updatedAt": "2025-05-26T23:31:32.356Z",
+      "relatedFiles": [
+        {
+          "path": "src/features/wikis/list-wiki-pages/feature.spec.unit.ts",
+          "type": "CREATE",
+          "description": "Unit tests for list wiki pages feature"
+        }
+      ],
+      "implementationGuide": "1. Create src/features/wikis/list-wiki-pages/feature.spec.unit.ts\n2. Mock WikiClient and its listWikiPages method only for scenarios not covered by integration tests\n3. Focus on edge cases and error scenarios that are difficult to reproduce with real API:\n   - Network failures and timeouts\n   - Malformed API responses\n   - Edge cases in pagination logic\n   - Input validation edge cases\n4. Follow patterns from src/features/wikis/get-wikis/feature.spec.unit.ts\n5. Use jest.mock() for WikiClient only when necessary\n6. Complement integration tests rather than duplicate coverage",
+      "verificationCriteria": "Unit tests fill gaps in integration test coverage, minimal use of mocks, tests focus on scenarios that cannot be tested with real API, follows existing test patterns",
+      "analysisResult": "Implement list_wiki_pages tool for Azure DevOps MCP server following GitHub issue #184 requirements. The implementation extends existing WikiClient with Azure DevOps Pages Batch API support, includes comprehensive pagination handling, and maintains consistency with established codebase patterns for schema validation, error handling, and testing.",
+      "summary": "Successfully implemented comprehensive unit tests for list-wiki-pages feature. Created src/features/wikis/list-wiki-pages/feature.spec.unit.ts with 394 lines of focused unit tests that complement integration tests. Tests cover scenarios not easily testable with real API: network failures/timeouts, malformed API responses, edge cases in pagination logic, input validation edge cases, large datasets (10,000 pages), special characters in paths, boundary recursionLevel values, client creation failures, and data transformation scenarios. Used minimal mocking (only WikiClient when necessary) following patterns from existing unit tests. All tests focus on scenarios that cannot be reliably tested with real Azure DevOps API while avoiding duplication of integration test coverage.",
+      "completedAt": "2025-05-26T23:31:32.355Z"
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 # ℹ️ DISCUSSION: [Microsoft launched an official ADO MCP Server! 🎉🎉🎉](https://github.com/Tiberriver256/mcp-server-azure-devops/discussions/237)
 
 # Azure DevOps MCP Server
-
 [![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/Tiberriver256/mcp-server-azure-devops)](https://archestra.ai/mcp-catalog/tiberriver256__mcp-server-azure-devops)
+
 A Model Context Protocol (MCP) server implementation for Azure DevOps, allowing AI assistants to interact with Azure DevOps APIs through a standardized protocol.
 
 ## Overview
