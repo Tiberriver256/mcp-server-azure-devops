@@ -3,6 +3,17 @@ import { ToolDefinition } from '../../shared/types/tool-definition';
 import { ListPipelinesSchema } from './list-pipelines/schema';
 import { GetPipelineSchema } from './get-pipeline/schema';
 import { TriggerPipelineSchema } from './trigger-pipeline/schema';
+import { ListPipelineRunsSchema } from './list-pipeline-runs/schema';
+import { GetPipelineRunSchema } from './get-pipeline-run/schema';
+import { GetPipelineRunLogsSchema } from './get-pipeline-run-logs/schema';
+import { DownloadPipelineRunLogsSchema } from './download-pipeline-run-logs/schema';
+import {
+  ReadDownloadedLogSchema,
+  ListDownloadedLogsSchema,
+} from './read-downloaded-log/schema';
+import { GetPipelineLogContentSchema } from './get-pipeline-log-content/schema';
+import { SearchPipelineLogsSchema } from './search-pipeline-logs/schema';
+import { CancelPipelineRunSchema } from './cancel-pipeline-run/schema';
 
 /**
  * List of pipelines tools
@@ -22,5 +33,52 @@ export const pipelinesTools: ToolDefinition[] = [
     name: 'trigger_pipeline',
     description: 'Trigger a pipeline run',
     inputSchema: zodToJsonSchema(TriggerPipelineSchema),
+  },
+  {
+    name: 'list_pipeline_runs',
+    description: 'List recent runs for a specific pipeline',
+    inputSchema: zodToJsonSchema(ListPipelineRunsSchema),
+  },
+  {
+    name: 'get_pipeline_run',
+    description: 'Get details of a specific pipeline run',
+    inputSchema: zodToJsonSchema(GetPipelineRunSchema),
+  },
+  {
+    name: 'get_pipeline_run_logs',
+    description: 'Get logs from a specific pipeline run',
+    inputSchema: zodToJsonSchema(GetPipelineRunLogsSchema),
+  },
+  {
+    name: 'get_pipeline_log_content',
+    description:
+      'Get specific log content from a pipeline run (auto-downloads and caches)',
+    inputSchema: zodToJsonSchema(GetPipelineLogContentSchema),
+  },
+  {
+    name: 'search_pipeline_logs',
+    description:
+      'Search for text patterns across pipeline logs (grep-like functionality)',
+    inputSchema: zodToJsonSchema(SearchPipelineLogsSchema),
+  },
+  {
+    name: 'cancel_pipeline_run',
+    description: 'Cancel a running pipeline',
+    inputSchema: zodToJsonSchema(CancelPipelineRunSchema),
+  },
+  {
+    name: 'download_pipeline_run_logs',
+    description: 'Download all logs from a pipeline run to local files',
+    inputSchema: zodToJsonSchema(DownloadPipelineRunLogsSchema),
+  },
+  {
+    name: 'read_downloaded_log',
+    description: 'Read a previously downloaded log file from the MCP server',
+    inputSchema: zodToJsonSchema(ReadDownloadedLogSchema),
+  },
+  {
+    name: 'list_downloaded_logs',
+    description: 'List available files in a download directory',
+    inputSchema: zodToJsonSchema(ListDownloadedLogsSchema),
   },
 ];

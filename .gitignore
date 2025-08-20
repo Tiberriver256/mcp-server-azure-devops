@@ -26,7 +26,7 @@ dist/
 Thumbs.db
 
 # Test coverage
-coverage/
+/coverage/
 
 # Logs
 logs/
