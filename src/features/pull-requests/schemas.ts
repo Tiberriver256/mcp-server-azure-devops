@@ -37,7 +37,7 @@ export const CreatePullRequestSchema = z.object({
     .array(z.number())
     .optional()
     .describe('List of work item IDs to link to the pull request'),
-  additionalProperties: z
+  customProperties: z
     .record(z.string(), z.any())
     .optional()
     .describe('Additional properties to set on the pull request'),
@@ -214,7 +214,7 @@ export const UpdatePullRequestSchema = z.object({
     .array(z.string())
     .optional()
     .describe('List of reviewer email addresses or IDs to remove'),
-  additionalProperties: z
+  customProperties: z
     .record(z.string(), z.any())
     .optional()
     .describe('Additional properties to update on the pull request'),

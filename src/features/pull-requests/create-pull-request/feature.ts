@@ -46,7 +46,7 @@ export async function createPullRequest(
         id: reviewer,
         isRequired: true,
       })),
-      ...options.additionalProperties,
+      ...options.customProperties,
     };
 
     // Create the pull request

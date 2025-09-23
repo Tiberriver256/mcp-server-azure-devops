@@ -164,7 +164,7 @@ describe('updatePullRequest', () => {
     });
   });
 
-  it('should include additionalProperties in the update', async () => {
+  it('should include customProperties in the update', async () => {
     mockGetPullRequestById.mockResolvedValueOnce({
       repository: { id: 'repo1' },
     });
@@ -178,7 +178,7 @@ describe('updatePullRequest', () => {
       projectId: 'project-1',
       repositoryId: 'repo1',
       pullRequestId: 123,
-      additionalProperties: {
+      customProperties: {
         customProperty: 'custom value',
       },
     });

@@ -31,7 +31,7 @@ export const updatePullRequest = async (
     removeWorkItemIds,
     addReviewers,
     removeReviewers,
-    additionalProperties,
+    customProperties,
   } = options;
 
   try {
@@ -89,8 +89,8 @@ export const updatePullRequest = async (
     }
 
     // Add any additional properties that were specified
-    if (additionalProperties) {
-      Object.assign(updateObject, additionalProperties);
+    if (customProperties) {
+      Object.assign(updateObject, customProperties);
     }
 
     // Update the pull request

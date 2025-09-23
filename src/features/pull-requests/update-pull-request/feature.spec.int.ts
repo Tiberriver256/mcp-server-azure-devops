@@ -426,7 +426,7 @@ describe('updatePullRequest integration', () => {
       projectId: projectName,
       repositoryId: repositoryName,
       pullRequestId,
-      additionalProperties: {
+      customProperties: {
         [customProperty]: customValue,
       },
     });
