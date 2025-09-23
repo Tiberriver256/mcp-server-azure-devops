@@ -28,6 +28,9 @@ Always reference these instructions first and fallback to search or bash command
   - `AZURE_DEVOPS_DEFAULT_PROJECT=your-project-name` (optional)
 - Use the `setup_env.sh` script for interactive environment setup with Azure CLI.
 - Application will fail gracefully with clear error messages if credentials are missing.
+- **For detailed setup**: See `docs/authentication.md` for comprehensive authentication guides
+- **For ready-to-use configurations**: Copy from `docs/examples/` directory (PAT, Azure Identity, Azure CLI)
+- **For CI/CD environments**: Reference `docs/ci-setup.md` for secrets configuration
 
 ## Validation
 - ALWAYS run through complete validation steps after making changes:
@@ -80,6 +83,8 @@ Always reference these instructions first and fallback to search or bash command
 - E2E tests: Test complete MCP server functionality
 - Tests are co-located with feature code
 - Use `@/shared/test/test-helpers` for common test utilities
+- **For testing philosophy and patterns**: See `docs/testing/README.md` (Testing Trophy approach)
+- **For test setup and configuration**: See `docs/testing/setup.md` (environment variables, import patterns)
 
 ## Dependencies and Tools
 - **Core**: `@modelcontextprotocol/sdk` for MCP protocol
@@ -104,7 +109,33 @@ Always reference these instructions first and fallback to search or bash command
 - Azure DevOps client: `src/clients/azure-devops.ts`
 - Test setup: `tests/setup.ts`
 - Configuration: `tsconfig.json`, `.eslintrc.json`, `package.json`
-- Documentation: `docs/` (authentication, testing, tools)
+
+## Documentation References
+The repository has extensive documentation in `docs/` that you should reference for specific scenarios:
+
+### Authentication & Configuration
+- **`docs/authentication.md`** - Complete authentication guide with all methods (PAT, Azure Identity, Azure CLI)
+- **`docs/azure-identity-authentication.md`** - Detailed Azure Identity setup and troubleshooting
+- **`docs/ci-setup.md`** - CI/CD environment setup and secrets configuration
+- **`docs/examples/`** - Ready-to-use environment configuration examples for each auth method
+
+### Testing & Development
+- **`docs/testing/README.md`** - Testing Trophy approach, test types, and testing philosophy
+- **`docs/testing/setup.md`** - Test environment setup, import patterns, and VSCode integration
+- **`CONTRIBUTING.md`** - Complete development practices, commit guidelines, and workflow
+
+### Tool & API Documentation  
+- **`docs/tools/README.md`** - Complete tool catalog with examples and response formats
+- **`docs/tools/[feature].md`** - Detailed documentation for each feature area (work-items, projects, etc.)
+- **`docs/tools/resources.md`** - Resource URI patterns for accessing repository content
+
+### When to Reference Documentation
+- **Starting new feature development**: Review `CONTRIBUTING.md` and `docs/testing/README.md`
+- **Authentication issues**: Always check `docs/authentication.md` first
+- **Understanding available tools**: Browse `docs/tools/README.md` for tool catalog
+- **CI/CD problems**: Reference `docs/ci-setup.md` for environment configuration
+- **Testing patterns**: Use `docs/testing/setup.md` for proper test structure
+- **Environment setup**: Copy configurations from `docs/examples/` directory
 
 ## Troubleshooting Common Issues
 - **Build fails**: Check TypeScript errors, ensure all imports are valid
@@ -112,7 +143,10 @@ Always reference these instructions first and fallback to search or bash command
 - **Lint errors**: Run `npm run lint:fix` to auto-fix, then address remaining issues
 - **Server won't start**: Verify `.env` file configuration, check error messages
 - **Import errors**: Use `@/` path aliases, check `tsconfig.json` paths configuration
-- **Authentication issues**: See `docs/authentication.md` for detailed setup guides
+- **Authentication issues**: See `docs/authentication.md` for comprehensive setup guides and troubleshooting
+- **CI/CD failures**: Reference `docs/ci-setup.md` for proper secrets configuration
+- **Test setup problems**: Check `docs/testing/setup.md` for environment variables and patterns
+- **Unknown tool capabilities**: Browse `docs/tools/README.md` for complete tool documentation
 
 ## Development Workflow Summary
 1. Create or checkout feature branch from `main`
