@@ -17,6 +17,8 @@ export interface PullRequestChangesResponse {
   changes: GitPullRequestIterationChanges;
   evaluations: PolicyEvaluationRecord[];
   files: Array<{ path: string; patch: string }>;
+  sourceRefName?: string;
+  targetRefName?: string;
 }
 
 /**
@@ -28,11 +30,18 @@ export async function getPullRequestChanges(
 ): Promise<PullRequestChangesResponse> {
   try {
     const gitApi = await connection.getGitApi();
-    const iterations = await gitApi.getPullRequestIterations(
-      options.repositoryId,
-      options.pullRequestId,
-      options.projectId,
-    );
+    const [pullRequest, iterations] = await Promise.all([
+      gitApi.getPullRequest(
+        options.repositoryId,
+        options.pullRequestId,
+        options.projectId,
+      ),
+      gitApi.getPullRequestIterations(
+        options.repositoryId,
+        options.pullRequestId,
+        options.projectId,
+      ),
+    ]);
     if (!iterations || iterations.length === 0) {
       throw new AzureDevOpsError('No iterations found for pull request');
     }
@@ -86,7 +95,13 @@ export async function getPullRequestChanges(
       }),
     );
 
-    return { changes, evaluations, files };
+    return {
+      changes,
+      evaluations,
+      files,
+      sourceRefName: pullRequest?.sourceRefName,
+      targetRefName: pullRequest?.targetRefName,
+    };
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
       throw error;
