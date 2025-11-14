@@ -82,6 +82,10 @@ export const ListPullRequestsSchema = z.object({
     .number()
     .optional()
     .describe('Number of pull requests to skip for pagination'),
+  pullRequestId: z
+    .number()
+    .optional()
+    .describe('If provided, return only the matching pull request ID'),
 });
 
 /**
@@ -273,4 +277,6 @@ export const GetPullRequestChangesResponseSchema = z.object({
   changes: z.any(),
   evaluations: z.array(z.any()),
   files: z.array(PullRequestFileChangeSchema),
+  sourceRefName: z.string().optional(),
+  targetRefName: z.string().optional(),
 });

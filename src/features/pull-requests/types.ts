@@ -65,6 +65,7 @@ export interface ListPullRequestsOptions {
   targetRefName?: string;
   top?: number;
   skip?: number;
+  pullRequestId?: number;
 }
 
 /**

@@ -135,6 +135,41 @@ describe('Pull Requests Request Handlers', () => {
         'test-repo',
         expect.objectContaining({
           status: 'active',
+          pullRequestId: undefined,
+        }),
+      );
+    });
+
+    it('should pass pullRequestId to list_pull_requests request', async () => {
+      const mockPullRequests = {
+        count: 1,
+        value: [{ id: 42, title: 'PR 42' }],
+        hasMoreResults: false,
+      };
+      (listPullRequests as jest.Mock).mockResolvedValue(mockPullRequests);
+
+      const request = {
+        params: {
+          name: 'list_pull_requests',
+          arguments: {
+            repositoryId: 'test-repo',
+            pullRequestId: 42,
+          },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      const response = await handlePullRequestsRequest(mockConnection, request);
+      expect(response.content).toHaveLength(1);
+      expect(JSON.parse(response.content[0].text as string)).toEqual(
+        mockPullRequests,
+      );
+      expect(listPullRequests).toHaveBeenCalledWith(
+        mockConnection,
+        expect.any(String),
+        'test-repo',
+        expect.objectContaining({
+          pullRequestId: 42,
         }),
       );
     });

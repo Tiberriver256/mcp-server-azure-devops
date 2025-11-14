@@ -90,6 +90,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
           targetRefName: params.targetRefName,
           top: params.top,
           skip: params.skip,
+          pullRequestId: params.pullRequestId,
         },
       );
       return {
