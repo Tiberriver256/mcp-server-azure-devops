@@ -5,7 +5,7 @@
 ## 1. Project Overview
 
 ### Purpose
-- This project, `@hmaldonadovilla/mcp-server-azure-devops`, is an MCP (Model Context Protocol) server.
+- This project, `@tiberriver256/mcp-server-azure-devops`, is an MCP (Model Context Protocol) server.
 - Its primary function is to provide tools for interacting with Azure DevOps services.
 
 ### Technology Stack
