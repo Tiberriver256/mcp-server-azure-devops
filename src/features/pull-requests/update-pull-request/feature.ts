@@ -10,6 +10,32 @@ import { UpdatePullRequestOptions } from '../types';
 import { AuthenticationMethod } from '../../../shared/auth/auth-factory';
 import { pullRequestStatusMapper } from '../../../shared/enums';
 
+function normalizeTags(tags?: string[]): string[] {
+  if (!tags) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+
+  for (const rawTag of tags) {
+    const trimmed = rawTag.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    normalized.push(trimmed);
+  }
+
+  return normalized;
+}
+
 /**
  * Updates an existing pull request in Azure DevOps with the specified changes.
  *
@@ -31,6 +57,8 @@ export const updatePullRequest = async (
     removeWorkItemIds,
     addReviewers,
     removeReviewers,
+    addTags,
+    removeTags,
     additionalProperties,
   } = options;
 
@@ -61,6 +89,7 @@ export const updatePullRequest = async (
 
     // Store the artifactId for work item linking
     const artifactId = pullRequest.artifactId;
+    const effectivePullRequestId = pullRequest.pullRequestId ?? pullRequestId;
 
     // Create an object with the properties to update
     const updateObject: Partial<GitPullRequest> = {};
@@ -128,6 +157,83 @@ export const updatePullRequest = async (
         reviewersToAdd: addReviewerIds,
         reviewersToRemove: removeReviewerIds,
       });
+    }
+
+    const normalizedTagsToAdd = normalizeTags(addTags);
+    const normalizedTagsToRemove = normalizeTags(removeTags);
+
+    if (
+      effectivePullRequestId &&
+      (normalizedTagsToAdd.length > 0 || normalizedTagsToRemove.length > 0)
+    ) {
+      let labels =
+        (await gitApi.getPullRequestLabels(
+          repositoryId,
+          effectivePullRequestId,
+          projectId,
+        )) ?? [];
+
+      const existingNames = new Set(
+        labels
+          .map((label) => label.name?.toLowerCase())
+          .filter((name): name is string => Boolean(name)),
+      );
+
+      const tagsToCreate = normalizedTagsToAdd.filter(
+        (tag) => !existingNames.has(tag.toLowerCase()),
+      );
+
+      for (const tag of tagsToCreate) {
+        try {
+          const createdLabel = await gitApi.createPullRequestLabel(
+            { name: tag },
+            repositoryId,
+            effectivePullRequestId,
+            projectId,
+          );
+          labels.push(createdLabel);
+          existingNames.add(tag.toLowerCase());
+        } catch (error) {
+          throw new Error(
+            `Failed to add tag '${tag}': ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+
+      for (const tag of normalizedTagsToRemove) {
+        try {
+          await gitApi.deletePullRequestLabels(
+            repositoryId,
+            effectivePullRequestId,
+            tag,
+            projectId,
+          );
+          labels = labels.filter((label) => {
+            const name = label.name?.toLowerCase();
+            return name ? name !== tag.toLowerCase() : true;
+          });
+          existingNames.delete(tag.toLowerCase());
+        } catch (error) {
+          if (
+            error &&
+            typeof error === 'object' &&
+            'statusCode' in error &&
+            (error as { statusCode?: number }).statusCode === 404
+          ) {
+            continue;
+          }
+
+          throw new Error(
+            `Failed to remove tag '${tag}': ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+
+      updatedPullRequest.labels = labels;
     }
 
     return updatedPullRequest;

@@ -982,3 +982,90 @@ The `update_pull_request` tool:
 9. Handles errors and provides meaningful error messages
 
 This implementation provides a comprehensive way to update pull requests in Azure DevOps repositories, supporting all common update scenarios.
+
+## get_pull_request_changes
+
+Retrieves the list of files changed in a pull request, including unified diff patches for each file and the latest policy evaluation status.
+
+### Parameters
+
+```json
+{
+  "projectId": "MyProject",
+  "repositoryId": "MyRepo",
+  "pullRequestId": 42
+}
+```
+
+### Response
+
+Returns an object with:
+
+- `changes`: The raw change entries from Azure DevOps for the latest iteration
+- `evaluations`: Policy evaluation records for the pull request
+- `files`: Array of changed files with their unified diffs
+
+Each file entry has the shape:
+
+```json
+{
+  "path": "src/app.ts",
+  "patch": "@@ -1,2 +1,2 @@\n-old\n+new\n"
+}
+```
+
+## get_pull_request_checks
+
+Summarises the latest status checks (builds, validations, custom checks) and policy evaluations applied to a pull request, including the pipeline/run identifiers you need to investigate failures.
+
+### Parameters
+
+```json
+{
+  "projectId": "MyProject",
+  "repositoryId": "MyRepo",
+  "pullRequestId": 42
+}
+```
+
+### Response
+
+Returns an object with two arrays:
+
+- `statuses`: Check runs reported through the PR status API. Each entry includes the check `state`, description, status context (`name`/`genre`), and a `pipeline` object with any discovered `pipelineId`, `definitionId`, `runId`/`buildId`, and `targetUrl`.
+- `policyEvaluations`: Policy evaluation records (e.g., build validations, required reviews). Each entry includes policy metadata, whether it is blocking, the evaluation status, a friendly `displayName`, and a `pipeline` object mirroring the identifiers above when the policy is backed by a pipeline.
+
+Example response (trimmed):
+
+```json
+{
+  "statuses": [
+    {
+      "id": 17,
+      "state": "failed",
+      "description": "CI build",
+      "context": { "name": "CI", "genre": "continuous-integration" },
+      "pipeline": {
+        "pipelineId": 55,
+        "runId": 123,
+        "targetUrl": "https://dev.azure.com/org/project/_apis/pipelines/55/runs/123?view=results"
+      }
+    }
+  ],
+  "policyEvaluations": [
+    {
+      "evaluationId": "eval-1",
+      "status": "rejected",
+      "displayName": "CI Build",
+      "isBlocking": true,
+      "pipeline": {
+        "definitionId": 987,
+        "buildId": 456,
+        "targetUrl": "https://dev.azure.com/org/project/_build/results?buildId=456"
+      }
+    }
+  ]
+}
+```
+
+Use the surfaced `pipelineId` and `runId` values with the pipeline tools (`get_pipeline_run`, `pipeline_timeline`, `get_pipeline_log`, etc.) to drill into the specific validation that is blocking the pull request.

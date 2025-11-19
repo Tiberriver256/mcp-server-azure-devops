@@ -521,3 +521,90 @@ console.log(result);
 - `get_repository_details`: Gets detailed info about a single repository
 - `get_repository_tree`: Explores structure within a single repository (more detailed)
 - `get_file_content`: Gets content of a specific file
+- `get_repository_tree`: Explore the tree for a single repository
+- `create_branch`: Create a branch from an existing one
+- `create_commit`: Apply file additions, updates, or deletions in a single commit (supports unified diffs or search/replace instructions)
+
+## get_repository_tree
+
+Lists files and folders from any point in a repository. You can specify a repository name or path to start from and limit how deep the tree goes.
+
+### Parameters
+
+```json
+{
+  "projectId": "MyProject",
+  "repositoryId": "MyRepo",
+  "path": "src/utils",        // Optional path to start from
+  "depth": 2                   // Optional maximum depth
+}
+```
+
+### Response
+
+Returns a formatted tree showing directories and files starting from the requested location.
+
+## create_branch
+
+Creates a new branch from an existing branch's latest commit.
+
+### Parameters
+
+```json
+{
+  "projectId": "MyProject",
+  "repositoryId": "MyRepo",
+  "sourceBranch": "main",
+  "newBranch": "feature-branch"
+}
+```
+
+### Response
+
+Returns the newly created branch reference.
+
+## create_commit
+
+Commits multiple file changes to a branch, supporting additions, modifications, and deletions (renames are not currently supported).
+
+- ⚠️ Azure DevOps accepts only one change entry per file path in a commit request. Combine all edits to the same file into a single change object before calling this tool.
+- For sparse or unrelated edits within the same file, prefer splitting work into multiple commits so each request stays focused.
+
+### Parameters
+
+```json
+{
+  "projectId": "MyProject",
+  "repositoryId": "MyRepo",
+  "branchName": "feature-branch",
+  "commitMessage": "feat: demo commit",
+  "changes": [
+    {
+      "path": "src/new.ts", // Optional override when the diff header does not reflect the desired path
+      "patch": "diff --git a/src/new.ts b/src/new.ts\n--- /dev/null\n+++ b/src/new.ts\n@@\n+console.log('hi');\n"
+    },
+    {
+      "patch": "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@\n-Old content\n+New content\n"
+    },
+    {
+      "patch": "diff --git a/old.txt b/old.txt\n--- a/old.txt\n+++ /dev/null\n@@\n-This file will be deleted\n"
+    },
+    {
+      "path": "src/index.ts", // Required when using search/replace
+      "search": "return axios.post(apiUrl, payload, requestConfig);",
+      "replace": "return axios.post(apiUrl, payload, requestConfig).then(res => handleResponse(res));"
+    }
+  ]
+}
+```
+
+- `branchName` identifies the branch to update.
+- Provide `path` only when the diff header cannot be trusted (for example, when generated without `a/` and `b/` prefixes). For search/replace changes, `path` is required so the server can load the file.
+- Each entry in `changes` can be either a unified diff (`patch`) or a search/replace pair (`search` and `replace`). `/dev/null` still indicates file creation or deletion for diff-based changes.
+- Instead of crafting diffs manually you can supply `search` and `replace` text. The server confirms the search string exists in the latest version of the file, applies the replacement, and generates the diff automatically.
+- Diffs (including ones generated from search/replace) must be based on the latest branch head to avoid merge conflicts during commit creation.
+- If the search text cannot be found, the request fails so you can review upstream modifications before retrying.
+
+### Response
+
+Returns the commit ID after applying the changes.

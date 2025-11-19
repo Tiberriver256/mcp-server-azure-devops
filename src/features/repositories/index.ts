@@ -8,6 +8,10 @@ export * from './get-repository-details';
 export * from './list-repositories';
 export * from './get-file-content';
 export * from './get-all-repositories-tree';
+export * from './get-repository-tree';
+export * from './create-branch';
+export * from './create-commit';
+export * from './list-commits';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -27,11 +31,19 @@ import {
   ListRepositoriesSchema,
   GetFileContentSchema,
   GetAllRepositoriesTreeSchema,
+  GetRepositoryTreeSchema,
+  CreateBranchSchema,
+  CreateCommitSchema,
+  ListCommitsSchema,
   getRepository,
   getRepositoryDetails,
   listRepositories,
   getFileContent,
   getAllRepositoriesTree,
+  getRepositoryTree,
+  createBranch,
+  createCommit,
+  listCommits,
   formatRepositoryTree,
 } from './';
 
@@ -48,6 +60,10 @@ export const isRepositoriesRequest: RequestIdentifier = (
     'list_repositories',
     'get_file_content',
     'get_all_repositories_tree',
+    'get_repository_tree',
+    'create_branch',
+    'create_commit',
+    'list_commits',
   ].includes(toolName);
 };
 
@@ -144,6 +160,51 @@ export const handleRepositoriesRequest: RequestHandler = async (
 
       return {
         content: [{ type: 'text', text: formattedOutput }],
+      };
+    }
+    case 'get_repository_tree': {
+      const args = GetRepositoryTreeSchema.parse(request.params.arguments);
+      const result = await getRepositoryTree(connection, {
+        ...args,
+        projectId: args.projectId ?? defaultProject,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+    case 'create_branch': {
+      const args = CreateBranchSchema.parse(request.params.arguments);
+      await createBranch(connection, {
+        ...args,
+        projectId: args.projectId ?? defaultProject,
+      });
+      return {
+        content: [{ type: 'text', text: 'Branch created successfully' }],
+      };
+    }
+    case 'create_commit': {
+      const args = CreateCommitSchema.parse(request.params.arguments);
+      await createCommit(connection, {
+        ...args,
+        projectId: args.projectId ?? defaultProject,
+      });
+      return {
+        content: [{ type: 'text', text: 'Commit created successfully' }],
+      };
+    }
+    case 'list_commits': {
+      const args = ListCommitsSchema.parse(request.params.arguments);
+      const result = await listCommits(connection, {
+        ...args,
+        projectId: args.projectId ?? defaultProject,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
     }
     default:

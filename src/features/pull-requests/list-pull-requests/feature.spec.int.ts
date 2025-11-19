@@ -178,6 +178,25 @@ describe('listPullRequests integration', () => {
       expect(filteredPRs.value).toBeDefined();
       expect(Array.isArray(filteredPRs.value)).toBe(true);
       expect(filteredPRs.count).toBeGreaterThanOrEqual(0);
+
+      if (testPullRequest?.pullRequestId) {
+        const singlePR = await listPullRequests(
+          connection,
+          projectName,
+          repositoryName,
+          {
+            projectId: projectName,
+            repositoryId: repositoryName,
+            pullRequestId: testPullRequest.pullRequestId,
+          },
+        );
+
+        expect(singlePR.count).toBe(1);
+        expect(singlePR.value[0]?.pullRequestId).toBe(
+          testPullRequest.pullRequestId,
+        );
+        expect(singlePR.hasMoreResults).toBe(false);
+      }
     } catch (error) {
       console.error('Test error:', error);
       throw error;

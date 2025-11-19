@@ -2,6 +2,32 @@ import { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsError } from '../../../shared/errors';
 import { CreatePullRequestOptions, PullRequest } from '../types';
 
+function normalizeTags(tags?: string[]): string[] {
+  if (!tags) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+
+  for (const rawTag of tags) {
+    const trimmed = rawTag.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    normalized.push(trimmed);
+  }
+
+  return normalized;
+}
+
 /**
  * Create a pull request
  *
@@ -32,6 +58,8 @@ export async function createPullRequest(
 
     const gitApi = await connection.getGitApi();
 
+    const normalizedTags = normalizeTags(options.tags);
+
     // Create the pull request object
     const pullRequest: PullRequest = {
       title: options.title,
@@ -46,8 +74,15 @@ export async function createPullRequest(
         id: reviewer,
         isRequired: true,
       })),
-      ...options.additionalProperties,
     };
+
+    if (options.additionalProperties) {
+      Object.assign(pullRequest, options.additionalProperties);
+    }
+
+    if (normalizedTags.length > 0) {
+      pullRequest.labels = normalizedTags.map((tag) => ({ name: tag }));
+    }
 
     // Create the pull request
     const createdPullRequest = await gitApi.createPullRequest(
@@ -58,6 +93,42 @@ export async function createPullRequest(
 
     if (!createdPullRequest) {
       throw new Error('Failed to create pull request');
+    }
+
+    if (normalizedTags.length > 0) {
+      const pullRequestId = createdPullRequest.pullRequestId;
+
+      if (!pullRequestId) {
+        throw new Error('Pull request created without identifier for tagging');
+      }
+
+      const existing = new Set(
+        (createdPullRequest.labels ?? [])
+          .map((label) => label.name?.toLowerCase())
+          .filter((name): name is string => Boolean(name)),
+      );
+
+      const tagsToCreate = normalizedTags.filter(
+        (tag) => !existing.has(tag.toLowerCase()),
+      );
+
+      if (tagsToCreate.length > 0) {
+        const createdLabels = await Promise.all(
+          tagsToCreate.map((tag) =>
+            gitApi.createPullRequestLabel(
+              { name: tag },
+              repositoryId,
+              pullRequestId,
+              projectId,
+            ),
+          ),
+        );
+
+        createdPullRequest.labels = [
+          ...(createdPullRequest.labels ?? []),
+          ...createdLabels,
+        ];
+      }
     }
 
     return createdPullRequest;

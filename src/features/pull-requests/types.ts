@@ -48,6 +48,7 @@ export interface CreatePullRequestOptions {
   reviewers?: string[];
   isDraft?: boolean;
   workItemRefs?: number[];
+  tags?: string[];
   additionalProperties?: Record<string, string | number | boolean>;
 }
 
@@ -64,6 +65,7 @@ export interface ListPullRequestsOptions {
   targetRefName?: string;
   top?: number;
   skip?: number;
+  pullRequestId?: number;
 }
 
 /**
@@ -118,5 +120,7 @@ export interface UpdatePullRequestOptions {
   removeWorkItemIds?: number[];
   addReviewers?: string[]; // Array of reviewer identifiers (email or ID)
   removeReviewers?: string[]; // Array of reviewer identifiers (email or ID)
+  addTags?: string[];
+  removeTags?: string[];
   additionalProperties?: Record<string, string | number | boolean>;
 }

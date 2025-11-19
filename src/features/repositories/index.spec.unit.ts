@@ -9,6 +9,10 @@ import {
   getAllRepositoriesTree,
   formatRepositoryTree,
 } from './get-all-repositories-tree';
+import { getRepositoryTree } from './get-repository-tree';
+import { createBranch } from './create-branch';
+import { createCommit } from './create-commit';
+import { listCommits } from './list-commits';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 // Mock the imported modules
@@ -33,6 +37,22 @@ jest.mock('./get-all-repositories-tree', () => ({
   formatRepositoryTree: jest.fn(),
 }));
 
+jest.mock('./get-repository-tree', () => ({
+  getRepositoryTree: jest.fn(),
+}));
+
+jest.mock('./create-branch', () => ({
+  createBranch: jest.fn(),
+}));
+
+jest.mock('./create-commit', () => ({
+  createCommit: jest.fn(),
+}));
+
+jest.mock('./list-commits', () => ({
+  listCommits: jest.fn(),
+}));
+
 describe('Repositories Request Handlers', () => {
   const mockConnection = {} as WebApi;
 
@@ -44,6 +64,10 @@ describe('Repositories Request Handlers', () => {
         'list_repositories',
         'get_file_content',
         'get_all_repositories_tree',
+        'get_repository_tree',
+        'create_branch',
+        'create_commit',
+        'list_commits',
       ];
       validTools.forEach((tool) => {
         const request = {
@@ -232,6 +256,87 @@ describe('Repositories Request Handlers', () => {
         expect.any(Object),
         undefined,
       );
+    });
+
+    it('should handle get_repository_tree request', async () => {
+      const mockResponse = {
+        name: 'repo',
+        tree: [],
+        stats: { directories: 0, files: 0 },
+      };
+      (getRepositoryTree as jest.Mock).mockResolvedValue(mockResponse);
+
+      const request = {
+        params: {
+          name: 'get_repository_tree',
+          arguments: { repositoryId: 'r' },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      const response = await handleRepositoriesRequest(mockConnection, request);
+      expect(JSON.parse(response.content[0].text as string)).toEqual(
+        mockResponse,
+      );
+      expect(getRepositoryTree).toHaveBeenCalled();
+    });
+
+    it('should handle create_branch request', async () => {
+      const request = {
+        params: {
+          name: 'create_branch',
+          arguments: {
+            repositoryId: 'r',
+            sourceBranch: 'main',
+            newBranch: 'feature',
+          },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      const response = await handleRepositoriesRequest(mockConnection, request);
+      expect(response.content[0].text).toContain('Branch created');
+      expect(createBranch).toHaveBeenCalled();
+    });
+
+    it('should handle create_commit request', async () => {
+      const request = {
+        params: {
+          name: 'create_commit',
+          arguments: {
+            repositoryId: 'r',
+            branchName: 'main',
+            commitMessage: 'msg',
+            changes: [],
+          },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      const response = await handleRepositoriesRequest(mockConnection, request);
+      expect(response.content[0].text).toContain('Commit created');
+      expect(createCommit).toHaveBeenCalled();
+    });
+
+    it('should handle list_commits request', async () => {
+      (listCommits as jest.Mock).mockResolvedValue({ commits: [] });
+
+      const request = {
+        params: {
+          name: 'list_commits',
+          arguments: {
+            repositoryId: 'r',
+            branchName: 'main',
+          },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      const response = await handleRepositoriesRequest(mockConnection, request);
+      expect(JSON.parse(response.content[0].text as string)).toEqual({
+        commits: [],
+      });
+      expect(listCommits).toHaveBeenCalled();
     });
 
     it('should throw error for unknown tool', async () => {

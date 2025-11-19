@@ -8,6 +8,9 @@ jest.mock('../../../shared/auth/client-factory');
 describe('updatePullRequest', () => {
   const mockGetPullRequestById = jest.fn();
   const mockUpdatePullRequest = jest.fn();
+  const mockGetPullRequestLabels = jest.fn();
+  const mockCreatePullRequestLabel = jest.fn();
+  const mockDeletePullRequestLabels = jest.fn();
   const mockUpdateWorkItem = jest.fn();
   const mockGetWorkItem = jest.fn();
 
@@ -15,6 +18,9 @@ describe('updatePullRequest', () => {
   const mockGitApi = {
     getPullRequestById: mockGetPullRequestById,
     updatePullRequest: mockUpdatePullRequest,
+    getPullRequestLabels: mockGetPullRequestLabels,
+    createPullRequestLabel: mockCreatePullRequestLabel,
+    deletePullRequestLabels: mockDeletePullRequestLabels,
   };
 
   // Mock Work Item Tracking API
@@ -41,6 +47,7 @@ describe('updatePullRequest', () => {
     (AzureDevOpsClient as unknown as jest.Mock).mockImplementation(
       () => mockAzureDevopsClient,
     );
+    mockGetPullRequestLabels.mockResolvedValue([]);
   });
 
   it('should throw error when pull request does not exist', async () => {
@@ -196,6 +203,98 @@ describe('updatePullRequest', () => {
       title: 'Title',
       customProperty: 'custom value',
     });
+  });
+
+  it('should add new tags to the pull request', async () => {
+    mockGetPullRequestById.mockResolvedValueOnce({
+      repository: { id: 'repo1' },
+      pullRequestId: 123,
+    });
+
+    mockUpdatePullRequest.mockResolvedValueOnce({
+      pullRequestId: 123,
+    });
+
+    mockGetPullRequestLabels.mockResolvedValueOnce([{ name: 'existing' }]);
+
+    mockCreatePullRequestLabel.mockImplementation(
+      async (label: { name: string }) => ({
+        name: label.name,
+      }),
+    );
+
+    const result = await updatePullRequest({
+      projectId: 'project-1',
+      repositoryId: 'repo1',
+      pullRequestId: 123,
+      addTags: ['New Tag', 'new tag', 'Another'],
+    });
+
+    expect(mockGetPullRequestLabels).toHaveBeenCalledWith(
+      'repo1',
+      123,
+      'project-1',
+    );
+    expect(mockCreatePullRequestLabel).toHaveBeenCalledTimes(2);
+    expect(mockCreatePullRequestLabel).toHaveBeenCalledWith(
+      { name: 'New Tag' },
+      'repo1',
+      123,
+      'project-1',
+    );
+    expect(mockCreatePullRequestLabel).toHaveBeenCalledWith(
+      { name: 'Another' },
+      'repo1',
+      123,
+      'project-1',
+    );
+    expect(result.labels).toEqual([
+      { name: 'existing' },
+      { name: 'New Tag' },
+      { name: 'Another' },
+    ]);
+  });
+
+  it('should remove tags and ignore missing ones', async () => {
+    mockGetPullRequestById.mockResolvedValueOnce({
+      repository: { id: 'repo1' },
+      pullRequestId: 123,
+    });
+
+    mockUpdatePullRequest.mockResolvedValueOnce({
+      pullRequestId: 123,
+    });
+
+    mockGetPullRequestLabels.mockResolvedValueOnce([
+      { name: 'keep' },
+      { name: 'remove' },
+    ]);
+
+    mockDeletePullRequestLabels
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce({ statusCode: 404 });
+
+    const result = await updatePullRequest({
+      projectId: 'project-1',
+      repositoryId: 'repo1',
+      pullRequestId: 123,
+      removeTags: ['remove', 'missing'],
+    });
+
+    expect(mockDeletePullRequestLabels).toHaveBeenCalledTimes(2);
+    expect(mockDeletePullRequestLabels).toHaveBeenCalledWith(
+      'repo1',
+      123,
+      'remove',
+      'project-1',
+    );
+    expect(mockDeletePullRequestLabels).toHaveBeenCalledWith(
+      'repo1',
+      123,
+      'missing',
+      'project-1',
+    );
+    expect(result.labels).toEqual([{ name: 'keep' }]);
   });
 
   it('should handle work item links', async () => {

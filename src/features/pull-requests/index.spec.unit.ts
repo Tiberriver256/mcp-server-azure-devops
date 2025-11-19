@@ -6,6 +6,8 @@ import { listPullRequests } from './list-pull-requests';
 import { getPullRequestComments } from './get-pull-request-comments';
 import { addPullRequestComment } from './add-pull-request-comment';
 import { AddPullRequestCommentSchema } from './schemas';
+import { getPullRequestChanges } from './get-pull-request-changes';
+import { getPullRequestChecks } from './get-pull-request-checks';
 
 // Mock the imported modules
 jest.mock('./create-pull-request', () => ({
@@ -24,6 +26,14 @@ jest.mock('./add-pull-request-comment', () => ({
   addPullRequestComment: jest.fn(),
 }));
 
+jest.mock('./get-pull-request-changes', () => ({
+  getPullRequestChanges: jest.fn(),
+}));
+
+jest.mock('./get-pull-request-checks', () => ({
+  getPullRequestChecks: jest.fn(),
+}));
+
 describe('Pull Requests Request Handlers', () => {
   const mockConnection = {} as WebApi;
 
@@ -34,6 +44,8 @@ describe('Pull Requests Request Handlers', () => {
         'list_pull_requests',
         'get_pull_request_comments',
         'add_pull_request_comment',
+        'get_pull_request_changes',
+        'get_pull_request_checks',
       ];
       validTools.forEach((tool) => {
         const request = {
@@ -66,6 +78,7 @@ describe('Pull Requests Request Handlers', () => {
             title: 'Test PR',
             sourceRefName: 'refs/heads/feature',
             targetRefName: 'refs/heads/main',
+            tags: ['Tag-One'],
           },
         },
         method: 'tools/call',
@@ -84,6 +97,7 @@ describe('Pull Requests Request Handlers', () => {
           title: 'Test PR',
           sourceRefName: 'refs/heads/feature',
           targetRefName: 'refs/heads/main',
+          tags: ['Tag-One'],
         }),
       );
     });
@@ -121,6 +135,41 @@ describe('Pull Requests Request Handlers', () => {
         'test-repo',
         expect.objectContaining({
           status: 'active',
+          pullRequestId: undefined,
+        }),
+      );
+    });
+
+    it('should pass pullRequestId to list_pull_requests request', async () => {
+      const mockPullRequests = {
+        count: 1,
+        value: [{ id: 42, title: 'PR 42' }],
+        hasMoreResults: false,
+      };
+      (listPullRequests as jest.Mock).mockResolvedValue(mockPullRequests);
+
+      const request = {
+        params: {
+          name: 'list_pull_requests',
+          arguments: {
+            repositoryId: 'test-repo',
+            pullRequestId: 42,
+          },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      const response = await handlePullRequestsRequest(mockConnection, request);
+      expect(response.content).toHaveLength(1);
+      expect(JSON.parse(response.content[0].text as string)).toEqual(
+        mockPullRequests,
+      );
+      expect(listPullRequests).toHaveBeenCalledWith(
+        mockConnection,
+        expect.any(String),
+        'test-repo',
+        expect.objectContaining({
+          pullRequestId: 42,
         }),
       );
     });
@@ -214,6 +263,51 @@ describe('Pull Requests Request Handlers', () => {
 
       // Restore the original parse function
       AddPullRequestCommentSchema.parse = originalParse;
+    });
+
+    it('should handle get_pull_request_changes request', async () => {
+      const mockResult = { changes: { changeEntries: [] }, evaluations: [] };
+      (getPullRequestChanges as jest.Mock).mockResolvedValue(mockResult);
+
+      const request = {
+        params: {
+          name: 'get_pull_request_changes',
+          arguments: { repositoryId: 'test-repo', pullRequestId: 1 },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      const response = await handlePullRequestsRequest(mockConnection, request);
+      expect(JSON.parse(response.content[0].text as string)).toEqual(
+        mockResult,
+      );
+      expect(getPullRequestChanges).toHaveBeenCalled();
+    });
+
+    it('should handle get_pull_request_checks request', async () => {
+      const mockResult = { statuses: [], policyEvaluations: [] };
+      (getPullRequestChecks as jest.Mock).mockResolvedValue(mockResult);
+
+      const request = {
+        params: {
+          name: 'get_pull_request_checks',
+          arguments: { repositoryId: 'test-repo', pullRequestId: 7 },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      const response = await handlePullRequestsRequest(mockConnection, request);
+
+      expect(JSON.parse(response.content[0].text as string)).toEqual(
+        mockResult,
+      );
+      expect(getPullRequestChecks).toHaveBeenCalledWith(
+        mockConnection,
+        expect.objectContaining({
+          repositoryId: 'test-repo',
+          pullRequestId: 7,
+        }),
+      );
     });
 
     it('should throw error for unknown tool', async () => {

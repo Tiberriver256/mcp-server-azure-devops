@@ -7,4 +7,5 @@ export interface ToolDefinition {
   name: string;
   description: string;
   inputSchema: JsonSchema7Type;
+  mcp_enabled?: boolean;
 }

@@ -37,6 +37,10 @@ export const CreatePullRequestSchema = z.object({
     .array(z.number())
     .optional()
     .describe('List of work item IDs to link to the pull request'),
+  tags: z
+    .array(z.string().trim().min(1))
+    .optional()
+    .describe('List of tags to apply to the pull request'),
   additionalProperties: z
     .record(z.string(), z.any())
     .optional()
@@ -78,6 +82,10 @@ export const ListPullRequestsSchema = z.object({
     .number()
     .optional()
     .describe('Number of pull requests to skip for pagination'),
+  pullRequestId: z
+    .number()
+    .optional()
+    .describe('If provided, return only the matching pull request ID'),
 });
 
 /**
@@ -214,8 +222,61 @@ export const UpdatePullRequestSchema = z.object({
     .array(z.string())
     .optional()
     .describe('List of reviewer email addresses or IDs to remove'),
+  addTags: z
+    .array(z.string().trim().min(1))
+    .optional()
+    .describe('List of tags to add to the pull request'),
+  removeTags: z
+    .array(z.string().trim().min(1))
+    .optional()
+    .describe('List of tags to remove from the pull request'),
   additionalProperties: z
     .record(z.string(), z.any())
     .optional()
     .describe('Additional properties to update on the pull request'),
+});
+
+/**
+ * Schema for getting pull request changes and policy evaluations
+ */
+export const GetPullRequestChangesSchema = z.object({
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  repositoryId: z.string().describe('The ID or name of the repository'),
+  pullRequestId: z.number().describe('The ID of the pull request'),
+});
+
+/**
+ * Schema for retrieving pull request status checks and policy evaluations
+ */
+export const GetPullRequestChecksSchema = z.object({
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  repositoryId: z.string().describe('The ID or name of the repository'),
+  pullRequestId: z.number().describe('The ID of the pull request'),
+});
+
+export const PullRequestFileChangeSchema = z.object({
+  path: z.string().describe('Path of the changed file'),
+  patch: z.string().describe('Unified diff of the file'),
+});
+
+export const GetPullRequestChangesResponseSchema = z.object({
+  changes: z.any(),
+  evaluations: z.array(z.any()),
+  files: z.array(PullRequestFileChangeSchema),
+  sourceRefName: z.string().optional(),
+  targetRefName: z.string().optional(),
 });

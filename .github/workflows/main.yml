@@ -1,8 +1,9 @@
 name: CI
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
@@ -10,9 +11,12 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: external-pr-check
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Use latest Node LTS
         uses: actions/setup-node@v3
         with:
