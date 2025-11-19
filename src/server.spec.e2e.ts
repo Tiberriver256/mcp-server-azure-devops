@@ -209,7 +209,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       }
     });
 
-    test('should load 9 tools when --domains core work-items', async () => {
+    test('should load 10 tools when --domains core work-items', async () => {
       // Arrange
       const { client: filteredClient, transport: filteredTransport } =
         await createClientWithArgs(['--domains', 'core', 'work-items']);
@@ -220,14 +220,15 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
 
         // Assert
         expect(tools.tools).toBeDefined();
-        expect(tools.tools.length).toBe(9);
+        expect(tools.tools.length).toBe(10);
 
         const toolNames = tools.tools.map((t) => t.name);
 
-        // Core domain tools (4)
+        // Core domain tools (5)
         expect(toolNames).toContain('list_organizations');
         expect(toolNames).toContain('list_projects');
         expect(toolNames).toContain('get_project');
+        expect(toolNames).toContain('get_project_details');
         expect(toolNames).toContain('get_me');
 
         // Work items domain tools (5)
@@ -254,7 +255,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
 
         // Assert - should be same as space-separated
         expect(tools.tools).toBeDefined();
-        expect(tools.tools.length).toBe(9);
+        expect(tools.tools.length).toBe(10);
       } finally {
         await filteredClient.close();
         await filteredTransport.close();
@@ -272,7 +273,10 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
         // Act
         const tools = await readOnlyClient.listTools();
 
-        // Assert
+        // Assert - 31 read-only tools out of 43 total
+        expect(tools.tools).toBeDefined();
+        expect(tools.tools.length).toBe(31);
+
         const toolNames = tools.tools.map((t) => t.name);
 
         // Should contain read-only tools
@@ -293,10 +297,6 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
         expect(toolNames).not.toContain('trigger_pipeline');
         expect(toolNames).not.toContain('create_wiki');
         expect(toolNames).not.toContain('update_wiki_page');
-
-        // Verify we filtered out approximately half the tools
-        expect(tools.tools.length).toBeGreaterThanOrEqual(20);
-        expect(tools.tools.length).toBeLessThanOrEqual(25);
       } finally {
         await readOnlyClient.close();
         await readOnlyTransport.close();

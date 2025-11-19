@@ -34,10 +34,11 @@ describe('Domain-Based Filtering E2E', () => {
       // THEN: Tools from each domain are present
       const toolNames = tools.tools.map(t => t.name);
       
-      // Core domain (4 tools)
+      // Core domain (5 tools)
       expect(toolNames).toContain('list_organizations');
       expect(toolNames).toContain('list_projects');
       expect(toolNames).toContain('get_project');
+      expect(toolNames).toContain('get_project_details');
       expect(toolNames).toContain('get_me');
       
       // Work Items domain (5 tools)
@@ -55,18 +56,19 @@ describe('Domain-Based Filtering E2E', () => {
   });
 
   describe('Single Domain Filtering', () => {
-    test('should load only core domain tools (4 tools)', async () => {
+    test('should load only core domain tools (5 tools)', async () => {
       // GIVEN: Server started with --domains core
       const client = await createClientWithDomains(['core']);
       // WHEN: Client requests tool list
       const tools = await client.listTools();
-      // THEN: Only 4 core domain tools are available
-      expect(tools.tools).toHaveLength(4);
+      // THEN: Only 5 core domain tools are available
+      expect(tools.tools).toHaveLength(5);
       const toolNames = tools.tools.map(t => t.name);
       expect(toolNames).toEqual(expect.arrayContaining([
         'list_organizations',
         'list_projects', 
         'get_project',
+        'get_project_details',
         'get_me'
       ]));
     });
@@ -779,10 +781,11 @@ Add domain categorization:
 ```markdown
 ## Tools by Domain
 
-### Core Domain (4 tools)
+### Core Domain (5 tools)
 - list_organizations
 - list_projects
 - get_project
+- get_project_details
 - get_me
 
 ### Work Items Domain (5 tools)

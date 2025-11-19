@@ -173,10 +173,11 @@ describe('DomainsManager', () => {
 ## Domain Mapping
 
 ```typescript
-Domain.CORE = 'core'                    // 4 tools
+Domain.CORE = 'core'                    // 5 tools
   - list_organizations
   - list_projects
   - get_project
+  - get_project_details
   - get_me
 
 Domain.WORK_ITEMS = 'work-items'        // 5 tools

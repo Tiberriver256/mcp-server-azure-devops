@@ -129,7 +129,7 @@
 ### Domain Mapping
 
 ```
-core → organizations, projects, users (4 tools)
+core → organizations, projects, users (5 tools)
 work-items → work items (5 tools)  
 repositories → repositories (9 tools)
 pull-requests → pull requests (7 tools)

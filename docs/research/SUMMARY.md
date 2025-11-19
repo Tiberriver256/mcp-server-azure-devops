@@ -53,7 +53,7 @@ Used by Azure.Mcp.Server
 
 ### Proposed Domains
 Map existing features to domains:
-- `core` → organizations, projects, users (4 tools)
+- `core` → organizations, projects, users (5 tools)
 - `work-items` → work items feature (5 tools)
 - `repositories` → repositories feature (9 tools)
 - `pull-requests` → pull requests feature (7 tools)

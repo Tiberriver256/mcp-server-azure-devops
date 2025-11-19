@@ -143,7 +143,7 @@ npx @tiberriver256/mcp-server-azure-devops --domains core,work-items,repositorie
 
 **Available Domains:**
 
-- `core` - Organizations, projects, users (4 tools)
+- `core` - Organizations, projects, users (5 tools)
 - `work-items` - Work items (5 tools)
 - `repositories` - Repositories and file content (9 tools)
 - `pull-requests` - Pull requests (7 tools)
@@ -161,7 +161,7 @@ Enable read-only mode to filter out tools that modify data (create, update, dele
 - CI/CD read operations
 
 ```bash
-# Enable read-only mode (~22 tools)
+# Enable read-only mode (31 tools)
 npx @tiberriver256/mcp-server-azure-devops --read-only
 
 # Combine with domain filtering (2 tools, 95% reduction!)
@@ -196,10 +196,10 @@ npx @tiberriver256/mcp-server-azure-devops --domains work-items --read-only
 | Configuration | Tools | Reduction |
 |---------------|-------|-----------|
 | Default (all domains) | 43 | 0% |
-| `--domains core` | 4 | 91% |
+| `--domains core` | 5 | 88% |
 | `--domains work-items` | 5 | 88% |
 | `--domains repositories` | 9 | 79% |
-| `--read-only` | ~22 | 49% |
+| `--read-only` | 31 | 28% |
 | `--domains work-items --read-only` | 2 | **95%** |
 
 ## Authentication Methods
