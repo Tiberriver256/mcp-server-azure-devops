@@ -10,13 +10,18 @@ This directory contains research reports and findings that inform the developmen
 Research into how other MCP servers handle the challenge of loading too many tools at once.
 
 - **[Executive Summary](./SUMMARY.md)** - Quick overview and recommendations (5 min read)
-- **[Full Report](./tool-loading-strategies.md)** - Detailed analysis, code examples, and implementation guidance (20 min read)
+- **[Full Report](./tool-loading-strategies.md)** - Detailed analysis, code examples, and implementation guidance (25 min read)
 
-**Key Finding:** Implement domain-based filtering to allow users to selectively load only the tool domains they need, reducing tool count by 50-90% based on selection.
+**Key Finding:** Implement domain-based filtering + read-only mode to allow users to selectively load tool domains and filter out write operations, reducing tool count by 70-95% based on configuration.
+
+**Strategies Analyzed:**
+1. **Domain-based filtering** - Load only specific feature areas (work-items, repositories, etc.)
+2. **Read-only mode** - Filter out create/update/delete operations for safe exploration
+3. **Multi-tier modes** - Namespace/consolidated/single tool abstractions
 
 **Repositories Analyzed:**
-- microsoft/azure-devops-mcp (TypeScript)
-- microsoft/mcp Azure.Mcp.Server (C#/.NET)
+- microsoft/azure-devops-mcp (TypeScript) - Domain filtering
+- microsoft/mcp Azure.Mcp.Server (C#/.NET) - All three strategies
 
 ## How to Use This Research
 

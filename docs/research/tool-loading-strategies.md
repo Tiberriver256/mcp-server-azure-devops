@@ -132,6 +132,133 @@ Users specify domains via CLI arguments:
 - **No intelligent grouping:** Tools within enabled domains are still all loaded
 - **Documentation overhead:** Requires clear domain documentation
 
+## Complementary Strategy: Read-Only Mode
+
+### Overview
+Both Microsoft MCP implementations support a **read-only mode** that filters out tools performing write operations (create, update, delete). This is orthogonal to domain filtering and can be combined with it for even greater tool reduction.
+
+### Implementation in Azure.Mcp.Server
+
+#### Configuration
+```json
+{
+  "azureMcp.readOnly": true
+}
+```
+
+When enabled, only tools marked with `"readOnly": true` in their metadata are exposed.
+
+#### Tool Metadata System
+Each tool includes a `readOnly` flag in its metadata:
+
+**Read-Only Tool Example:**
+```json
+{
+  "name": "get_azure_databases_details",
+  "toolMetadata": {
+    "readOnly": {
+      "value": true,
+      "description": "This tool only performs read operations without modifying any state or data."
+    }
+  }
+}
+```
+
+**Write Tool Example:**
+```json
+{
+  "name": "create_azure_sql_databases_and_servers",
+  "toolMetadata": {
+    "readOnly": {
+      "value": false,
+      "description": "This tool may modify its environment by creating, updating, or deleting data."
+    }
+  }
+}
+```
+
+### Benefits
+- **Safety:** Prevents accidental or unauthorized modifications
+- **Exploration mode:** Safe for browsing and querying without risk
+- **Significant reduction:** Typically removes 30-50% of tools (write operations)
+- **Audit compliance:** Clear separation of read vs write capabilities
+- **Autonomous agents:** Safer for unsupervised operation
+
+### Use Cases
+- **Learning/Training:** Users exploring Azure DevOps without modification risk
+- **Read-only environments:** Production monitoring, reporting, analytics
+- **Limited permissions:** Users with read-only Azure DevOps access
+- **Audit mode:** Inspecting configuration without changes
+- **CI/CD read operations:** Build status checks, artifact retrieval
+
+### Combining with Domain Filtering
+
+Read-only mode works **in conjunction with** domain filtering:
+
+```bash
+# Domain filtering only: Load work-items domain (5 tools)
+npm run start -- --domains work-items
+
+# Read-only mode only: Load all domains, only read operations (~20-25 tools)
+npm run start -- --read-only
+
+# Combined: Load work-items domain, read-only mode only (~2-3 tools)
+npm run start -- --domains work-items --read-only
+```
+
+**Tool Reduction Example:**
+- All tools: 43
+- Work-items domain only: 5 tools
+- Work-items + read-only: ~2 tools (list_work_items, get_work_item)
+
+### Implementation Considerations
+
+#### Tool Categorization
+Tools should be categorized as:
+
+**Read-Only (true):**
+- list_*, get_*, search_*
+- Query operations
+- Status checks
+- Analytics and reporting
+
+**Write Operations (false):**
+- create_*, update_*, delete_*
+- manage_*, add_*, remove_*
+- Any state-changing operation
+
+#### Metadata Addition
+Add `readOnly` property to each tool definition:
+
+```typescript
+export const workItemsTools: ToolDefinition[] = [
+  {
+    name: 'list_work_items',
+    description: 'List work items in a project',
+    inputSchema: zodToJsonSchema(ListWorkItemsSchema),
+    readOnly: true,  // NEW: Add this flag
+  },
+  {
+    name: 'create_work_item',
+    description: 'Create a new work item',
+    inputSchema: zodToJsonSchema(CreateWorkItemSchema),
+    readOnly: false,  // NEW: Add this flag
+  },
+];
+```
+
+### Advantages
+- **Stackable:** Combines with domain filtering for compound reduction
+- **Safety-first:** Clear distinction between safe and risky operations
+- **Simple toggle:** Easy on/off switch
+- **Universal concept:** Read vs write is well-understood
+- **No new user knowledge:** Users don't need to learn domain structure
+
+### Disadvantages
+- **Binary choice:** Can't selectively allow some write operations
+- **Metadata overhead:** Every tool needs readOnly flag
+- **Incomplete protection:** Doesn't prevent read operations with side effects
+
 ## Strategy 2: Three-Tier Mode System (Azure.Mcp.Server)
 
 ### Overview
@@ -276,40 +403,64 @@ azmcp server start --namespace storage keyvault
 
 ## Comparison Matrix
 
-| Aspect | Current | Domain Filtering | Three-Tier Mode |
-|--------|---------|------------------|-----------------|
-| **Tool Count Reduction** | None (43 tools) | Moderate (per domain) | High (25 default, up to 1) |
-| **Implementation Complexity** | Low | Low | High |
-| **User Configuration** | None | CLI args | CLI args + modes |
-| **Backward Compatibility** | N/A | High (default all) | High (default namespace) |
-| **Discoverability** | All visible | Domain-specific | Mode-dependent |
-| **Maintenance Effort** | Low | Low | High |
-| **Flexibility** | None | Domain-level | Tool + Namespace + Intent |
-| **LLM Cognitive Load** | High (43 tools) | Medium (varies) | Low (25 or fewer) |
+| Aspect | Current | Domain Filtering | Read-Only Mode | Domain + Read-Only | Three-Tier Mode |
+|--------|---------|------------------|----------------|-------------------|-----------------|
+| **Tool Count Reduction** | None (43 tools) | Moderate (per domain) | 30-50% | High (70-90%) | Highest (81%+) |
+| **Implementation Complexity** | Low | Low | Low | Low | High |
+| **User Configuration** | None | CLI args | CLI flag | CLI args + flag | CLI args + modes |
+| **Backward Compatibility** | N/A | High (default all) | High (default off) | High | High (default namespace) |
+| **Discoverability** | All visible | Domain-specific | Read-only subset | Intersection | Mode-dependent |
+| **Maintenance Effort** | Low | Low | Low (metadata) | Low | High |
+| **Flexibility** | None | Domain-level | Operation-level | Both levels | Tool + Namespace + Intent |
+| **Safety** | None | None | High | High | Metadata-based |
+| **LLM Cognitive Load** | High (43 tools) | Medium (varies) | Medium (~25 tools) | Low (5-15 tools) | Lowest (1-25 tools) |
 
 ## Recommendations for Tiberriver256/mcp-server-azure-devops
 
-### Option 1: Domain-based Filtering (RECOMMENDED)
+### Option 1: Domain-based Filtering + Read-Only Mode (RECOMMENDED)
 
 **Why:**
-- **Quick implementation:** ~1-2 days of work
-- **Proven pattern:** Already successful in microsoft/azure-devops-mcp
+- **Quick implementation:** ~2-3 days of work total
+- **Proven pattern:** Both features successful in Microsoft MCP servers
 - **Natural fit:** Your existing feature structure maps perfectly to domains
-- **Immediate benefit:** Users can reduce tool count based on needs
+- **Immediate benefit:** Users can reduce tool count by 70-90%
 - **Low risk:** Minimal code changes, backward compatible
+- **Stackable benefits:** Domain filtering + read-only mode work together
 
 **Implementation Steps:**
+
+**Phase 1: Domain Filtering (1-2 days)**
 1. Create `src/shared/domains.ts` with Domain enum and DomainsManager class
 2. Update `src/index.ts` to parse domain arguments
 3. Modify `src/server.ts` to conditionally register tools based on enabled domains
 4. Update documentation with domain list and usage examples
 5. Set default to "all" for backward compatibility
 
+**Phase 2: Read-Only Mode (0.5-1 day)**
+6. Add `readOnly: boolean` property to ToolDefinition type
+7. Mark each tool as read-only or write operation
+8. Add `--read-only` CLI flag parsing
+9. Filter tools based on readOnly flag when enabled
+10. Update documentation with read-only mode examples
+
 **Estimated Tool Count After Implementation:**
-- Core only: ~4 tools
-- Work Items only: ~5 tools
-- Repositories only: ~9 tools
+- Core only: ~4 tools (→ ~2 with read-only)
+- Work Items only: ~5 tools (→ ~2 with read-only)
+- Repositories only: ~9 tools (→ ~5 with read-only)
 - Custom combinations: User-defined
+- All domains + read-only: ~20-25 tools
+
+**Example Usage:**
+```bash
+# Domain filtering only
+npm run start -- --domains work-items repositories
+
+# Read-only mode only  
+npm run start -- --read-only
+
+# Combined for maximum reduction
+npm run start -- --domains work-items --read-only
+```
 
 ### Option 2: Two-Tier Mode System (ADVANCED)
 
@@ -380,18 +531,35 @@ azmcp server start --namespace storage keyvault
    - Show example configurations
    - Recommend common combinations
 
-### Short-term Enhancements (Next Month)
+### Short-term Enhancements (Next 2 Weeks)
 
-1. **Add Namespace Tools** (Optional)
+1. **Add Read-Only Mode**
+   - Add `readOnly` boolean to ToolDefinition type
+   - Mark each tool appropriately (list/get = true, create/update/delete = false)
+   - Add `--read-only` CLI flag
+   - Filter tools in ListTools handler
+   - **Effort:** 0.5-1 day
+   - **Benefit:** Additional 30-50% reduction when combined with domains
+
+2. **Enhanced Documentation**
+   - Document all domain combinations
+   - Add read-only mode examples
+   - Create usage matrix showing tool counts
+   - Best practices for different scenarios
+
+### Medium-term Enhancements (Next Month)
+
+1. **Tool Metadata Enhancement** (Optional)
+   - Add additional flags: destructive, idempotent
+   - Help LLMs understand operation implications
+   - Enable more sophisticated filtering
+   - Useful for autonomous agents
+
+2. **Add Namespace Tools** (Optional)
    - Create high-level routing tools
    - `manage_work_items` → routes to create/update/list/get/link
    - `manage_repositories` → routes to repo operations
-   - Reduces tool count by ~60-70%
-
-2. **Tool Metadata** (Optional)
-   - Add readOnly, destructive flags to tool definitions
-   - Help LLMs understand operation safety
-   - Useful for autonomous agents
+   - Reduces tool count by additional ~60-70%
 
 ### Long-term Vision (3-6 Months)
 
@@ -509,22 +677,119 @@ export function createAzureDevOpsServer(
 }
 ```
 
+### Read-Only Mode Implementation (src/server.ts)
+
+Add read-only filtering to the tool registration:
+
+```typescript
+export function createAzureDevOpsServer(
+  config: AzureDevOpsConfig,
+  enabledDomains?: Set<string>,
+  readOnlyMode = false  // NEW: Add read-only parameter
+): Server {
+  // ... existing setup ...
+
+  server.setRequestHandler(ListToolsRequestSchema, () => {
+    const tools = [];
+    
+    const shouldInclude = (domain: string) => {
+      return !enabledDomains || enabledDomains.has(domain);
+    };
+
+    if (shouldInclude(Domain.CORE)) {
+      tools.push(...usersTools, ...organizationsTools, ...projectsTools);
+    }
+    if (shouldInclude(Domain.WORK_ITEMS)) {
+      tools.push(...workItemsTools);
+    }
+    // ... other domains ...
+
+    // NEW: Filter by read-only mode
+    if (readOnlyMode) {
+      return { 
+        tools: tools.filter(tool => tool.readOnly === true) 
+      };
+    }
+
+    return { tools };
+  });
+  
+  // ... rest of implementation ...
+}
+```
+
+### Tool Definition with Read-Only Flag (src/features/work-items/tool-definitions.ts)
+
+```typescript
+export const workItemsTools: ToolDefinition[] = [
+  {
+    name: 'list_work_items',
+    description: 'List work items in a project',
+    inputSchema: zodToJsonSchema(ListWorkItemsSchema),
+    readOnly: true,  // NEW: Read-only tool
+  },
+  {
+    name: 'get_work_item',
+    description: 'Get details of a specific work item',
+    inputSchema: zodToJsonSchema(GetWorkItemSchema),
+    readOnly: true,  // NEW: Read-only tool
+  },
+  {
+    name: 'create_work_item',
+    description: 'Create a new work item',
+    inputSchema: zodToJsonSchema(CreateWorkItemSchema),
+    readOnly: false,  // NEW: Write operation
+  },
+  {
+    name: 'update_work_item',
+    description: 'Update an existing work item',
+    inputSchema: zodToJsonSchema(UpdateWorkItemSchema),
+    readOnly: false,  // NEW: Write operation
+  },
+  {
+    name: 'manage_work_item_link',
+    description: 'Add or remove links between work items',
+    inputSchema: zodToJsonSchema(ManageWorkItemLinkSchema),
+    readOnly: false,  // NEW: Write operation
+  },
+];
+```
+
+### Type Definition Update (src/shared/types/tool-definition.ts)
+
+```typescript
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: any;
+  readOnly?: boolean;  // NEW: Optional read-only flag
+}
+```
+
 ## Conclusion
 
-Both examined implementations successfully address the "too many tools" problem through different strategies:
+The examined implementations successfully address the "too many tools" problem through complementary strategies:
 
-1. **Domain Filtering** (TypeScript) - Simple, effective, user-driven
-2. **Multi-tier Modes** (C#) - Sophisticated, flexible, multiple abstraction levels
+1. **Domain Filtering** (TypeScript) - Simple, effective, user-driven feature grouping
+2. **Read-Only Mode** (Both) - Safety-first operation filtering
+3. **Multi-tier Modes** (C#) - Sophisticated, flexible, multiple abstraction levels
 
-**For Tiberriver256/mcp-server-azure-devops, we recommend starting with Domain Filtering:**
-- ✅ Quick to implement (1-2 days)
-- ✅ Proven effective
-- ✅ Low risk
-- ✅ Backward compatible
+**For Tiberriver256/mcp-server-azure-devops, we recommend implementing both Domain Filtering and Read-Only Mode:**
+- ✅ Quick to implement (2-3 days total)
+- ✅ Proven effective in Microsoft MCP servers
+- ✅ Low risk, backward compatible
 - ✅ Natural fit with existing architecture
+- ✅ Stackable benefits: 70-90% tool reduction when combined
+- ✅ Safety advantages: Read-only mode prevents accidental changes
 - ✅ Can evolve to more sophisticated approaches later
 
-The domain-based approach will immediately reduce cognitive load on LLMs while maintaining full functionality and giving users control over their experience.
+**Expected Impact:**
+- Domain filtering alone: 50-70% reduction
+- Read-only mode alone: 30-50% reduction
+- Combined: 70-90% reduction
+- Example: `--domains work-items --read-only` reduces from 43 tools to ~2 tools
+
+The combined approach will significantly reduce cognitive load on LLMs while providing users with flexible, safe, and powerful control over their MCP server experience.
 
 ## References
 
