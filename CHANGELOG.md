@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.44](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.43...mcp-server-azure-devops-v0.1.44) (2025-11-19)
+
+
+### Features
+
+* **skills:** add skill-creator and azure-devops-rest-api skills with automated sync ([#268](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/268)) ([06cefa3](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/06cefa3b78b24152ff36adef12adb85fef82663e))
+
 ## [0.1.43](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.42...mcp-server-azure-devops-v0.1.43) (2025-11-19)
 
 
