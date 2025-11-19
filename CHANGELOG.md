@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.43](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.42...mcp-server-azure-devops-v0.1.43) (2025-11-19)
+
+
+### Features
+
+* - adding a pullRequestId filter in  - adding source and target … ([#12](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/12)) ([f33e557](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/f33e5575a5069713c81d01dca46176e485cfe612))
+* add publishing configuration ([c058e59](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/c058e59b96991f47a91ee3494fd3dfed8c02edd5))
+* add pull request checks tool ([#11](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/11)) ([6c1dfd5](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/6c1dfd540bd7493b497076d302f591ffcfa49ccf))
+* add repository tree and branch/commit tools ([a95e6f2](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/a95e6f2630e7728b796afc0ba5491414b1e3634c))
+* added prepack script to ensure the binary is built and marked executable before publishing ([757fea8](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/757fea8e35e33f1300bda3d2b12d49eb2053711f))
+* improve commit workflow and add branch commit listing tool ([#7](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/7)) ([867bbc8](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/867bbc8383ee87f110f772531d9099ab588e126d))
+* include file diffs in pull request changes ([#3](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/3)) ([0335c68](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/0335c685a2acff6712220e5d6ad87ff13553a7d0))
+* provide simpler search/replace functionality for the create_commit tool ([1d1ec3f](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/1d1ec3f621d1d9677bb6aab94aadf9020fd9f66a))
+* version bump to 0.1.45 ([67e7a3d](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/67e7a3d99a9bb0b0198173e13159854249aa24a8))
+
+
+### Bug Fixes
+
+* **ci:** update workflow to use pull_request_target and latest checkout action ([fb109a7](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/fb109a7614662ce6b32453f1f195b3496326c659))
+* clarify instruction on how to use the create_commit tool ([bd82c00](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/bd82c000d79d1a514b946701abb11fadbb2eb869))
+* clarify instruction on how to use the create_commit tool ([167893e](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/167893e23da37e8070c00e15b85395617edd0c7a))
+* **deps:** address high vulnerability without breaking changes ([#4](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/4)) ([cb20e2d](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/cb20e2de1835b87408a3e09d85bcc9b2c9d6e85d))
+* **pull-requests:** include diff content in pull request changes ([#6](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/6)) ([d48aacc](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/d48aacc24b0f748159b60e792feb9bd5d17e692f))
+
 ## [0.1.42](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.41...mcp-server-azure-devops-v0.1.42) (2025-07-15)
 
 
