@@ -8,7 +8,10 @@ export * from './list-organizations';
 // Export tool definitions
 export * from './tool-definitions';
 
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequest,
+  CallToolResult,
+} from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
 import {
   RequestIdentifier,
@@ -34,7 +37,7 @@ export const isOrganizationsRequest: RequestIdentifier = (
 export const handleOrganizationsRequest: RequestHandler = async (
   connection: WebApi,
   request: CallToolRequest,
-): Promise<{ content: Array<{ type: string; text: string }> }> => {
+): Promise<CallToolResult> => {
   switch (request.params.name) {
     case 'list_organizations': {
       // Use environment variables for authentication method and PAT

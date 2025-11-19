@@ -14,7 +14,10 @@ export * from './trigger-pipeline';
 // Export tool definitions
 export * from './tool-definitions';
 
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequest,
+  CallToolResult,
+} from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
 import {
   RequestIdentifier,
@@ -63,7 +66,7 @@ export const isPipelinesRequest: RequestIdentifier = (
 export const handlePipelinesRequest: RequestHandler = async (
   connection: WebApi,
   request: CallToolRequest,
-): Promise<{ content: Array<{ type: string; text: string }> }> => {
+): Promise<CallToolResult> => {
   switch (request.params.name) {
     case 'list_pipelines': {
       const args = ListPipelinesSchema.parse(request.params.arguments);
