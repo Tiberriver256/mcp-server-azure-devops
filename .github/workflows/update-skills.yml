@@ -1,0 +1,71 @@
+name: Update Skills
+
+on:
+  schedule:
+    # Run weekly on Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Clone anthropics/skills repository
+        run: |
+          git clone --depth 1 https://github.com/anthropics/skills.git /tmp/skills
+
+      - name: Update skill-creator skill
+        run: |
+          # Remove old skill-creator
+          rm -rf .github/skills/skill-creator
+          
+          # Copy new skill-creator
+          mkdir -p .github/skills
+          cp -r /tmp/skills/skill-creator .github/skills/
+
+      - name: Update copilot-instructions.md
+        run: |
+          # Extract description from SKILL.md frontmatter
+          DESCRIPTION=$(sed -n '/^description:/,/^[a-z-]*:/p' .github/skills/skill-creator/SKILL.md | grep '^description:' | sed 's/^description: //' | sed 's/^"//' | sed 's/"$//')
+          
+          # If description spans multiple lines, get the full description
+          if [ -z "$DESCRIPTION" ]; then
+            DESCRIPTION=$(awk '/^description:/{flag=1; sub(/^description: /, ""); print; next} flag{if(/^[a-z-]*:/){exit}; print}' .github/skills/skill-creator/SKILL.md | tr '\n' ' ' | sed 's/  */ /g')
+          fi
+          
+          # Update the table in copilot-instructions.md
+          # This preserves the header and updates the skill-creator row
+          sed -i "/^| skill-creator |/c\| skill-creator | ${DESCRIPTION} | [.github/skills/skill-creator/SKILL.md](.github/skills/skill-creator/SKILL.md) |" copilot-instructions.md
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git diff --quiet .github/skills copilot-instructions.md || echo "changes=true" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.check_changes.outputs.changes == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(skills): update skill-creator from anthropics/skills'
+          title: 'Update skill-creator skill'
+          body: |
+            This PR updates the skill-creator skill from the [anthropics/skills](https://github.com/anthropics/skills) repository.
+            
+            **Changes:**
+            - Updated skill-creator skill files
+            - Updated copilot-instructions.md metadata table
+            
+            This is an automated update triggered by the update-skills workflow.
+          branch: update-skills
+          delete-branch: true
+          labels: |
+            chore
+            automated

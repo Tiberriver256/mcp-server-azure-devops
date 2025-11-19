@@ -246,3 +246,11 @@ The repository has extensive documentation. Reference these for specific scenari
 
 **Unknown tool capabilities:**
 - Browse `docs/tools/README.md` for complete tool documentation
+
+## Available Skills
+
+Skills are modular, self-contained packages that extend capabilities with specialized knowledge, workflows, and tools. Reference these skills when working on related tasks.
+
+| Skill Name | Use When... | Path |
+|------------|-------------|------|
+| skill-creator | Creating a new skill or updating an existing skill that extends capabilities with specialized knowledge, workflows, or tool integrations | [.github/skills/skill-creator/SKILL.md](.github/skills/skill-creator/SKILL.md) |
