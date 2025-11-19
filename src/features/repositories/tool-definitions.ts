@@ -20,39 +20,46 @@ export const repositoriesTools: ToolDefinition[] = [
     name: 'get_repository',
     description: 'Get details of a specific repository',
     inputSchema: zodToJsonSchema(GetRepositorySchema),
+    readOnly: true,
   },
   {
     name: 'get_repository_details',
     description:
       'Get detailed information about a repository including statistics and refs',
     inputSchema: zodToJsonSchema(GetRepositoryDetailsSchema),
+    readOnly: true,
   },
   {
     name: 'list_repositories',
     description: 'List repositories in a project',
     inputSchema: zodToJsonSchema(ListRepositoriesSchema),
+    readOnly: true,
   },
   {
     name: 'get_file_content',
     description: 'Get content of a file or directory from a repository',
     inputSchema: zodToJsonSchema(GetFileContentSchema),
+    readOnly: true,
   },
   {
     name: 'get_all_repositories_tree',
     description:
       'Displays a hierarchical tree view of files and directories across multiple Azure DevOps repositories within a project, based on their default branches',
     inputSchema: zodToJsonSchema(GetAllRepositoriesTreeSchema),
+    readOnly: true,
   },
   {
     name: 'get_repository_tree',
     description:
       'Displays a hierarchical tree view of files and directories within a single repository starting from an optional path',
     inputSchema: zodToJsonSchema(GetRepositoryTreeSchema),
+    readOnly: true,
   },
   {
     name: 'create_branch',
     description: 'Create a new branch from an existing one',
     inputSchema: zodToJsonSchema(CreateBranchSchema),
+    readOnly: false,
   },
   {
     name: 'create_commit',
@@ -96,11 +103,13 @@ export const repositoriesTools: ToolDefinition[] = [
       '```',
     ].join('\n'),
     inputSchema: zodToJsonSchema(CreateCommitSchema),
+    readOnly: false,
   },
   {
     name: 'list_commits',
     description:
       'List recent commits on a branch including file-level diff content for each commit',
     inputSchema: zodToJsonSchema(ListCommitsSchema),
+    readOnly: true,
   },
 ];

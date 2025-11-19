@@ -18,24 +18,28 @@ export const pipelinesTools: ToolDefinition[] = [
     description: 'List pipelines in a project',
     inputSchema: zodToJsonSchema(ListPipelinesSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'get_pipeline',
     description: 'Get details of a specific pipeline',
     inputSchema: zodToJsonSchema(GetPipelineSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'list_pipeline_runs',
     description: 'List recent runs for a pipeline',
     inputSchema: zodToJsonSchema(ListPipelineRunsSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'get_pipeline_run',
     description: 'Get details for a specific pipeline run',
     inputSchema: zodToJsonSchema(GetPipelineRunSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'download_pipeline_artifact',
@@ -43,6 +47,7 @@ export const pipelinesTools: ToolDefinition[] = [
       'Download a file from a pipeline run artifact and return its textual content',
     inputSchema: zodToJsonSchema(DownloadPipelineArtifactSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'pipeline_timeline',
@@ -50,6 +55,7 @@ export const pipelinesTools: ToolDefinition[] = [
       'Retrieve the timeline of stages and jobs for a pipeline run, to reduce the amount of data returned, you can filter by state and result',
     inputSchema: zodToJsonSchema(GetPipelineTimelineSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'get_pipeline_log',
@@ -57,11 +63,13 @@ export const pipelinesTools: ToolDefinition[] = [
       'Retrieve a specific pipeline log using the timeline log identifier',
     inputSchema: zodToJsonSchema(GetPipelineLogSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'trigger_pipeline',
     description: 'Trigger a pipeline run',
     inputSchema: zodToJsonSchema(TriggerPipelineSchema),
     mcp_enabled: true,
+    readOnly: false,
   },
 ];

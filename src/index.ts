@@ -8,6 +8,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import dotenv from 'dotenv';
 import { AzureDevOpsConfig } from './shared/types';
 import { AuthenticationMethod } from './shared/auth/auth-factory';
+import { DomainsManager } from './shared/domains';
 
 /**
  * Normalize auth method string to a valid AuthenticationMethod enum value
@@ -69,10 +70,52 @@ function getConfig(): AzureDevOpsConfig {
   };
 }
 
+/**
+ * Parse command line arguments for domains and read-only mode
+ */
+function parseCliArgs(): {
+  domains?: string[];
+  readOnly: boolean;
+} {
+  const args = process.argv.slice(2);
+  let domains: string[] | undefined;
+  let readOnly = false;
+
+  // Parse --domains argument
+  const domainsIndex = args.indexOf('--domains');
+  if (domainsIndex > -1) {
+    const domainArgs: string[] = [];
+    for (let i = domainsIndex + 1; i < args.length; i++) {
+      if (args[i].startsWith('--')) break;
+      domainArgs.push(args[i]);
+    }
+    // Flatten comma-separated values
+    domains = domainArgs.flatMap((d) => d.split(',').map((v) => v.trim()));
+  }
+
+  // Parse --read-only flag
+  readOnly = args.includes('--read-only');
+
+  return { domains, readOnly };
+}
+
 async function main() {
   try {
+    // Parse CLI arguments
+    const { domains, readOnly } = parseCliArgs();
+
+    // Create domains manager
+    const domainsManager = new DomainsManager(domains);
+    const enabledDomains = domainsManager.getEnabledDomains();
+
+    // Log configuration
+    process.stderr.write(
+      `Domain filtering: ${domains ? `enabled (${Array.from(enabledDomains).join(', ')})` : 'disabled (all domains)'}\n`,
+    );
+    process.stderr.write(`Read-only mode: ${readOnly ? 'enabled' : 'disabled'}\n`);
+
     // Create the server with configuration
-    const server = createAzureDevOpsServer(getConfig());
+    const server = createAzureDevOpsServer(getConfig(), enabledDomains, readOnly);
 
     // Connect to stdio transport
     const transport = new StdioServerTransport();
