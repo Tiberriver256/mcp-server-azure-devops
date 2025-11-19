@@ -1,273 +1,181 @@
 # Implementation TODO: Domain Filtering + Read-Only Mode
 
-**Timeline:** 2-3 days | **Approach:** TDD (E2E-first) | **Target:** 70-95% tool reduction
+**Approach:** E2E Behavioral Tests → Implementation  
+**Timeline:** 2-3 days
 
 ## Setup
 
-- [ ] Create feature branch: `feat/domain-filtering-read-only-mode`
-- [ ] Ensure tests run: `npm test`
-- [ ] Review research: `docs/research/SUMMARY.md`
+- [ ] Create feature branch: `git checkout -b feat/domain-filtering-read-only-mode`
+- [ ] Verify tests run: `npm test`
 
 ---
 
-## Phase 1: Domain Filtering (Day 1-2)
+## Feature 1: Domain Filtering
 
-### 1.1 Domain Types & Manager
+### E2E Test 1: Default behavior (all tools loaded)
 
-- [ ] Create `src/shared/domains/types.ts`
-  - [ ] Define `Domain` enum (core, work-items, repositories, pull-requests, pipelines, wikis, search)
-  - [ ] Export `ALL_DOMAINS` constant
-  - [ ] Write unit tests ✓ RED → GREEN → REFACTOR
+**Test File:** `src/server.spec.e2e.ts`
 
-- [ ] Create `src/shared/domains/domains-manager.ts`
-  - [ ] Implement `DomainsManager` class
-  - [ ] Parse single domain: `'core'` → `['core']`
-  - [ ] Parse multiple: `'core work-items'` → `['core', 'work-items']`
-  - [ ] Parse comma-separated: `'core,work-items'` → `['core', 'work-items']`
-  - [ ] Default to all domains when undefined
-  - [ ] Validate domain names (reject invalid, keep valid)
-  - [ ] Write unit tests ✓ RED → GREEN → REFACTOR
+- [ ] **RED:** Write failing test
+  ```typescript
+  test('should load all 43 tools by default', async () => {
+    const tools = await client.listTools();
+    expect(tools.tools).toHaveLength(43);
+  });
+  ```
 
-- [ ] Create `src/shared/domains/index.ts`
-  - [ ] Export types and manager
+- [ ] **GREEN:** Make it pass
+  - Verify current behavior already loads all tools
 
-### 1.2 CLI Argument Parsing
-
-- [ ] Update `src/index.ts`
-  - [ ] Parse `--domains` argument from CLI
-  - [ ] Handle space-separated: `--domains core work-items`
-  - [ ] Handle comma-separated: `--domains core,work-items`
-  - [ ] Create `DomainsManager` instance
-  - [ ] Pass enabled domains to server
-  - [ ] Log enabled domains to stderr
-  - [ ] Write E2E tests ✓ RED → GREEN → REFACTOR
-
-### 1.3 Server Tool Filtering
-
-- [ ] Update `src/server.ts`
-  - [ ] Add `enabledDomains?: Set<string>` parameter to `createAzureDevOpsServer()`
-  - [ ] Create `shouldInclude(domain)` helper function
-  - [ ] Conditionally register core domain tools (4 tools)
-  - [ ] Conditionally register work-items domain tools (5 tools)
-  - [ ] Conditionally register repositories domain tools (9 tools)
-  - [ ] Conditionally register pull-requests domain tools (7 tools)
-  - [ ] Conditionally register pipelines domain tools (8 tools)
-  - [ ] Conditionally register wikis domain tools (6 tools)
-  - [ ] Conditionally register search domain tools (3 tools)
-  - [ ] Write E2E tests ✓ RED → GREEN → REFACTOR
-
-### 1.4 E2E Test Suite
-
-- [ ] Create `src/features/domains/domain-filtering.spec.e2e.ts`
-  - [ ] Test: Default loads all 43 tools
-  - [ ] Test: `--domains core` loads 4 tools
-  - [ ] Test: `--domains work-items` loads 5 tools
-  - [ ] Test: `--domains repositories` loads 9 tools
-  - [ ] Test: `--domains core work-items` loads 9 tools
-  - [ ] Test: Invalid domain falls back to all
-  - [ ] Test: Mixed valid/invalid loads only valid
-  - [ ] Test: Tool execution works with filtering
-  - [ ] All tests pass ✓
-
-### 1.5 Verification
-
-- [ ] Run `npm run test:unit` - all pass
-- [ ] Run `npm run test:e2e` - all pass
-- [ ] Run `npm test` - all pass
-- [ ] Verify tool counts match expected values
-- [ ] Check backward compatibility (existing tests pass)
-- [ ] Commit: `feat: add domain-based filtering for tools`
+- [ ] Run test: `npm run test:e2e`
 
 ---
 
-## Phase 2: Read-Only Mode (Day 2)
+### E2E Test 2: Filter to single domain
 
-### 2.1 Tool Metadata
+**Test File:** `src/server.spec.e2e.ts`
 
-- [ ] Update `src/shared/types/tool-definition.ts`
-  - [ ] Add `readOnly?: boolean` to `ToolDefinition` interface
-  - [ ] Write unit tests ✓
+- [ ] **RED:** Write failing test
+  ```typescript
+  test('should load only 5 tools when --domains work-items', async () => {
+    // Start server with --domains work-items
+    const client = await createClientWithArgs(['--domains', 'work-items']);
+    const tools = await client.listTools();
+    
+    expect(tools.tools).toHaveLength(5);
+    const names = tools.tools.map(t => t.name);
+    expect(names).toContain('list_work_items');
+    expect(names).not.toContain('list_repositories');
+  });
+  ```
 
-### 2.2 Mark All Tools
+- [ ] **GREEN:** Implement
+  1. Create `src/shared/domains/types.ts` - Domain enum
+  2. Create `src/shared/domains/domains-manager.ts` - Parse domains
+  3. Update `src/index.ts` - Parse `--domains` CLI arg
+  4. Update `src/server.ts` - Filter tools by domain
 
-- [ ] Update `src/features/organizations/tool-definitions.ts`
-  - [ ] Mark `list_organizations` as `readOnly: true`
-
-- [ ] Update `src/features/projects/tool-definitions.ts`
-  - [ ] Mark `list_projects` as `readOnly: true`
-  - [ ] Mark `get_project` as `readOnly: true`
-  - [ ] Mark `get_project_details` as `readOnly: true`
-
-- [ ] Update `src/features/users/tool-definitions.ts`
-  - [ ] Mark `get_me` as `readOnly: true`
-
-- [ ] Update `src/features/work-items/tool-definitions.ts`
-  - [ ] Mark `list_work_items` as `readOnly: true`
-  - [ ] Mark `get_work_item` as `readOnly: true`
-  - [ ] Mark `create_work_item` as `readOnly: false`
-  - [ ] Mark `update_work_item` as `readOnly: false`
-  - [ ] Mark `manage_work_item_link` as `readOnly: false`
-
-- [ ] Update `src/features/repositories/tool-definitions.ts`
-  - [ ] Mark all `list_*` and `get_*` as `readOnly: true`
-  - [ ] Mark `create_branch` as `readOnly: false`
-  - [ ] Mark `create_commit` as `readOnly: false`
-
-- [ ] Update `src/features/pull-requests/tool-definitions.ts`
-  - [ ] Mark `list_*` and `get_*` as `readOnly: true`
-  - [ ] Mark `create_*`, `update_*`, `add_*` as `readOnly: false`
-
-- [ ] Update `src/features/pipelines/tool-definitions.ts`
-  - [ ] Mark all `list_*` and `get_*` as `readOnly: true`
-  - [ ] Mark `trigger_pipeline` as `readOnly: false`
-
-- [ ] Update `src/features/wikis/tool-definitions.ts`
-  - [ ] Mark `list_*` and `get_*` as `readOnly: true`
-  - [ ] Mark `create_*`, `update_*` as `readOnly: false`
-
-- [ ] Update `src/features/search/tool-definitions.ts`
-  - [ ] Mark all search tools as `readOnly: true`
-
-### 2.3 CLI Argument Parsing
-
-- [ ] Update `src/index.ts`
-  - [ ] Parse `--read-only` flag from CLI
-  - [ ] Pass `readOnlyMode` to server
-  - [ ] Log read-only mode status to stderr
-  - [ ] Write E2E tests ✓
-
-### 2.4 Server Read-Only Filtering
-
-- [ ] Update `src/server.ts`
-  - [ ] Add `readOnlyMode = false` parameter to `createAzureDevOpsServer()`
-  - [ ] After domain filtering, filter tools by `readOnly === true` if mode enabled
-  - [ ] Write E2E tests ✓
-
-### 2.5 E2E Test Suite
-
-- [ ] Create `src/features/domains/read-only-mode.spec.e2e.ts`
-  - [ ] Test: Default loads all 43 tools (read-only disabled)
-  - [ ] Test: `--read-only` loads 20-25 tools
-  - [ ] Test: Read-only includes list/get tools
-  - [ ] Test: Read-only excludes create/update/delete tools
-  - [ ] Test: Tool execution works in read-only mode
-  - [ ] All tests pass ✓
-
-### 2.6 Combined Filtering Tests
-
-- [ ] Create `src/features/domains/integration.spec.e2e.ts`
-  - [ ] Test: `--domains work-items --read-only` loads 2 tools (95% reduction)
-  - [ ] Test: `--domains core repositories --read-only` loads 6-8 tools (84% reduction)
-  - [ ] Test: All combinations work correctly
-  - [ ] All tests pass ✓
-
-### 2.7 Verification
-
-- [ ] Run `npm run test:unit` - all pass
-- [ ] Run `npm run test:e2e` - all pass
-- [ ] Run `npm test` - all pass
-- [ ] Verify tool counts: Default=43, --read-only=20-25, combined=2
-- [ ] Check backward compatibility
-- [ ] Commit: `feat: add read-only mode for safe tool filtering`
+- [ ] Run test: `npm run test:e2e`
 
 ---
 
-## Phase 3: Documentation & Polish (Day 3)
+### E2E Test 3: Multiple domains
 
-### 3.1 Update README.md
+**Test File:** `src/server.spec.e2e.ts`
 
-- [ ] Add "Domain Filtering" section with examples
-- [ ] Add "Read-Only Mode" section with examples
-- [ ] Add "Tool Reduction Examples" table
-- [ ] Add combined usage example
-- [ ] Commit: `docs: add domain filtering and read-only mode usage`
+- [ ] **RED:** Write failing test
+  ```typescript
+  test('should load 9 tools when --domains core work-items', async () => {
+    const client = await createClientWithArgs(['--domains', 'core', 'work-items']);
+    const tools = await client.listTools();
+    
+    expect(tools.tools).toHaveLength(9);
+  });
+  ```
 
-### 3.2 Update Tool Documentation
+- [ ] **GREEN:** Verify implementation supports multiple domains
 
-- [ ] Update `docs/tools/README.md`
-  - [ ] Add "Tools by Domain" section
-  - [ ] List tools for each domain
-  - [ ] Mark read-only vs write operations
-  - [ ] Commit: `docs: categorize tools by domain and operation type`
-
-### 3.3 Final Testing
-
-- [ ] Run full test suite: `npm test`
-- [ ] Test manually:
-  - [ ] `npm run start` - loads all 43 tools
-  - [ ] `npm run start -- --domains work-items` - loads 5 tools
-  - [ ] `npm run start -- --read-only` - loads ~22 tools
-  - [ ] `npm run start -- --domains work-items --read-only` - loads 2 tools
-- [ ] Verify no regressions
-- [ ] Check code coverage maintained
-
-### 3.4 Code Review
-
-- [ ] Run `npm run lint` - no errors
-- [ ] Run `npm run format` - code formatted
-- [ ] Review all changes
-- [ ] Ensure consistent code style
-- [ ] Verify error handling
-- [ ] Check edge cases
+- [ ] Run test: `npm run test:e2e`
 
 ---
 
-## Final Steps
+## Feature 2: Read-Only Mode
 
-- [ ] Create pull request
-- [ ] Reference research: `docs/research/tool-loading-strategies.md`
-- [ ] Reference implementation plan: `docs/implementation/domain-filtering-tdd-plan.md`
-- [ ] Request code review
-- [ ] Address feedback
-- [ ] Merge to main
+### E2E Test 4: Read-only filters write operations
+
+**Test File:** `src/server.spec.e2e.ts`
+
+- [ ] **RED:** Write failing test
+  ```typescript
+  test('should load only read operations when --read-only', async () => {
+    const client = await createClientWithArgs(['--read-only']);
+    const tools = await client.listTools();
+    
+    const names = tools.tools.map(t => t.name);
+    expect(names).toContain('list_work_items');
+    expect(names).toContain('get_work_item');
+    expect(names).not.toContain('create_work_item');
+    expect(names).not.toContain('update_work_item');
+  });
+  ```
+
+- [ ] **GREEN:** Implement
+  1. Add `readOnly?: boolean` to `ToolDefinition` type
+  2. Mark all tools as `readOnly: true` or `readOnly: false`
+  3. Update `src/index.ts` - Parse `--read-only` flag
+  4. Update `src/server.ts` - Filter tools by readOnly flag
+
+- [ ] Run test: `npm run test:e2e`
 
 ---
 
-## Success Criteria
+## Feature 3: Combined Filtering
 
-✅ All 43 tools load by default (backward compatible)  
-✅ Domain filtering reduces tools by 50-90%  
-✅ Read-only mode reduces tools by 30-50%  
-✅ Combined filtering achieves 70-95% reduction  
-✅ All tests pass (unit + E2E + integration)  
-✅ Zero breaking changes  
-✅ Documentation complete  
+### E2E Test 5: Domain + Read-only (95% reduction)
+
+**Test File:** `src/server.spec.e2e.ts`
+
+- [ ] **RED:** Write failing test
+  ```typescript
+  test('should load 2 tools when --domains work-items --read-only', async () => {
+    const client = await createClientWithArgs(['--domains', 'work-items', '--read-only']);
+    const tools = await client.listTools();
+    
+    expect(tools.tools).toHaveLength(2);
+    const names = tools.tools.map(t => t.name);
+    expect(names).toEqual(['list_work_items', 'get_work_item']);
+  });
+  ```
+
+- [ ] **GREEN:** Verify both filters work together
+
+- [ ] Run test: `npm run test:e2e`
 
 ---
 
-## Quick Commands
+## Documentation
 
-```bash
-# Run tests
-npm run test:unit -- --watch
-npm run test:e2e
-npm test
+- [ ] Update `README.md` with usage examples
+- [ ] Add tool count table to README
 
-# Build
-npm run build
+---
 
-# Lint & format
-npm run lint
-npm run format
+## Final Verification
 
-# Manual testing
-npm run start -- --domains work-items
-npm run start -- --read-only
-npm run start -- --domains work-items --read-only
+- [ ] All E2E tests pass: `npm run test:e2e`
+- [ ] All tests pass: `npm test`
+- [ ] Manual test: `npm run start` loads 43 tools
+- [ ] Manual test: `npm run start -- --domains work-items` loads 5 tools
+- [ ] Manual test: `npm run start -- --read-only` loads ~22 tools
+- [ ] Manual test: `npm run start -- --domains work-items --read-only` loads 2 tools
+
+---
+
+## Commit & PR
+
+- [ ] Commit: `feat: add domain filtering and read-only mode`
+- [ ] Push and create PR
+- [ ] Link to research docs in PR description
+
+---
+
+## Domain Mapping Reference
+
+```
+Domain.CORE → organizations, projects, users (4 tools)
+Domain.WORK_ITEMS → work-items (5 tools)
+Domain.REPOSITORIES → repositories (9 tools)
+Domain.PULL_REQUESTS → pull-requests (7 tools)
+Domain.PIPELINES → pipelines (8 tools)
+Domain.WIKIS → wikis (6 tools)
+Domain.SEARCH → search (3 tools)
 ```
 
----
+## Tool Counts
 
-## Expected Tool Counts
-
-| Configuration | Tools |
-|---------------|-------|
-| Default | 43 |
-| `--domains core` | 4 |
-| `--domains work-items` | 5 |
-| `--domains work-items --read-only` | 2 |
-| `--read-only` | 20-25 |
-
----
-
-**Reference:** See `docs/implementation/domain-filtering-tdd-plan.md` for detailed specifications
+| Config | Tools | Reduction |
+|--------|-------|-----------|
+| Default | 43 | 0% |
+| `--domains work-items` | 5 | 88% |
+| `--read-only` | ~22 | 49% |
+| `--domains work-items --read-only` | 2 | 95% |
