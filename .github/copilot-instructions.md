@@ -2,164 +2,247 @@
 
 Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
 
-## Working Effectively
-- Bootstrap, build, and test the repository:
-  - `npm install` -- takes 25 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
-  - `npm run build` -- takes 5 seconds. Compiles TypeScript to `dist/` directory.
-  - `npm run lint` -- takes 3 seconds. Runs ESLint for code quality.
-  - `npm run format` -- takes 3 seconds. Runs Prettier for code formatting.
-- Test the application:
-  - `npm run test:unit` -- takes 19 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
-  - `npm run test:int` -- takes 18 seconds. NEVER CANCEL. Set timeout to 60+ seconds. Requires Azure DevOps credentials.
-  - `npm run test:e2e` -- takes 6 seconds. NEVER CANCEL. Set timeout to 30+ seconds. Requires Azure DevOps credentials.
-  - `npm test` -- runs all tests, takes 45 seconds total. NEVER CANCEL. Set timeout to 90+ seconds.
-- Run the application:
-  - **ALWAYS** configure environment first using `.env` file (copy from `.env.example`).
-  - Development: `npm run dev` -- runs with auto-restart using ts-node-dev.
-  - Production: `npm run start` -- runs compiled version from `dist/index.js`.
-  - Debugging: `npm run inspector` -- runs server with MCP Inspector tool.
+## Prerequisites
+
+You need to have `Node.js` and `npm` installed. Node 20 (LTS) or later is recommended for development.
+
+## Building and Running
+
+### 1. Install Dependencies
+```bash
+npm install  # Takes ~25 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
+```
+
+### 2. Build the Server
+```bash
+npm run build  # Takes ~5 seconds. Compiles TypeScript to `dist/` directory.
+```
+
+### 3. Run Tests
+```bash
+# Unit tests (no Azure DevOps credentials required)
+npm run test:unit  # Takes ~19 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
+
+# Integration tests (requires Azure DevOps credentials)
+npm run test:int  # Takes ~18 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
+
+# E2E tests (requires Azure DevOps credentials)
+npm run test:e2e  # Takes ~6 seconds. NEVER CANCEL. Set timeout to 30+ seconds.
+
+# All tests
+npm test  # Takes ~45 seconds total. NEVER CANCEL. Set timeout to 90+ seconds.
+```
+
+### 4. Code Quality
+```bash
+npm run lint       # Takes ~3 seconds. Runs ESLint for code quality.
+npm run lint:fix   # Auto-fix linting issues.
+npm run format     # Takes ~3 seconds. Runs Prettier for code formatting.
+```
+
+### 5. Run the Server
+```bash
+# IMPORTANT: Always configure environment first using `.env` file (copy from `.env.example`)
+
+npm run dev        # Development mode with auto-restart using ts-node-dev
+npm run start      # Production mode - runs compiled version from `dist/index.js`
+npm run inspector  # Debug mode with MCP Inspector tool
+```
 
 ## Environment Setup
-- Copy `.env.example` to `.env` and configure Azure DevOps credentials.
-- Required environment variables:
-  - `AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization`
-  - `AZURE_DEVOPS_AUTH_METHOD=pat` (or `azure-identity`, `azure-cli`)
-  - `AZURE_DEVOPS_PAT=your-personal-access-token` (for PAT auth)
-  - `AZURE_DEVOPS_DEFAULT_PROJECT=your-project-name` (optional)
-- Use the `setup_env.sh` script for interactive environment setup with Azure CLI.
-- Application will fail gracefully with clear error messages if credentials are missing.
-- **For detailed setup**: See `docs/authentication.md` for comprehensive authentication guides
-- **For ready-to-use configurations**: Copy from `docs/examples/` directory (PAT, Azure Identity, Azure CLI)
-- **For CI/CD environments**: Reference `docs/ci-setup.md` for secrets configuration
 
-## Validation
-- ALWAYS run through complete validation steps after making changes:
-  - `npm run lint:fix && npm run format` -- must pass before committing.
-  - `npm run build && npm run test:unit` -- must complete successfully.
-  - If you have Azure DevOps credentials: `npm run test:int && npm run test:e2e`.
-- ALWAYS manually test actual functionality when changing core features:
-  - Configure `.env` file (copy from `.env.example` and update values).
-  - Test server startup with `npm run dev` -- should start or fail gracefully with clear error messages.
-  - Test MCP protocol using `npm run inspector` (requires working Azure DevOps credentials).
-- ALWAYS run the full test suite at least once before completing your work.
-- Unit tests must pass even without Azure DevOps credentials -- they use mocks for all external dependencies.
+Copy `.env.example` to `.env` and configure Azure DevOps credentials:
 
-## Critical Timing Information
-- **NEVER CANCEL** build or test commands. All operations complete within reasonable time:
-  - Dependencies install: 25 seconds (use 60+ second timeout)
-  - Build compilation: 5 seconds 
-  - Unit tests: 19 seconds (use 60+ second timeout)
-  - Integration tests: 18 seconds (use 60+ second timeout) 
-  - E2E tests: 6 seconds (use 30+ second timeout)
-  - All tests combined: 45 seconds (use 90+ second timeout)
-- Lint and format operations are fast (3 seconds each).
+```bash
+cp .env.example .env
+# Edit .env with your Azure DevOps credentials
+```
+
+**Required environment variables:**
+```
+AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization
+AZURE_DEVOPS_AUTH_METHOD=pat  # Options: pat, azure-identity, azure-cli
+AZURE_DEVOPS_PAT=your-personal-access-token  # For PAT auth
+AZURE_DEVOPS_DEFAULT_PROJECT=your-project-name  # Optional
+```
+
+**Alternative setup methods:**
+- Use `./setup_env.sh` script for interactive environment setup with Azure CLI
+- See `docs/authentication.md` for comprehensive authentication guides
+- Copy from `docs/examples/` directory for ready-to-use configurations (PAT, Azure Identity, Azure CLI)
+- For CI/CD environments: Reference `docs/ci-setup.md` for secrets configuration
+
+**Note:** The application will fail gracefully with clear error messages if credentials are missing.
+
+## Submitting Changes
+
+Before submitting a PR, ensure:
+
+1. **Linting and formatting pass:**
+   ```bash
+   npm run lint:fix && npm run format
+   ```
+
+2. **Build succeeds:**
+   ```bash
+   npm run build
+   ```
+
+3. **Unit tests pass:**
+   ```bash
+   npm run test:unit
+   ```
+
+4. **Manual testing complete:**
+   - Configure `.env` file (copy from `.env.example` and update values)
+   - Test server startup: `npm run dev` (should start or fail gracefully with clear error messages)
+   - Test MCP protocol using `npm run inspector` (requires working Azure DevOps credentials)
+
+5. **Integration/E2E tests pass** (if you have Azure DevOps credentials):
+   ```bash
+   npm run test:int && npm run test:e2e
+   ```
+
+6. **Conventional commits:**
+   ```bash
+   npm run commit  # Use this for guided commit message creation
+   ```
+
+**Note:** Unit tests must pass even without Azure DevOps credentials - they use mocks for all external dependencies.
 
 ## Project Architecture
-- **TypeScript** project with strict configuration (`tsconfig.json`).
-- **Feature-based architecture** in `src/features/` - each Azure DevOps feature area is a separate module.
-- **MCP Protocol** implementation for AI assistant integration.
-- **Test pyramid**: Unit tests (`.spec.unit.ts`), Integration tests (`.spec.int.ts`), E2E tests (`.spec.e2e.ts`).
-- **Path aliases**: Use `@/` instead of relative imports (e.g., `import { something } from '@/shared/utils'`).
 
-## Common Development Tasks
+- **TypeScript** project with strict configuration (`tsconfig.json`)
+- **Feature-based architecture:** Each Azure DevOps feature area is a separate module in `src/features/`
+  - Example: `src/features/work-items/`, `src/features/projects/`, `src/features/repositories/`
+- **MCP Protocol** implementation for AI assistant integration using `@modelcontextprotocol/sdk`
+- **Test Strategy:** Testing Trophy approach (see `docs/testing/README.md`)
+  - Unit tests: `.spec.unit.ts` (mock all external dependencies, focus on logic)
+  - Integration tests: `.spec.int.ts` (test with real Azure DevOps APIs, requires credentials)
+  - E2E tests: `.spec.e2e.ts` (test complete MCP server functionality)
+  - Tests are co-located with feature code
+- **Path aliases:** Use `@/` instead of relative imports (e.g., `import { something } from '@/shared/utils'`)
 
-### Adding a New Feature
-- Create feature module in `src/features/[feature-name]/`
-- Include: `feature.ts`, `schema.ts`, `tool-definitions.ts`, `index.ts`
-- Add corresponding test files: `.spec.unit.ts`, `.spec.int.ts`
-- Register in `src/server.ts`
-- Follow existing patterns in other feature modules
+### Key Directories
+- `src/index.ts` and `src/server.ts` - Main server entry points
+- `src/features/[feature-name]/` - Feature modules
+- `src/shared/` - Shared utilities (auth, errors, types, config)
+- `src/clients/azure-devops.ts` - Azure DevOps client
+- `tests/setup.ts` - Test configuration
+- `docs/` - Comprehensive documentation (authentication, testing, tools)
 
-### Modifying Existing Features
-- Update logic in `src/features/[feature-name]/feature.ts`
-- Update schemas in `schemas.ts` if input/output changes
-- Update tool definitions if MCP interface changes
-- ALWAYS update or add tests
-- Run validation steps
+## Adding a New Feature
 
-### Working with Tests
-- Unit tests: Mock all external dependencies, focus on logic
-- Integration tests: Test with real Azure DevOps APIs (requires credentials)
-- E2E tests: Test complete MCP server functionality
-- Tests are co-located with feature code
-- Use `@/shared/test/test-helpers` for common test utilities
-- **For testing philosophy and patterns**: See `docs/testing/README.md` (Testing Trophy approach)
-- **For test setup and configuration**: See `docs/testing/setup.md` (environment variables, import patterns)
+Follow the Feature Module pattern used throughout the codebase:
 
-## Dependencies and Tools
-- **Core**: `@modelcontextprotocol/sdk` for MCP protocol
-- **Azure**: `azure-devops-node-api`, `@azure/identity` for Azure DevOps APIs
-- **Validation**: `zod` for schema validation and type safety
-- **Testing**: `jest` with different configs for unit/int/e2e tests
-- **Code Quality**: ESLint, Prettier, Husky for git hooks
-- **Development**: `ts-node-dev` for development server with auto-restart
+1. **Create feature module directory:**
+   ```
+   src/features/[feature-name]/
+   ```
 
-## CI/CD Information
-- GitHub Actions workflow in `.github/workflows/main.yml`
-- Runs on Pull Requests to `main` branch
-- Steps: Install → Lint → Build → Unit Tests → Integration Tests → E2E Tests
+2. **Add required files:**
+   - `feature.ts` - Core feature logic
+   - `schema.ts` - Zod schemas for input/output validation
+   - `tool-definitions.ts` - MCP tool definitions
+   - `index.ts` - Exports and request handlers
+
+3. **Add test files:**
+   - `feature.spec.unit.ts` - Unit tests (required)
+   - `feature.spec.int.ts` - Integration tests (if applicable)
+
+4. **Register the feature:**
+   - Add to `src/server.ts` following existing patterns
+
+5. **Reference existing modules:**
+   - See `src/features/work-items/` or `src/features/projects/` for complete examples
+   - Follow the same structure and naming conventions
+
+## Modifying Existing Features
+
+When updating existing features:
+
+1. **Update core logic:** `src/features/[feature-name]/feature.ts`
+2. **Update schemas:** `schemas.ts` (if input/output changes)
+3. **Update tool definitions:** `tool-definitions.ts` (if MCP interface changes)
+4. **Update or add tests:** Always update existing tests or add new ones
+5. **Run validation:** Execute the full validation workflow before committing
+
+## Dependencies
+
+**Core libraries:**
+- `@modelcontextprotocol/sdk` - MCP protocol implementation
+- `azure-devops-node-api` - Azure DevOps REST APIs
+- `@azure/identity` - Azure authentication
+- `zod` - Schema validation and type safety
+
+**Development tools:**
+- `jest` - Testing framework (with separate configs for unit/int/e2e tests)
+- `ts-node-dev` - Development server with auto-restart
+- `eslint` + `prettier` - Code quality and formatting
+- `husky` - Git hooks for commit validation
+
+**CI/CD:**
+- GitHub Actions workflow: `.github/workflows/main.yml`
+- Runs on PRs to `main`: Install → Lint → Build → Unit Tests → Integration Tests → E2E Tests
 - Integration and E2E tests require Azure DevOps secrets in CI
-- Use `npm run commit` for conventional commit messages
 - Release automation with `release-please`
 
-## Important Files and Locations
-- Main server entry: `src/index.ts` and `src/server.ts`
-- Feature modules: `src/features/[feature-name]/`
-- Shared utilities: `src/shared/` (auth, errors, types, config)
-- Azure DevOps client: `src/clients/azure-devops.ts`
-- Test setup: `tests/setup.ts`
-- Configuration: `tsconfig.json`, `.eslintrc.json`, `package.json`
+## Documentation
 
-## Documentation References
-The repository has extensive documentation in `docs/` that you should reference for specific scenarios:
+The repository has extensive documentation. Reference these for specific scenarios:
 
 ### Authentication & Configuration
-- **`docs/authentication.md`** - Complete authentication guide with all methods (PAT, Azure Identity, Azure CLI)
-- **`docs/azure-identity-authentication.md`** - Detailed Azure Identity setup and troubleshooting
-- **`docs/ci-setup.md`** - CI/CD environment setup and secrets configuration
-- **`docs/examples/`** - Ready-to-use environment configuration examples for each auth method
+- `docs/authentication.md` - Complete authentication guide (PAT, Azure Identity, Azure CLI)
+- `docs/azure-identity-authentication.md` - Detailed Azure Identity setup and troubleshooting
+- `docs/ci-setup.md` - CI/CD environment setup and secrets configuration
+- `docs/examples/` - Ready-to-use environment configuration examples
 
 ### Testing & Development
-- **`docs/testing/README.md`** - Testing Trophy approach, test types, and testing philosophy
-- **`docs/testing/setup.md`** - Test environment setup, import patterns, and VSCode integration
-- **`CONTRIBUTING.md`** - Complete development practices, commit guidelines, and workflow
+- `docs/testing/README.md` - Testing Trophy approach, test types, and testing philosophy
+- `docs/testing/setup.md` - Test environment setup, import patterns, VSCode integration
+- `CONTRIBUTING.md` - Development practices, commit guidelines, and workflow
 
 ### Tool & API Documentation  
-- **`docs/tools/README.md`** - Complete tool catalog with examples and response formats
-- **`docs/tools/[feature].md`** - Detailed documentation for each feature area (work-items, projects, etc.)
-- **`docs/tools/resources.md`** - Resource URI patterns for accessing repository content
+- `docs/tools/README.md` - Complete tool catalog with examples and response formats
+- `docs/tools/[feature].md` - Detailed docs for each feature area (work-items, projects, etc.)
+- `docs/tools/resources.md` - Resource URI patterns for accessing repository content
 
-### When to Reference Documentation
-- **Starting new feature development**: Review `CONTRIBUTING.md` and `docs/testing/README.md`
-- **Authentication issues**: Always check `docs/authentication.md` first
-- **Understanding available tools**: Browse `docs/tools/README.md` for tool catalog
-- **CI/CD problems**: Reference `docs/ci-setup.md` for environment configuration
-- **Testing patterns**: Use `docs/testing/setup.md` for proper test structure
-- **Environment setup**: Copy configurations from `docs/examples/` directory
+### When to Reference
+- **Starting new features:** Review `CONTRIBUTING.md` and `docs/testing/README.md`
+- **Authentication issues:** Check `docs/authentication.md` first
+- **Available tools:** Browse `docs/tools/README.md`
+- **CI/CD problems:** Reference `docs/ci-setup.md`
+- **Testing patterns:** Use `docs/testing/setup.md`
+- **Environment setup:** Copy from `docs/examples/`
 
-## Troubleshooting Common Issues
-- **Build fails**: Check TypeScript errors, ensure all imports are valid
-- **Tests fail**: Check if Azure DevOps credentials are properly configured for integration tests
-- **Lint errors**: Run `npm run lint:fix` to auto-fix, then address remaining issues
-- **Server won't start**: Verify `.env` file configuration, check error messages
-- **Import errors**: Use `@/` path aliases, check `tsconfig.json` paths configuration
-- **Authentication issues**: See `docs/authentication.md` for comprehensive setup guides and troubleshooting
-- **CI/CD failures**: Reference `docs/ci-setup.md` for proper secrets configuration
-- **Test setup problems**: Check `docs/testing/setup.md` for environment variables and patterns
-- **Unknown tool capabilities**: Browse `docs/tools/README.md` for complete tool documentation
+## Troubleshooting
 
-## Development Workflow Summary
-1. Create or checkout feature branch from `main`
-2. Install dependencies: `npm install` (first time or after dependency changes)
-3. Make code changes following existing patterns in `src/features/`
-4. Write or update tests (unit required, integration if you have Azure DevOps access)
-5. Validate changes:
-   - `npm run lint:fix && npm run format`
-   - `npm run build && npm run test:unit`
-   - Copy `.env.example` to `.env` and test startup: `npm run dev`
-6. If you have Azure DevOps access: run `npm run test:int && npm run test:e2e`
-7. Test actual functionality manually using `npm run inspector`
-8. Commit using `npm run commit` for conventional commits
-9. Create Pull Request
+**Build fails:**
+- Check TypeScript errors
+- Ensure all imports are valid
+- Verify `tsconfig.json` paths configuration
 
-Always ensure the CI pipeline will pass by running the same checks locally before pushing.
+**Tests fail:**
+- Unit tests: Should pass without Azure DevOps credentials (they use mocks)
+- Integration/E2E tests: Check `.env` file has valid Azure DevOps credentials
+- See `docs/testing/setup.md` for environment variables and patterns
+
+**Lint errors:**
+- Run `npm run lint:fix` to auto-fix common issues
+- Check ESLint rules in `.eslintrc.json`
+
+**Server won't start:**
+- Verify `.env` file configuration
+- Check error messages for missing environment variables
+- See `docs/authentication.md` for comprehensive setup guides
+
+**Authentication issues:**
+- See `docs/authentication.md` for comprehensive troubleshooting
+- For CI/CD: Reference `docs/ci-setup.md` for proper secrets configuration
+
+**Import errors:**
+- Use `@/` path aliases instead of relative imports
+- Verify `tsconfig.json` paths configuration
+
+**Unknown tool capabilities:**
+- Browse `docs/tools/README.md` for complete tool documentation
