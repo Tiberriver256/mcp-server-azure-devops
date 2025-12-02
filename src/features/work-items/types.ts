@@ -25,7 +25,6 @@ export interface CreateWorkItemOptions {
   areaPath?: string;
   iterationPath?: string;
   priority?: number;
-  severity?: string;
   parentId?: number;
   additionalFields?: Record<string, string | number | boolean | null>;
 }
@@ -40,7 +39,6 @@ export interface UpdateWorkItemOptions {
   areaPath?: string;
   iterationPath?: string;
   priority?: number;
-  severity?: string;
   state?: string;
   additionalFields?: Record<string, string | number | boolean | null>;
 }

@@ -75,14 +75,6 @@ export async function updateWorkItem(
       });
     }
 
-    if (options.severity) {
-      document.push({
-        op: 'add',
-        path: '/fields/Microsoft.VSTS.Common.Severity',
-        value: options.severity,
-      });
-    }
-
     if (options.state) {
       document.push({
         op: 'add',

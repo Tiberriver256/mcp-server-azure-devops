@@ -51,36 +51,4 @@ describe('updateWorkItem unit', () => {
       updateWorkItem(mockConnection, 123, { title: 'Updated Title' }),
     ).rejects.toThrow('Failed to update work item: Unexpected error');
   });
-
-  test('should include severity field in work item update', async () => {
-    // Arrange
-    const mockUpdateWorkItem = jest.fn().mockResolvedValue({
-      id: 123,
-      fields: {
-        'System.Title': 'Test Bug',
-        'Microsoft.VSTS.Common.Severity': '2 - High',
-      },
-    });
-
-    const mockConnection: any = {
-      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
-        updateWorkItem: mockUpdateWorkItem,
-      }),
-    };
-
-    // Act
-    await updateWorkItem(mockConnection, 123, {
-      severity: '2 - High',
-    });
-
-    // Assert
-    expect(mockUpdateWorkItem).toHaveBeenCalled();
-    const document = mockUpdateWorkItem.mock.calls[0][1];
-    const severityField = document.find(
-      (op: { path: string }) =>
-        op.path === '/fields/Microsoft.VSTS.Common.Severity',
-    );
-    expect(severityField).toBeDefined();
-    expect(severityField.value).toBe('2 - High');
-  });
 });
