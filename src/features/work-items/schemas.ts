@@ -67,6 +67,12 @@ export const CreateWorkItemSchema = z.object({
     .optional()
     .describe('The iteration path for the work item'),
   priority: z.number().optional().describe('The priority of the work item'),
+  severity: z
+    .string()
+    .optional()
+    .describe(
+      'The severity of the work item (e.g., "1 - Critical", "2 - High", "3 - Medium", "4 - Low")',
+    ),
   parentId: z
     .number()
     .optional()
@@ -107,6 +113,12 @@ export const UpdateWorkItemSchema = z.object({
     .number()
     .optional()
     .describe('The updated priority of the work item'),
+  severity: z
+    .string()
+    .optional()
+    .describe(
+      'The updated severity of the work item (e.g., "1 - Critical", "2 - High", "3 - Medium", "4 - Low")',
+    ),
   state: z.string().optional().describe('The updated state of the work item'),
   additionalFields: z
     .record(z.string(), z.any())

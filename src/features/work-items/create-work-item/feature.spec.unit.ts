@@ -60,4 +60,38 @@ describe('createWorkItem unit', () => {
       }),
     ).rejects.toThrow('Failed to create work item: Unexpected error');
   });
+
+  test('should include severity field in work item creation', async () => {
+    // Arrange
+    const mockCreateWorkItem = jest.fn().mockResolvedValue({
+      id: 123,
+      fields: {
+        'System.Title': 'Test Bug',
+        'Microsoft.VSTS.Common.Severity': '1 - Critical',
+      },
+    });
+
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        createWorkItem: mockCreateWorkItem,
+      }),
+      serverUrl: 'https://dev.azure.com/testorg',
+    };
+
+    // Act
+    await createWorkItem(mockConnection, 'TestProject', 'Bug', {
+      title: 'Test Bug',
+      severity: '1 - Critical',
+    });
+
+    // Assert
+    expect(mockCreateWorkItem).toHaveBeenCalled();
+    const document = mockCreateWorkItem.mock.calls[0][1];
+    const severityField = document.find(
+      (op: { path: string }) =>
+        op.path === '/fields/Microsoft.VSTS.Common.Severity',
+    );
+    expect(severityField).toBeDefined();
+    expect(severityField.value).toBe('1 - Critical');
+  });
 });
