@@ -1,5 +1,8 @@
 # Azure DevOps MCP Server
 
+[![Run in Smithery](https://smithery.ai/badge/skills/tiberriver256)](https://smithery.ai/skills?ns=tiberriver256&utm_source=github&utm_medium=badge)
+
+
 A Model Context Protocol (MCP) server implementation for Azure DevOps, allowing AI assistants to interact with Azure DevOps APIs through a standardized protocol.
 
 ## Overview
