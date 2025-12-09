@@ -7,6 +7,9 @@ This document describes the tools available for working with Azure DevOps work i
 - [`get_work_item`](#get_work_item) - Retrieve a specific work item by ID
 - [`create_work_item`](#create_work_item) - Create a new work item
 - [`list_work_items`](#list_work_items) - List work items in a project
+- [`create_work_item_attachment`](#create_work_item_attachment) - Upload and attach a file to a work item
+- [`get_work_item_attachment`](#get_work_item_attachment) - Download an attachment from Azure DevOps
+- [`delete_work_item_attachment`](#delete_work_item_attachment) - Delete an attachment from a work item
 
 ## get_work_item
 
@@ -180,3 +183,207 @@ const result = await callTool('list_work_items', {
   top: 10,
 });
 ```
+
+## create_work_item_attachment
+
+Uploads a file from the local filesystem and attaches it to a work item.
+
+### Parameters
+
+| Parameter    | Type   | Required | Description                                                                                      |
+| ------------ | ------ | -------- | ------------------------------------------------------------------------------------------------ |
+| `workItemId` | number | Yes      | The ID of the work item to attach the file to                                                    |
+| `filePath`   | string | Yes      | The absolute path to the file to upload as an attachment                                         |
+| `fileName`   | string | No       | The name to use for the attachment. If not provided, the name will be extracted from the file path |
+| `comment`    | string | No       | Optional comment for the attachment                                                              |
+
+### Response
+
+Returns the updated work item object with the attachment included in the `relations` array:
+
+```json
+{
+  "id": 123,
+  "fields": {
+    "System.Title": "Sample Work Item",
+    "System.State": "Active"
+  },
+  "relations": [
+    {
+      "rel": "AttachedFile",
+      "url": "https://dev.azure.com/organization/_apis/wit/attachments/abc123",
+      "attributes": {
+        "name": "document.pdf",
+        "comment": "Attached specification document"
+      }
+    }
+  ],
+  "url": "https://dev.azure.com/organization/project/_apis/wit/workItems/123"
+}
+```
+
+### Error Handling
+
+- Returns error if the file path is empty
+- Returns error if the file does not exist at the specified path
+- Returns `AzureDevOpsAuthenticationError` if authentication fails
+- Returns generic error messages for other failures
+
+### Example Usage
+
+```javascript
+// Basic attachment upload
+const result = await callTool('create_work_item_attachment', {
+  workItemId: 123,
+  filePath: '/path/to/document.pdf',
+});
+
+// With custom file name and comment
+const result = await callTool('create_work_item_attachment', {
+  workItemId: 123,
+  filePath: '/path/to/spec.md',
+  fileName: 'Technical-Specification.md',
+  comment: 'Updated technical specification document',
+});
+```
+
+### Implementation Details
+
+The tool performs a two-step process:
+1. Uploads the file content to Azure DevOps attachment storage using `createAttachment`
+2. Updates the work item to add a relation of type `AttachedFile` pointing to the uploaded attachment URL
+
+The attachment is stored in Azure DevOps and linked to the work item through the relations system.
+
+## get_work_item_attachment
+
+Downloads an attachment from Azure DevOps and saves it to the local filesystem.
+
+### Parameters
+
+| Parameter      | Type   | Required | Description                                                                                           |
+| -------------- | ------ | -------- | ----------------------------------------------------------------------------------------------------- |
+| `attachmentId` | string | Yes      | The ID (GUID) of the attachment to download. Can be obtained from the work item relations.            |
+| `outputPath`   | string | Yes      | The absolute path where the attachment will be saved                                                  |
+
+### Response
+
+Returns a result object with information about the downloaded file:
+
+```json
+{
+  "filePath": "/path/to/downloaded/document.pdf",
+  "fileName": "document.pdf",
+  "size": 1048576
+}
+```
+
+### Error Handling
+
+- Returns error if the attachment ID is empty
+- Returns error if the output path is empty
+- Returns error if the attachment does not exist
+- Returns `AzureDevOpsAuthenticationError` if authentication fails
+- Returns generic error messages for other failures
+
+### Example Usage
+
+```javascript
+// First, get the work item to find the attachment ID
+const workItem = await callTool('get_work_item', {
+  workItemId: 123,
+  expand: 'relations',
+});
+
+// Find the attachment relation and extract the ID from the URL
+const attachmentRelation = workItem.relations.find(
+  (r) => r.rel === 'AttachedFile',
+);
+const attachmentUrl = attachmentRelation.url;
+// URL format: https://dev.azure.com/org/_apis/wit/attachments/{attachmentId}
+const attachmentId = attachmentUrl.split('/').pop();
+
+// Download the attachment
+const result = await callTool('get_work_item_attachment', {
+  attachmentId: attachmentId,
+  outputPath: '/path/to/save/document.pdf',
+});
+```
+
+### Implementation Details
+
+The tool performs the following steps:
+1. Validates the attachment ID and output path are provided
+2. Calls the Azure DevOps API to download the attachment content stream
+3. Creates the output directory if it doesn't exist
+4. Writes the attachment content to the specified output file
+5. Returns information about the downloaded file including its size
+
+## delete_work_item_attachment
+
+Deletes an attachment from a work item by removing the attachment relation.
+
+### Parameters
+
+| Parameter      | Type   | Required | Description                                                                                           |
+| -------------- | ------ | -------- | ----------------------------------------------------------------------------------------------------- |
+| `workItemId`   | number | Yes      | The ID of the work item to delete the attachment from                                                 |
+| `attachmentId` | string | Yes      | The ID (GUID) of the attachment to delete. Can be obtained from the work item relations.              |
+
+### Response
+
+Returns the updated work item object without the deleted attachment:
+
+```json
+{
+  "id": 123,
+  "fields": {
+    "System.Title": "Sample Work Item",
+    "System.State": "Active"
+  },
+  "relations": [],
+  "url": "https://dev.azure.com/organization/project/_apis/wit/workItems/123"
+}
+```
+
+### Error Handling
+
+- Returns error if the work item ID is not provided or invalid
+- Returns error if the attachment ID is empty
+- Returns error if the attachment does not exist on the work item
+- Returns `AzureDevOpsAuthenticationError` if authentication fails
+- Returns generic error messages for other failures
+
+### Example Usage
+
+```javascript
+// First, get the work item to find the attachment ID
+const workItem = await callTool('get_work_item', {
+  workItemId: 123,
+  expand: 'relations',
+});
+
+// Find the attachment relation and extract the ID from the URL
+const attachmentRelation = workItem.relations.find(
+  (r) => r.rel === 'AttachedFile',
+);
+const attachmentUrl = attachmentRelation.url;
+// URL format: https://dev.azure.com/org/_apis/wit/attachments/{attachmentId}
+const attachmentId = attachmentUrl.split('/').pop();
+
+// Delete the attachment
+const result = await callTool('delete_work_item_attachment', {
+  workItemId: 123,
+  attachmentId: attachmentId,
+});
+```
+
+### Implementation Details
+
+The tool performs the following steps:
+1. Validates the work item ID and attachment ID are provided
+2. Fetches the work item with its relations to find the attachment
+3. Locates the attachment relation by matching the attachment ID in the URL
+4. Creates a JSON patch document to remove the specific relation by index
+5. Updates the work item to remove the attachment relation
+6. Returns the updated work item without the attachment
