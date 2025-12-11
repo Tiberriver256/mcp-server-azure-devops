@@ -24,6 +24,18 @@ jest.mock('./manage-work-item-link', () => ({
   manageWorkItemLink: jest.fn(),
 }));
 
+jest.mock('./create-work-item-attachment', () => ({
+  createWorkItemAttachment: jest.fn(),
+}));
+
+jest.mock('./get-work-item-attachment', () => ({
+  getWorkItemAttachment: jest.fn(),
+}));
+
+jest.mock('./delete-work-item-attachment', () => ({
+  deleteWorkItemAttachment: jest.fn(),
+}));
+
 // Helper function to create a valid CallToolRequest object
 const createCallToolRequest = (name: string, args: any): CallToolRequest => {
   return {
@@ -44,6 +56,9 @@ describe('Work Items Request Handlers', () => {
         'create_work_item',
         'update_work_item',
         'manage_work_item_link',
+        'create_work_item_attachment',
+        'get_work_item_attachment',
+        'delete_work_item_attachment',
       ];
 
       workItemsRequests.forEach((name) => {
@@ -109,6 +124,33 @@ describe('Work Items Request Handlers', () => {
           };
         });
 
+      jest
+        .spyOn(workItemModule.CreateWorkItemAttachmentSchema, 'parse')
+        .mockImplementation(() => {
+          return {
+            workItemId: 123,
+            filePath: '/path/to/file.txt',
+          };
+        });
+
+      jest
+        .spyOn(workItemModule.GetWorkItemAttachmentSchema, 'parse')
+        .mockImplementation(() => {
+          return {
+            attachmentId: 'abc-123-def-456',
+            outputPath: '/path/to/output.txt',
+          };
+        });
+
+      jest
+        .spyOn(workItemModule.DeleteWorkItemAttachmentSchema, 'parse')
+        .mockImplementation(() => {
+          return {
+            workItemId: 123,
+            attachmentId: 'abc-123-def-456',
+          };
+        });
+
       // Setup mocks for feature functions
       jest.spyOn(workItemModule, 'getWorkItem').mockResolvedValue({ id: 123 });
       jest
@@ -122,6 +164,17 @@ describe('Work Items Request Handlers', () => {
         .mockResolvedValue({ id: 123 });
       jest
         .spyOn(workItemModule, 'manageWorkItemLink')
+        .mockResolvedValue({ id: 123 });
+      jest
+        .spyOn(workItemModule, 'createWorkItemAttachment')
+        .mockResolvedValue({ id: 123, relations: [] });
+      jest.spyOn(workItemModule, 'getWorkItemAttachment').mockResolvedValue({
+        filePath: '/path/to/output.txt',
+        fileName: 'output.txt',
+        size: 1024,
+      });
+      jest
+        .spyOn(workItemModule, 'deleteWorkItemAttachment')
         .mockResolvedValue({ id: 123 });
     });
 
@@ -227,6 +280,84 @@ describe('Work Items Request Handlers', () => {
         relationType: 'System.LinkTypes.Hierarchy-Forward',
       });
       expect(workItemModule.manageWorkItemLink).toHaveBeenCalled();
+      expect(result).toEqual({
+        content: [{ type: 'text', text: JSON.stringify({ id: 123 }, null, 2) }],
+      });
+    });
+
+    it('should handle create_work_item_attachment requests', async () => {
+      const request = createCallToolRequest('create_work_item_attachment', {
+        workItemId: 123,
+        filePath: '/path/to/file.txt',
+      });
+
+      const result = await handleWorkItemsRequest(mockConnection, request);
+
+      expect(
+        workItemModule.CreateWorkItemAttachmentSchema.parse,
+      ).toHaveBeenCalledWith({
+        workItemId: 123,
+        filePath: '/path/to/file.txt',
+      });
+      expect(workItemModule.createWorkItemAttachment).toHaveBeenCalled();
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ id: 123, relations: [] }, null, 2),
+          },
+        ],
+      });
+    });
+
+    it('should handle get_work_item_attachment requests', async () => {
+      const request = createCallToolRequest('get_work_item_attachment', {
+        attachmentId: 'abc-123-def-456',
+        outputPath: '/path/to/output.txt',
+      });
+
+      const result = await handleWorkItemsRequest(mockConnection, request);
+
+      expect(
+        workItemModule.GetWorkItemAttachmentSchema.parse,
+      ).toHaveBeenCalledWith({
+        attachmentId: 'abc-123-def-456',
+        outputPath: '/path/to/output.txt',
+      });
+      expect(workItemModule.getWorkItemAttachment).toHaveBeenCalled();
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                filePath: '/path/to/output.txt',
+                fileName: 'output.txt',
+                size: 1024,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      });
+    });
+
+    it('should handle delete_work_item_attachment requests', async () => {
+      const request = createCallToolRequest('delete_work_item_attachment', {
+        workItemId: 123,
+        attachmentId: 'abc-123-def-456',
+      });
+
+      const result = await handleWorkItemsRequest(mockConnection, request);
+
+      expect(
+        workItemModule.DeleteWorkItemAttachmentSchema.parse,
+      ).toHaveBeenCalledWith({
+        workItemId: 123,
+        attachmentId: 'abc-123-def-456',
+      });
+      expect(workItemModule.deleteWorkItemAttachment).toHaveBeenCalled();
       expect(result).toEqual({
         content: [{ type: 'text', text: JSON.stringify({ id: 123 }, null, 2) }],
       });
