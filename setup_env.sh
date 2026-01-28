@@ -54,6 +54,121 @@ YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+auth_method="azure-identity"
+pat_token=""
+
+write_env_file() {
+    echo -e "\n${YELLOW}Step 5: Creating .env file...${NC}"
+
+    cat > .env << EOF
+# Azure DevOps MCP Server - Environment Variables
+
+# Azure DevOps Organization Name (selected from your available organizations)
+AZURE_DEVOPS_ORG=$org_name
+
+# Azure DevOps Organization URL (required)
+AZURE_DEVOPS_ORG_URL=$org_url
+
+AZURE_DEVOPS_AUTH_METHOD=$auth_method
+EOF
+
+    if [ "$auth_method" = "pat" ]; then
+cat >> .env << EOF
+
+# Personal Access Token (required for PAT authentication)
+AZURE_DEVOPS_PAT=$pat_token
+EOF
+    else
+cat >> .env << EOF
+
+# Personal Access Token (required for PAT authentication)
+# AZURE_DEVOPS_PAT=your-personal-access-token
+EOF
+    fi
+
+    # Add default project if specified
+    if [ ! -z "$default_project" ]; then
+cat >> .env << EOF
+
+# Default Project to use when not specified
+AZURE_DEVOPS_DEFAULT_PROJECT=$default_project
+EOF
+    else
+cat >> .env << EOF
+
+# Default Project to use when not specified (optional)
+# AZURE_DEVOPS_DEFAULT_PROJECT=your-default-project
+EOF
+    fi
+
+    # Add remaining configuration
+    cat >> .env << EOF
+
+# API Version to use (optional, defaults to latest)
+# AZURE_DEVOPS_API_VERSION=6.0
+
+# Server Configuration
+PORT=3000
+HOST=localhost
+
+# Logging Level (debug, info, warn, error)
+LOG_LEVEL=info
+EOF
+
+    echo -e "\n${GREEN}Environment setup completed successfully!${NC}"
+    echo "Your .env file has been created with the following configuration:"
+    echo "- Organization: $org_name"
+    echo "- Organization URL: $org_url"
+    if [ ! -z "$default_project" ]; then
+        echo "- Default Project: $default_project"
+    fi
+    if [ "$auth_method" = "pat" ]; then
+        echo "- PAT: set"
+    else
+        echo "- PAT: not set"
+    fi
+    echo
+    echo "You can now run your Azure DevOps MCP Server with:"
+    echo "  npm run dev"
+    echo
+    echo "You can also run integration tests with:"
+    echo "  npm run test:integration"
+}
+
+if [ -n "$SETUP_ENV_NONINTERACTIVE" ]; then
+    org_name="${SETUP_ENV_ORG_NAME:-${AZURE_DEVOPS_ORG_NAME:-}}"
+    org_url="${SETUP_ENV_ORG_URL:-}"
+
+    if [ -z "$org_url" ] && [ -n "$org_name" ]; then
+        org_url="https://dev.azure.com/$org_name"
+    fi
+
+    if [ -z "$org_url" ]; then
+        org_url="${AZURE_DEVOPS_ORG_URL:-}"
+    fi
+
+    if [ -z "$org_name" ] && [ -n "$org_url" ]; then
+        org_name=$(echo "$org_url" | sed -n 's#https\?://dev\.azure\.com/\([^/]*\).*#\1#p')
+    fi
+
+    if [ -z "$org_name" ] || [ -z "$org_url" ]; then
+        handle_error "Non-interactive mode requires SETUP_ENV_ORG_NAME (or AZURE_DEVOPS_ORG_NAME) and/or SETUP_ENV_ORG_URL."
+        return 1 2>/dev/null || exit 1
+    fi
+
+    default_project="${AZURE_DEVOPS_DEFAULT_PROJECT:-}"
+    pat_token="${AZURE_DEVOPS_PAT:-}"
+    if [ -n "$AZURE_DEVOPS_AUTH_METHOD" ]; then
+        auth_method="$AZURE_DEVOPS_AUTH_METHOD"
+    elif [ -n "$pat_token" ]; then
+        auth_method="pat"
+    fi
+
+    write_env_file
+    echo -e "${NC}"
+    exit 0
+fi
+
 echo -e "${GREEN}Azure DevOps MCP Server - Environment Setup${NC}"
 echo "This script will help you set up your .env file with Azure DevOps credentials."
 echo
@@ -246,65 +361,20 @@ if [[ "$set_default_project" = "y" || "$set_default_project" = "Y" ]]; then
     fi
 fi
 
-# Create .env file
-echo -e "\n${YELLOW}Step 5: Creating .env file...${NC}"
+echo -e "\n${YELLOW}Step 4: Would you like to set up PAT authentication? (y/n)${NC}"
+read -p "Select option: " set_pat_auth
 
-cat > .env << EOF
-# Azure DevOps MCP Server - Environment Variables
-
-# Azure DevOps Organization Name (selected from your available organizations)
-AZURE_DEVOPS_ORG=$org_name
-
-# Azure DevOps Organization URL (required)
-AZURE_DEVOPS_ORG_URL=$org_url
-
-
-AZURE_DEVOPS_AUTH_METHOD=azure-identity
-EOF
-
-# Add default project if specified
-if [ ! -z "$default_project" ]; then
-cat >> .env << EOF
-
-# Default Project to use when not specified
-AZURE_DEVOPS_DEFAULT_PROJECT=$default_project
-EOF
-else
-cat >> .env << EOF
-
-# Default Project to use when not specified (optional)
-# AZURE_DEVOPS_DEFAULT_PROJECT=your-default-project
-EOF
+if [[ "$set_pat_auth" = "y" || "$set_pat_auth" = "Y" ]]; then
+    read -s -p "Enter your Azure DevOps PAT: " pat_token
+    echo
+    if [ -z "$pat_token" ]; then
+        handle_error "PAT is required when selecting PAT authentication."
+        return 1 2>/dev/null || exit 1
+    fi
+    auth_method="pat"
 fi
 
-# Add remaining configuration
-cat >> .env << EOF
-
-# API Version to use (optional, defaults to latest)
-# AZURE_DEVOPS_API_VERSION=6.0
-
-# Server Configuration
-PORT=3000
-HOST=localhost
-
-# Logging Level (debug, info, warn, error)
-LOG_LEVEL=info
-EOF
-
-echo -e "\n${GREEN}Environment setup completed successfully!${NC}"
-echo "Your .env file has been created with the following configuration:"
-echo "- Organization: $org_name"
-echo "- Organization URL: $org_url"
-if [ ! -z "$default_project" ]; then
-    echo "- Default Project: $default_project"
-fi
-echo "- PAT: Created with expanded scopes for full integration"
-echo
-echo "You can now run your Azure DevOps MCP Server with:"
-echo "  npm run dev"
-echo
-echo "You can also run integration tests with:"
-echo "  npm run test:integration"
+write_env_file
 
 # At the end of the script, ensure colors are reset
-echo -e "${NC}" 
+echo -e "${NC}"
