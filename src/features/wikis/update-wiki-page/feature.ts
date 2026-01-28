@@ -22,6 +22,7 @@ export async function updateWikiPage(options: UpdateWikiPageOptions) {
   // Create the client
   const client = await azureDevOpsClient.getWikiClient({
     organizationId: organizationId ?? defaultOrg,
+    projectId: projectId ?? defaultProject,
   });
 
   // Prepare the wiki page content

@@ -81,6 +81,7 @@ export async function createWiki(
     // Get the Wiki client
     const wikiClient = await getWikiClient({
       organizationId: options.organizationId,
+      projectId,
     });
 
     // Prepare the wiki creation parameters

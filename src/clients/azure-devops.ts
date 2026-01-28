@@ -7,6 +7,7 @@ import {
   AzureDevOpsPermissionError,
 } from '../shared/errors';
 import { defaultOrg, defaultProject } from '../utils/environment';
+import { resolveAzureDevOpsBaseUrls } from '../shared/azure-devops-url';
 
 interface AzureDevOpsApiErrorResponse {
   message?: string;
@@ -17,6 +18,8 @@ interface AzureDevOpsApiErrorResponse {
 
 interface ClientOptions {
   organizationId?: string;
+  organizationUrl?: string;
+  projectId?: string;
 }
 
 interface WikiCreateParameters {
@@ -61,11 +64,24 @@ interface PageUpdateOptions {
 
 export class WikiClient {
   private baseUrl: string;
-  private organizationId: string;
 
-  constructor(organizationId: string) {
-    this.organizationId = organizationId || defaultOrg;
-    this.baseUrl = `https://dev.azure.com/${this.organizationId}`;
+  constructor(options: {
+    organizationId?: string;
+    organizationUrl?: string;
+    projectId?: string;
+  }) {
+    const fallbackOrg = options.organizationId || defaultOrg;
+    const organizationUrl =
+      options.organizationUrl ??
+      process.env.AZURE_DEVOPS_ORG_URL ??
+      `https://dev.azure.com/${fallbackOrg}`;
+
+    const baseUrls = resolveAzureDevOpsBaseUrls(organizationUrl, {
+      organizationId: options.organizationId,
+      projectId: options.projectId,
+    });
+
+    this.baseUrl = baseUrls.coreBaseUrl;
   }
 
   /**
@@ -661,9 +677,11 @@ export class WikiClient {
 export async function getWikiClient(
   options: ClientOptions,
 ): Promise<WikiClient> {
-  const { organizationId } = options;
-
-  return new WikiClient(organizationId || defaultOrg);
+  return new WikiClient({
+    organizationId: options.organizationId,
+    organizationUrl: options.organizationUrl,
+    projectId: options.projectId,
+  });
 }
 
 /**

@@ -66,6 +66,7 @@ describe('listWikiPages unit', () => {
       // Assertions
       expect(mockGetWikiClient).toHaveBeenCalledWith({
         organizationId: 'test-org',
+        projectId: 'test-project',
       });
       expect(mockWikiClient.listWikiPages).toHaveBeenCalledWith(
         'test-project',
@@ -174,6 +175,7 @@ describe('listWikiPages unit', () => {
 
       expect(mockGetWikiClient).toHaveBeenCalledWith({
         organizationId: 'azure-devops-mcp-testing', // Uses default from environment
+        projectId: 'eShopOnWeb',
       });
       expect(result).toEqual(mockPages);
     });
@@ -440,6 +442,7 @@ describe('listWikiPages unit', () => {
 
       expect(mockGetWikiClient).toHaveBeenCalledWith({
         organizationId: 'azure-devops-mcp-testing', // Empty string gets overridden by default
+        projectId: 'eShopOnWeb',
       });
       expect(mockWikiClient.listWikiPages).toHaveBeenCalledWith(
         'eShopOnWeb', // Empty string gets overridden by default project

@@ -66,6 +66,7 @@ export const createWikiPage = async (
       // Create the client
       const wikiClient = await azureDevOpsClient.getWikiClient({
         organizationId: org,
+        projectId: project,
       });
 
       // Prepare the wiki page content

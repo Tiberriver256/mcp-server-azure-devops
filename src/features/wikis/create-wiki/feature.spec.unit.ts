@@ -51,7 +51,10 @@ describe('createWiki unit', () => {
     });
 
     // Assertions
-    expect(getWikiClient).toHaveBeenCalledWith({ organizationId: undefined });
+    expect(getWikiClient).toHaveBeenCalledWith({
+      organizationId: undefined,
+      projectId: 'project1',
+    });
     expect(mockWikiClient.createWiki).toHaveBeenCalledWith('project1', {
       name: 'Project Wiki',
       projectId: 'project1',
@@ -86,7 +89,10 @@ describe('createWiki unit', () => {
     });
 
     // Assertions
-    expect(getWikiClient).toHaveBeenCalledWith({ organizationId: undefined });
+    expect(getWikiClient).toHaveBeenCalledWith({
+      organizationId: undefined,
+      projectId: 'project1',
+    });
     expect(mockWikiClient.createWiki).toHaveBeenCalledWith('project1', {
       name: 'Code Wiki',
       projectId: 'project1',
@@ -132,7 +138,10 @@ describe('createWiki unit', () => {
     ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
 
     // Assertions
-    expect(getWikiClient).toHaveBeenCalledWith({ organizationId: undefined });
+    expect(getWikiClient).toHaveBeenCalledWith({
+      organizationId: undefined,
+      projectId: 'nonExistentProject',
+    });
     expect(mockWikiClient.createWiki).toHaveBeenCalled();
   });
 
@@ -153,7 +162,10 @@ describe('createWiki unit', () => {
     ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
 
     // Assertions
-    expect(getWikiClient).toHaveBeenCalledWith({ organizationId: undefined });
+    expect(getWikiClient).toHaveBeenCalledWith({
+      organizationId: undefined,
+      projectId: 'project1',
+    });
     expect(mockWikiClient.createWiki).toHaveBeenCalled();
   });
 
@@ -172,7 +184,10 @@ describe('createWiki unit', () => {
     ).rejects.toThrow(AzureDevOpsPermissionError);
 
     // Assertions
-    expect(getWikiClient).toHaveBeenCalledWith({ organizationId: undefined });
+    expect(getWikiClient).toHaveBeenCalledWith({
+      organizationId: undefined,
+      projectId: 'project1',
+    });
     expect(mockWikiClient.createWiki).toHaveBeenCalled();
   });
 
@@ -189,7 +204,10 @@ describe('createWiki unit', () => {
     ).rejects.toThrow(AzureDevOpsError);
 
     // Assertions
-    expect(getWikiClient).toHaveBeenCalledWith({ organizationId: undefined });
+    expect(getWikiClient).toHaveBeenCalledWith({
+      organizationId: undefined,
+      projectId: 'project1',
+    });
     expect(mockWikiClient.createWiki).toHaveBeenCalled();
   });
 });

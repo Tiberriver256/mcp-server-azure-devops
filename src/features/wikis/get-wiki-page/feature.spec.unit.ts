@@ -40,6 +40,7 @@ describe('getWikiPage unit', () => {
     expect(result).toBe(mockWikiPageContent);
     expect(azureDevOpsClient.getWikiClient).toHaveBeenCalledWith({
       organizationId: 'testOrg',
+      projectId: 'testProject',
     });
     expect(mockGetPage).toHaveBeenCalledWith(
       'testProject',
