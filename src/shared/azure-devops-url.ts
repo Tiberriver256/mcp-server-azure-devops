@@ -68,6 +68,15 @@ export function resolveAzureDevOpsBaseUrls(
   };
 }
 
+export function isAzureDevOpsServicesUrl(serverUrl: string): boolean {
+  try {
+    const url = new URL(serverUrl);
+    return isServicesHost(url.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
 function parseUrl(input: string): URL {
   try {
     const url = new URL(input);

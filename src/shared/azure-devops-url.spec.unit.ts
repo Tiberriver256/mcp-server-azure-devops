@@ -1,5 +1,8 @@
 import { AzureDevOpsValidationError } from './errors';
-import { resolveAzureDevOpsBaseUrls } from './azure-devops-url';
+import {
+  isAzureDevOpsServicesUrl,
+  resolveAzureDevOpsBaseUrls,
+} from './azure-devops-url';
 
 describe('resolveAzureDevOpsBaseUrls', () => {
   it('parses dev.azure.com org and builds base urls', () => {
@@ -105,5 +108,21 @@ describe('resolveAzureDevOpsBaseUrls', () => {
     expect(() => resolveAzureDevOpsBaseUrls('dev.azure.com/myorg')).toThrow(
       AzureDevOpsValidationError,
     );
+  });
+});
+
+describe('isAzureDevOpsServicesUrl', () => {
+  it('returns true for dev.azure.com and visualstudio.com urls', () => {
+    expect(isAzureDevOpsServicesUrl('https://dev.azure.com/my-org')).toBe(true);
+    expect(isAzureDevOpsServicesUrl('https://legacy.visualstudio.com')).toBe(
+      true,
+    );
+  });
+
+  it('returns false for server urls and invalid urls', () => {
+    expect(
+      isAzureDevOpsServicesUrl('https://ado.local/tfs/DefaultCollection'),
+    ).toBe(false);
+    expect(isAzureDevOpsServicesUrl('not-a-url')).toBe(false);
   });
 });

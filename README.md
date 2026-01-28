@@ -96,6 +96,25 @@ Be sure you are logged in to Azure CLI with `az login` then add the following:
 }
 ```
 
+Azure DevOps Server (on-prem) requires PAT authentication. Example:
+
+```json
+{
+  "mcpServers": {
+    "azureDevOps": {
+      "command": "npx",
+      "args": ["-y", "@tiberriver256/mcp-server-azure-devops"],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "https://server:8080/tfs/DefaultCollection",
+        "AZURE_DEVOPS_AUTH_METHOD": "pat",
+        "AZURE_DEVOPS_PAT": "<YOUR_PAT>",
+        "AZURE_DEVOPS_DEFAULT_PROJECT": "your-project-name"
+      }
+    }
+  }
+}
+```
+
 For detailed configuration instructions and more authentication options, see the [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md).
 
 ## Authentication Methods
@@ -110,6 +129,8 @@ This server supports multiple authentication methods for connecting to Azure Dev
 
 Example configuration files for each authentication method are available in the [examples directory](https://github.com/tiberriver256/mcp-server-azure-devops/tree/main/docs/examples).
 
+Azure DevOps Server (on-prem) supports PAT authentication only. Azure Identity and Azure CLI are supported for Azure DevOps Services.
+
 ## Environment Variables
 
 For a complete list of environment variables and their descriptions, see the [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md#configuration-reference).
@@ -119,7 +140,7 @@ Key environment variables include:
 | Variable                       | Description                                                                        | Required                     | Default          |
 | ------------------------------ | ---------------------------------------------------------------------------------- | ---------------------------- | ---------------- |
 | `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) - case-insensitive | No                           | `azure-identity` |
-| `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization                                         | Yes                          | -                |
+| `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization or Server collection (e.g., `https://server:8080/tfs/DefaultCollection`) | Yes                          | -                |
 | `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                                               | Only with PAT auth           | -                |
 | `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                                                  | No                           | -                |
 | `AZURE_DEVOPS_API_VERSION`     | API version to use                                                                 | No                           | Latest           |
@@ -149,11 +170,11 @@ The Azure DevOps MCP server provides a variety of tools for interacting with Azu
 
 ### User Tools
 
-- `get_me`: Get details of the authenticated user (id, displayName, email)
+- `get_me`: Get details of the authenticated user (id, displayName, email) (Azure DevOps Services only)
 
 ### Organization Tools
 
-- `list_organizations`: List all accessible organizations
+- `list_organizations`: List all accessible organizations (Azure DevOps Services only)
 
 ### Project Tools
 

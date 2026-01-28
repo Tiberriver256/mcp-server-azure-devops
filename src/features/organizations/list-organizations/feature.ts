@@ -3,10 +3,12 @@ import { AzureDevOpsConfig } from '../../../shared/types';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
+  AzureDevOpsValidationError,
 } from '../../../shared/errors';
 import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
 import { AuthenticationMethod } from '../../../shared/auth';
 import { Organization, AZURE_DEVOPS_RESOURCE_ID } from '../types';
+import { isAzureDevOpsServicesUrl } from '../../../shared/azure-devops-url';
 
 /**
  * Lists all Azure DevOps organizations accessible to the authenticated user
@@ -22,6 +24,12 @@ export async function listOrganizations(
   config: AzureDevOpsConfig,
 ): Promise<Organization[]> {
   try {
+    if (!isAzureDevOpsServicesUrl(config.organizationUrl)) {
+      throw new AzureDevOpsValidationError(
+        'The list_organizations endpoint is only available for Azure DevOps Services',
+      );
+    }
+
     // Determine auth method and create appropriate authorization header
     let authHeader: string;
 

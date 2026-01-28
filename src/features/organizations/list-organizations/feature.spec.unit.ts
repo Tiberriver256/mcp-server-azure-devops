@@ -1,5 +1,8 @@
 import { listOrganizations } from './feature';
-import { AzureDevOpsAuthenticationError } from '../../../shared/errors';
+import {
+  AzureDevOpsAuthenticationError,
+  AzureDevOpsValidationError,
+} from '../../../shared/errors';
 import axios from 'axios';
 import { AuthenticationMethod } from '../../../shared/auth';
 
@@ -36,6 +39,18 @@ describe('listOrganizations unit', () => {
     );
     await expect(listOrganizations(config)).rejects.toThrow(
       'Personal Access Token (PAT) is required',
+    );
+  });
+
+  test('should reject Azure DevOps Server organizationUrl', async () => {
+    const config = {
+      organizationUrl: 'https://ado.local/tfs/DefaultCollection',
+      authMethod: AuthenticationMethod.PersonalAccessToken,
+      personalAccessToken: 'test-pat',
+    };
+
+    await expect(listOrganizations(config)).rejects.toThrow(
+      AzureDevOpsValidationError,
     );
   });
 

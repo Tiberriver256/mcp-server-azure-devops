@@ -4,6 +4,7 @@ import { getMe } from './feature';
 import {
   AzureDevOpsError,
   AzureDevOpsAuthenticationError,
+  AzureDevOpsValidationError,
 } from '@/shared/errors';
 
 // Mock axios
@@ -133,6 +134,16 @@ describe('getMe', () => {
     );
     await expect(getMe(mockConnection)).rejects.toThrow(
       /Authentication failed/,
+    );
+  });
+
+  it('should reject Azure DevOps Server URLs', async () => {
+    mockConnection = {
+      serverUrl: 'https://ado.local/tfs/DefaultCollection',
+    } as WebApi;
+
+    await expect(getMe(mockConnection)).rejects.toThrow(
+      AzureDevOpsValidationError,
     );
   });
 

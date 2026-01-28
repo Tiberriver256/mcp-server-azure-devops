@@ -10,6 +10,8 @@ The Azure DevOps MCP Server supports three authentication methods:
 2. **Azure Identity (DefaultAzureCredential)** - Flexible authentication using the Azure Identity SDK
 3. **Azure CLI** - Authentication using your Azure CLI login
 
+Azure DevOps Server (on-prem) supports PAT authentication only. Azure Identity and Azure CLI are supported for Azure DevOps Services.
+
 ## Method 1: Personal Access Token (PAT) Authentication
 
 PAT authentication is the simplest method and works well for personal use or testing.
@@ -50,6 +52,8 @@ PAT authentication is the simplest method and works well for personal use or tes
 ## Method 2: Azure Identity Authentication (DefaultAzureCredential)
 
 Azure Identity authentication uses the `DefaultAzureCredential` class from the `@azure/identity` package, which provides a simplified authentication experience by trying multiple credential types in sequence.
+
+> Note: Azure Identity authentication is supported for Azure DevOps Services only.
 
 ### How DefaultAzureCredential Works
 
@@ -105,6 +109,8 @@ This makes it ideal for applications that need to work in different environments
 ## Method 3: Azure CLI Authentication
 
 Azure CLI authentication uses the `AzureCliCredential` class from the `@azure/identity` package, which authenticates using the Azure CLI's logged-in account.
+
+> Note: Azure CLI authentication is supported for Azure DevOps Services only.
 
 ### Setup Instructions
 

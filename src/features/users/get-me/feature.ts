@@ -6,6 +6,7 @@ import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsValidationError,
 } from '../../../shared/errors';
+import { isAzureDevOpsServicesUrl } from '../../../shared/azure-devops-url';
 import { UserProfile } from '../types';
 
 /**
@@ -19,6 +20,12 @@ import { UserProfile } from '../types';
  */
 export async function getMe(connection: WebApi): Promise<UserProfile> {
   try {
+    if (!isAzureDevOpsServicesUrl(connection.serverUrl)) {
+      throw new AzureDevOpsValidationError(
+        'The get_me profile endpoint is only available for Azure DevOps Services',
+      );
+    }
+
     // Extract organization from the connection URL
     const { organization } = extractOrgFromUrl(connection.serverUrl);
 

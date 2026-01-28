@@ -2,6 +2,7 @@ import { WebApi, getPersonalAccessTokenHandler } from 'azure-devops-node-api';
 import { BearerCredentialHandler } from 'azure-devops-node-api/handlers/bearertoken';
 import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
 import { AzureDevOpsAuthenticationError } from '../errors';
+import { isAzureDevOpsServicesUrl } from '../azure-devops-url';
 
 /**
  * Authentication methods supported by the Azure DevOps client
@@ -58,6 +59,15 @@ const AZURE_DEVOPS_RESOURCE_ID = '499b84ac-1321-427f-aa17-267ca6975798';
 export async function createAuthClient(config: AuthConfig): Promise<WebApi> {
   if (!config.organizationUrl) {
     throw new AzureDevOpsAuthenticationError('Organization URL is required');
+  }
+
+  if (
+    !isAzureDevOpsServicesUrl(config.organizationUrl) &&
+    config.method !== AuthenticationMethod.PersonalAccessToken
+  ) {
+    throw new AzureDevOpsAuthenticationError(
+      'Azure DevOps Server requires Personal Access Token authentication',
+    );
   }
 
   try {
