@@ -1,51 +1,58 @@
 import { WebApi } from 'azure-devops-node-api';
 import { createWiki } from './feature';
 import { WikiType } from './schema';
-import { getTestConnection } from '@/shared/test/test-helpers';
-import axios from 'axios';
+import {
+  getTestConnection,
+  shouldSkipIntegrationTest,
+} from '@/shared/test/test-helpers';
+import { getWikis } from '../get-wikis/feature';
+import { AzureDevOpsError } from '@/shared/errors';
 
-axios.interceptors.request.use((request) => {
-  console.log('Starting Request', JSON.stringify(request, null, 2));
-  return request;
-});
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
 
-describe('createWiki (Integration)', () => {
-  let connection: WebApi | null = null;
+describeOrSkip('createWiki (Integration)', () => {
+  let connection: WebApi;
   let projectName: string;
-  const testWikiName = `TestWiki_${new Date().getTime()}`;
 
   beforeAll(async () => {
-    // Get a real connection using environment variables
-    connection = await getTestConnection();
-    projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
-  });
-
-  test.skip('should create a project wiki', async () => {
-    // PERMANENTLY SKIPPED: Azure DevOps only allows one wiki per project.
-    // Running this test multiple times would fail after the first wiki is created.
-    // This test is kept for reference but cannot be run repeatedly.
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
       throw new Error(
-        'Connection should be available when test is not skipped',
+        'Connection should be available when integration tests are enabled',
       );
     }
+    connection = testConnection;
 
-    // Create the wiki
-    const wiki = await createWiki(connection, {
-      name: testWikiName,
-      projectId: projectName,
-      type: WikiType.ProjectWiki,
-    });
-
-    // Verify the wiki was created
-    expect(wiki).toBeDefined();
-    expect(wiki.name).toBe(testWikiName);
-    expect(wiki.projectId).toBe(projectName);
-    expect(wiki.type).toBe(WikiType.ProjectWiki);
+    projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '';
+    if (!projectName) {
+      throw new Error('AZURE_DEVOPS_DEFAULT_PROJECT must be set for this test');
+    }
   });
 
-  // NOTE: We're not testing code wiki creation since that requires a repository
-  // that would need to be created/cleaned up and is outside the scope of this test
+  test('should create a project wiki or report that it already exists', async () => {
+    const existing = await getWikis(connection, { projectId: projectName });
+    const expectedProjectWikiName = `${projectName}.wiki`;
+    const hasProjectWiki = existing.some(
+      (w) => w.name === expectedProjectWikiName,
+    );
+
+    const options = {
+      name: `${projectName}.wiki`,
+      projectId: projectName,
+      type: WikiType.ProjectWiki,
+    };
+
+    if (hasProjectWiki) {
+      await expect(createWiki(connection, options)).rejects.toThrow(
+        AzureDevOpsError,
+      );
+    } else {
+      const wiki = await createWiki(connection, options);
+
+      expect(wiki).toBeDefined();
+      expect(wiki.projectId).toBeDefined();
+      expect(String(wiki.type)).toBe('projectWiki');
+    }
+  }, 60000);
 });

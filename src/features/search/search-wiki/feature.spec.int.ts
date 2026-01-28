@@ -5,29 +5,26 @@ import {
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
 
-describe('searchWiki integration', () => {
-  let connection: WebApi | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('searchWiki integration', () => {
+  let connection: WebApi;
   let projectName: string;
 
   beforeAll(async () => {
     // Get a real connection using environment variables
-    connection = await getTestConnection();
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
     projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
   });
 
   test('should search wiki content', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Search the wiki
     const result = await searchWiki(connection, {
       searchText: 'test',
@@ -47,18 +44,6 @@ describe('searchWiki integration', () => {
   });
 
   test('should handle pagination correctly', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Get first page of results
     const page1 = await searchWiki(connection, {
       searchText: 'test', // Common word likely to have many results
@@ -80,18 +65,6 @@ describe('searchWiki integration', () => {
   });
 
   test('should handle filters correctly', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // This test is more of a smoke test since we can't guarantee specific projects
     const result = await searchWiki(connection, {
       searchText: 'test',

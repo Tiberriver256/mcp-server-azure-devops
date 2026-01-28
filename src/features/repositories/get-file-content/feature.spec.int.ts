@@ -5,24 +5,30 @@ import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { AzureDevOpsConfig } from '../../../shared/types';
 import { WebApi } from 'azure-devops-node-api';
 import { AuthenticationMethod } from '../../../shared/auth';
+import type { GitItem } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
-// Skip tests if no PAT is available
-const hasPat = process.env.AZURE_DEVOPS_PAT && process.env.AZURE_DEVOPS_ORG_URL;
-const describeOrSkip = hasPat ? describe : describe.skip;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
 
 describeOrSkip('getFileContent (Integration)', () => {
   let connection: WebApi;
   let config: AzureDevOpsConfig;
-  let repositoryId: string;
   let projectId: string;
+  let repositoryId: string;
   let knownFilePath: string;
 
   beforeAll(async () => {
-    if (shouldSkipIntegrationTest()) {
-      return;
+    projectId =
+      process.env.AZURE_DEVOPS_TEST_PROJECT_ID ||
+      process.env.AZURE_DEVOPS_DEFAULT_PROJECT ||
+      '';
+
+    if (!projectId) {
+      throw new Error(
+        'AZURE_DEVOPS_DEFAULT_PROJECT must be set (or AZURE_DEVOPS_TEST_PROJECT_ID) for this test',
+      );
     }
 
-    // Configuration values
     config = {
       organizationUrl: process.env.AZURE_DEVOPS_ORG_URL || '',
       authMethod: AuthenticationMethod.PersonalAccessToken,
@@ -30,37 +36,50 @@ describeOrSkip('getFileContent (Integration)', () => {
       defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '',
     };
 
-    // Use a test repository/project - should be defined in .env file
-    projectId =
-      process.env.AZURE_DEVOPS_TEST_PROJECT_ID ||
-      process.env.AZURE_DEVOPS_DEFAULT_PROJECT ||
-      '';
-    repositoryId = process.env.AZURE_DEVOPS_TEST_REPOSITORY_ID || '';
-    knownFilePath = process.env.AZURE_DEVOPS_TEST_FILE_PATH || '/README.md';
+    if (!config.organizationUrl || !config.personalAccessToken) {
+      throw new Error('Azure DevOps credentials are required for this test');
+    }
 
-    // Get Azure DevOps connection
     connection = await getConnection(config);
 
-    // Skip tests if no repository ID is set
+    const gitApi = await connection.getGitApi();
+
+    repositoryId =
+      process.env.AZURE_DEVOPS_TEST_REPOSITORY_ID ||
+      process.env.AZURE_DEVOPS_DEFAULT_REPOSITORY ||
+      '';
+
     if (!repositoryId) {
-      console.warn('Skipping integration tests: No test repository ID set');
+      const repos = await gitApi.getRepositories(projectId);
+      if (!repos || repos.length === 0 || !repos[0].id) {
+        throw new Error(
+          'No repositories found. Set AZURE_DEVOPS_DEFAULT_REPOSITORY or AZURE_DEVOPS_TEST_REPOSITORY_ID to run this test.',
+        );
+      }
+      repositoryId = repos[0].id;
+    }
+
+    knownFilePath = process.env.AZURE_DEVOPS_TEST_FILE_PATH || '';
+
+    // If no explicit file path, discover a file at repo root
+    if (!knownFilePath) {
+      const root = await getFileContent(
+        connection,
+        projectId,
+        repositoryId,
+        '/',
+      );
+      if (!root.isDirectory) {
+        knownFilePath = '/README.md';
+      } else {
+        const items = JSON.parse(root.content) as GitItem[];
+        const firstFile = items.find((i) => i.path && i.isFolder === false);
+        knownFilePath = firstFile?.path || '/README.md';
+      }
     }
   }, 30000);
 
-  // Skip all tests if integration tests are disabled
-  beforeEach(() => {
-    if (shouldSkipIntegrationTest()) {
-      jest.resetAllMocks();
-      return;
-    }
-  });
-
   it('should retrieve file content from the default branch', async () => {
-    // Skip test if no repository ID or if integration tests are disabled
-    if (shouldSkipIntegrationTest() || !repositoryId) {
-      return;
-    }
-
     const result = await getFileContent(
       connection,
       projectId,
@@ -75,12 +94,6 @@ describeOrSkip('getFileContent (Integration)', () => {
   }, 30000);
 
   it('should retrieve directory content', async () => {
-    // Skip test if no repository ID or if integration tests are disabled
-    if (shouldSkipIntegrationTest() || !repositoryId) {
-      return;
-    }
-
-    // Assume the root directory exists
     const result = await getFileContent(
       connection,
       projectId,
@@ -91,18 +104,12 @@ describeOrSkip('getFileContent (Integration)', () => {
     expect(result).toBeDefined();
     expect(result.content).toBeDefined();
     expect(result.isDirectory).toBe(true);
-    // Directory content is returned as JSON string of items
+
     const items = JSON.parse(result.content);
     expect(Array.isArray(items)).toBe(true);
   }, 30000);
 
   it('should handle specific version (branch)', async () => {
-    // Skip test if no repository ID or if integration tests are disabled
-    if (shouldSkipIntegrationTest() || !repositoryId) {
-      return;
-    }
-
-    // Use main/master branch
     const branchName = process.env.AZURE_DEVOPS_TEST_BRANCH || 'main';
 
     const result = await getFileContent(

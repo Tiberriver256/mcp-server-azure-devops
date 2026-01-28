@@ -21,6 +21,18 @@
       "rules": {
         "@typescript-eslint/no-explicit-any": "off"
       }
+    },
+    {
+      "files": ["**/*.spec.int.ts"],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "IfStatement:has(ReturnStatement[argument=null])",
+            "message": "No soft skips in integration tests. Use describe.skip/test.skip or explicit assertions."
+          }
+        ]
+      }
     }
   ],
   "parserOptions": {

@@ -10,8 +10,11 @@ import { getOrgNameFromUrl } from '@/utils/environment';
 process.env.AZURE_DEVOPS_DEFAULT_PROJECT =
   process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'default-project';
 
-describe('getWikiPage integration', () => {
-  let connection: WebApi | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('getWikiPage integration', () => {
+  let connection: WebApi;
   let projectName: string;
   let orgUrl: string;
 
@@ -20,7 +23,13 @@ describe('getWikiPage integration', () => {
     process.env.AZURE_DEVOPS_ORG_URL =
       process.env.AZURE_DEVOPS_ORG_URL || 'https://example.visualstudio.com';
     // Get a real connection using environment variables
-    connection = await getTestConnection();
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
 
     // Get and validate required environment variables
     const envProjectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
@@ -39,26 +48,10 @@ describe('getWikiPage integration', () => {
   });
 
   test('should retrieve a wiki page', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // First get available wikis
     const wikis = await getWikis(connection, { projectId: projectName });
 
-    // Skip if no wikis are available
-    if (wikis.length === 0) {
-      console.log('Skipping test: No wikis available in the project');
-      return;
-    }
+    expect(wikis.length).toBeGreaterThan(0);
 
     // Use the first available wiki
     const wiki = wikis[0];

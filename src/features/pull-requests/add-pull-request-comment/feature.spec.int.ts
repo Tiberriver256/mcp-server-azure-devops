@@ -1,160 +1,249 @@
 import { WebApi } from 'azure-devops-node-api';
+import {
+  ItemContentType,
+  VersionControlChangeType,
+} from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { addPullRequestComment } from './feature';
-import { listPullRequests } from '../list-pull-requests/feature';
+import { createPullRequest } from '../create-pull-request/feature';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
 
-describe('addPullRequestComment integration', () => {
-  let connection: WebApi | null = null;
-  let projectName: string;
-  let repositoryName: string;
-  let pullRequestId: number;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
 
-  // Generate unique identifiers using timestamp for comment content
+describeOrSkip('addPullRequestComment integration', () => {
+  let connection: WebApi;
+  let projectName: string;
+  let repositoryId: string;
+  let defaultBranchRef: string;
+  let pullRequestId: number;
+  let changedFilePath: string;
+
   const timestamp = Date.now();
   const randomSuffix = Math.floor(Math.random() * 1000);
+  const uniqueBranchName = `comment-test-branch-${timestamp}-${randomSuffix}`;
 
   beforeAll(async () => {
-    // Get a real connection using environment variables
-    connection = await getTestConnection();
-
-    // Set up project and repository names from environment
-    projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
-    repositoryName = process.env.AZURE_DEVOPS_DEFAULT_REPOSITORY || '';
-
-    // Skip setup if integration tests should be skipped
-    if (shouldSkipIntegrationTest() || !connection) {
-      return;
+    projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '';
+    if (!projectName) {
+      throw new Error('AZURE_DEVOPS_DEFAULT_PROJECT must be set for this test');
     }
 
-    try {
-      // Find an active pull request to use for testing
-      const pullRequests = await listPullRequests(
-        connection,
-        projectName,
-        repositoryName,
-        {
-          projectId: projectName,
-          repositoryId: repositoryName,
-          status: 'active',
-          top: 1,
-        },
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
       );
+    }
+    connection = testConnection;
 
-      if (!pullRequests || pullRequests.value.length === 0) {
-        throw new Error('No active pull requests found for testing');
+    const gitApi = await connection.getGitApi();
+
+    repositoryId = process.env.AZURE_DEVOPS_DEFAULT_REPOSITORY || '';
+    if (!repositoryId) {
+      const repos = await gitApi.getRepositories(projectName);
+      if (!repos || repos.length === 0 || !repos[0].id) {
+        throw new Error(
+          'No repositories found. Set AZURE_DEVOPS_DEFAULT_REPOSITORY to run pull request integration tests.',
+        );
       }
+      repositoryId = repos[0].id;
+    }
 
-      pullRequestId = pullRequests.value[0].pullRequestId!;
-      console.log(`Using existing pull request #${pullRequestId} for testing`);
-    } catch (error) {
-      console.error('Error in test setup:', error);
-      throw error;
+    const repository = await gitApi.getRepository(repositoryId, projectName);
+    defaultBranchRef = repository.defaultBranch || 'refs/heads/main';
+
+    // Find the latest commit on the default branch
+    const defaultBranchName = defaultBranchRef.replace('refs/heads/', '');
+    const commits = await gitApi.getCommits(
+      repositoryId,
+      {
+        $top: 1,
+        itemVersion: {
+          version: defaultBranchName,
+          versionType: 0,
+        },
+      },
+      projectName,
+    );
+
+    if (!commits || commits.length === 0 || !commits[0].commitId) {
+      throw new Error('No commits found in repository');
+    }
+
+    const baseCommitId = commits[0].commitId;
+
+    // Create the branch
+    const refUpdate = {
+      name: `refs/heads/${uniqueBranchName}`,
+      oldObjectId: '0000000000000000000000000000000000000000',
+      newObjectId: baseCommitId,
+    };
+
+    const updateResult = await gitApi.updateRefs(
+      [refUpdate],
+      repositoryId,
+      projectName,
+    );
+
+    if (
+      !updateResult ||
+      updateResult.length === 0 ||
+      !updateResult[0].success
+    ) {
+      throw new Error('Failed to create new branch');
+    }
+
+    // Add a commit that introduces a new file so we can comment on it
+    changedFilePath = `/mcp-pr-comment-test-${timestamp}.md`;
+
+    await gitApi.createPush(
+      {
+        refUpdates: [
+          {
+            name: `refs/heads/${uniqueBranchName}`,
+            oldObjectId: baseCommitId,
+          },
+        ],
+        commits: [
+          {
+            comment: 'Add file for PR comment integration tests',
+            changes: [
+              {
+                changeType: VersionControlChangeType.Add,
+                item: { path: changedFilePath },
+                newContent: {
+                  content: `# Test File\n\nCreated at ${new Date().toISOString()}\n`,
+                  contentType: ItemContentType.RawText,
+                },
+              },
+            ],
+          },
+        ],
+      },
+      repositoryId,
+      projectName,
+    );
+
+    const pr = await createPullRequest(connection, projectName, repositoryId, {
+      title: `PR comments test ${timestamp}-${randomSuffix}`,
+      description: 'PR created for comment integration tests',
+      sourceRefName: `refs/heads/${uniqueBranchName}`,
+      targetRefName: defaultBranchRef,
+      isDraft: true,
+    });
+
+    pullRequestId = pr.pullRequestId!;
+  });
+
+  afterAll(async () => {
+    const gitApi = await connection.getGitApi();
+
+    if (pullRequestId) {
+      try {
+        await gitApi.updatePullRequest(
+          {
+            status: 2,
+          },
+          repositoryId,
+          pullRequestId,
+          projectName,
+        );
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_) {
+        // ignore cleanup errors
+      }
+    }
+
+    // Best-effort: delete the temporary branch
+    try {
+      const refs = await gitApi.getRefs(
+        repositoryId,
+        projectName,
+        `heads/${uniqueBranchName}`,
+      );
+      const branchObjectId = refs?.[0]?.objectId;
+      if (branchObjectId) {
+        await gitApi.updateRefs(
+          [
+            {
+              name: `refs/heads/${uniqueBranchName}`,
+              oldObjectId: branchObjectId,
+              newObjectId: '0000000000000000000000000000000000000000',
+            },
+          ],
+          repositoryId,
+          projectName,
+        );
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_) {
+      // ignore cleanup errors
     }
   });
 
   test('should add a new comment thread to pull request', async () => {
-    // Skip if integration tests should be skipped
-    if (shouldSkipIntegrationTest() || !connection) {
-      console.log('Skipping test due to missing connection');
-      return;
-    }
-
-    // Skip if repository name is not defined
-    if (!repositoryName) {
-      console.log('Skipping test due to missing repository name');
-      return;
-    }
-
     const commentContent = `Test comment ${timestamp}-${randomSuffix}`;
 
     const result = await addPullRequestComment(
       connection,
       projectName,
-      repositoryName,
+      repositoryId,
       pullRequestId,
       {
         projectId: projectName,
-        repositoryId: repositoryName,
+        repositoryId,
         pullRequestId,
         content: commentContent,
         status: 'active',
       },
     );
 
-    // Verify the comment was created
     expect(result.comment).toBeDefined();
     expect(result.comment.content).toBe(commentContent);
     expect(result.thread).toBeDefined();
-    expect(result.thread!.status).toBe('active'); // Transformed to string
-  }, 30000); // 30 second timeout for integration test
+    expect(result.thread!.status).toBe('active');
+  }, 30000);
 
   test('should add a file comment to pull request', async () => {
-    // Skip if integration tests should be skipped
-    if (shouldSkipIntegrationTest() || !connection) {
-      console.log('Skipping test due to missing connection');
-      return;
-    }
-
-    // Skip if repository name is not defined
-    if (!repositoryName) {
-      console.log('Skipping test due to missing repository name');
-      return;
-    }
-
     const commentContent = `File comment ${timestamp}-${randomSuffix}`;
-    const filePath = '/README.md'; // Assuming README.md exists in the repo
     const lineNumber = 1;
 
     const result = await addPullRequestComment(
       connection,
       projectName,
-      repositoryName,
+      repositoryId,
       pullRequestId,
       {
         projectId: projectName,
-        repositoryId: repositoryName,
+        repositoryId,
         pullRequestId,
         content: commentContent,
-        filePath,
+        filePath: changedFilePath,
         lineNumber,
         status: 'active',
       },
     );
 
-    // Verify the file comment was created
     expect(result.comment).toBeDefined();
     expect(result.comment.content).toBe(commentContent);
     expect(result.thread).toBeDefined();
     expect(result.thread!.threadContext).toBeDefined();
-    expect(result.thread!.threadContext!.filePath).toBe(filePath);
+    expect(result.thread!.threadContext!.filePath).toBe(changedFilePath);
     expect(result.thread!.threadContext!.rightFileStart!.line).toBe(lineNumber);
-  }, 30000); // 30 second timeout for integration test
+  }, 30000);
 
   test('should add a reply to an existing comment thread', async () => {
-    // Skip if integration tests should be skipped
-    if (shouldSkipIntegrationTest() || !connection) {
-      console.log('Skipping test due to missing connection');
-      return;
-    }
-
-    // Skip if repository name is not defined
-    if (!repositoryName) {
-      console.log('Skipping test due to missing repository name');
-      return;
-    }
-
-    // First create a thread
     const initialComment = await addPullRequestComment(
       connection,
       projectName,
-      repositoryName,
+      repositoryId,
       pullRequestId,
       {
         projectId: projectName,
-        repositoryId: repositoryName,
+        repositoryId,
         pullRequestId,
         content: `Initial comment ${timestamp}-${randomSuffix}`,
         status: 'active',
@@ -164,24 +253,22 @@ describe('addPullRequestComment integration', () => {
     const threadId = initialComment.thread!.id!;
     const replyContent = `Reply comment ${timestamp}-${randomSuffix}`;
 
-    // Add a reply to the thread
     const result = await addPullRequestComment(
       connection,
       projectName,
-      repositoryName,
+      repositoryId,
       pullRequestId,
       {
         projectId: projectName,
-        repositoryId: repositoryName,
+        repositoryId,
         pullRequestId,
         content: replyContent,
         threadId,
       },
     );
 
-    // Verify the reply was created
     expect(result.comment).toBeDefined();
     expect(result.comment.content).toBe(replyContent);
-    expect(result.thread).toBeUndefined(); // No thread returned for replies
-  }, 30000); // 30 second timeout for integration test
+    expect(result.thread).toBeUndefined();
+  }, 30000);
 });

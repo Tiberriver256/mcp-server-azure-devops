@@ -5,21 +5,24 @@ import {
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
 
-describe('getMe Integration', () => {
-  let connection: WebApi | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('getMe Integration', () => {
+  let connection: WebApi;
 
   beforeAll(async () => {
     // Get a real connection using environment variables
-    connection = await getTestConnection();
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
   });
 
   test('should get authenticated user profile information', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest() || !connection) {
-      console.log('Skipping getMe integration test - no connection available');
-      return;
-    }
-
     // Act - make a direct API call using Axios
     const result = await getMe(connection);
 

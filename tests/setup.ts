@@ -16,6 +16,13 @@ if (!result.error && process.env.DEBUG === 'true') {
   console.log('Environment variables loaded from .env file');
 }
 
+// Test runs should prefer PAT auth when a PAT is present.
+// This avoids "successful" HTML login redirects when AZURE_DEVOPS_AUTH_METHOD is set
+// to azure-identity/azure-cli but no usable identity token is available.
+if (process.env.AZURE_DEVOPS_PAT) {
+  process.env.AZURE_DEVOPS_AUTH_METHOD = 'pat';
+}
+
 // Increase timeout for integration tests
 jest.setTimeout(30000); // 30 seconds
 

@@ -6,30 +6,41 @@ import {
 } from '@/shared/test/test-helpers';
 import { SearchCodeOptions } from '../types';
 
-describe('searchCode integration', () => {
-  let connection: WebApi | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+const codeSearchErrorPatterns = [
+  'ms.vss-code-search is not installed',
+  'Resource not found',
+  'Failed to search code',
+];
+
+const rethrowCodeSearchError = (error: unknown): never => {
+  if (
+    error instanceof Error &&
+    codeSearchErrorPatterns.some((pattern) => error.message.includes(pattern))
+  ) {
+    throw new Error('Code Search extension is required for integration tests');
+  }
+  throw error;
+};
+
+describeOrSkip('searchCode integration', () => {
+  let connection: WebApi;
   let projectName: string;
 
   beforeAll(async () => {
     // Get a real connection using environment variables
-    connection = await getTestConnection();
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
     projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
   });
 
   test('should search code in a project', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test: No Azure DevOps connection available');
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     const options: SearchCodeOptions = {
       searchText: 'function',
       projectId: projectName,
@@ -58,36 +69,11 @@ describe('searchCode integration', () => {
         }
       }
     } catch (error) {
-      // Skip test if the code search extension is not installed
-      if (
-        error instanceof Error &&
-        (error.message.includes('ms.vss-code-search is not installed') ||
-          error.message.includes('Resource not found') ||
-          error.message.includes('Failed to search code'))
-      ) {
-        console.log(
-          'Skipping test: Code Search extension is not installed or not available in this Azure DevOps organization',
-        );
-        return;
-      }
-      throw error;
+      rethrowCodeSearchError(error);
     }
   });
 
   test('should include file content when requested', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test: No Azure DevOps connection available');
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     const options: SearchCodeOptions = {
       searchText: 'function',
       projectId: projectName,
@@ -110,36 +96,11 @@ describe('searchCode integration', () => {
         expect(hasContent).toBe(true);
       }
     } catch (error) {
-      // Skip test if the code search extension is not installed
-      if (
-        error instanceof Error &&
-        (error.message.includes('ms.vss-code-search is not installed') ||
-          error.message.includes('Resource not found') ||
-          error.message.includes('Failed to search code'))
-      ) {
-        console.log(
-          'Skipping test: Code Search extension is not installed or not available in this Azure DevOps organization',
-        );
-        return;
-      }
-      throw error;
+      rethrowCodeSearchError(error);
     }
   });
 
   test('should filter results when filters are provided', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test: No Azure DevOps connection available');
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     try {
       // First get some results to find a repository name
       const initialOptions: SearchCodeOptions = {
@@ -150,11 +111,7 @@ describe('searchCode integration', () => {
 
       const initialResult = await searchCode(connection, initialOptions);
 
-      // Skip if no results found
-      if (initialResult.results.length === 0) {
-        console.log('Skipping filter test: No initial results found');
-        return;
-      }
+      expect(initialResult.results.length).toBeGreaterThan(0);
 
       // Use the repository from the first result for filtering
       const repoName = initialResult.results[0].repository.name;
@@ -182,36 +139,11 @@ describe('searchCode integration', () => {
         expect(allFromRepo).toBe(true);
       }
     } catch (error) {
-      // Skip test if the code search extension is not installed
-      if (
-        error instanceof Error &&
-        (error.message.includes('ms.vss-code-search is not installed') ||
-          error.message.includes('Resource not found') ||
-          error.message.includes('Failed to search code'))
-      ) {
-        console.log(
-          'Skipping test: Code Search extension is not installed or not available in this Azure DevOps organization',
-        );
-        return;
-      }
-      throw error;
+      rethrowCodeSearchError(error);
     }
   });
 
   test('should handle pagination', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test: No Azure DevOps connection available');
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     try {
       // Get first page
       const firstPageOptions: SearchCodeOptions = {
@@ -223,11 +155,7 @@ describe('searchCode integration', () => {
 
       const firstPageResult = await searchCode(connection, firstPageOptions);
 
-      // Skip if not enough results for pagination test
-      if (firstPageResult.count <= 2) {
-        console.log('Skipping pagination test: Not enough results');
-        return;
-      }
+      expect(firstPageResult.count).toBeGreaterThan(2);
 
       // Get second page
       const secondPageOptions: SearchCodeOptions = {
@@ -258,36 +186,11 @@ describe('searchCode integration', () => {
         expect(hasOverlap).toBe(false);
       }
     } catch (error) {
-      // Skip test if the code search extension is not installed
-      if (
-        error instanceof Error &&
-        (error.message.includes('ms.vss-code-search is not installed') ||
-          error.message.includes('Resource not found') ||
-          error.message.includes('Failed to search code'))
-      ) {
-        console.log(
-          'Skipping test: Code Search extension is not installed or not available in this Azure DevOps organization',
-        );
-        return;
-      }
-      throw error;
+      rethrowCodeSearchError(error);
     }
   });
 
   test('should use default project when no projectId is provided', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test: No Azure DevOps connection available');
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Store original environment variable
     const originalEnv = process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
 
@@ -322,19 +225,7 @@ describe('searchCode integration', () => {
         }
       }
     } catch (error) {
-      // Skip test if the code search extension is not installed
-      if (
-        error instanceof Error &&
-        (error.message.includes('ms.vss-code-search is not installed') ||
-          error.message.includes('Resource not found') ||
-          error.message.includes('Failed to search code'))
-      ) {
-        console.log(
-          'Skipping test: Code Search extension is not installed or not available in this Azure DevOps organization',
-        );
-        return;
-      }
-      throw error;
+      rethrowCodeSearchError(error);
     } finally {
       // Restore original environment variable
       process.env.AZURE_DEVOPS_DEFAULT_PROJECT = originalEnv;

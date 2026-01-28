@@ -10,74 +10,71 @@ import { createWorkItem } from '../create-work-item/feature';
 import { manageWorkItemLink } from '../manage-work-item-link/feature';
 import { CreateWorkItemOptions } from '../types';
 
-describe('getWorkItem integration', () => {
-  let connection: WebApi | null = null;
-  let testWorkItemId: number | null = null;
-  let linkedWorkItemId: number | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('getWorkItem integration', () => {
+  let connection: WebApi;
+  let testWorkItemId: number;
+  let linkedWorkItemId: number;
   let projectName: string;
 
   beforeAll(async () => {
     // Get a real connection using environment variables
-    connection = await getTestConnection();
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
     projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
 
-    // Skip setup if integration tests should be skipped
-    if (shouldSkipIntegrationTest() || !connection) {
-      return;
+    // Create a test work item
+    const uniqueTitle = `Test Work Item ${new Date().toISOString()}`;
+    const options: CreateWorkItemOptions = {
+      title: uniqueTitle,
+      description: 'Test work item for get-work-item integration tests',
+    };
+
+    const testWorkItem = await createWorkItem(
+      connection,
+      projectName,
+      'Task',
+      options,
+    );
+
+    // Create another work item to link to the first one
+    const linkedItemOptions: CreateWorkItemOptions = {
+      title: `Linked Work Item ${new Date().toISOString()}`,
+      description: 'Linked work item for get-work-item integration tests',
+    };
+
+    const linkedWorkItem = await createWorkItem(
+      connection,
+      projectName,
+      'Task',
+      linkedItemOptions,
+    );
+
+    if (!testWorkItem?.id || !linkedWorkItem?.id) {
+      throw new Error('Failed to create required work items for testing');
     }
 
-    try {
-      // Create a test work item
-      const uniqueTitle = `Test Work Item ${new Date().toISOString()}`;
-      const options: CreateWorkItemOptions = {
-        title: uniqueTitle,
-        description: 'Test work item for get-work-item integration tests',
-      };
+    testWorkItemId = testWorkItem.id;
+    linkedWorkItemId = linkedWorkItem.id;
 
-      const testWorkItem = await createWorkItem(
-        connection,
-        projectName,
-        'Task',
-        options,
-      );
-
-      // Create another work item to link to the first one
-      const linkedItemOptions: CreateWorkItemOptions = {
-        title: `Linked Work Item ${new Date().toISOString()}`,
-        description: 'Linked work item for get-work-item integration tests',
-      };
-
-      const linkedWorkItem = await createWorkItem(
-        connection,
-        projectName,
-        'Task',
-        linkedItemOptions,
-      );
-
-      if (testWorkItem?.id && linkedWorkItem?.id) {
-        testWorkItemId = testWorkItem.id;
-        linkedWorkItemId = linkedWorkItem.id;
-
-        // Create a link between the two work items
-        await manageWorkItemLink(connection, projectName, {
-          sourceWorkItemId: testWorkItemId,
-          targetWorkItemId: linkedWorkItemId,
-          operation: 'add',
-          relationType: 'System.LinkTypes.Related',
-          comment: 'Link created for get-work-item integration tests',
-        });
-      }
-    } catch (error) {
-      console.error('Failed to create test work items:', error);
-    }
+    // Create a link between the two work items
+    await manageWorkItemLink(connection, projectName, {
+      sourceWorkItemId: testWorkItemId,
+      targetWorkItemId: linkedWorkItemId,
+      operation: 'add',
+      relationType: 'System.LinkTypes.Related',
+      comment: 'Link created for get-work-item integration tests',
+    });
   });
 
   test('should retrieve a real work item from Azure DevOps with default expand=all', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest() || !connection || !testWorkItemId) {
-      return;
-    }
-
     // Act - get work item by ID
     const result = await getWorkItem(connection, testWorkItemId);
 
@@ -102,11 +99,6 @@ describe('getWorkItem integration', () => {
   });
 
   test('should retrieve work item with expanded relations', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest() || !connection || !testWorkItemId) {
-      return;
-    }
-
     // Act - get work item with relations expansion
     const result = await getWorkItem(connection, testWorkItemId, 'relations');
 
@@ -121,7 +113,7 @@ describe('getWorkItem integration', () => {
     if (result.relations && result.relations.length > 0) {
       const relation = result.relations[0];
       expect(relation.rel).toBe('System.LinkTypes.Related');
-      expect(relation.url).toContain(linkedWorkItemId?.toString());
+      expect(relation.url).toContain(linkedWorkItemId.toString());
     }
 
     // Verify fields exist
@@ -132,10 +124,6 @@ describe('getWorkItem integration', () => {
   });
 
   test('should retrieve work item with minimal fields when using expand=none', async () => {
-    if (shouldSkipIntegrationTest() || !connection || !testWorkItemId) {
-      return;
-    }
-
     // Act - get work item with no expansion
     const result = await getWorkItem(connection, testWorkItemId, 'none');
 
@@ -150,10 +138,6 @@ describe('getWorkItem integration', () => {
   });
 
   test('should throw AzureDevOpsResourceNotFoundError for non-existent work item', async () => {
-    if (shouldSkipIntegrationTest() || !connection) {
-      return;
-    }
-
     // Use a very large ID that's unlikely to exist
     const nonExistentId = 999999999;
 
@@ -164,11 +148,6 @@ describe('getWorkItem integration', () => {
   });
 
   test('should include all possible fields with null values for empty fields', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest() || !connection || !testWorkItemId) {
-      return;
-    }
-
     // Act - get work item by ID
     const result = await getWorkItem(connection, testWorkItemId);
 

@@ -6,48 +6,35 @@ import {
   shouldSkipIntegrationTest,
 } from '../../../shared/test/test-helpers';
 
-describe('getPipeline integration', () => {
-  let connection: WebApi | null = null;
-  let projectId: string;
-  let existingPipelineId: number | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const projectId = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '';
+const hasProjectId = Boolean(projectId);
+const describeOrSkip = !shouldSkip && hasProjectId ? describe : describe.skip;
+
+describeOrSkip('getPipeline integration', () => {
+  let connection: WebApi;
+  let existingPipelineId: number;
 
   beforeAll(async () => {
     // Get a real connection using environment variables
-    connection = await getTestConnection();
-
-    // Get the project ID from environment variables, fallback to default
-    projectId = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
-
-    // Skip if no connection or project is available
-    if (shouldSkipIntegrationTest() || !connection || !projectId) {
-      return;
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
     }
+    connection = testConnection;
 
     // Try to get an existing pipeline ID for testing
-    try {
-      const pipelines = await listPipelines(connection, { projectId });
-      if (pipelines.length > 0) {
-        existingPipelineId = pipelines[0].id ?? null;
-      }
-    } catch (error) {
-      console.log('Could not find existing pipelines for testing:', error);
+    const pipelines = await listPipelines(connection, { projectId });
+    const pipelineId = pipelines[0]?.id;
+    if (!pipelineId) {
+      throw new Error('No pipelines found for getPipeline tests');
     }
+    existingPipelineId = pipelineId;
   });
 
   test('should get a pipeline by ID', async () => {
-    // Skip if no connection, project, or pipeline ID is available
-    if (
-      shouldSkipIntegrationTest() ||
-      !connection ||
-      !projectId ||
-      !existingPipelineId
-    ) {
-      console.log(
-        'Skipping getPipeline integration test - no connection, project or existing pipeline available',
-      );
-      return;
-    }
-
     // Act - make an API call to Azure DevOps
     const pipeline = await getPipeline(connection, {
       projectId,
@@ -66,14 +53,6 @@ describe('getPipeline integration', () => {
   });
 
   test('should throw ResourceNotFoundError for non-existent pipeline', async () => {
-    // Skip if no connection or project is available
-    if (shouldSkipIntegrationTest() || !connection || !projectId) {
-      console.log(
-        'Skipping getPipeline error test - no connection or project available',
-      );
-      return;
-    }
-
     // Use a very high ID that is unlikely to exist
     const nonExistentPipelineId = 999999;
 

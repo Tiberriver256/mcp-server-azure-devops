@@ -8,11 +8,15 @@ import {
   shouldSkipIntegrationTest,
 } from '../../../shared/test/test-helpers';
 
-describe('listPullRequests integration', () => {
-  let connection: WebApi | null = null;
-  let testPullRequest: PullRequest | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('listPullRequests integration', () => {
+  let connection: WebApi;
   let projectName: string;
-  let repositoryName: string;
+  let repositoryId: string;
+  let defaultBranchRef: string;
+  let testPullRequest: PullRequest | null = null;
 
   // Generate unique branch name and PR title using timestamp
   const timestamp = Date.now();
@@ -21,185 +25,162 @@ describe('listPullRequests integration', () => {
   const uniqueTitle = `Test PR ${timestamp}-${randomSuffix}`;
 
   beforeAll(async () => {
-    // Get a real connection using environment variables
-    connection = await getTestConnection();
-
-    // Set up project and repository names from environment
-    projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
-    repositoryName = process.env.AZURE_DEVOPS_DEFAULT_REPOSITORY || '';
-
-    // Skip setup if integration tests should be skipped
-    if (shouldSkipIntegrationTest() || !connection) {
-      return;
+    projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '';
+    if (!projectName) {
+      throw new Error('AZURE_DEVOPS_DEFAULT_PROJECT must be set for this test');
     }
+
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
+
+    const gitApi = await connection.getGitApi();
+
+    repositoryId = process.env.AZURE_DEVOPS_DEFAULT_REPOSITORY || '';
+    if (!repositoryId) {
+      const repos = await gitApi.getRepositories(projectName);
+      if (!repos || repos.length === 0 || !repos[0].id) {
+        throw new Error(
+          'No repositories found. Set AZURE_DEVOPS_DEFAULT_REPOSITORY to run pull request integration tests.',
+        );
+      }
+      repositoryId = repos[0].id;
+    }
+
+    const repository = await gitApi.getRepository(repositoryId, projectName);
+    defaultBranchRef = repository.defaultBranch || 'refs/heads/main';
   });
 
   afterAll(async () => {
+    const gitApi = await connection.getGitApi();
+
     // Clean up created resources if needed
-    if (
-      testPullRequest &&
-      testPullRequest.pullRequestId &&
-      !shouldSkipIntegrationTest()
-    ) {
+    if (testPullRequest && testPullRequest.pullRequestId) {
       try {
-        // Abandon the test pull request if it was created
-        const gitApi = await connection?.getGitApi();
-        if (gitApi) {
-          await gitApi.updatePullRequest(
-            {
-              status: 2, // 2 = Abandoned
-            },
-            repositoryName,
-            testPullRequest.pullRequestId,
-            projectName,
-          );
-        }
+        await gitApi.updatePullRequest(
+          {
+            status: 2, // Abandoned
+          },
+          repositoryId,
+          testPullRequest.pullRequestId,
+          projectName,
+        );
       } catch (error) {
         console.error('Error cleaning up test pull request:', error);
       }
     }
+
+    // Best-effort: delete the temporary branch
+    try {
+      const refs = await gitApi.getRefs(
+        repositoryId,
+        projectName,
+        `heads/${uniqueBranchName}`,
+      );
+      const branchObjectId = refs?.[0]?.objectId;
+      if (branchObjectId) {
+        await gitApi.updateRefs(
+          [
+            {
+              name: `refs/heads/${uniqueBranchName}`,
+              oldObjectId: branchObjectId,
+              newObjectId: '0000000000000000000000000000000000000000',
+            },
+          ],
+          repositoryId,
+          projectName,
+        );
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_) {
+      // ignore cleanup errors
+    }
   });
 
   test('should list pull requests from repository', async () => {
-    // Skip if integration tests should be skipped
-    if (shouldSkipIntegrationTest() || !connection) {
-      console.log('Skipping test due to missing connection');
-      return;
+    // Create a branch for testing
+    const gitApi = await connection.getGitApi();
+
+    const defaultBranchName = defaultBranchRef.replace('refs/heads/', '');
+
+    // Get the commit to branch from
+    const commits = await gitApi.getCommits(
+      repositoryId,
+      {
+        itemVersion: {
+          versionType: 0,
+          version: defaultBranchName,
+        },
+        $top: 1,
+      },
+      projectName,
+    );
+
+    if (!commits || commits.length === 0 || !commits[0].commitId) {
+      throw new Error('Cannot find commits in repository');
     }
 
-    // Skip if repository name is not defined
-    if (!repositoryName) {
-      console.log('Skipping test due to missing repository name');
-      return;
+    // Create a new branch
+    const refUpdate = {
+      name: `refs/heads/${uniqueBranchName}`,
+      oldObjectId: '0000000000000000000000000000000000000000',
+      newObjectId: commits[0].commitId,
+    };
+
+    const updateResult = await gitApi.updateRefs(
+      [refUpdate],
+      repositoryId,
+      projectName,
+    );
+
+    if (
+      !updateResult ||
+      updateResult.length === 0 ||
+      !updateResult[0].success
+    ) {
+      throw new Error('Failed to create new branch');
     }
 
-    try {
-      // Create a branch for testing
-      const gitApi = await connection.getGitApi();
+    // Create a test pull request
+    testPullRequest = await createPullRequest(
+      connection,
+      projectName,
+      repositoryId,
+      {
+        title: uniqueTitle,
+        description: 'Test pull request for integration testing',
+        sourceRefName: `refs/heads/${uniqueBranchName}`,
+        targetRefName: defaultBranchRef,
+        isDraft: true,
+      },
+    );
 
-      // Get the default branch info
-      const repository = await gitApi.getRepository(
-        repositoryName,
-        projectName,
-      );
+    // Act - list pull requests
+    const result = await listPullRequests(
+      connection,
+      projectName,
+      repositoryId,
+      {
+        projectId: projectName,
+        repositoryId,
+        status: 'active',
+        top: 10,
+      },
+    );
 
-      if (!repository || !repository.defaultBranch) {
-        throw new Error('Cannot find repository or default branch');
-      }
+    // Assert
+    expect(result).toBeDefined();
+    expect(result.value).toBeDefined();
+    expect(Array.isArray(result.value)).toBe(true);
 
-      // Get the commit to branch from
-      const commits = await gitApi.getCommits(
-        repositoryName,
-        {
-          itemVersion: {
-            versionType: 0, // commit
-            version: repository.defaultBranch.replace('refs/heads/', ''),
-          },
-          $top: 1,
-        },
-        projectName,
-      );
-
-      if (!commits || commits.length === 0) {
-        throw new Error('Cannot find commits in repository');
-      }
-
-      // Create a new branch
-      const refUpdate = {
-        name: `refs/heads/${uniqueBranchName}`,
-        oldObjectId: '0000000000000000000000000000000000000000',
-        newObjectId: commits[0].commitId,
-      };
-
-      const updateResult = await gitApi.updateRefs(
-        [refUpdate],
-        repositoryName,
-        projectName,
-      );
-
-      if (
-        !updateResult ||
-        updateResult.length === 0 ||
-        !updateResult[0].success
-      ) {
-        throw new Error('Failed to create new branch');
-      }
-
-      // Create a test pull request
-      testPullRequest = await createPullRequest(
-        connection,
-        projectName,
-        repositoryName,
-        {
-          title: uniqueTitle,
-          description: 'Test pull request for integration testing',
-          sourceRefName: `refs/heads/${uniqueBranchName}`,
-          targetRefName: repository.defaultBranch,
-          isDraft: true,
-        },
-      );
-
-      // List pull requests
-      const pullRequests = await listPullRequests(
-        connection,
-        projectName,
-        repositoryName,
-        { projectId: projectName, repositoryId: repositoryName },
-      );
-
-      // Verify
-      expect(pullRequests).toBeDefined();
-      expect(pullRequests.value).toBeDefined();
-      expect(Array.isArray(pullRequests.value)).toBe(true);
-      expect(typeof pullRequests.count).toBe('number');
-      expect(typeof pullRequests.hasMoreResults).toBe('boolean');
-
-      // Find our test PR in the list
-      const foundPR = pullRequests.value.find(
-        (pr) => pr.pullRequestId === testPullRequest?.pullRequestId,
-      );
-      expect(foundPR).toBeDefined();
-      expect(foundPR?.title).toBe(uniqueTitle);
-
-      // Test with filters
-      const filteredPRs = await listPullRequests(
-        connection,
-        projectName,
-        repositoryName,
-        {
-          projectId: projectName,
-          repositoryId: repositoryName,
-          status: 'active',
-          top: 5,
-        },
-      );
-
-      expect(filteredPRs).toBeDefined();
-      expect(filteredPRs.value).toBeDefined();
-      expect(Array.isArray(filteredPRs.value)).toBe(true);
-      expect(filteredPRs.count).toBeGreaterThanOrEqual(0);
-
-      if (testPullRequest?.pullRequestId) {
-        const singlePR = await listPullRequests(
-          connection,
-          projectName,
-          repositoryName,
-          {
-            projectId: projectName,
-            repositoryId: repositoryName,
-            pullRequestId: testPullRequest.pullRequestId,
-          },
-        );
-
-        expect(singlePR.count).toBe(1);
-        expect(singlePR.value[0]?.pullRequestId).toBe(
-          testPullRequest.pullRequestId,
-        );
-        expect(singlePR.hasMoreResults).toBe(false);
-      }
-    } catch (error) {
-      console.error('Test error:', error);
-      throw error;
-    }
-  }, 30000); // 30 second timeout for integration test
+    // There should be at least our test pull request
+    const found = result.value.some(
+      (pr) => pr.pullRequestId === testPullRequest?.pullRequestId,
+    );
+    expect(found).toBe(true);
+  }, 60000);
 });

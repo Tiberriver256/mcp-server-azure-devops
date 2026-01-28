@@ -6,27 +6,24 @@ import {
 } from '@/shared/test/test-helpers';
 import { ListProjectsOptions } from '../types';
 
-describe('listProjects integration', () => {
-  let connection: WebApi | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('listProjects integration', () => {
+  let connection: WebApi;
 
   beforeAll(async () => {
     // Get a real connection using environment variables
-    connection = await getTestConnection();
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
   });
 
   test('should list projects in the organization', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Act - make an actual API call to Azure DevOps
     const result = await listProjects(connection);
 
@@ -45,18 +42,6 @@ describe('listProjects integration', () => {
   });
 
   test('should apply pagination options', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     const options: ListProjectsOptions = {
       top: 2, // Only get up to 2 projects
     };

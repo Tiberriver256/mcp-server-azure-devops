@@ -4,13 +4,11 @@ import {
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
 
-describe('listOrganizations integration', () => {
-  test('should list organizations accessible to the authenticated user', async () => {
-    // Skip if no credentials are available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
 
+describeOrSkip('listOrganizations integration', () => {
+  test('should list organizations accessible to the authenticated user', async () => {
     // Get test configuration
     const config = getTestConfig();
     if (!config) {

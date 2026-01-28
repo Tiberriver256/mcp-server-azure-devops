@@ -15,8 +15,11 @@ import { z } from 'zod';
 process.env.AZURE_DEVOPS_DEFAULT_PROJECT =
   process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'default-project';
 
-describe('createWikiPage Integration Tests', () => {
-  let connection: WebApi | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('createWikiPage Integration Tests', () => {
+  let connection: WebApi;
   let projectName: string;
   let orgUrl: string;
   let organizationId: string;
@@ -47,57 +50,33 @@ describe('createWikiPage Integration Tests', () => {
     organizationId = getOrgNameFromUrl(orgUrl);
 
     // Get a real connection using environment variables
-    connection = await getTestConnection();
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
   });
 
   // Helper function to get a valid wiki ID
-  async function getValidWikiId(): Promise<string | null> {
-    if (!connection) return null;
-
-    try {
-      // Get available wikis
-      const wikis = await getWikis(connection, { projectId: projectName });
-
-      // Skip if no wikis are available
-      if (wikis.length === 0) {
-        console.log('No wikis available in the project');
-        return null;
-      }
-
-      // Use the first available wiki
-      const wiki = wikis[0];
-      if (!wiki.name) {
-        console.log('Wiki name is undefined');
-        return null;
-      }
-
-      return wiki.name;
-    } catch (error) {
-      console.error('Error getting wikis:', error);
-      return null;
+  async function getValidWikiId(): Promise<string> {
+    const wikis = await getWikis(connection, { projectId: projectName });
+    if (wikis.length === 0) {
+      throw new Error('No wikis available in the project');
     }
+
+    const wiki = wikis[0];
+    if (!wiki.name) {
+      throw new Error('Wiki name is undefined');
+    }
+
+    return wiki.name;
   }
 
   test('should create a new wiki page at the root', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test due to missing connection');
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Get a valid wiki ID
     const wikiId = await getValidWikiId();
-    if (!wikiId) {
-      console.log('Skipping test: No valid wiki ID available');
-      return;
-    }
 
     const params: z.infer<typeof CreateWikiPageSchema> = {
       organizationId,
@@ -134,25 +113,8 @@ describe('createWikiPage Integration Tests', () => {
   });
 
   test('should create a new wiki sub-page', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test due to missing connection');
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Get a valid wiki ID
     const wikiId = await getValidWikiId();
-    if (!wikiId) {
-      console.log('Skipping test: No valid wiki ID available');
-      return;
-    }
 
     // First, ensure the parent page exists
     const parentParams: z.infer<typeof CreateWikiPageSchema> = {
@@ -201,25 +163,8 @@ describe('createWikiPage Integration Tests', () => {
   });
 
   test('should update an existing wiki page if path already exists', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test due to missing connection');
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Get a valid wiki ID
     const wikiId = await getValidWikiId();
-    if (!wikiId) {
-      console.log('Skipping test: No valid wiki ID available');
-      return;
-    }
 
     try {
       // First create a page with initial content
@@ -264,25 +209,8 @@ describe('createWikiPage Integration Tests', () => {
   });
 
   test('should create a page with a default path if specified', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test due to missing connection');
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Get a valid wiki ID
     const wikiId = await getValidWikiId();
-    if (!wikiId) {
-      console.log('Skipping test: No valid wiki ID available');
-      return;
-    }
 
     try {
       const params: z.infer<typeof CreateWikiPageSchema> = {
@@ -318,25 +246,8 @@ describe('createWikiPage Integration Tests', () => {
   });
 
   test('should include comment in the wiki page creation when provided', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test due to missing connection');
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Get a valid wiki ID
     const wikiId = await getValidWikiId();
-    if (!wikiId) {
-      console.log('Skipping test: No valid wiki ID available');
-      return;
-    }
 
     try {
       const params: z.infer<typeof CreateWikiPageSchema> = {
@@ -376,12 +287,6 @@ describe('createWikiPage Integration Tests', () => {
   });
 
   test('should handle error when wiki does not exist', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test due to missing connection');
-      return;
-    }
-
     const nonExistentWikiId = 'non-existent-wiki-12345';
 
     const params: z.infer<typeof CreateWikiPageSchema> = {
@@ -396,12 +301,6 @@ describe('createWikiPage Integration Tests', () => {
   });
 
   test('should handle error when project does not exist', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test due to missing connection');
-      return;
-    }
-
     const nonExistentProjectId = 'non-existent-project-12345';
 
     const params: z.infer<typeof CreateWikiPageSchema> = {
@@ -416,12 +315,6 @@ describe('createWikiPage Integration Tests', () => {
   });
 
   test('should handle error when organization does not exist', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      console.log('Skipping test due to missing connection');
-      return;
-    }
-
     const nonExistentOrgId = 'non-existent-org-12345';
 
     const params: z.infer<typeof CreateWikiPageSchema> = {

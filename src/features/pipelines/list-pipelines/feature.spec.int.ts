@@ -5,12 +5,23 @@ import {
   shouldSkipIntegrationTest,
 } from '../../../shared/test/test-helpers';
 
-describe('listPipelines integration', () => {
-  let connection: WebApi | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const projectId = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '';
+const hasProjectId = Boolean(projectId);
+const describeOrSkip = !shouldSkip && hasProjectId ? describe : describe.skip;
+
+describeOrSkip('listPipelines integration', () => {
+  let connection: WebApi;
 
   beforeAll(async () => {
     // Get a real connection using environment variables
-    connection = await getTestConnection();
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
 
     // TODO: Implement createPipeline functionality and create test pipelines here
     // Currently there is no way to create pipelines, so we can't ensure data exists like in list-work-items tests
@@ -18,20 +29,6 @@ describe('listPipelines integration', () => {
   });
 
   it('should list pipelines in a project', async () => {
-    // Skip if no connection is available or no project specified
-    if (
-      shouldSkipIntegrationTest() ||
-      !connection ||
-      !process.env.AZURE_DEVOPS_DEFAULT_PROJECT
-    ) {
-      console.log(
-        'Skipping listPipelines integration test - no connection or project available',
-      );
-      return;
-    }
-
-    const projectId = process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
-
     const pipelines = await listPipelines(connection, { projectId });
     expect(Array.isArray(pipelines)).toBe(true);
 

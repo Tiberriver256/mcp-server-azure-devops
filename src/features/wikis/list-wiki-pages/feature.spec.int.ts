@@ -1,3 +1,4 @@
+import { WebApi } from 'azure-devops-node-api';
 import { listWikiPages, WikiPageSummary } from './feature';
 import { getWikis } from '../get-wikis/feature';
 import {
@@ -11,7 +12,12 @@ import { AzureDevOpsError } from '@/shared/errors/azure-devops-errors';
 process.env.AZURE_DEVOPS_DEFAULT_PROJECT =
   process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'default-project';
 
-describe('listWikiPages integration', () => {
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('listWikiPages integration', () => {
+  let connection: WebApi;
+  let wikiName: string;
   let projectName: string;
   let orgUrl: string;
   let organizationId: string;
@@ -36,43 +42,32 @@ describe('listWikiPages integration', () => {
     }
     orgUrl = envOrgUrl;
     organizationId = getOrgNameFromUrl(orgUrl);
+
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
+
+    const wikis = await getWikis(connection, { projectId: projectName });
+    if (wikis.length === 0) {
+      throw new Error('No wikis available in the project');
+    }
+    if (!wikis[0].name) {
+      throw new Error('Wiki name is undefined');
+    }
+    wikiName = wikis[0].name;
   });
 
   describe('Happy Path Tests', () => {
     test('should list pages in real test wiki', async () => {
-      // Skip if no connection available
-      if (shouldSkipIntegrationTest()) {
-        return;
-      }
-
-      // Get a real connection using environment variables
-      const connection = await getTestConnection();
-      if (!connection) {
-        throw new Error(
-          'Connection should be available when test is not skipped',
-        );
-      }
-
-      // First get available wikis
-      const wikis = await getWikis(connection, { projectId: projectName });
-
-      // Skip if no wikis are available
-      if (wikis.length === 0) {
-        console.log('Skipping test: No wikis available in the project');
-        return;
-      }
-
-      // Use the first available wiki
-      const wiki = wikis[0];
-      if (!wiki.name) {
-        throw new Error('Wiki name is undefined');
-      }
-
       // List wiki pages
       const result = await listWikiPages({
         organizationId,
         projectId: projectName,
-        wikiId: wiki.name,
+        wikiId: wikiName,
       });
 
       // Verify the result structure
@@ -98,39 +93,11 @@ describe('listWikiPages integration', () => {
     });
 
     test('should handle wiki listing for different wiki structures', async () => {
-      // Skip if integration tests are disabled or no connection available
-      if (shouldSkipIntegrationTest()) {
-        return;
-      }
-
-      // Get a real connection using environment variables
-      const connection = await getTestConnection();
-      if (!connection) {
-        throw new Error(
-          'Connection should be available when test is not skipped',
-        );
-      }
-
-      // First get available wikis
-      const wikis = await getWikis(connection, { projectId: projectName });
-
-      // Skip if no wikis are available
-      if (wikis.length === 0) {
-        console.log('Skipping test: No wikis available in the project');
-        return;
-      }
-
-      // Use the first available wiki
-      const wiki = wikis[0];
-      if (!wiki.name) {
-        throw new Error('Wiki name is undefined');
-      }
-
       // Get all pages for different wiki structures
       const allPages = await listWikiPages({
         organizationId,
         projectId: projectName,
-        wikiId: wiki.name,
+        wikiId: wikiName,
       });
 
       expect(Array.isArray(allPages)).toBe(true);
@@ -153,39 +120,11 @@ describe('listWikiPages integration', () => {
     });
 
     test('should handle basic wiki page listing consistently', async () => {
-      // Skip if integration tests are disabled or no connection available
-      if (shouldSkipIntegrationTest()) {
-        return;
-      }
-
-      // Get a real connection using environment variables
-      const connection = await getTestConnection();
-      if (!connection) {
-        throw new Error(
-          'Connection should be available when test is not skipped',
-        );
-      }
-
-      // First get available wikis
-      const wikis = await getWikis(connection, { projectId: projectName });
-
-      // Skip if no wikis are available
-      if (wikis.length === 0) {
-        console.log('Skipping test: No wikis available in the project');
-        return;
-      }
-
-      // Use the first available wiki
-      const wiki = wikis[0];
-      if (!wiki.name) {
-        throw new Error('Wiki name is undefined');
-      }
-
       // Test basic page listing
       const firstResult = await listWikiPages({
         organizationId,
         projectId: projectName,
-        wikiId: wiki.name,
+        wikiId: wikiName,
       });
 
       expect(Array.isArray(firstResult)).toBe(true);
@@ -194,7 +133,7 @@ describe('listWikiPages integration', () => {
       const secondResult = await listWikiPages({
         organizationId,
         projectId: projectName,
-        wikiId: wiki.name,
+        wikiId: wikiName,
       });
 
       expect(Array.isArray(secondResult)).toBe(true);
@@ -206,11 +145,6 @@ describe('listWikiPages integration', () => {
 
   describe('Error Scenarios', () => {
     test('should handle invalid wikiId (expect 404 error)', async () => {
-      // Skip if integration tests are disabled or no connection available
-      if (shouldSkipIntegrationTest()) {
-        return;
-      }
-
       const invalidWikiId = 'non-existent-wiki-id-12345';
 
       await expect(
@@ -223,11 +157,6 @@ describe('listWikiPages integration', () => {
     });
 
     test('should handle invalid projectId', async () => {
-      // Skip if integration tests are disabled or no connection available
-      if (shouldSkipIntegrationTest()) {
-        return;
-      }
-
       const invalidProjectId = 'non-existent-project-12345';
 
       await expect(
@@ -240,11 +169,6 @@ describe('listWikiPages integration', () => {
     });
 
     test('should handle invalid organizationId', async () => {
-      // Skip if integration tests are disabled or no connection available
-      if (shouldSkipIntegrationTest()) {
-        return;
-      }
-
       const invalidOrgId = 'non-existent-org-12345';
 
       await expect(
@@ -259,39 +183,11 @@ describe('listWikiPages integration', () => {
 
   describe('Edge Cases', () => {
     test('should handle empty wikis gracefully', async () => {
-      // Skip if integration tests are disabled or no connection available
-      if (shouldSkipIntegrationTest()) {
-        return;
-      }
-
-      // Get a real connection using environment variables
-      const connection = await getTestConnection();
-      if (!connection) {
-        throw new Error(
-          'Connection should be available when test is not skipped',
-        );
-      }
-
-      // First get available wikis
-      const wikis = await getWikis(connection, { projectId: projectName });
-
-      // Skip if no wikis are available
-      if (wikis.length === 0) {
-        console.log('Skipping test: No wikis available in the project');
-        return;
-      }
-
-      // Use the first available wiki
-      const wiki = wikis[0];
-      if (!wiki.name) {
-        throw new Error('Wiki name is undefined');
-      }
-
       // Test with a path that likely doesn't exist
       const result = await listWikiPages({
         organizationId,
         projectId: projectName,
-        wikiId: wiki.name,
+        wikiId: wikiName,
       });
 
       // Should return an array (may be empty or contain all pages depending on API behavior)
@@ -301,39 +197,11 @@ describe('listWikiPages integration', () => {
     });
 
     test('should handle deeply nested paths', async () => {
-      // Skip if integration tests are disabled or no connection available
-      if (shouldSkipIntegrationTest()) {
-        return;
-      }
-
-      // Get a real connection using environment variables
-      const connection = await getTestConnection();
-      if (!connection) {
-        throw new Error(
-          'Connection should be available when test is not skipped',
-        );
-      }
-
-      // First get available wikis
-      const wikis = await getWikis(connection, { projectId: projectName });
-
-      // Skip if no wikis are available
-      if (wikis.length === 0) {
-        console.log('Skipping test: No wikis available in the project');
-        return;
-      }
-
-      // Use the first available wiki
-      const wiki = wikis[0];
-      if (!wiki.name) {
-        throw new Error('Wiki name is undefined');
-      }
-
       // Test with default parameters
       const result = await listWikiPages({
         organizationId,
         projectId: projectName,
-        wikiId: wiki.name,
+        wikiId: wikiName,
       });
 
       expect(Array.isArray(result)).toBe(true);
@@ -341,39 +209,11 @@ describe('listWikiPages integration', () => {
     });
 
     test('should handle boundary recursionLevel values', async () => {
-      // Skip if integration tests are disabled or no connection available
-      if (shouldSkipIntegrationTest()) {
-        return;
-      }
-
-      // Get a real connection using environment variables
-      const connection = await getTestConnection();
-      if (!connection) {
-        throw new Error(
-          'Connection should be available when test is not skipped',
-        );
-      }
-
-      // First get available wikis
-      const wikis = await getWikis(connection, { projectId: projectName });
-
-      // Skip if no wikis are available
-      if (wikis.length === 0) {
-        console.log('Skipping test: No wikis available in the project');
-        return;
-      }
-
-      // Use the first available wiki
-      const wiki = wikis[0];
-      if (!wiki.name) {
-        throw new Error('Wiki name is undefined');
-      }
-
       // Test basic page listing
       const firstResult = await listWikiPages({
         organizationId,
         projectId: projectName,
-        wikiId: wiki.name,
+        wikiId: wikiName,
       });
 
       expect(Array.isArray(firstResult)).toBe(true);
@@ -382,7 +222,7 @@ describe('listWikiPages integration', () => {
       const secondResult = await listWikiPages({
         organizationId,
         projectId: projectName,
-        wikiId: wiki.name,
+        wikiId: wikiName,
       });
 
       expect(Array.isArray(secondResult)).toBe(true);
@@ -391,38 +231,10 @@ describe('listWikiPages integration', () => {
 
   describe('Data Structure Validation', () => {
     test('should verify returned data structure matches WikiPageSummary interface', async () => {
-      // Skip if integration tests are disabled or no connection available
-      if (shouldSkipIntegrationTest()) {
-        return;
-      }
-
-      // Get a real connection using environment variables
-      const connection = await getTestConnection();
-      if (!connection) {
-        throw new Error(
-          'Connection should be available when test is not skipped',
-        );
-      }
-
-      // First get available wikis
-      const wikis = await getWikis(connection, { projectId: projectName });
-
-      // Skip if no wikis are available
-      if (wikis.length === 0) {
-        console.log('Skipping test: No wikis available in the project');
-        return;
-      }
-
-      // Use the first available wiki
-      const wiki = wikis[0];
-      if (!wiki.name) {
-        throw new Error('Wiki name is undefined');
-      }
-
       const result = await listWikiPages({
         organizationId,
         projectId: projectName,
-        wikiId: wiki.name,
+        wikiId: wikiName,
       });
 
       expect(Array.isArray(result)).toBe(true);
@@ -458,40 +270,12 @@ describe('listWikiPages integration', () => {
 
   describe('Performance and Pagination', () => {
     test('should handle large wiki structures efficiently', async () => {
-      // Skip if integration tests are disabled or no connection available
-      if (shouldSkipIntegrationTest()) {
-        return;
-      }
-
-      // Get a real connection using environment variables
-      const connection = await getTestConnection();
-      if (!connection) {
-        throw new Error(
-          'Connection should be available when test is not skipped',
-        );
-      }
-
-      // First get available wikis
-      const wikis = await getWikis(connection, { projectId: projectName });
-
-      // Skip if no wikis are available
-      if (wikis.length === 0) {
-        console.log('Skipping test: No wikis available in the project');
-        return;
-      }
-
-      // Use the first available wiki
-      const wiki = wikis[0];
-      if (!wiki.name) {
-        throw new Error('Wiki name is undefined');
-      }
-
       const startTime = Date.now();
 
       const result = await listWikiPages({
         organizationId,
         projectId: projectName,
-        wikiId: wiki.name,
+        wikiId: wikiName,
       });
 
       const endTime = Date.now();

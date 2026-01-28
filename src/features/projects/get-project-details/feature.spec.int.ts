@@ -5,29 +5,26 @@ import {
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
 
-describe('getProjectDetails integration', () => {
-  let connection: WebApi | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('getProjectDetails integration', () => {
+  let connection: WebApi;
   let projectName: string;
 
   beforeAll(async () => {
     // Get a real connection using environment variables
-    connection = await getTestConnection();
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
     projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
   });
 
   test('should retrieve basic project details from Azure DevOps', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Act - make an actual API call to Azure DevOps
     const result = await getProjectDetails(connection, {
       projectId: projectName,
@@ -47,18 +44,6 @@ describe('getProjectDetails integration', () => {
   });
 
   test('should retrieve project details with teams from Azure DevOps', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Act - make an actual API call to Azure DevOps
     const result = await getProjectDetails(connection, {
       projectId: projectName,
@@ -80,18 +65,6 @@ describe('getProjectDetails integration', () => {
   });
 
   test('should retrieve project details with process information from Azure DevOps', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Act - make an actual API call to Azure DevOps
     const result = await getProjectDetails(connection, {
       projectId: projectName,
@@ -105,18 +78,6 @@ describe('getProjectDetails integration', () => {
   });
 
   test('should retrieve project details with work item types from Azure DevOps', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Act - make an actual API call to Azure DevOps
     const result = await getProjectDetails(connection, {
       projectId: projectName,
@@ -143,18 +104,6 @@ describe('getProjectDetails integration', () => {
   });
 
   test('should retrieve project details with fields from Azure DevOps', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Act - make an actual API call to Azure DevOps
     const result = await getProjectDetails(connection, {
       projectId: projectName,
@@ -187,18 +136,6 @@ describe('getProjectDetails integration', () => {
   });
 
   test('should throw error when project is not found', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Use a non-existent project name
     const nonExistentProjectName = 'non-existent-project-' + Date.now();
 

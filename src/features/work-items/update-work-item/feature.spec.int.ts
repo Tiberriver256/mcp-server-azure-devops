@@ -7,18 +7,22 @@ import {
 } from '@/shared/test/test-helpers';
 import { CreateWorkItemOptions, UpdateWorkItemOptions } from '../types';
 
-describe('updateWorkItem integration', () => {
-  let connection: WebApi | null = null;
-  let createdWorkItemId: number | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('updateWorkItem integration', () => {
+  let connection: WebApi;
+  let createdWorkItemId: number;
 
   beforeAll(async () => {
     // Get a real connection using environment variables
-    connection = await getTestConnection();
-
-    // Skip setup if integration tests should be skipped
-    if (shouldSkipIntegrationTest() || !connection) {
-      return;
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
     }
+    connection = testConnection;
 
     // Create a work item to be used by the update tests
     const projectName =
@@ -31,28 +35,19 @@ describe('updateWorkItem integration', () => {
       priority: 3,
     };
 
-    try {
-      const workItem = await createWorkItem(
-        connection,
-        projectName,
-        'Task',
-        options,
-      );
-      // Ensure the ID is a number
-      if (workItem && workItem.id !== undefined) {
-        createdWorkItemId = workItem.id;
-      }
-    } catch (error) {
-      console.error('Failed to create work item for update tests:', error);
+    const workItem = await createWorkItem(
+      connection,
+      projectName,
+      'Task',
+      options,
+    );
+    if (!workItem?.id) {
+      throw new Error('Failed to create work item for update tests');
     }
+    createdWorkItemId = workItem.id;
   });
 
   test('should update a work item title in Azure DevOps', async () => {
-    // Skip if no connection is available or if work item wasn't created
-    if (shouldSkipIntegrationTest() || !connection || !createdWorkItemId) {
-      return;
-    }
-
     // Generate a unique updated title
     const updatedTitle = `Updated Title ${new Date().toISOString()}`;
 
@@ -75,11 +70,6 @@ describe('updateWorkItem integration', () => {
   });
 
   test('should update multiple fields at once', async () => {
-    // Skip if no connection is available or if work item wasn't created
-    if (shouldSkipIntegrationTest() || !connection || !createdWorkItemId) {
-      return;
-    }
-
     const newDescription =
       'This is an updated description from integration tests';
     const newPriority = 1;
@@ -111,11 +101,6 @@ describe('updateWorkItem integration', () => {
   });
 
   test('should throw error when updating non-existent work item', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest() || !connection) {
-      return;
-    }
-
     // Use a very large ID that's unlikely to exist
     const nonExistentId = 999999999;
 

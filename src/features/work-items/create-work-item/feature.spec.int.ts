@@ -6,27 +6,24 @@ import {
 } from '@/shared/test/test-helpers';
 import { CreateWorkItemOptions } from '../types';
 
-describe('createWorkItem integration', () => {
-  let connection: WebApi | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('createWorkItem integration', () => {
+  let connection: WebApi;
 
   beforeAll(async () => {
     // Get a real connection using environment variables
-    connection = await getTestConnection();
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
   });
 
   test('should create a new work item in Azure DevOps', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Create a unique title using timestamp to avoid conflicts
     const uniqueTitle = `Test Work Item ${new Date().toISOString()}`;
 
@@ -62,18 +59,6 @@ describe('createWorkItem integration', () => {
   });
 
   test('should create a work item with additional fields', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // Create a unique title using timestamp to avoid conflicts
     const uniqueTitle = `Test Work Item with Fields ${new Date().toISOString()}`;
 
@@ -115,18 +100,6 @@ describe('createWorkItem integration', () => {
   });
 
   test('should create a child work item with parent-child relationship', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
-    // This connection must be available if we didn't skip
-    if (!connection) {
-      throw new Error(
-        'Connection should be available when test is not skipped',
-      );
-    }
-
     // For a true integration test, use a real project
     const projectName =
       process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';

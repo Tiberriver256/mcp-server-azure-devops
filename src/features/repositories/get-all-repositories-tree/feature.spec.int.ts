@@ -5,21 +5,20 @@ import { AzureDevOpsConfig } from '../../../shared/types';
 import { WebApi } from 'azure-devops-node-api';
 import { AuthenticationMethod } from '../../../shared/auth';
 
-// Skip tests if no PAT is available
-const hasPat = process.env.AZURE_DEVOPS_PAT && process.env.AZURE_DEVOPS_ORG_URL;
-const describeOrSkip = hasPat ? describe : describe.skip;
+const shouldSkip = shouldSkipIntegrationTest();
+const projectId =
+  process.env.AZURE_DEVOPS_TEST_PROJECT_ID ||
+  process.env.AZURE_DEVOPS_DEFAULT_PROJECT ||
+  '';
+const hasProjectId = Boolean(projectId);
+const describeOrSkip = !shouldSkip && hasProjectId ? describe : describe.skip;
 
 describeOrSkip('getAllRepositoriesTree (Integration)', () => {
   let connection: WebApi;
   let config: AzureDevOpsConfig;
-  let projectId: string;
   let orgId: string;
 
   beforeAll(async () => {
-    if (shouldSkipIntegrationTest()) {
-      return;
-    }
-
     // Configuration values
     config = {
       organizationUrl: process.env.AZURE_DEVOPS_ORG_URL || '',
@@ -27,12 +26,9 @@ describeOrSkip('getAllRepositoriesTree (Integration)', () => {
       personalAccessToken: process.env.AZURE_DEVOPS_PAT || '',
       defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '',
     };
-
-    // Use test project - should be defined in .env file
-    projectId =
-      process.env.AZURE_DEVOPS_TEST_PROJECT_ID ||
-      process.env.AZURE_DEVOPS_DEFAULT_PROJECT ||
-      '';
+    if (!config.organizationUrl || !config.personalAccessToken) {
+      throw new Error('Azure DevOps credentials are required for this test');
+    }
 
     // Extract organization ID from URL
     const url = new URL(config.organizationUrl);
@@ -41,27 +37,9 @@ describeOrSkip('getAllRepositoriesTree (Integration)', () => {
 
     // Get Azure DevOps connection
     connection = await getConnection(config);
-
-    // Skip tests if no project ID is set
-    if (!projectId) {
-      console.warn('Skipping integration tests: No test project ID set');
-    }
   }, 30000);
 
-  // Skip all tests if integration tests are disabled
-  beforeEach(() => {
-    if (shouldSkipIntegrationTest()) {
-      jest.resetAllMocks();
-      return;
-    }
-  });
-
   it('should retrieve tree for all repositories with maximum depth (default)', async () => {
-    // Skip test if no project ID or if integration tests are disabled
-    if (shouldSkipIntegrationTest() || !projectId) {
-      return;
-    }
-
     const result = await getAllRepositoriesTree(connection, {
       organizationId: orgId,
       projectId: projectId,
@@ -96,11 +74,6 @@ describeOrSkip('getAllRepositoriesTree (Integration)', () => {
   }, 60000); // Longer timeout because max depth can take time
 
   it('should retrieve tree for all repositories with limited depth (depth=1)', async () => {
-    // Skip test if no project ID or if integration tests are disabled
-    if (shouldSkipIntegrationTest() || !projectId) {
-      return;
-    }
-
     const result = await getAllRepositoriesTree(connection, {
       organizationId: orgId,
       projectId: projectId,

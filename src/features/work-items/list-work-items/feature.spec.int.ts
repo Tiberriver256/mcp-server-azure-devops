@@ -7,21 +7,25 @@ import {
 } from '@/shared/test/test-helpers';
 import { CreateWorkItemOptions, ListWorkItemsOptions } from '../types';
 
-describe('listWorkItems integration', () => {
-  let connection: WebApi | null = null;
+const shouldSkip = shouldSkipIntegrationTest();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('listWorkItems integration', () => {
+  let connection: WebApi;
   const createdWorkItemIds: number[] = [];
   let projectName: string;
 
   beforeAll(async () => {
     // Get a real connection using environment variables
-    connection = await getTestConnection();
+    const testConnection = await getTestConnection();
+    if (!testConnection) {
+      throw new Error(
+        'Connection should be available when integration tests are enabled',
+      );
+    }
+    connection = testConnection;
 
     projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
-
-    // Skip setup if integration tests should be skipped
-    if (shouldSkipIntegrationTest() || !connection) {
-      return;
-    }
 
     // Create a few work items to ensure we have data to list
     const testPrefix = `List Test ${new Date().toISOString().slice(0, 16)}`;
@@ -53,11 +57,6 @@ describe('listWorkItems integration', () => {
   });
 
   test('should list work items from a project', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest() || !connection) {
-      return;
-    }
-
     const options: ListWorkItemsOptions = {
       projectId: projectName,
     };
@@ -83,11 +82,6 @@ describe('listWorkItems integration', () => {
   });
 
   test('should apply pagination options', async () => {
-    // Skip if no connection is available
-    if (shouldSkipIntegrationTest() || !connection) {
-      return;
-    }
-
     // First get all items to know the total count
     const allOptions: ListWorkItemsOptions = {
       projectId: projectName,
@@ -115,14 +109,7 @@ describe('listWorkItems integration', () => {
   });
 
   test('should list work items with custom WIQL query', async () => {
-    // Skip if no connection is available or if we didn't create any test items
-    if (
-      shouldSkipIntegrationTest() ||
-      !connection ||
-      createdWorkItemIds.length === 0
-    ) {
-      return;
-    }
+    expect(createdWorkItemIds.length).toBeGreaterThan(0);
 
     // Create a more specific WIQL query that includes the IDs of our created work items
     const workItemIdList = createdWorkItemIds.join(',');

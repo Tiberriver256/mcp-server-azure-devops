@@ -57,6 +57,31 @@ NC='\033[0m' # No Color
 auth_method="azure-identity"
 pat_token=""
 
+extract_org_name() {
+    local input
+    local devops_name
+    local visualstudio_name
+    input=$(echo "$1" | xargs)
+    input="${input%/}"
+    devops_name=$(echo "$input" | sed -n 's#^https\?://dev\.azure\.com/\([^/]*\).*#\1#p')
+    if [ -z "$devops_name" ]; then
+        devops_name=$(echo "$input" | sed -n 's#^dev\.azure\.com/\([^/]*\).*#\1#p')
+    fi
+    visualstudio_name=$(echo "$input" | sed -n 's#^https\?://\([^./]*\)\.visualstudio\.com.*#\1#p')
+    if [ -z "$visualstudio_name" ]; then
+        visualstudio_name=$(echo "$input" | sed -n 's#^\([^./]*\)\.visualstudio\.com.*#\1#p')
+    fi
+    if [ -n "$devops_name" ]; then
+        echo "$devops_name"
+        return
+    fi
+    if [ -n "$visualstudio_name" ]; then
+        echo "$visualstudio_name"
+        return
+    fi
+    echo "$input"
+}
+
 write_env_file() {
     echo -e "\n${YELLOW}Step 5: Creating .env file...${NC}"
 
@@ -151,6 +176,10 @@ if [ -n "$SETUP_ENV_NONINTERACTIVE" ]; then
         org_name=$(echo "$org_url" | sed -n 's#https\?://dev\.azure\.com/\([^/]*\).*#\1#p')
     fi
 
+    if [ -n "$org_name" ]; then
+        org_name=$(extract_org_name "$org_name")
+    fi
+
     if [ -z "$org_name" ] || [ -z "$org_url" ]; then
         handle_error "Non-interactive mode requires SETUP_ENV_ORG_NAME (or AZURE_DEVOPS_ORG_NAME) and/or SETUP_ENV_ORG_URL."
         return 1 2>/dev/null || exit 1
@@ -188,7 +217,7 @@ should_continue || return 1 2>/dev/null || exit 1
 
 # Check if Azure DevOps extension is installed
 echo -e "${YELLOW}Checking for Azure DevOps extension...${NC}"
-az devops &> /dev/null
+az extension show --name azure-devops --query name -o tsv &> /dev/null
 if [ $? -ne 0 ]; then
     echo "Azure DevOps extension not found. Installing..."
     az extension add --name azure-devops
@@ -305,6 +334,7 @@ else
 fi
 should_continue || return 1 2>/dev/null || exit 1
 
+org_name=$(extract_org_name "$org_name")
 org_url="https://dev.azure.com/$org_name"
 echo -e "${GREEN}Using organization URL: $org_url${NC}"
 
