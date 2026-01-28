@@ -11,16 +11,34 @@ dotenv.config();
  */
 export function getOrgNameFromUrl(url?: string): string {
   if (!url) return 'unknown-organization';
-  const devMatch = url.match(/https?:\/\/dev\.azure\.com\/([^/]+)/);
-  if (devMatch) {
-    return devMatch[1];
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return 'unknown-organization';
   }
-  // Fallback only for Azure DevOps Server URLs
-  if (url.includes('azure')) {
-    const fallbackMatch = url.match(/https?:\/\/[^/]+\/([^/]+)/);
-    return fallbackMatch ? fallbackMatch[1] : 'unknown-organization';
+
+  const hostname = parsedUrl.hostname.toLowerCase();
+  if (hostname === 'dev.azure.com') {
+    const segments = parsedUrl.pathname.split('/').filter(Boolean);
+    return segments[0] ?? 'unknown-organization';
   }
-  return 'unknown-organization';
+
+  if (hostname.endsWith('.visualstudio.com')) {
+    return hostname.split('.')[0] || 'unknown-organization';
+  }
+
+  const segments = parsedUrl.pathname.split('/').filter(Boolean);
+  if (segments.length === 0) {
+    return 'unknown-organization';
+  }
+
+  if (segments[0].toLowerCase() === 'tfs') {
+    return segments[1] ?? 'unknown-organization';
+  }
+
+  return segments[0] ?? 'unknown-organization';
 }
 
 /**

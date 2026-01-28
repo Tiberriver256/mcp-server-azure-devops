@@ -80,7 +80,7 @@ export const SearchWikiSchema = z.object({
     .string()
     .optional()
     .describe(
-      `The ID or name of the project to search in (Default: ${defaultProject}). If not provided, the default project will be used.`,
+      'The ID or name of the project to search in. If omitted, the search runs across the organization when supported.',
     ),
   filters: z
     .object({
@@ -123,7 +123,7 @@ export const SearchWorkItemsSchema = z.object({
     .string()
     .optional()
     .describe(
-      `The ID or name of the project to search in (Default: ${defaultProject}). If not provided, the default project will be used.`,
+      'The ID or name of the project to search in. If omitted, the search runs across the organization when supported.',
     ),
   filters: z
     .object({

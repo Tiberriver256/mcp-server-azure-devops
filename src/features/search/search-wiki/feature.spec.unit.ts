@@ -1,6 +1,7 @@
 import { WebApi } from 'azure-devops-node-api';
 import axios from 'axios';
 import { searchWiki } from './feature';
+import { AzureDevOpsValidationError } from '../../../shared/errors';
 
 // Mock Azure Identity
 jest.mock('@azure/identity', () => {
@@ -164,5 +165,43 @@ describe('searchWiki unit', () => {
       }),
       expect.any(Object),
     );
+  });
+
+  test('should build server search URL when using Azure DevOps Server', async () => {
+    const serverConnection = {
+      ...mockConnection,
+      serverUrl: 'https://ado.local/tfs/DefaultCollection',
+    } as unknown as WebApi;
+
+    mockedAxios.post.mockResolvedValueOnce({
+      data: {
+        count: 0,
+        results: [],
+      },
+    });
+
+    await searchWiki(serverConnection, {
+      searchText: 'example',
+      projectId: 'ProjectX',
+    });
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      'https://ado.local/tfs/DefaultCollection/ProjectX/_apis/search/wikisearchresults?api-version=7.1',
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+
+  test('should require projectId for server wiki search', async () => {
+    const serverConnection = {
+      ...mockConnection,
+      serverUrl: 'https://ado.local/tfs/DefaultCollection',
+    } as unknown as WebApi;
+
+    await expect(
+      searchWiki(serverConnection, {
+        searchText: 'example',
+      }),
+    ).rejects.toThrow(AzureDevOpsValidationError);
   });
 });

@@ -161,6 +161,52 @@ describe('searchCode unit', () => {
     );
   });
 
+  test('should use organizationId override for services search', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: {
+        count: 0,
+        results: [],
+      },
+    });
+
+    await searchCode(mockConnection, {
+      searchText: 'override',
+      projectId: 'ProjectX',
+      organizationId: 'override-org',
+    });
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      'https://almsearch.dev.azure.com/override-org/ProjectX/_apis/search/codesearchresults?api-version=7.1',
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+
+  test('should build server search URL when using Azure DevOps Server', async () => {
+    const serverConnection = {
+      ...mockConnection,
+      serverUrl: 'https://ado.local/tfs/DefaultCollection',
+    } as unknown as WebApi;
+
+    mockedAxios.post.mockResolvedValueOnce({
+      data: {
+        count: 0,
+        results: [],
+      },
+    });
+
+    await searchCode(serverConnection, {
+      searchText: 'server',
+      projectId: 'ProjectX',
+    });
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      'https://ado.local/tfs/DefaultCollection/ProjectX/_apis/search/codesearchresults?api-version=7.1',
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+
   test('should not fetch content when includeContent is false', async () => {
     // Arrange
     const mockSearchResponse = {

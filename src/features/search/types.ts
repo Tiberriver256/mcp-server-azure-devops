@@ -3,6 +3,7 @@
  */
 export interface SearchCodeOptions {
   searchText: string;
+  organizationId?: string;
   projectId?: string;
   filters?: {
     Repository?: string[];
@@ -125,6 +126,11 @@ export interface SearchWikiOptions {
    * The text to search for within wiki pages
    */
   searchText: string;
+
+  /**
+   * The ID or name of the organization
+   */
+  organizationId?: string;
 
   /**
    * The ID or name of the project to search in
@@ -360,6 +366,11 @@ export interface SearchWorkItemsOptions {
    * The text to search for within work items
    */
   searchText: string;
+
+  /**
+   * The ID or name of the organization
+   */
+  organizationId?: string;
 
   /**
    * The ID or name of the project to search in

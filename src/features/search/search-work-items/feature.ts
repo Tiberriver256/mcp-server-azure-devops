@@ -7,6 +7,7 @@ import {
   AzureDevOpsValidationError,
   AzureDevOpsPermissionError,
 } from '../../../shared/errors';
+import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url';
 import {
   SearchWorkItemsOptions,
   WorkItemSearchRequest,
@@ -43,17 +44,22 @@ export async function searchWorkItems(
     // Get the authorization header from the connection
     const authHeader = await getAuthorizationHeader();
 
-    // Extract organization and project from the connection URL
-    const { organization, project } = extractOrgAndProject(
-      connection,
-      options.projectId,
-    );
+    const baseUrls = resolveAzureDevOpsBaseUrls(connection.serverUrl, {
+      organizationId: options.organizationId,
+      projectId: options.projectId,
+    });
+
+    if (baseUrls.type === 'server' && !options.projectId) {
+      throw new AzureDevOpsValidationError(
+        'Project ID is required for Azure DevOps Server work item search',
+      );
+    }
 
     // Make the search API request
     // If projectId is provided, include it in the URL, otherwise perform organization-wide search
     const searchUrl = options.projectId
-      ? `https://almsearch.dev.azure.com/${organization}/${project}/_apis/search/workitemsearchresults?api-version=7.1`
-      : `https://almsearch.dev.azure.com/${organization}/_apis/search/workitemsearchresults?api-version=7.1`;
+      ? `${baseUrls.searchBaseUrl}/${options.projectId}/_apis/search/workitemsearchresults?api-version=7.1`
+      : `${baseUrls.searchBaseUrl}/_apis/search/workitemsearchresults?api-version=7.1`;
 
     const searchResponse = await axios.post<WorkItemSearchResponse>(
       searchUrl,
@@ -101,34 +107,6 @@ export async function searchWorkItems(
       `Failed to search work items: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
-}
-
-/**
- * Extract organization and project from the connection URL
- *
- * @param connection The Azure DevOps WebApi connection
- * @param projectId The project ID or name (optional)
- * @returns The organization and project
- */
-function extractOrgAndProject(
-  connection: WebApi,
-  projectId?: string,
-): { organization: string; project: string } {
-  // Extract organization from the connection URL
-  const url = connection.serverUrl;
-  const match = url.match(/https?:\/\/dev\.azure\.com\/([^/]+)/);
-  const organization = match ? match[1] : '';
-
-  if (!organization) {
-    throw new AzureDevOpsValidationError(
-      'Could not extract organization from connection URL',
-    );
-  }
-
-  return {
-    organization,
-    project: projectId || '',
-  };
 }
 
 /**

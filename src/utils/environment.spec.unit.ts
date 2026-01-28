@@ -31,6 +31,21 @@ describe('environment utilities', () => {
       expect(getOrgNameFromUrl(url)).toBe('test-organization');
     });
 
+    it('should extract organization name from legacy visualstudio.com URL', () => {
+      const url = 'https://legacy-org.visualstudio.com/DefaultCollection';
+      expect(getOrgNameFromUrl(url)).toBe('legacy-org');
+    });
+
+    it('should extract collection name from server URL with tfs virtual dir', () => {
+      const url = 'https://ado.local/tfs/DefaultCollection';
+      expect(getOrgNameFromUrl(url)).toBe('DefaultCollection');
+    });
+
+    it('should extract collection name from server URL without tfs virtual dir', () => {
+      const url = 'https://ado.local/DefaultCollection/ProjectX';
+      expect(getOrgNameFromUrl(url)).toBe('DefaultCollection');
+    });
+
     it('should return "unknown-organization" when URL is undefined', () => {
       expect(getOrgNameFromUrl(undefined)).toBe('unknown-organization');
     });
@@ -40,7 +55,7 @@ describe('environment utilities', () => {
     });
 
     it('should return "unknown-organization" when URL does not match pattern', () => {
-      const url = 'https://example.com/test-organization';
+      const url = 'https://example.com';
       expect(getOrgNameFromUrl(url)).toBe('unknown-organization');
     });
   });

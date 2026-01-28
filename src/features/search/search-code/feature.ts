@@ -8,6 +8,7 @@ import {
   AzureDevOpsPermissionError,
   AzureDevOpsAuthenticationError,
 } from '../../../shared/errors';
+import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url';
 import {
   SearchCodeOptions,
   CodeSearchRequest,
@@ -59,11 +60,13 @@ export async function searchCode(
     // Get the authorization header from the connection
     const authHeader = await getAuthorizationHeader();
 
-    // Extract organization from the connection URL
-    const { organization } = extractOrgFromUrl(connection);
+    const baseUrls = resolveAzureDevOpsBaseUrls(connection.serverUrl, {
+      organizationId: options.organizationId,
+      projectId,
+    });
 
     // Make the search API request with the project ID
-    const searchUrl = `https://almsearch.dev.azure.com/${organization}/${projectId}/_apis/search/codesearchresults?api-version=7.1`;
+    const searchUrl = `${baseUrls.searchBaseUrl}/${projectId}/_apis/search/codesearchresults?api-version=7.1`;
 
     const searchResponse = await axios.post<CodeSearchResponse>(
       searchUrl,
@@ -119,29 +122,6 @@ export async function searchCode(
 
     throw new AzureDevOpsError('Failed to search code', { cause: error });
   }
-}
-
-/**
- * Extract organization from the connection URL
- *
- * @param connection The Azure DevOps WebApi connection
- * @returns The organization
- */
-function extractOrgFromUrl(connection: WebApi): { organization: string } {
-  // Extract organization from the connection URL
-  const url = connection.serverUrl;
-  const match = url.match(/https?:\/\/dev\.azure\.com\/([^/]+)/);
-  const organization = match ? match[1] : '';
-
-  if (!organization) {
-    throw new AzureDevOpsValidationError(
-      'Could not extract organization from connection URL',
-    );
-  }
-
-  return {
-    organization,
-  };
 }
 
 /**

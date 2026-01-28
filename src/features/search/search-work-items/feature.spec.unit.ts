@@ -383,4 +383,63 @@ describe('searchWorkItems', () => {
       expect.any(Object),
     );
   });
+
+  it('should use organizationId override for services search', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: {
+        count: 0,
+        results: [],
+      },
+    });
+
+    await searchWorkItems(connection, {
+      searchText: 'override',
+      projectId: 'mock-project',
+      organizationId: 'override-org',
+    });
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      'https://almsearch.dev.azure.com/override-org/mock-project/_apis/search/workitemsearchresults?api-version=7.1',
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+
+  it('should build server search URL when using Azure DevOps Server', async () => {
+    const serverConnection = {
+      ...connection,
+      serverUrl: 'https://ado.local/tfs/DefaultCollection',
+    } as WebApi;
+
+    mockedAxios.post.mockResolvedValueOnce({
+      data: {
+        count: 0,
+        results: [],
+      },
+    });
+
+    await searchWorkItems(serverConnection, {
+      searchText: 'server',
+      projectId: 'ProjectX',
+    });
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      'https://ado.local/tfs/DefaultCollection/ProjectX/_apis/search/workitemsearchresults?api-version=7.1',
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+
+  it('should require projectId for server work item search', async () => {
+    const serverConnection = {
+      ...connection,
+      serverUrl: 'https://ado.local/tfs/DefaultCollection',
+    } as WebApi;
+
+    await expect(
+      searchWorkItems(serverConnection, {
+        searchText: 'server',
+      }),
+    ).rejects.toThrow(AzureDevOpsValidationError);
+  });
 });
