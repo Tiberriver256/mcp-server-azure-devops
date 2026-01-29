@@ -62,8 +62,8 @@
    - Decide whether to keep, rename (docs), or deprecate.
 
 3) Server URL includes trailing `{project}`
-   - Current behavior: parsing is unambiguous when `projectId` is provided; otherwise `{project}` can be misinterpreted as `{collection}`.
-   - Decide whether to add a tolerance mode for project-level Server URLs (heuristic-based) or require collection-level URLs.
+   - Decision: require collection-level `AZURE_DEVOPS_ORG_URL` (no heuristic parsing for project-level URLs).
+   - Note: parsing is unambiguous when `projectId` is provided; tools that require it pass it explicitly.
 
 ---
 
