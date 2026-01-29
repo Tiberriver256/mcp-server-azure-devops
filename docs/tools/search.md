@@ -2,6 +2,17 @@
 
 This document describes the search tools available in the Azure DevOps MCP server.
 
+## Azure DevOps Services vs Server base URLs
+
+- **Azure DevOps Services (cloud)** uses the dedicated Search host: `https://almsearch.dev.azure.com/{organization}`.
+- **Azure DevOps Server (on-prem)** hosts Search under the same collection URL you use for the core APIs: `https://{server}/{virtualDir?}/{collection}`.
+
+For Azure DevOps Server, set `AZURE_DEVOPS_ORG_URL` to the **collection URL** (not a project URL). Example:
+
+```bash
+AZURE_DEVOPS_ORG_URL=https://server:8080/tfs/DefaultCollection
+```
+
 ## search_code
 
 The `search_code` tool allows you to search for code across repositories in an Azure DevOps project. It uses the Azure DevOps Search API to find code matching your search criteria and can optionally include the full content of the files in the results.
@@ -97,7 +108,8 @@ The response includes:
 ### Notes
 
 - The search is performed using the Azure DevOps Search API, which is separate from the core Azure DevOps API.
-- The search API uses a different base URL (`almsearch.dev.azure.com`) than the regular Azure DevOps API.
+- Azure DevOps Services uses a different base URL (`almsearch.dev.azure.com`) than the regular Azure DevOps API.
+- Azure DevOps Server uses the **same** base URL as the regular Azure DevOps API (your Server collection URL).
 - When `includeContent` is true, the tool makes additional API calls to fetch the full content of each file in the search results.
 - The search API supports a variety of search syntax, including wildcards, exact phrases, and boolean operators. See the [Azure DevOps Search documentation](https://learn.microsoft.com/en-us/azure/devops/project/search/get-started-search?view=azure-devops) for more information.
 - The `CodeElement` filter allows you to filter by code element types such as `function`, `class`, `method`, `property`, `variable`, `comment`, etc.

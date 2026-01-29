@@ -70,15 +70,12 @@
 ## Next work (TDD slices)
 
 ### Slice A: Documentation parity
-- RED:
-  - Add doc assertions/tests if we have a docs-test harness (otherwise manual check).
-- GREEN:
-  - Update docs to include Azure DevOps Server URL examples (collection-level) and clarify which tools are Services-only.
+- [x] GREEN:
+  - Updated docs to include Azure DevOps Server URL examples (collection-level) and clarify search base URL differences.
   - Targets:
     - `docs/tools/search.md`
-    - `README.md`
-- REFACTOR:
-  - Ensure docs match tool schemas (zod descriptions) and error messages.
+- Notes:
+  - No docs-test harness in this repo; validated manually.
 
 ### Slice B: Cross-tool audit for hardcoded hosts
 - RED:
