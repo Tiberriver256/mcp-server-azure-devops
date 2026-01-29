@@ -7,14 +7,16 @@ describe('search schemas', () => {
   });
 
   describe('SearchCodeSchema', () => {
-    it('does not inject a placeholder projectId when projectId is omitted and AZURE_DEVOPS_DEFAULT_PROJECT is unset', async () => {
+    it('does not inject a placeholder projectId when projectId is omitted and AZURE_DEVOPS_DEFAULT_PROJECT is unset', () => {
       process.env = {
         ...originalEnv,
         AZURE_DEVOPS_DEFAULT_PROJECT: '',
       };
 
       jest.resetModules();
-      const { SearchCodeSchema } = await import('./schemas');
+      // `import('./schemas')` triggers TS2835 under `moduleResolution: Node16` (explicit extensions required).
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { SearchCodeSchema } = require('./schemas');
 
       const parsed = SearchCodeSchema.parse({
         searchText: 'hello',
@@ -23,14 +25,15 @@ describe('search schemas', () => {
       expect(parsed.projectId).toBeUndefined();
     });
 
-    it('does not inject a placeholder organizationId when organizationId is omitted and AZURE_DEVOPS_ORG_URL is unset', async () => {
+    it('does not inject a placeholder organizationId when organizationId is omitted and AZURE_DEVOPS_ORG_URL is unset', () => {
       process.env = {
         ...originalEnv,
         AZURE_DEVOPS_ORG_URL: '',
       };
 
       jest.resetModules();
-      const { SearchCodeSchema } = await import('./schemas');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { SearchCodeSchema } = require('./schemas');
 
       const parsed = SearchCodeSchema.parse({
         searchText: 'hello',
