@@ -36,3 +36,8 @@ logs/
 
 # Patches
 diffs/
+
+# Agent harness artifacts
+.pi/
+.codex/
+.agents/
