@@ -3,10 +3,19 @@ import { handleRequestError } from '../../../shared/errors/handle-request-error'
 
 // Mock the AzureDevOpsClient
 jest.mock('../../../shared/api/client');
-// Mock the error handler
-jest.mock('../../../shared/errors/handle-request-error', () => ({
-  handleRequestError: jest.fn(),
-}));
+// Mock the error handler (default: call through to the real implementation)
+jest.mock('../../../shared/errors/handle-request-error', () => {
+  const actual = jest.requireActual(
+    '../../../shared/errors/handle-request-error',
+  ) as typeof import('../../../shared/errors/handle-request-error');
+
+  return {
+    ...actual,
+    handleRequestError: jest.fn((error: unknown, context: string) =>
+      actual.handleRequestError(error, context),
+    ),
+  };
+});
 
 describe('createWikiPage Feature', () => {
   let client: any;
@@ -24,7 +33,16 @@ describe('createWikiPage Feature', () => {
   beforeEach(() => {
     // Reset mocks for each test
     mockPut.mockReset();
+
+    // Restore the default (call-through) mock implementation for each test.
     mockHandleRequestError.mockReset();
+    const actual = jest.requireActual(
+      '../../../shared/errors/handle-request-error',
+    ) as typeof import('../../../shared/errors/handle-request-error');
+    mockHandleRequestError.mockImplementation(
+      (error: unknown, context: string) =>
+        actual.handleRequestError(error, context),
+    );
 
     client = {
       put: mockPut,
@@ -148,8 +166,7 @@ describe('createWikiPage Feature', () => {
     expect(result).toEqual(expectedResponse);
   });
 
-  // Skip this test for now as it requires complex mocking of environment variables
-  it.skip('should throw if organizationId is not provided and not set in defaults', async () => {
+  it('should throw if organizationId is not provided and not set in defaults', async () => {
     const clientWithoutOrg = {
       put: mockPut,
       defaults: {
@@ -167,9 +184,7 @@ describe('createWikiPage Feature', () => {
     // which is difficult to do in the current test setup
     await expect(
       createWikiPage(paramsNoOrg, clientWithoutOrg as any),
-    ).rejects.toThrow(
-      'Organization ID is not defined. Please provide it or set a default.',
-    );
+    ).rejects.toThrow('Organization ID is not defined');
     expect(mockPut).not.toHaveBeenCalled();
   });
 
