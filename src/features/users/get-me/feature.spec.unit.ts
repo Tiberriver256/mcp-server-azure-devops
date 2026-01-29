@@ -69,6 +69,30 @@ describe('getMe', () => {
     });
   });
 
+  it('should decode organization name from URL-encoded dev.azure.com org urls', async () => {
+    mockConnection = {
+      serverUrl: 'https://dev.azure.com/test%2Dorg',
+    } as WebApi;
+
+    const mockProfile = {
+      id: 'user-id-123',
+      displayName: 'Test User',
+      emailAddress: 'test.user@example.com',
+      coreRevision: 1647,
+      timeStamp: '2023-01-01T00:00:00.000Z',
+      revision: 1647,
+    };
+
+    mockAxios.get.mockResolvedValue({ data: mockProfile });
+
+    await getMe(mockConnection);
+
+    expect(mockAxios.get).toHaveBeenCalledWith(
+      'https://vssps.dev.azure.com/test-org/_apis/profile/profiles/me?api-version=7.1',
+      expect.any(Object),
+    );
+  });
+
   it('should handle missing email', async () => {
     // Arrange
     const mockProfile = {

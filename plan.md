@@ -78,11 +78,10 @@
   - No docs-test harness in this repo; validated manually.
 
 ### Slice B: Cross-tool audit for hardcoded hosts
-- RED:
-  - Add unit tests for any tool that still constructs URLs manually.
-- GREEN:
-  - Run audit: `rg -n "dev\.azure\.com|visualstudio\.com|almsearch\.dev\.azure\.com|vssps\.dev\.azure\.com" src`
-  - Replace hardcoded bases with `resolveAzureDevOpsBaseUrls` where Server parity is expected.
+- [x] RED/GREEN:
+  - Ran audit: `rg -n "dev\.azure\.com|visualstudio\.com|almsearch\.dev\.azure\.com|vssps\.dev\.azure\.com" src`
+  - Refactored `get_me` to use `resolveAzureDevOpsBaseUrls` for organization parsing.
+  - Added unit coverage for URL-decoding behavior.
 
 ### Slice C: Optional tolerance for project-level Server URLs (if we choose to support)
 - RED:
