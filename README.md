@@ -45,12 +45,29 @@ The server uses a feature-based architecture where each feature area (like work-
   - Azure Identity credentials, or
   - Azure CLI login
 
-### Running with NPX
+### Running from npm (npx)
 
-After building the project with `npm run build`, you can run the server directly with:
+If you just want to run the **published** server package, you **do not** need to clone or build this repository:
 
 ```bash
-npx @tiberriver256/mcp-server-azure-devops
+npx -y @tiberriver256/mcp-server-azure-devops
+```
+
+### Running locally (from source)
+
+From a checkout of this repository:
+
+```bash
+npm ci
+cp .env.example .env   # then edit values
+npm run build
+npm start              # runs: node dist/index.js
+```
+
+For iterative development (auto-reload):
+
+```bash
+npm run dev            # runs src/index.ts via ts-node-dev
 ```
 
 ### Usage with Claude Desktop/Cursor AI

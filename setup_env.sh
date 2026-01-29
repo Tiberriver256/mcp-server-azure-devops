@@ -157,7 +157,7 @@ EOF
     echo "  npm run dev"
     echo
     echo "You can also run integration tests with:"
-    echo "  npm run test:integration"
+    echo "  npm run test:int"
 }
 
 if [ -n "$SETUP_ENV_NONINTERACTIVE" ]; then

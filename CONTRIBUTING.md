@@ -59,6 +59,20 @@ When adding a new feature or tool:
 3. Update the feature's `index.ts` to export your functions and add them to the request handlers
 4. No changes to server.ts should be needed!
 
+## Local Setup (run the server from source)
+
+```bash
+npm ci
+cp .env.example .env   # then edit values
+
+# option A: run compiled output (matches what gets published)
+npm run build
+npm start
+
+# option B: dev mode (auto-reload)
+npm run dev
+```
+
 ## Testing
 
 ### Unit Tests
@@ -83,7 +97,7 @@ Integration tests require a connection to a real Azure DevOps instance. To run t
 
 2. Run the integration tests:
    ```bash
-   npm run test:integration
+   npm run test:int
    ```
 
 ### CI Environment
