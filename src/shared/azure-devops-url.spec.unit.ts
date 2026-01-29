@@ -80,6 +80,38 @@ describe('resolveAzureDevOpsBaseUrls', () => {
     );
   });
 
+  it('parses server url with collection and no virtual dir (issue #277 shape)', () => {
+    const result = resolveAzureDevOpsBaseUrls('https://ado.local/ORG/');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        type: 'server',
+        collection: 'ORG',
+        instanceBaseUrl: 'https://ado.local',
+        coreBaseUrl: 'https://ado.local/ORG',
+        searchBaseUrl: 'https://ado.local/ORG',
+      }),
+    );
+  });
+
+  it('parses server url with collection + project (no virtual dir) when projectId provided', () => {
+    const result = resolveAzureDevOpsBaseUrls(
+      'https://ado.local/ORG/ProjectX',
+      {
+        projectId: 'ProjectX',
+      },
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        type: 'server',
+        collection: 'ORG',
+        instanceBaseUrl: 'https://ado.local',
+        coreBaseUrl: 'https://ado.local/ORG',
+      }),
+    );
+  });
+
   it('parses server url with custom virtual dir when projectId provided', () => {
     const result = resolveAzureDevOpsBaseUrls(
       'https://ado.local/azuredevops/Collection/ProjectX',
