@@ -7,7 +7,9 @@ This document describes the search tools available in the Azure DevOps MCP serve
 - **Azure DevOps Services (cloud)** uses the dedicated Search host: `https://almsearch.dev.azure.com/{organization}`.
 - **Azure DevOps Server (on-prem)** hosts Search under the same collection URL you use for the core APIs: `https://{server}/{virtualDir?}/{collection}`.
 
-For Azure DevOps Server, set `AZURE_DEVOPS_ORG_URL` to the **collection URL** (not a project URL). Example:
+For Azure DevOps Server, set `AZURE_DEVOPS_ORG_URL` to the **collection URL** (not a project URL). Project-level URLs are ambiguous on Server installs with custom virtual directories and are not supported.
+
+Example:
 
 ```bash
 AZURE_DEVOPS_ORG_URL=https://server:8080/tfs/DefaultCollection

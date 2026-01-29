@@ -83,13 +83,11 @@
   - Refactored `get_me` to use `resolveAzureDevOpsBaseUrls` for organization parsing.
   - Added unit coverage for URL-decoding behavior.
 
-### Slice C: Optional tolerance for project-level Server URLs (if we choose to support)
-- RED:
-  - Add parser tests for `https://ado.local/tfs/DefaultCollection/ProjectX` *without* providing `projectId`.
-- GREEN:
-  - Update `resolveAzureDevOpsBaseUrls` heuristics (careful: multi-segment virtual dirs can make this ambiguous).
-- REFACTOR:
-  - Consolidate error messages + docs.
+### Slice C: Optional tolerance for project-level Server URLs
+- [x] Decision: **Do not add heuristic parsing** for project-level Server URLs.
+  - Reason: server paths can include multi-segment virtual dirs, so heuristics are ambiguous and can break valid installations.
+  - Requirement: for Azure DevOps Server, configure `AZURE_DEVOPS_ORG_URL` as a **collection URL**.
+  - Note: tools that require `projectId` will pass it explicitly (recommended).
 
 ---
 
