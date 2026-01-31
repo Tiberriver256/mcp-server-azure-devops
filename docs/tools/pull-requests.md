@@ -145,6 +145,43 @@ const linkedPr = await mcpClient.callTool('create_pull_request', {
 console.log(`Created PR #${linkedPr.pullRequestId} linked to work items`);
 ```
 
+## get_pull_request
+
+Get a single pull request by ID (no repository ID required).
+
+### Description
+
+The `get_pull_request` tool retrieves a pull request by its numeric ID. This is especially useful in Azure DevOps Server where pull request IDs are project-scoped and you may not know the repository upfront.
+
+### Parameters
+
+```json
+{
+  "projectId": "MyProject", // Optional: The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT)
+  "pullRequestId": 42 // Required: The ID of the pull request
+}
+```
+
+| Parameter       | Type   | Required | Description                                 |
+| --------------- | ------ | -------- | ------------------------------------------- |
+| `projectId`     | string | No       | The ID or name of the project               |
+| `pullRequestId` | number | Yes      | The ID of the pull request to retrieve      |
+
+### Response
+
+Returns a `PullRequest` object.
+
+### Example Usage
+
+```typescript
+const pr = await mcpClient.callTool('get_pull_request', {
+  projectId: 'MyProject',
+  pullRequestId: 42,
+});
+
+console.log(`PR #${pr.pullRequestId}: ${pr.title}`);
+```
+
 ## list_pull_requests
 
 Lists pull requests in a specific Git repository with optional filtering.

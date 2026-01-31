@@ -25,6 +25,7 @@ The core navigation tools allow you to explore this hierarchy from top to bottom
 | [`list_projects`](./projects.md#list_projects)                | Lists all projects in the organization                      | None                | stateFilter, top, skip, continuationToken |
 | [`list_repositories`](./repositories.md#list_repositories)    | Lists all repositories in a project                         | projectId           | includeLinks                              |
 | [`list_pull_requests`](./pull-requests.md#list_pull_requests) | Lists pull requests in a repository                         | projectId, repositoryId | status, creatorId, reviewerId, etc.    |
+| [`get_pull_request`](./pull-requests.md#get_pull_request)     | Gets a pull request by ID                                   | pullRequestId       | projectId                                 |
 
 ## Common Use Cases
 
@@ -36,6 +37,7 @@ A common workflow is to navigate the hierarchy to discover resources:
 2. Use `list_projects` to find projects in a selected organization
 3. Use `list_repositories` to find repositories in a selected project
 4. Use `list_pull_requests` to find pull requests in a selected repository
+5. Use `get_pull_request` when you know a PR ID but not its repository
 
 Example:
 
@@ -59,6 +61,12 @@ const pullRequests = await mcpClient.callTool('list_pull_requests', {
   projectId: myProject.name,
   repositoryId: myRepo.name,
   status: 'active'
+});
+
+// Step 5: Fetch a PR directly by ID (no repository needed)
+const pullRequest = await mcpClient.callTool('get_pull_request', {
+  projectId: myProject.name,
+  pullRequestId: 42,
 });
 ```
 

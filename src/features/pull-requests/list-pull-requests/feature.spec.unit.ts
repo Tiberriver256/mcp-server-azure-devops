@@ -67,44 +67,6 @@ describe('listPullRequests', () => {
     );
   });
 
-  test('should return single pull request when pullRequestId is provided', async () => {
-    const mockPullRequest = {
-      pullRequestId: 42,
-      title: 'Specific PR',
-    };
-
-    const mockGitApi = {
-      getPullRequestById: jest.fn().mockResolvedValue(mockPullRequest),
-      getPullRequests: jest.fn(),
-    };
-
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
-    };
-
-    const projectId = 'test-project';
-    const options = {
-      projectId,
-      pullRequestId: 42,
-    };
-
-    const result = await listPullRequests(
-      mockConnection as WebApi,
-      projectId,
-      undefined,
-      options,
-    );
-
-    expect(result).toEqual({
-      count: 1,
-      value: [mockPullRequest],
-      hasMoreResults: false,
-      warning: undefined,
-    });
-    expect(mockGitApi.getPullRequestById).toHaveBeenCalledWith(42, projectId);
-    expect(mockGitApi.getPullRequests).not.toHaveBeenCalled();
-  });
-
   test('should return empty array when no pull requests exist', async () => {
     // Setup mock connection
     const mockGitApi = {

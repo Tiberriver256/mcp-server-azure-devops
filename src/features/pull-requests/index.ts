@@ -1,6 +1,7 @@
 export * from './schemas';
 export * from './types';
 export * from './create-pull-request';
+export * from './get-pull-request';
 export * from './list-pull-requests';
 export * from './get-pull-request-comments';
 export * from './add-pull-request-comment';
@@ -21,12 +22,14 @@ import {
 import { defaultProject } from '../../utils/environment';
 import {
   CreatePullRequestSchema,
+  GetPullRequestSchema,
   ListPullRequestsSchema,
   GetPullRequestCommentsSchema,
   AddPullRequestCommentSchema,
   UpdatePullRequestSchema,
   GetPullRequestChangesSchema,
   GetPullRequestChecksSchema,
+  getPullRequest,
   createPullRequest,
   listPullRequests,
   getPullRequestComments,
@@ -45,6 +48,7 @@ export const isPullRequestsRequest: RequestIdentifier = (
   const toolName = request.params.name;
   return [
     'create_pull_request',
+    'get_pull_request',
     'list_pull_requests',
     'get_pull_request_comments',
     'add_pull_request_comment',
@@ -74,6 +78,25 @@ export const handlePullRequestsRequest: RequestHandler = async (
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
     }
+    case 'get_pull_request': {
+      const params = GetPullRequestSchema.parse(request.params.arguments);
+      const projectId =
+        params.projectId || process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
+
+      if (!projectId) {
+        throw new Error(
+          'Project ID is required. Either provide a projectId or set the AZURE_DEVOPS_DEFAULT_PROJECT environment variable.',
+        );
+      }
+
+      const result = await getPullRequest(connection, {
+        projectId,
+        pullRequestId: params.pullRequestId,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
     case 'list_pull_requests': {
       const params = ListPullRequestsSchema.parse(request.params.arguments);
       const result = await listPullRequests(
@@ -90,7 +113,6 @@ export const handlePullRequestsRequest: RequestHandler = async (
           targetRefName: params.targetRefName,
           top: params.top,
           skip: params.skip,
-          pullRequestId: params.pullRequestId,
         },
       );
       return {

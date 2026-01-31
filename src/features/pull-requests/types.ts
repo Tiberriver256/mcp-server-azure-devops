@@ -57,7 +57,7 @@ export interface CreatePullRequestOptions {
  */
 export interface ListPullRequestsOptions {
   projectId: string;
-  repositoryId?: string;
+  repositoryId: string;
   status?: 'all' | 'active' | 'completed' | 'abandoned';
   creatorId?: string;
   reviewerId?: string;
@@ -65,7 +65,6 @@ export interface ListPullRequestsOptions {
   targetRefName?: string;
   top?: number;
   skip?: number;
-  pullRequestId?: number;
 }
 
 /**

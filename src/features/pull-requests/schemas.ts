@@ -48,67 +48,56 @@ export const CreatePullRequestSchema = z.object({
 });
 
 /**
+ * Schema for getting a pull request by ID (no repositoryId required)
+ */
+export const GetPullRequestSchema = z.object({
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  pullRequestId: z.number().describe('The ID of the pull request'),
+});
+
+/**
  * Schema for listing pull requests
  */
-export const ListPullRequestsSchema = z
-  .object({
-    projectId: z
-      .string()
-      .optional()
-      .describe(`The ID or name of the project (Default: ${defaultProject})`),
-    organizationId: z
-      .string()
-      .optional()
-      .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
-    repositoryId: z
-      .string()
-      .optional()
-      .describe(
-        'The ID or name of the repository (required unless pullRequestId is provided)',
-      ),
-    status: z
-      .enum(['all', 'active', 'completed', 'abandoned'])
-      .optional()
-      .describe('Filter by pull request status'),
-    creatorId: z
-      .string()
-      .optional()
-      .describe('Filter by creator ID (must be a UUID string)'),
-    reviewerId: z
-      .string()
-      .optional()
-      .describe('Filter by reviewer ID (must be a UUID string)'),
-    sourceRefName: z
-      .string()
-      .optional()
-      .describe('Filter by source branch name'),
-    targetRefName: z
-      .string()
-      .optional()
-      .describe('Filter by target branch name'),
-    top: z
-      .number()
-      .default(10)
-      .describe('Maximum number of pull requests to return (default: 10)'),
-    skip: z
-      .number()
-      .optional()
-      .describe('Number of pull requests to skip for pagination'),
-    pullRequestId: z
-      .number()
-      .optional()
-      .describe('If provided, return only the matching pull request ID'),
-  })
-  .superRefine((data, ctx) => {
-    if (!data.pullRequestId && !data.repositoryId) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'repositoryId is required unless pullRequestId is provided (use pullRequestId to fetch a PR without knowing its repository)',
-        path: ['repositoryId'],
-      });
-    }
-  });
+export const ListPullRequestsSchema = z.object({
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  repositoryId: z.string().describe('The ID or name of the repository'),
+  status: z
+    .enum(['all', 'active', 'completed', 'abandoned'])
+    .optional()
+    .describe('Filter by pull request status'),
+  creatorId: z
+    .string()
+    .optional()
+    .describe('Filter by creator ID (must be a UUID string)'),
+  reviewerId: z
+    .string()
+    .optional()
+    .describe('Filter by reviewer ID (must be a UUID string)'),
+  sourceRefName: z.string().optional().describe('Filter by source branch name'),
+  targetRefName: z.string().optional().describe('Filter by target branch name'),
+  top: z
+    .number()
+    .default(10)
+    .describe('Maximum number of pull requests to return (default: 10)'),
+  skip: z
+    .number()
+    .optional()
+    .describe('Number of pull requests to skip for pagination'),
+});
 
 /**
  * Schema for getting pull request comments

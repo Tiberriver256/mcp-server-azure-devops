@@ -2,6 +2,7 @@ import { WebApi } from 'azure-devops-node-api';
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { isPullRequestsRequest, handlePullRequestsRequest } from './index';
 import { createPullRequest } from './create-pull-request';
+import { getPullRequest } from './get-pull-request';
 import { listPullRequests } from './list-pull-requests';
 import { getPullRequestComments } from './get-pull-request-comments';
 import { addPullRequestComment } from './add-pull-request-comment';
@@ -12,6 +13,10 @@ import { getPullRequestChecks } from './get-pull-request-checks';
 // Mock the imported modules
 jest.mock('./create-pull-request', () => ({
   createPullRequest: jest.fn(),
+}));
+
+jest.mock('./get-pull-request', () => ({
+  getPullRequest: jest.fn(),
 }));
 
 jest.mock('./list-pull-requests', () => ({
@@ -41,6 +46,7 @@ describe('Pull Requests Request Handlers', () => {
     it('should return true for pull requests tools', () => {
       const validTools = [
         'create_pull_request',
+        'get_pull_request',
         'list_pull_requests',
         'get_pull_request_comments',
         'add_pull_request_comment',
@@ -135,24 +141,18 @@ describe('Pull Requests Request Handlers', () => {
         'test-repo',
         expect.objectContaining({
           status: 'active',
-          pullRequestId: undefined,
         }),
       );
     });
 
-    it('should pass pullRequestId to list_pull_requests request', async () => {
-      const mockPullRequests = {
-        count: 1,
-        value: [{ id: 42, title: 'PR 42' }],
-        hasMoreResults: false,
-      };
-      (listPullRequests as jest.Mock).mockResolvedValue(mockPullRequests);
+    it('should handle get_pull_request request', async () => {
+      const mockPullRequest = { id: 42, title: 'PR 42' };
+      (getPullRequest as jest.Mock).mockResolvedValue(mockPullRequest);
 
       const request = {
         params: {
-          name: 'list_pull_requests',
+          name: 'get_pull_request',
           arguments: {
-            repositoryId: 'test-repo',
             pullRequestId: 42,
           },
         },
@@ -162,16 +162,12 @@ describe('Pull Requests Request Handlers', () => {
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
       expect(JSON.parse(response.content[0].text as string)).toEqual(
-        mockPullRequests,
+        mockPullRequest,
       );
-      expect(listPullRequests).toHaveBeenCalledWith(
-        mockConnection,
-        expect.any(String),
-        'test-repo',
-        expect.objectContaining({
-          pullRequestId: 42,
-        }),
-      );
+      expect(getPullRequest).toHaveBeenCalledWith(mockConnection, {
+        projectId: expect.any(String),
+        pullRequestId: 42,
+      });
     });
 
     it('should handle get_pull_request_comments request', async () => {
