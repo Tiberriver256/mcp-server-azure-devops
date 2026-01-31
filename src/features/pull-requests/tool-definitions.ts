@@ -22,7 +22,8 @@ export const pullRequestsTools: ToolDefinition[] = [
   },
   {
     name: 'list_pull_requests',
-    description: 'List pull requests in a repository',
+    description:
+      'List pull requests in a repository, or fetch a single pull request by ID (repositoryId optional when pullRequestId is provided)',
     inputSchema: zodToJsonSchema(ListPullRequestsSchema),
   },
   {
@@ -33,7 +34,7 @@ export const pullRequestsTools: ToolDefinition[] = [
   {
     name: 'add_pull_request_comment',
     description:
-      'Add a comment to a pull request (reply to existing comments or create new threads)',
+      'Add a comment to a pull request (repositoryId optional; derived from pullRequestId when omitted)',
     inputSchema: zodToJsonSchema(AddPullRequestCommentSchema),
   },
   {

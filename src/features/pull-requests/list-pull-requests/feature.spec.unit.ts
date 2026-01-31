@@ -74,7 +74,7 @@ describe('listPullRequests', () => {
     };
 
     const mockGitApi = {
-      getPullRequest: jest.fn().mockResolvedValue(mockPullRequest),
+      getPullRequestById: jest.fn().mockResolvedValue(mockPullRequest),
       getPullRequests: jest.fn(),
     };
 
@@ -83,17 +83,15 @@ describe('listPullRequests', () => {
     };
 
     const projectId = 'test-project';
-    const repositoryId = 'test-repo';
     const options = {
       projectId,
-      repositoryId,
       pullRequestId: 42,
     };
 
     const result = await listPullRequests(
       mockConnection as WebApi,
       projectId,
-      repositoryId,
+      undefined,
       options,
     );
 
@@ -103,11 +101,7 @@ describe('listPullRequests', () => {
       hasMoreResults: false,
       warning: undefined,
     });
-    expect(mockGitApi.getPullRequest).toHaveBeenCalledWith(
-      repositoryId,
-      42,
-      projectId,
-    );
+    expect(mockGitApi.getPullRequestById).toHaveBeenCalledWith(42, projectId);
     expect(mockGitApi.getPullRequests).not.toHaveBeenCalled();
   });
 

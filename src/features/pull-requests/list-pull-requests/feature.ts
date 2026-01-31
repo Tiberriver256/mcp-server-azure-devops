@@ -17,8 +17,8 @@ import {
  */
 export async function listPullRequests(
   connection: WebApi,
-  projectId: string,
-  repositoryId: string,
+  projectId: string | undefined,
+  repositoryId: string | undefined,
   options: ListPullRequestsOptions,
 ): Promise<{
   count: number;
@@ -28,12 +28,12 @@ export async function listPullRequests(
 }> {
   try {
     const gitApi = await connection.getGitApi();
+    const project = projectId || undefined;
 
     if (options.pullRequestId !== undefined) {
-      const pullRequest = await gitApi.getPullRequest(
-        repositoryId,
+      const pullRequest = await gitApi.getPullRequestById(
         options.pullRequestId,
-        projectId,
+        project,
       );
 
       const value = pullRequest ? [pullRequest] : [];
@@ -43,6 +43,10 @@ export async function listPullRequests(
         hasMoreResults: false,
         warning: undefined,
       };
+    }
+
+    if (!repositoryId) {
+      throw new Error('repositoryId is required when pullRequestId is not set');
     }
 
     // Create search criteria
@@ -91,7 +95,7 @@ export async function listPullRequests(
     const pullRequests = await gitApi.getPullRequests(
       repositoryId,
       searchCriteria,
-      projectId,
+      project,
       undefined, // maxCommentLength
       skip,
       top,

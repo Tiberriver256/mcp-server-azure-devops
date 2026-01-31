@@ -24,13 +24,26 @@ import {
  */
 export async function addPullRequestComment(
   connection: WebApi,
-  projectId: string,
-  repositoryId: string,
+  projectId: string | undefined,
+  repositoryId: string | undefined,
   pullRequestId: number,
   options: AddPullRequestCommentOptions,
 ): Promise<AddCommentResponse> {
   try {
     const gitApi = await connection.getGitApi();
+    const project = projectId || undefined;
+
+    let resolvedRepositoryId = repositoryId;
+    if (!resolvedRepositoryId) {
+      const pr = await gitApi.getPullRequestById(pullRequestId, project);
+      resolvedRepositoryId = pr?.repository?.id;
+    }
+
+    if (!resolvedRepositoryId) {
+      throw new Error(
+        'repositoryId is required (or must be derivable from pullRequestId)',
+      );
+    }
 
     // Create comment object
     const comment: Comment = {
@@ -43,10 +56,10 @@ export async function addPullRequestComment(
     if (options.threadId) {
       const createdComment = await gitApi.createComment(
         comment,
-        repositoryId,
+        resolvedRepositoryId,
         pullRequestId,
         options.threadId,
-        projectId,
+        project,
       );
 
       if (!createdComment) {
@@ -118,9 +131,9 @@ export async function addPullRequestComment(
 
       const createdThread = await gitApi.createThread(
         thread,
-        repositoryId,
+        resolvedRepositoryId,
         pullRequestId,
-        projectId,
+        project,
       );
 
       if (

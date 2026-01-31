@@ -57,7 +57,7 @@ export interface CreatePullRequestOptions {
  */
 export interface ListPullRequestsOptions {
   projectId: string;
-  repositoryId: string;
+  repositoryId?: string;
   status?: 'all' | 'active' | 'completed' | 'abandoned';
   creatorId?: string;
   reviewerId?: string;
@@ -85,7 +85,7 @@ export interface GetPullRequestCommentsOptions {
  */
 export interface AddPullRequestCommentOptions {
   projectId: string;
-  repositoryId: string;
+  repositoryId?: string;
   pullRequestId: number;
   content: string;
   // For responding to an existing comment
