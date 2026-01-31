@@ -50,6 +50,10 @@ describeOrSkip('getPullRequest integration', () => {
     }
 
     const repository = await gitApi.getRepository(repositoryId, projectName);
+    // Normalize to repository GUID so downstream asserts and calls are stable
+    if (repository.id) {
+      repositoryId = repository.id;
+    }
     defaultBranchRef = repository.defaultBranch || 'refs/heads/main';
   });
 
