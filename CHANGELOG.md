@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.44](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.43...mcp-server-azure-devops-v0.1.44) (2026-01-31)
+
+
+### Features
+
+* add azure devops url resolver ([47a3d23](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/47a3d23491987d4b72d09dd95da67bf8720c8c06))
+* add pat support to setup script ([63715de](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/63715defd87f66c277d07039dd36692e5e2aa7b9))
+* add server auth guards ([62f0f59](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/62f0f59ae68be17279dea7475f55661a9ecc6414))
+* add server-aware search urls ([92f716d](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/92f716daae3d461ca43eba80f5cffb453db28f35))
+* **pi:** add test-watch extension ([10b37be](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/10b37be030d5de99f36d81e6aec5382ff50a01e3))
+* **skills:** add skill-creator and azure-devops-rest-api skills with automated sync ([#268](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/268)) ([06cefa3](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/06cefa3b78b24152ff36adef12adb85fef82663e))
+* support server wiki base urls ([3b99374](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/3b9937452307dff1967b0dc7abc43d8491799211))
+
+
+### Bug Fixes
+
+* **build:** avoid Node16 import extension requirement in schemas tests ([4c1f908](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/4c1f9081d2f04cd086eb82428704e1395ae94e22))
+* **search:** stop injecting placeholder defaults ([c30767b](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/c30767b47b4c7284ce816127365b014b6ee5cb32))
+
 ## [0.1.43](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.42...mcp-server-azure-devops-v0.1.43) (2025-11-19)
 
 
