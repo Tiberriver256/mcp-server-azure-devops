@@ -30,7 +30,7 @@ describe('getPullRequest', () => {
     );
   });
 
-  test('should throw validation error when pull request is not found', async () => {
+  test('should throw resource not found error when pull request is not found', async () => {
     const mockGitApi = {
       getPullRequestById: jest.fn().mockResolvedValue(undefined),
     };
