@@ -153,6 +153,7 @@ describe('Pull Requests Request Handlers', () => {
         params: {
           name: 'get_pull_request',
           arguments: {
+            projectId: 'test-project',
             pullRequestId: 42,
           },
         },
@@ -165,7 +166,7 @@ describe('Pull Requests Request Handlers', () => {
         mockPullRequest,
       );
       expect(getPullRequest).toHaveBeenCalledWith(mockConnection, {
-        projectId: expect.any(String),
+        projectId: 'test-project',
         pullRequestId: 42,
       });
     });
