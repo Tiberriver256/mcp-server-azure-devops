@@ -80,17 +80,8 @@ export const handlePullRequestsRequest: RequestHandler = async (
     }
     case 'get_pull_request': {
       const params = GetPullRequestSchema.parse(request.params.arguments);
-      const projectId =
-        params.projectId || process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
-
-      if (!projectId) {
-        throw new Error(
-          'Project ID is required. Either provide a projectId or set the AZURE_DEVOPS_DEFAULT_PROJECT environment variable.',
-        );
-      }
-
       const result = await getPullRequest(connection, {
-        projectId,
+        projectId: params.projectId,
         pullRequestId: params.pullRequestId,
       });
       return {

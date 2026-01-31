@@ -8,13 +8,13 @@ import { PullRequest } from '../types';
 export async function getPullRequest(
   connection: WebApi,
   options: {
-    projectId?: string;
+    projectId: string;
     pullRequestId: number;
   },
 ): Promise<PullRequest> {
   try {
     const gitApi = await connection.getGitApi();
-    const project = options.projectId || undefined;
+    const project = options.projectId;
 
     const pr = await gitApi.getPullRequestById(options.pullRequestId, project);
     if (!pr) {

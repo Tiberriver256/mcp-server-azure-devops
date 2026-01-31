@@ -157,14 +157,14 @@ The `get_pull_request` tool retrieves a pull request by its numeric ID. This is 
 
 ```json
 {
-  "projectId": "MyProject", // Optional: The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT)
+  "projectId": "MyProject", // Required: The ID or name of the project
   "pullRequestId": 42 // Required: The ID of the pull request
 }
 ```
 
 | Parameter       | Type   | Required | Description                                 |
 | --------------- | ------ | -------- | ------------------------------------------- |
-| `projectId`     | string | No       | The ID or name of the project               |
+| `projectId`     | string | Yes      | The ID or name of the project               |
 | `pullRequestId` | number | Yes      | The ID of the pull request to retrieve      |
 
 ### Response

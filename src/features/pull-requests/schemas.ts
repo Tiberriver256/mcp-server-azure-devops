@@ -51,10 +51,7 @@ export const CreatePullRequestSchema = z.object({
  * Schema for getting a pull request by ID (no repositoryId required)
  */
 export const GetPullRequestSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  projectId: z.string().describe('The ID or name of the project'),
   organizationId: z
     .string()
     .optional()

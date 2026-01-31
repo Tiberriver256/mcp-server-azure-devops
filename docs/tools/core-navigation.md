@@ -25,7 +25,7 @@ The core navigation tools allow you to explore this hierarchy from top to bottom
 | [`list_projects`](./projects.md#list_projects)                | Lists all projects in the organization                      | None                | stateFilter, top, skip, continuationToken |
 | [`list_repositories`](./repositories.md#list_repositories)    | Lists all repositories in a project                         | projectId           | includeLinks                              |
 | [`list_pull_requests`](./pull-requests.md#list_pull_requests) | Lists pull requests in a repository                         | projectId, repositoryId | status, creatorId, reviewerId, etc.    |
-| [`get_pull_request`](./pull-requests.md#get_pull_request)     | Gets a pull request by ID                                   | pullRequestId       | projectId                                 |
+| [`get_pull_request`](./pull-requests.md#get_pull_request)     | Gets a pull request by ID                                   | projectId, pullRequestId | None                                 |
 
 ## Common Use Cases
 
