@@ -200,6 +200,10 @@ The workflow is automatically triggered on pushes to the `main` branch and follo
 
 This automation ensures consistent and well-documented releases that accurately reflect the changes made since the previous release.
 
+### Troubleshooting Releases
+
+If you encounter issues with the release process (e.g., failed npm publish, need to re-release), see the [Release Troubleshooting Guide](docs/release-troubleshooting.md) for solutions.
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the project's license.

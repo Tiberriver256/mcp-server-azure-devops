@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to publish (e.g., mcp-server-azure-devops-v0.1.44). Leave empty to run normal release-please process.'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -14,6 +20,8 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    # Only run release-please if no tag was specified (normal automated flow)
+    if: ${{ github.event.inputs.tag == '' || github.event.inputs.tag == null }}
     steps:
       - uses: google-github-actions/release-please-action@v4
         id: release
@@ -45,6 +53,34 @@ jobs:
         
       - name: Publish to npm
         if: ${{ steps.release.outputs.release_created }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # Manual publish job - runs when a tag is manually specified
+  manual-publish:
+    runs-on: ubuntu-latest
+    # Only run if a tag was manually specified
+    if: ${{ github.event.inputs.tag != '' && github.event.inputs.tag != null }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          registry-url: 'https://registry.npmjs.org/'
+          
+      - name: Install Dependencies
+        run: npm ci
+        
+      - name: Build package
+        run: npm run build
+        
+      - name: Publish to npm
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 
