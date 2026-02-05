@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.45](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.44...mcp-server-azure-devops-v0.1.45) (2026-02-05)
+
+
+### Bug Fixes
+
+* add repository field to package.json for npm provenance verification ([#284](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/284)) ([3d6a44f](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/3d6a44f3a50aaf095ff2140f4fd959740c1d5691))
+
 ## [0.1.44](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.43...mcp-server-azure-devops-v0.1.44) (2026-01-31)
 
 
