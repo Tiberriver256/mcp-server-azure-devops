@@ -25,7 +25,7 @@ The release process uses [release-please](https://github.com/googleapis/release-
    - Checks out the tagged version
    - Installs dependencies
    - Builds the package
-   - Publishes to npm
+   - Publishes to npm using [NPM Trusted Publishers](https://docs.npmjs.com/generating-provenance-statements) with provenance (no NPM_TOKEN needed)
 
 ## Common Issues
 
@@ -33,7 +33,7 @@ The release process uses [release-please](https://github.com/googleapis/release-
 
 **Symptom**: GitHub release exists, but the package is not on npm.
 
-**Cause**: The npm publish step failed (e.g., authentication error, network issue, npm downtime).
+**Cause**: The npm publish step failed (e.g., OIDC authentication error, network issue, npm downtime, or GitHub Actions permissions issue).
 
 **How to verify**:
 ```bash

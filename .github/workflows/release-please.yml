@@ -53,9 +53,7 @@ jobs:
         
       - name: Publish to npm
         if: ${{ steps.release.outputs.release_created }}
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
 
   # Manual publish job - runs when a tag is manually specified
   manual-publish:
@@ -81,6 +79,4 @@ jobs:
         run: npm run build
         
       - name: Publish to npm
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 
+        run: npm publish --provenance --access public 
