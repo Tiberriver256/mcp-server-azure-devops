@@ -2,6 +2,10 @@
   "name": "@tiberriver256/mcp-server-azure-devops",
   "version": "0.1.44",
   "description": "Azure DevOps reference server for the Model Context Protocol (MCP)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Tiberriver256/mcp-server-azure-devops"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
