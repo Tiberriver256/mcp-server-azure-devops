@@ -1,0 +1,36 @@
+# Azure DevOps MCP Server - Environment Variables
+
+# Azure DevOps Organization URL (required)
+# e.g., https://dev.azure.com/your-organization
+AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization
+
+# Authentication Method (optional, defaults to 'azure-identity')
+# Supported values: 'pat', 'azure-identity', 'azure-cli'
+# - 'pat': Personal Access Token authentication
+# - 'azure-identity': Azure Identity authentication (DefaultAzureCredential)
+# - 'azure-cli': Azure CLI authentication (AzureCliCredential)
+AZURE_DEVOPS_AUTH_METHOD=azure-identity
+
+# Azure DevOps Personal Access Token (required for PAT authentication)
+# Create one at: https://dev.azure.com/your-organization/_usersSettings/tokens
+# Required scopes: Code (Read & Write), Work Items (Read & Write), Build (Read & Execute),
+# Project and Team (Read), Graph (Read), Release (Read & Execute)
+AZURE_DEVOPS_PAT=your-personal-access-token
+
+# Default Project to use when not specified (optional)
+AZURE_DEVOPS_DEFAULT_PROJECT=your-default-project
+
+# API Version to use (optional, defaults to latest)
+# AZURE_DEVOPS_API_VERSION=6.0
+
+# Note: This server uses stdio for communication, not HTTP
+# The following variables are not used by the server but might be used by scripts:
+
+# Logging Level (debug, info, warn, error)
+LOG_LEVEL=info
+
+# Azure Identity Credentials (for service principal authentication)
+# Required only when using azure-identity with service principals
+# AZURE_TENANT_ID=your-tenant-id
+# AZURE_CLIENT_ID=your-client-id
+# AZURE_CLIENT_SECRET=your-client-secret 
