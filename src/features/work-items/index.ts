@@ -5,9 +5,11 @@ export * from './types';
 // Re-export features
 export * from './list-work-items';
 export * from './get-work-item';
+export * from './get-work-item-description';
 export * from './create-work-item';
 export * from './update-work-item';
 export * from './manage-work-item-link';
+export * from './execute-wiql';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -23,14 +25,18 @@ import { defaultProject } from '../../utils/environment';
 import {
   ListWorkItemsSchema,
   GetWorkItemSchema,
+  GetWorkItemDescriptionSchema,
   CreateWorkItemSchema,
   UpdateWorkItemSchema,
   ManageWorkItemLinkSchema,
+  ExecuteWiqlSchema,
   listWorkItems,
   getWorkItem,
+  getWorkItemDescription,
   createWorkItem,
   updateWorkItem,
   manageWorkItemLink,
+  executeWiql,
 } from './';
 
 // Define the response type based on observed usage
@@ -47,10 +53,12 @@ export const isWorkItemsRequest: RequestIdentifier = (
   const toolName = request.params.name;
   return [
     'get_work_item',
+    'get_workitem_description',
     'list_work_items',
     'create_work_item',
     'update_work_item',
     'manage_work_item_link',
+    'execute_wiql',
   ].includes(toolName);
 };
 
@@ -71,6 +79,13 @@ export const handleWorkItemsRequest: RequestHandler = async (
       );
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'get_workitem_description': {
+      const args = GetWorkItemDescriptionSchema.parse(request.params.arguments);
+      const result = await getWorkItemDescription(connection, args.workItemId);
+      return {
+        content: [{ type: 'text', text: `\`\`\`html\n${result}\n\`\`\`` }],
       };
     }
     case 'list_work_items': {
@@ -138,6 +153,20 @@ export const handleWorkItemsRequest: RequestHandler = async (
           comment: args.comment,
         },
       );
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'execute_wiql': {
+      const args = ExecuteWiqlSchema.parse(request.params.arguments);
+      const result = await executeWiql(connection, {
+        query: args.query,
+        projectId: args.projectId ?? defaultProject,
+        teamId: args.teamId,
+        top: args.top,
+        timePrecision: args.timePrecision,
+        expand: args.expand,
+      });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
