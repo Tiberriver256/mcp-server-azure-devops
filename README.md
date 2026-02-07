@@ -134,6 +134,110 @@ Azure DevOps Server (on-prem) requires PAT authentication. Example:
 
 For detailed configuration instructions and more authentication options, see the [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md).
 
+## Tool Filtering
+
+The Azure DevOps MCP server supports filtering tools to reduce cognitive load on LLMs and improve tool selection accuracy. You can filter tools by domain (feature area) and operation type (read-only vs write operations).
+
+### Domain-Based Filtering
+
+Load only specific feature domains to reduce the number of available tools. Use the `--domains` CLI argument followed by one or more domain names:
+
+```bash
+# Load only work items tools (5 tools)
+npx @tiberriver256/mcp-server-azure-devops --domains work-items
+
+# Load multiple domains (9 tools)
+npx @tiberriver256/mcp-server-azure-devops --domains core work-items
+
+# Comma-separated also works
+npx @tiberriver256/mcp-server-azure-devops --domains core,work-items,repositories
+```
+
+**Configuration Example** (Claude Desktop/Cursor AI):
+
+```json
+{
+  "mcpServers": {
+    "azureDevOps": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@tiberriver256/mcp-server-azure-devops",
+        "--domains",
+        "work-items",
+        "repositories"
+      ],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "https://dev.azure.com/your-organization",
+        "AZURE_DEVOPS_AUTH_METHOD": "azure-identity",
+        "AZURE_DEVOPS_DEFAULT_PROJECT": "your-project-name"
+      }
+    }
+  }
+}
+```
+
+**Available Domains:**
+
+- `core` - Organizations, projects, users (5 tools)
+- `work-items` - Work items (5 tools)
+- `repositories` - Repositories and file content (9 tools)
+- `pull-requests` - Pull requests (7 tools)
+- `pipelines` - Pipelines and runs (8 tools)
+- `wikis` - Wikis (6 tools)
+- `search` - Code, wiki, and work item search (3 tools)
+
+### Read-Only Mode
+
+Enable read-only mode to filter out tools that modify data (create, update, delete operations). This is useful for:
+
+- Safe exploration and learning
+- Production monitoring
+- Audit compliance
+- CI/CD read operations
+
+```bash
+# Enable read-only mode (31 tools)
+npx @tiberriver256/mcp-server-azure-devops --read-only
+
+# Combine with domain filtering (2 tools, 95% reduction!)
+npx @tiberriver256/mcp-server-azure-devops --domains work-items --read-only
+```
+
+**Configuration Example**:
+
+```json
+{
+  "mcpServers": {
+    "azureDevOps": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@tiberriver256/mcp-server-azure-devops",
+        "--domains",
+        "work-items",
+        "--read-only"
+      ],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "https://dev.azure.com/your-organization",
+        "AZURE_DEVOPS_AUTH_METHOD": "azure-identity"
+      }
+    }
+  }
+}
+```
+
+### Tool Reduction Examples
+
+| Configuration | Tools | Reduction |
+|---------------|-------|-----------|
+| Default (all domains) | 43 | 0% |
+| `--domains core` | 5 | 88% |
+| `--domains work-items` | 5 | 88% |
+| `--domains repositories` | 9 | 79% |
+| `--read-only` | 31 | 28% |
+| `--domains work-items --read-only` | 2 | **95%** |
+
 ## Authentication Methods
 
 This server supports multiple authentication methods for connecting to Azure DevOps APIs. For detailed setup instructions, configuration examples, and troubleshooting tips, see the [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md).

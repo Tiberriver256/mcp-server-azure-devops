@@ -88,9 +88,15 @@ export type AzureDevOpsServer = Server;
  * Create an Azure DevOps MCP Server
  *
  * @param config The Azure DevOps configuration
+ * @param enabledDomains Optional set of enabled domains for filtering tools
+ * @param readOnlyMode Optional flag to enable read-only mode (filters out write operations)
  * @returns A configured MCP server instance
  */
-export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
+export function createAzureDevOpsServer(
+  config: AzureDevOpsConfig,
+  enabledDomains?: Set<string>,
+  readOnlyMode = false,
+): Server {
   // Validate the configuration
   validateConfig(config);
 
@@ -110,18 +116,52 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
 
   // Register the ListTools request handler
   server.setRequestHandler(ListToolsRequestSchema, () => {
-    // Combine tools from all features
-    const tools = [
-      ...usersTools,
-      ...organizationsTools,
-      ...projectsTools,
-      ...repositoriesTools,
-      ...workItemsTools,
-      ...searchTools,
-      ...pullRequestsTools,
-      ...pipelinesTools,
-      ...wikisTools,
-    ];
+    const shouldInclude = (domain: string) => {
+      return !enabledDomains || enabledDomains.has(domain);
+    };
+
+    // Combine tools from enabled domains
+    let tools = [];
+
+    // Core domain (organizations, projects, users)
+    if (shouldInclude('core')) {
+      tools.push(...usersTools, ...organizationsTools, ...projectsTools);
+    }
+
+    // Work Items domain
+    if (shouldInclude('work-items')) {
+      tools.push(...workItemsTools);
+    }
+
+    // Repositories domain
+    if (shouldInclude('repositories')) {
+      tools.push(...repositoriesTools);
+    }
+
+    // Pull Requests domain
+    if (shouldInclude('pull-requests')) {
+      tools.push(...pullRequestsTools);
+    }
+
+    // Pipelines domain
+    if (shouldInclude('pipelines')) {
+      tools.push(...pipelinesTools);
+    }
+
+    // Wikis domain
+    if (shouldInclude('wikis')) {
+      tools.push(...wikisTools);
+    }
+
+    // Search domain
+    if (shouldInclude('search')) {
+      tools.push(...searchTools);
+    }
+
+    // Filter by read-only mode if enabled
+    if (readOnlyMode) {
+      tools = tools.filter((tool) => tool.readOnly === true);
+    }
 
     return { tools };
   });
