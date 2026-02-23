@@ -6,6 +6,9 @@ import {
   UpdateWorkItemSchema,
   ManageWorkItemLinkSchema,
   GetWorkItemSchema,
+  CreateWorkItemAttachmentSchema,
+  GetWorkItemAttachmentSchema,
+  DeleteWorkItemAttachmentSchema,
 } from './schemas';
 
 /**
@@ -36,5 +39,23 @@ export const workItemsTools: ToolDefinition[] = [
     name: 'manage_work_item_link',
     description: 'Add or remove links between work items',
     inputSchema: zodToJsonSchema(ManageWorkItemLinkSchema),
+  },
+  {
+    name: 'create_work_item_attachment',
+    description:
+      'Upload a file and attach it to a work item. The file is read from the local filesystem, uploaded to Azure DevOps, and linked to the specified work item.',
+    inputSchema: zodToJsonSchema(CreateWorkItemAttachmentSchema),
+  },
+  {
+    name: 'get_work_item_attachment',
+    description:
+      'Download an attachment from Azure DevOps and save it to the local filesystem. The attachment ID can be obtained from the work item relations.',
+    inputSchema: zodToJsonSchema(GetWorkItemAttachmentSchema),
+  },
+  {
+    name: 'delete_work_item_attachment',
+    description:
+      'Delete an attachment from a work item. The attachment ID can be obtained from the work item relations.',
+    inputSchema: zodToJsonSchema(DeleteWorkItemAttachmentSchema),
   },
 ];
