@@ -43,5 +43,15 @@ export interface UpdateWorkItemOptions {
   additionalFields?: Record<string, string | number | boolean | null>;
 }
 
+/**
+ * Options for getting work item comments
+ */
+export interface GetWorkItemCommentsOptions {
+  top?: number;
+  continuationToken?: string;
+  order?: 'asc' | 'desc';
+  includeRenderedText?: boolean;
+}
+
 // Re-export WorkItem and WorkItemReference types for convenience
 export type { WorkItem, WorkItemReference };

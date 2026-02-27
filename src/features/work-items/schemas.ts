@@ -117,6 +117,50 @@ export const UpdateWorkItemSchema = z.object({
 });
 
 /**
+ * Schema for getting work item comments
+ */
+export const GetWorkItemCommentsSchema = z.object({
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  workItemId: z.number().describe('The ID of the work item'),
+  top: z.number().optional().describe('Maximum number of comments to return'),
+  continuationToken: z
+    .string()
+    .optional()
+    .describe('Continuation token for pagination'),
+  order: z
+    .enum(['asc', 'desc'])
+    .optional()
+    .describe('Sort order for comments (asc or desc)'),
+  includeRenderedText: z
+    .boolean()
+    .optional()
+    .describe('Include rendered HTML in addition to markdown'),
+});
+
+/**
+ * Schema for adding a comment to a work item
+ */
+export const AddWorkItemCommentSchema = z.object({
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  workItemId: z.number().describe('The ID of the work item'),
+  text: z.string().describe('The comment text (markdown supported)'),
+});
+
+/**
  * Schema for managing work item links
  */
 export const ManageWorkItemLinkSchema = z.object({

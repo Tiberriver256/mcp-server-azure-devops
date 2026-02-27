@@ -8,6 +8,8 @@ export * from './get-work-item';
 export * from './create-work-item';
 export * from './update-work-item';
 export * from './manage-work-item-link';
+export * from './get-work-item-comments';
+export * from './add-work-item-comment';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -26,11 +28,15 @@ import {
   CreateWorkItemSchema,
   UpdateWorkItemSchema,
   ManageWorkItemLinkSchema,
+  GetWorkItemCommentsSchema,
+  AddWorkItemCommentSchema,
   listWorkItems,
   getWorkItem,
   createWorkItem,
   updateWorkItem,
   manageWorkItemLink,
+  getWorkItemComments,
+  addWorkItemComment,
 } from './';
 
 // Define the response type based on observed usage
@@ -51,6 +57,8 @@ export const isWorkItemsRequest: RequestIdentifier = (
     'create_work_item',
     'update_work_item',
     'manage_work_item_link',
+    'get_work_item_comments',
+    'add_work_item_comment',
   ].includes(toolName);
 };
 
@@ -137,6 +145,35 @@ export const handleWorkItemsRequest: RequestHandler = async (
           newRelationType: args.newRelationType,
           comment: args.comment,
         },
+      );
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'get_work_item_comments': {
+      const args = GetWorkItemCommentsSchema.parse(request.params.arguments);
+      const result = await getWorkItemComments(
+        connection,
+        args.projectId ?? defaultProject,
+        args.workItemId,
+        {
+          top: args.top,
+          continuationToken: args.continuationToken,
+          order: args.order,
+          includeRenderedText: args.includeRenderedText,
+        },
+      );
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'add_work_item_comment': {
+      const args = AddWorkItemCommentSchema.parse(request.params.arguments);
+      const result = await addWorkItemComment(
+        connection,
+        args.projectId ?? defaultProject,
+        args.workItemId,
+        args.text,
       );
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
