@@ -6,6 +6,8 @@ import {
   UpdateWorkItemSchema,
   ManageWorkItemLinkSchema,
   GetWorkItemSchema,
+  GetWorkItemCommentsSchema,
+  AddWorkItemCommentSchema,
 } from './schemas';
 
 /**
@@ -36,5 +38,16 @@ export const workItemsTools: ToolDefinition[] = [
     name: 'manage_work_item_link',
     description: 'Add or remove links between work items',
     inputSchema: zodToJsonSchema(ManageWorkItemLinkSchema),
+  },
+  {
+    name: 'get_work_item_comments',
+    description:
+      'Get comments from a work item. Supports pagination and sorting.',
+    inputSchema: zodToJsonSchema(GetWorkItemCommentsSchema),
+  },
+  {
+    name: 'add_work_item_comment',
+    description: 'Add a comment to a work item (markdown supported)',
+    inputSchema: zodToJsonSchema(AddWorkItemCommentSchema),
   },
 ];
