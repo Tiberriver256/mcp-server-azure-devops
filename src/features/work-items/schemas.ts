@@ -31,6 +31,15 @@ export const ListWorkItemsSchema = z.object({
   wiql: z.string().optional().describe('Work Item Query Language (WIQL) query'),
   top: z.number().optional().describe('Maximum number of work items to return'),
   skip: z.number().optional().describe('Number of work items to skip'),
+  fields: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'List of additional fields to include in the response beyond the defaults ' +
+        '(System.Id, System.Title, System.State, System.AssignedTo). ' +
+        'Use full field reference names, e.g. "Microsoft.VSTS.Scheduling.StoryPoints", ' +
+        '"System.IterationPath", "System.AreaPath".',
+    ),
 });
 
 /**

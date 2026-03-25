@@ -82,6 +82,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         wiql: args.wiql,
         top: args.top,
         skip: args.skip,
+        fields: args.fields,
       });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
