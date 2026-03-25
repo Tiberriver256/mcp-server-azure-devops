@@ -67,6 +67,13 @@ export const CreateWorkItemSchema = z.object({
     .optional()
     .describe('The iteration path for the work item'),
   priority: z.number().optional().describe('The priority of the work item'),
+  severity: z
+    .string()
+    .optional()
+    .describe(
+      'The severity of the work item. Accepted values: "1 - Critical", "2 - High", ' +
+        '"3 - Medium", "4 - Low". Applies to work item types that support the Severity field (e.g. Bug).',
+    ),
   parentId: z
     .number()
     .optional()

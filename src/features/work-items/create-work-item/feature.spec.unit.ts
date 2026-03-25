@@ -60,4 +60,56 @@ describe('createWorkItem unit', () => {
       }),
     ).rejects.toThrow('Failed to create work item: Unexpected error');
   });
+
+  test('should include severity field in patch document when severity is provided', async () => {
+    // Arrange
+    const mockWorkItem = { id: 1, fields: { 'System.Title': 'Test Bug' } };
+    const mockCreateWorkItem = jest.fn().mockResolvedValue(mockWorkItem);
+
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        createWorkItem: mockCreateWorkItem,
+      }),
+    };
+
+    // Act
+    await createWorkItem(mockConnection, 'TestProject', 'Bug', {
+      title: 'Test Bug',
+      severity: '1 - Critical',
+    });
+
+    // Assert: the patch document sent to ADO must include the Severity field
+    const patchDocument: Array<{ path: string; value: unknown }> =
+      mockCreateWorkItem.mock.calls[0][1];
+    const severityOp = patchDocument.find(
+      (op) => op.path === '/fields/Microsoft.VSTS.Common.Severity',
+    );
+    expect(severityOp).toBeDefined();
+    expect(severityOp?.value).toBe('1 - Critical');
+  });
+
+  test('should not include severity field in patch document when severity is omitted', async () => {
+    // Arrange
+    const mockWorkItem = { id: 1, fields: { 'System.Title': 'Test Task' } };
+    const mockCreateWorkItem = jest.fn().mockResolvedValue(mockWorkItem);
+
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        createWorkItem: mockCreateWorkItem,
+      }),
+    };
+
+    // Act
+    await createWorkItem(mockConnection, 'TestProject', 'Task', {
+      title: 'Test Task',
+    });
+
+    // Assert: patch document must NOT contain a Severity entry
+    const patchDocument: Array<{ path: string }> =
+      mockCreateWorkItem.mock.calls[0][1];
+    const severityOp = patchDocument.find(
+      (op) => op.path === '/fields/Microsoft.VSTS.Common.Severity',
+    );
+    expect(severityOp).toBeUndefined();
+  });
 });
