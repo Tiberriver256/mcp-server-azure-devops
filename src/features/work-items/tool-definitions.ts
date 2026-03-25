@@ -6,6 +6,7 @@ import {
   UpdateWorkItemSchema,
   ManageWorkItemLinkSchema,
   GetWorkItemSchema,
+  GetWorkItemCommentsSchema,
 } from './schemas';
 
 /**
@@ -21,6 +22,12 @@ export const workItemsTools: ToolDefinition[] = [
     name: 'get_work_item',
     description: 'Get details of a specific work item',
     inputSchema: zodToJsonSchema(GetWorkItemSchema),
+  },
+  {
+    name: 'get_work_item_comments',
+    description:
+      'Get comments (discussion) on a specific work item. Returns the comment text, author, and timestamps. Use this when the work item has a CommentCount > 0 and you need to read the discussion.',
+    inputSchema: zodToJsonSchema(GetWorkItemCommentsSchema),
   },
   {
     name: 'create_work_item',

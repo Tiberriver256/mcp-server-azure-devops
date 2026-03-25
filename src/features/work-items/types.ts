@@ -4,6 +4,17 @@ import {
 } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 
 /**
+ * Options for getting work item comments
+ */
+export interface GetWorkItemCommentsOptions {
+  workItemId: number;
+  projectId: string;
+  top?: number;
+  includeDeleted?: boolean;
+  order?: string;
+}
+
+/**
  * Options for listing work items
  */
 export interface ListWorkItemsOptions {

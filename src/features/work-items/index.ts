@@ -5,6 +5,7 @@ export * from './types';
 // Re-export features
 export * from './list-work-items';
 export * from './get-work-item';
+export * from './get-work-item-comments';
 export * from './create-work-item';
 export * from './update-work-item';
 export * from './manage-work-item-link';
@@ -23,11 +24,13 @@ import { defaultProject } from '../../utils/environment';
 import {
   ListWorkItemsSchema,
   GetWorkItemSchema,
+  GetWorkItemCommentsSchema,
   CreateWorkItemSchema,
   UpdateWorkItemSchema,
   ManageWorkItemLinkSchema,
   listWorkItems,
   getWorkItem,
+  getWorkItemComments,
   createWorkItem,
   updateWorkItem,
   manageWorkItemLink,
@@ -47,6 +50,7 @@ export const isWorkItemsRequest: RequestIdentifier = (
   const toolName = request.params.name;
   return [
     'get_work_item',
+    'get_work_item_comments',
     'list_work_items',
     'create_work_item',
     'update_work_item',
@@ -138,6 +142,19 @@ export const handleWorkItemsRequest: RequestHandler = async (
           comment: args.comment,
         },
       );
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'get_work_item_comments': {
+      const args = GetWorkItemCommentsSchema.parse(request.params.arguments);
+      const result = await getWorkItemComments(connection, {
+        projectId: args.projectId ?? defaultProject,
+        workItemId: args.workItemId,
+        top: args.top,
+        includeDeleted: args.includeDeleted,
+        order: args.order,
+      });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };

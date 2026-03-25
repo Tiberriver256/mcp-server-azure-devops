@@ -2,6 +2,30 @@ import { z } from 'zod';
 import { defaultProject, defaultOrg } from '../../utils/environment';
 
 /**
+ * Schema for getting work item comments
+ */
+export const GetWorkItemCommentsSchema = z.object({
+  workItemId: z.number().describe('The ID of the work item'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  top: z.number().optional().describe('Maximum number of comments to return'),
+  includeDeleted: z
+    .boolean()
+    .optional()
+    .describe('Whether to include deleted comments. Defaults to false.'),
+  order: z
+    .enum(['asc', 'desc'])
+    .optional()
+    .describe('Sort order of comments by creation date. Defaults to "asc".'),
+});
+
+/**
  * Schema for getting a work item
  */
 export const GetWorkItemSchema = z.object({
