@@ -100,6 +100,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
           areaPath: args.areaPath,
           iterationPath: args.iterationPath,
           priority: args.priority,
+          severity: args.severity,
           parentId: args.parentId,
           additionalFields: args.additionalFields,
         },
