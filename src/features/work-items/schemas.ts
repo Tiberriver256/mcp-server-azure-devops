@@ -2,6 +2,41 @@ import { z } from 'zod';
 import { defaultProject, defaultOrg } from '../../utils/environment';
 
 /**
+ * Schema for adding a comment to a work item
+ */
+export const AddWorkItemCommentSchema = z.object({
+  workItemId: z.number().describe('The ID of the work item'),
+  text: z.string().describe('The text of the comment (HTML format supported)'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+});
+
+/**
+ * Schema for updating a comment on a work item
+ */
+export const UpdateWorkItemCommentSchema = z.object({
+  workItemId: z.number().describe('The ID of the work item'),
+  commentId: z.number().describe('The ID of the comment to update'),
+  text: z
+    .string()
+    .describe('The updated text of the comment (HTML format supported)'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+});
+
+/**
  * Schema for getting work item comments
  */
 export const GetWorkItemCommentsSchema = z.object({

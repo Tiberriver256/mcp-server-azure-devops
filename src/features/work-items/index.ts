@@ -25,12 +25,16 @@ import {
   ListWorkItemsSchema,
   GetWorkItemSchema,
   GetWorkItemCommentsSchema,
+  AddWorkItemCommentSchema,
+  UpdateWorkItemCommentSchema,
   CreateWorkItemSchema,
   UpdateWorkItemSchema,
   ManageWorkItemLinkSchema,
   listWorkItems,
   getWorkItem,
   getWorkItemComments,
+  addWorkItemComment,
+  updateWorkItemComment,
   createWorkItem,
   updateWorkItem,
   manageWorkItemLink,
@@ -51,6 +55,8 @@ export const isWorkItemsRequest: RequestIdentifier = (
   return [
     'get_work_item',
     'get_work_item_comments',
+    'add_work_item_comment',
+    'update_work_item_comment',
     'list_work_items',
     'create_work_item',
     'update_work_item',
@@ -154,6 +160,29 @@ export const handleWorkItemsRequest: RequestHandler = async (
         top: args.top,
         includeDeleted: args.includeDeleted,
         order: args.order,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'add_work_item_comment': {
+      const args = AddWorkItemCommentSchema.parse(request.params.arguments);
+      const result = await addWorkItemComment(connection, {
+        projectId: args.projectId ?? defaultProject,
+        workItemId: args.workItemId,
+        text: args.text,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'update_work_item_comment': {
+      const args = UpdateWorkItemCommentSchema.parse(request.params.arguments);
+      const result = await updateWorkItemComment(connection, {
+        projectId: args.projectId ?? defaultProject,
+        workItemId: args.workItemId,
+        commentId: args.commentId,
+        text: args.text,
       });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],

@@ -1,4 +1,8 @@
-import { getWorkItemComments } from './feature';
+import {
+  getWorkItemComments,
+  addWorkItemComment,
+  updateWorkItemComment,
+} from './feature';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
@@ -156,5 +160,125 @@ describe('getWorkItemComments unit', () => {
         workItemId: 42,
       }),
     ).rejects.toThrow('Failed to get work item comments: Network failure');
+  });
+});
+
+describe('addWorkItemComment unit', () => {
+  test('should return the created comment', async () => {
+    const mockComment = { commentId: 7, text: 'Hello world' };
+    const mockAddComment = jest.fn().mockResolvedValue(mockComment);
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        addComment: mockAddComment,
+      }),
+    };
+
+    const result = await addWorkItemComment(mockConnection, {
+      projectId: 'test-project',
+      workItemId: 42,
+      text: 'Hello world',
+    });
+
+    expect(result).toEqual(mockComment);
+    expect(mockAddComment).toHaveBeenCalledWith(
+      { text: 'Hello world' },
+      'test-project',
+      42,
+    );
+  });
+
+  test('should throw AzureDevOpsResourceNotFoundError when API returns null', async () => {
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        addComment: jest.fn().mockResolvedValue(null),
+      }),
+    };
+
+    await expect(
+      addWorkItemComment(mockConnection, {
+        projectId: 'test-project',
+        workItemId: 42,
+        text: 'Hello world',
+      }),
+    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+  });
+
+  test('should wrap unexpected errors with AzureDevOpsError', async () => {
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        addComment: jest.fn().mockRejectedValue(new Error('Network failure')),
+      }),
+    };
+
+    await expect(
+      addWorkItemComment(mockConnection, {
+        projectId: 'test-project',
+        workItemId: 42,
+        text: 'Hello world',
+      }),
+    ).rejects.toThrow(AzureDevOpsError);
+  });
+});
+
+describe('updateWorkItemComment unit', () => {
+  test('should return the updated comment with correct commentId', async () => {
+    const mockComment = { commentId: 3, text: 'Updated text' };
+    const mockUpdateComment = jest.fn().mockResolvedValue(mockComment);
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        updateComment: mockUpdateComment,
+      }),
+    };
+
+    const result = await updateWorkItemComment(mockConnection, {
+      projectId: 'test-project',
+      workItemId: 42,
+      commentId: 3,
+      text: 'Updated text',
+    });
+
+    expect(result).toEqual(mockComment);
+    expect(mockUpdateComment).toHaveBeenCalledWith(
+      { text: 'Updated text' },
+      'test-project',
+      42,
+      3,
+    );
+  });
+
+  test('should throw AzureDevOpsResourceNotFoundError when API returns null', async () => {
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        updateComment: jest.fn().mockResolvedValue(null),
+      }),
+    };
+
+    await expect(
+      updateWorkItemComment(mockConnection, {
+        projectId: 'test-project',
+        workItemId: 42,
+        commentId: 3,
+        text: 'Updated text',
+      }),
+    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+  });
+
+  test('should wrap unexpected errors with AzureDevOpsError', async () => {
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        updateComment: jest
+          .fn()
+          .mockRejectedValue(new Error('Network failure')),
+      }),
+    };
+
+    await expect(
+      updateWorkItemComment(mockConnection, {
+        projectId: 'test-project',
+        workItemId: 42,
+        commentId: 3,
+        text: 'Updated text',
+      }),
+    ).rejects.toThrow(AzureDevOpsError);
   });
 });
