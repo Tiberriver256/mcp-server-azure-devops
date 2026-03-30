@@ -12,6 +12,10 @@ This server implements the [Model Context Protocol (MCP)](https://modelcontextpr
 - Access repository content via standardized resource URIs
 - Safely authenticate and interact with Azure DevOps resources
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/tiberriver256-mcp-server-azure-devops).
+
 ## Server Structure
 
 The server is structured around the Model Context Protocol (MCP) for communicating with AI assistants. It provides tools for interacting with Azure DevOps resources including:
