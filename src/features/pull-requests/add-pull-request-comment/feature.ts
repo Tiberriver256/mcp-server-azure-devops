@@ -12,6 +12,29 @@ import {
   transformCommentType,
 } from '../../../shared/enums';
 
+function parseThreadStatus(
+  status: string | undefined,
+): CommentThreadStatus | undefined {
+  switch (status) {
+    case 'active':
+      return CommentThreadStatus.Active;
+    case 'fixed':
+      return CommentThreadStatus.Fixed;
+    case 'wontFix':
+      return CommentThreadStatus.WontFix;
+    case 'closed':
+      return CommentThreadStatus.Closed;
+    case 'pending':
+      return CommentThreadStatus.Pending;
+    case 'byDesign':
+      return CommentThreadStatus.ByDesign;
+    case 'unknown':
+      return CommentThreadStatus.Unknown;
+    default:
+      return undefined;
+  }
+}
+
 /**
  * Add a comment to a pull request
  *
@@ -66,42 +89,43 @@ export async function addPullRequestComment(
         throw new Error('Failed to create pull request comment');
       }
 
+      // Also update the thread status if one was specified
+      let updatedThread: GitPullRequestCommentThread | undefined;
+      if (options.status) {
+        const threadStatus = parseThreadStatus(options.status);
+
+        if (threadStatus !== undefined) {
+          updatedThread = await gitApi.updateThread(
+            { status: threadStatus },
+            resolvedRepositoryId,
+            pullRequestId,
+            options.threadId,
+            project,
+          );
+        }
+      }
+
       return {
         comment: {
           ...createdComment,
           commentType: transformCommentType(createdComment.commentType),
         },
+        ...(updatedThread && {
+          thread: {
+            ...updatedThread,
+            status: transformCommentThreadStatus(updatedThread.status),
+            comments: updatedThread.comments?.map((c) => ({
+              ...c,
+              commentType: transformCommentType(c.commentType),
+            })),
+          },
+        }),
       };
     }
     // Case 2: Create new thread with comment
     else {
       // Map status string to CommentThreadStatus enum
-      let threadStatus: CommentThreadStatus | undefined;
-      if (options.status) {
-        switch (options.status) {
-          case 'active':
-            threadStatus = CommentThreadStatus.Active;
-            break;
-          case 'fixed':
-            threadStatus = CommentThreadStatus.Fixed;
-            break;
-          case 'wontFix':
-            threadStatus = CommentThreadStatus.WontFix;
-            break;
-          case 'closed':
-            threadStatus = CommentThreadStatus.Closed;
-            break;
-          case 'pending':
-            threadStatus = CommentThreadStatus.Pending;
-            break;
-          case 'byDesign':
-            threadStatus = CommentThreadStatus.ByDesign;
-            break;
-          case 'unknown':
-            threadStatus = CommentThreadStatus.Unknown;
-            break;
-        }
-      }
+      const threadStatus = parseThreadStatus(options.status);
 
       // Create thread with comment
       const thread: GitPullRequestCommentThread = {
