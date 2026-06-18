@@ -15,6 +15,13 @@ export const GetWorkItemSchema = z.object({
 });
 
 /**
+ * Schema for getting a work item description
+ */
+export const GetWorkItemDescriptionSchema = z.object({
+  workItemId: z.number().describe('The ID of the work item'),
+});
+
+/**
  * Schema for listing work items
  */
 export const ListWorkItemsSchema = z.object({
@@ -146,4 +153,45 @@ export const ManageWorkItemLinkSchema = z.object({
     .string()
     .optional()
     .describe('Optional comment explaining the link'),
+});
+
+/**
+ * Schema for executing a WIQL query
+ */
+export const ExecuteWiqlSchema = z.object({
+  query: z
+    .string()
+    .describe(
+      "Work Item Query Language (WIQL) query to execute. Example: SELECT [System.Id], [System.Title] FROM WorkItems WHERE [System.State] = 'Active'",
+    ),
+  projectId: z
+    .string()
+    .optional()
+    .describe(
+      `The ID or name of the project to execute query against (Default: ${defaultProject})`,
+    ),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  teamId: z
+    .string()
+    .optional()
+    .describe('The ID of the team to execute query against'),
+  top: z
+    .number()
+    .optional()
+    .describe('Maximum number of work items to return (default: 200)'),
+  timePrecision: z
+    .boolean()
+    .optional()
+    .describe(
+      'Whether to include time precision in date fields (default: false)',
+    ),
+  expand: z
+    .enum(['none', 'relations', 'fields', 'links', 'all'])
+    .optional()
+    .describe(
+      'Level of detail to include for returned work items (default: fields)',
+    ),
 });
