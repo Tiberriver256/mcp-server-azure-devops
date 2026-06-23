@@ -1,1 +1,0 @@
-export { UpdatePullRequestThreadStatusSchema } from '../schemas';
