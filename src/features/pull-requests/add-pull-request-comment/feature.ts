@@ -165,8 +165,9 @@ export async function addPullRequestComment(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to add pull request comment: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

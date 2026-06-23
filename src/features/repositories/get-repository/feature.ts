@@ -34,8 +34,9 @@ export async function getRepository(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to get repository: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

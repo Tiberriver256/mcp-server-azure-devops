@@ -383,6 +383,7 @@ export async function downloadPipelineArtifact(
       `Failed to download pipeline artifact: ${
         error instanceof Error ? error.message : String(error)
       }`,
+      { cause: error },
     );
   }
 }

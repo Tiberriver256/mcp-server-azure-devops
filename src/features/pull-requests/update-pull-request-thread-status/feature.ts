@@ -116,8 +116,9 @@ export async function updatePullRequestThreadStatus(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to update pull request thread status: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

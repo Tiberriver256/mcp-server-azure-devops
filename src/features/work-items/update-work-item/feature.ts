@@ -190,8 +190,9 @@ export async function updateWorkItem(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to update work item: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

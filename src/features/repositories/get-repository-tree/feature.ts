@@ -89,8 +89,9 @@ export async function getRepositoryTree(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to get repository tree: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

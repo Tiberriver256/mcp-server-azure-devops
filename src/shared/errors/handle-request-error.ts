@@ -115,6 +115,7 @@ export function handleRequestError(error: unknown, context: string): never {
  */
 export function handleResponseError(error: unknown): {
   content: Array<{ type: string; text: string }>;
+  isError: boolean;
 } {
   safeLog(`Error handling request: ${error}`);
 
@@ -124,5 +125,6 @@ export function handleResponseError(error: unknown): {
 
   return {
     content: [{ type: 'text', text: errorMessage }],
+    isError: true,
   };
 }

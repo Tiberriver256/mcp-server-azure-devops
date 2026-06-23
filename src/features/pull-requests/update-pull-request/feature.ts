@@ -194,10 +194,11 @@ export const updatePullRequest = async (
           labels.push(createdLabel);
           existingNames.add(tag.toLowerCase());
         } catch (error) {
-          throw new Error(
+          throw new AzureDevOpsError(
             `Failed to add tag '${tag}': ${
               error instanceof Error ? error.message : String(error)
             }`,
+            { cause: error },
           );
         }
       }
@@ -225,10 +226,11 @@ export const updatePullRequest = async (
             continue;
           }
 
-          throw new Error(
+          throw new AzureDevOpsError(
             `Failed to remove tag '${tag}': ${
               error instanceof Error ? error.message : String(error)
             }`,
+            { cause: error },
           );
         }
       }
@@ -240,6 +242,7 @@ export const updatePullRequest = async (
   } catch (error) {
     throw new AzureDevOpsError(
       `Failed to update pull request ${pullRequestId} in repository ${repositoryId}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 };
@@ -339,10 +342,10 @@ async function handleWorkItems(
             }
           }
         } catch (error) {
-          console.log(
+          process.stderr.write(
             `Error removing work item ${workItemId} from pull request ${pullRequestId}: ${
               error instanceof Error ? error.message : String(error)
-            }`,
+            }\n`,
           );
         }
       }
@@ -350,6 +353,7 @@ async function handleWorkItems(
   } catch (error) {
     throw new AzureDevOpsError(
       `Failed to update work item links for pull request ${pullRequestId}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }
@@ -397,10 +401,10 @@ async function handleReviewers(
             projectId,
           );
         } catch (error) {
-          console.log(
+          process.stderr.write(
             `Error adding reviewer ${reviewer} to pull request ${pullRequestId}: ${
               error instanceof Error ? error.message : String(error)
-            }`,
+            }\n`,
           );
         }
       }
@@ -417,10 +421,10 @@ async function handleReviewers(
             projectId,
           );
         } catch (error) {
-          console.log(
+          process.stderr.write(
             `Error removing reviewer ${reviewer} from pull request ${pullRequestId}: ${
               error instanceof Error ? error.message : String(error)
-            }`,
+            }\n`,
           );
         }
       }
@@ -428,6 +432,7 @@ async function handleReviewers(
   } catch (error) {
     throw new AzureDevOpsError(
       `Failed to update reviewers for pull request ${pullRequestId}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

@@ -106,8 +106,9 @@ export async function listCommits(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to list commits: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

@@ -125,6 +125,7 @@ export async function searchWiki(
     // Otherwise, wrap it in a generic error
     throw new AzureDevOpsError(
       `Failed to search wiki: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

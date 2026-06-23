@@ -106,8 +106,9 @@ export async function getPullRequestChanges(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to get pull request changes: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

@@ -27,8 +27,9 @@ export async function listProjects(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to list projects: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }
