@@ -68,7 +68,7 @@ describe('updateWorkItem unit', () => {
       {},
       [
         {
-          op: 'replace',
+          op: 'add',
           path: '/fields/System.Tags',
           value: 'tag1; tag2',
         },
@@ -98,7 +98,7 @@ describe('updateWorkItem unit', () => {
       {},
       [
         {
-          op: 'replace',
+          op: 'add',
           path: '/fields/System.Tags',
           value: '',
         },
@@ -136,7 +136,7 @@ describe('updateWorkItem unit', () => {
       {},
       [
         {
-          op: 'replace',
+          op: 'add',
           path: '/fields/System.Tags',
           value: 'existing1; existing2; newTag',
         },
@@ -174,9 +174,83 @@ describe('updateWorkItem unit', () => {
       {},
       [
         {
-          op: 'replace',
+          op: 'add',
           path: '/fields/System.Tags',
           value: 'existing1; existing3',
+        },
+      ],
+      123,
+      undefined,
+      false,
+      false,
+      false,
+      expect.any(Number),
+    );
+  });
+
+  test('should remove tags case-insensitively', async () => {
+    const mockGetWorkItem = jest.fn().mockResolvedValue({
+      id: 123,
+      fields: {
+        'System.Tags': 'Bug; Feature; Enhancement',
+      },
+    });
+    const mockUpdateWorkItem = jest.fn().mockResolvedValue({ id: 123 });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: mockGetWorkItem,
+        updateWorkItem: mockUpdateWorkItem,
+      }),
+    };
+
+    await updateWorkItem(mockConnection, 123, {
+      tagsToRemove: ['bug', 'FEATURE'],
+    });
+
+    expect(mockUpdateWorkItem).toHaveBeenCalledWith(
+      {},
+      [
+        {
+          op: 'add',
+          path: '/fields/System.Tags',
+          value: 'Enhancement',
+        },
+      ],
+      123,
+      undefined,
+      false,
+      false,
+      false,
+      expect.any(Number),
+    );
+  });
+
+  test('should not add duplicate tags case-insensitively', async () => {
+    const mockGetWorkItem = jest.fn().mockResolvedValue({
+      id: 123,
+      fields: {
+        'System.Tags': 'Bug; Feature',
+      },
+    });
+    const mockUpdateWorkItem = jest.fn().mockResolvedValue({ id: 123 });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: mockGetWorkItem,
+        updateWorkItem: mockUpdateWorkItem,
+      }),
+    };
+
+    await updateWorkItem(mockConnection, 123, {
+      tagsToAdd: ['bug', 'NewTag'],
+    });
+
+    expect(mockUpdateWorkItem).toHaveBeenCalledWith(
+      {},
+      [
+        {
+          op: 'add',
+          path: '/fields/System.Tags',
+          value: 'Bug; Feature; NewTag',
         },
       ],
       123,

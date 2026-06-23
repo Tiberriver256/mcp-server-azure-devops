@@ -86,7 +86,7 @@ export async function updateWorkItem(
     // Add tags logic
     if (options.tags !== undefined) {
       document.push({
-        op: 'replace',
+        op: 'add',
         path: '/fields/System.Tags',
         value: options.tags.length > 0 ? options.tags.join('; ') : '',
       });
@@ -113,19 +113,25 @@ export async function updateWorkItem(
       if (options.tagsToAdd) {
         for (const tag of options.tagsToAdd) {
           const trimmed = tag.trim();
-          if (trimmed && !tagsList.includes(trimmed)) {
+          const trimmedLower = trimmed.toLowerCase();
+          if (
+            trimmed &&
+            !tagsList.some((t) => t.toLowerCase() === trimmedLower)
+          ) {
             tagsList.push(trimmed);
           }
         }
       }
 
       if (options.tagsToRemove) {
-        const toRemove = new Set(options.tagsToRemove.map((t) => t.trim()));
-        tagsList = tagsList.filter((t) => !toRemove.has(t));
+        const toRemove = new Set(
+          options.tagsToRemove.map((t) => t.trim().toLowerCase()),
+        );
+        tagsList = tagsList.filter((t) => !toRemove.has(t.toLowerCase()));
       }
 
       document.push({
-        op: 'replace',
+        op: 'add',
         path: '/fields/System.Tags',
         value: tagsList.length > 0 ? tagsList.join('; ') : '',
       });

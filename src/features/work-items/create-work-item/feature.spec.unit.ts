@@ -60,4 +60,51 @@ describe('createWorkItem unit', () => {
       }),
     ).rejects.toThrow('Failed to create work item: Unexpected error');
   });
+
+  test('should include System.Tags patch entry when tags option is provided', async () => {
+    const mockCreateWorkItem = jest.fn().mockResolvedValue({ id: 1 });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        createWorkItem: mockCreateWorkItem,
+      }),
+    };
+
+    await createWorkItem(mockConnection, 'TestProject', 'Task', {
+      title: 'Test Task',
+      tags: ['bug', 'frontend'],
+    });
+
+    expect(mockCreateWorkItem).toHaveBeenCalledWith(
+      null,
+      expect.arrayContaining([
+        {
+          op: 'add',
+          path: '/fields/System.Tags',
+          value: 'bug; frontend',
+        },
+      ]),
+      'TestProject',
+      'Task',
+    );
+  });
+
+  test('should not include System.Tags patch entry when tags option is empty', async () => {
+    const mockCreateWorkItem = jest.fn().mockResolvedValue({ id: 1 });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        createWorkItem: mockCreateWorkItem,
+      }),
+    };
+
+    await createWorkItem(mockConnection, 'TestProject', 'Task', {
+      title: 'Test Task',
+      tags: [],
+    });
+
+    const document = mockCreateWorkItem.mock.calls[0][1];
+    const tagsPatch = document.find(
+      (entry: any) => entry.path === '/fields/System.Tags',
+    );
+    expect(tagsPatch).toBeUndefined();
+  });
 });
