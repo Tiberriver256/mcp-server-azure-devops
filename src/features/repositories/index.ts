@@ -20,10 +20,12 @@ export * from './tool-definitions';
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { RequestHandler } from '../../shared/types/request-handler';
 import {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
+  createRequestIdentifier,
+  jsonResponse,
+  textResponse,
+} from '../../shared/handlers';
 import { defaultProject, defaultOrg } from '../../utils/environment';
 import {
   GetRepositorySchema,
@@ -50,22 +52,17 @@ import {
 /**
  * Checks if the request is for the repositories feature
  */
-export const isRepositoriesRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return [
-    'get_repository',
-    'get_repository_details',
-    'list_repositories',
-    'get_file_content',
-    'get_all_repositories_tree',
-    'get_repository_tree',
-    'create_branch',
-    'create_commit',
-    'list_commits',
-  ].includes(toolName);
-};
+export const isRepositoriesRequest = createRequestIdentifier([
+  'get_repository',
+  'get_repository_details',
+  'list_repositories',
+  'get_file_content',
+  'get_all_repositories_tree',
+  'get_repository_tree',
+  'create_branch',
+  'create_commit',
+  'list_commits',
+]);
 
 /**
  * Handles repositories feature requests
@@ -82,9 +79,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         args.projectId ?? defaultProject,
         args.repositoryId,
       );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_repository_details': {
       const args = GetRepositoryDetailsSchema.parse(request.params.arguments);
@@ -96,9 +91,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         refFilter: args.refFilter,
         branchName: args.branchName,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'list_repositories': {
       const args = ListRepositoriesSchema.parse(request.params.arguments);
@@ -106,9 +99,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_file_content': {
       const args = GetFileContentSchema.parse(request.params.arguments);
@@ -134,9 +125,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
           ? { versionType: versionTypeEnum, version: args.version }
           : undefined,
       );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_all_repositories_tree': {
       const args = GetAllRepositoriesTreeSchema.parse(request.params.arguments);
@@ -158,9 +147,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         formattedOutput += '\n'; // Add blank line between repositories
       }
 
-      return {
-        content: [{ type: 'text', text: formattedOutput }],
-      };
+      return textResponse(formattedOutput);
     }
     case 'get_repository_tree': {
       const args = GetRepositoryTreeSchema.parse(request.params.arguments);
@@ -168,14 +155,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
+      return jsonResponse(result);
     }
     case 'create_branch': {
       const args = CreateBranchSchema.parse(request.params.arguments);
@@ -183,9 +163,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [{ type: 'text', text: 'Branch created successfully' }],
-      };
+      return textResponse('Branch created successfully');
     }
     case 'create_commit': {
       const args = CreateCommitSchema.parse(request.params.arguments);
@@ -193,9 +171,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [{ type: 'text', text: 'Commit created successfully' }],
-      };
+      return textResponse('Commit created successfully');
     }
     case 'list_commits': {
       const args = ListCommitsSchema.parse(request.params.arguments);
@@ -203,9 +179,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     default:
       throw new Error(`Unknown repositories tool: ${request.params.name}`);

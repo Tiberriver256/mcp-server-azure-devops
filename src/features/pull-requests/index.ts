@@ -16,10 +16,8 @@ export * from './tool-definitions';
 // New exports for request handling
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
-import {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
+import { RequestHandler } from '../../shared/types/request-handler';
+import { createRequestIdentifier, jsonResponse } from '../../shared/handlers';
 import { defaultProject } from '../../utils/environment';
 import {
   CreatePullRequestSchema,
@@ -45,22 +43,17 @@ import {
 /**
  * Checks if the request is for the pull requests feature
  */
-export const isPullRequestsRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return [
-    'create_pull_request',
-    'get_pull_request',
-    'list_pull_requests',
-    'get_pull_request_comments',
-    'add_pull_request_comment',
-    'update_pull_request',
-    'get_pull_request_changes',
-    'get_pull_request_checks',
-    'update_pull_request_thread_status',
-  ].includes(toolName);
-};
+export const isPullRequestsRequest = createRequestIdentifier([
+  'create_pull_request',
+  'get_pull_request',
+  'list_pull_requests',
+  'get_pull_request_comments',
+  'add_pull_request_comment',
+  'update_pull_request',
+  'get_pull_request_changes',
+  'get_pull_request_checks',
+  'update_pull_request_thread_status',
+]);
 
 /**
  * Handles pull requests feature requests
@@ -78,9 +71,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         args.repositoryId,
         args,
       );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_pull_request': {
       const params = GetPullRequestSchema.parse(request.params.arguments);
@@ -88,9 +79,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         projectId: params.projectId,
         pullRequestId: params.pullRequestId,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'list_pull_requests': {
       const params = ListPullRequestsSchema.parse(request.params.arguments);
@@ -110,9 +99,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
           skip: params.skip,
         },
       );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_pull_request_comments': {
       const params = GetPullRequestCommentsSchema.parse(
@@ -132,9 +119,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
           top: params.top,
         },
       );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'add_pull_request_comment': {
       const params = AddPullRequestCommentSchema.parse(
@@ -157,9 +142,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
           status: params.status,
         },
       );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'update_pull_request': {
       const params = UpdatePullRequestSchema.parse(request.params.arguments);
@@ -168,9 +151,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         projectId: params.projectId ?? defaultProject,
       };
       const result = await updatePullRequest(fixedParams);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_pull_request_changes': {
       const params = GetPullRequestChangesSchema.parse(
@@ -181,9 +162,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         repositoryId: params.repositoryId,
         pullRequestId: params.pullRequestId,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_pull_request_checks': {
       const params = GetPullRequestChecksSchema.parse(request.params.arguments);
@@ -192,9 +171,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         repositoryId: params.repositoryId,
         pullRequestId: params.pullRequestId,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'update_pull_request_thread_status': {
       const params = UpdatePullRequestThreadStatusSchema.parse(
@@ -208,9 +185,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         params.threadId,
         params,
       );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     default:
       throw new Error(`Unknown pull requests tool: ${request.params.name}`);

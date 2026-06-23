@@ -16,10 +16,8 @@ export * from './tool-definitions';
 // New exports for request handling
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
-import {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
+import { RequestHandler } from '../../shared/types/request-handler';
+import { createRequestIdentifier, jsonResponse } from '../../shared/handlers';
 import { defaultProject } from '../../utils/environment';
 import {
   ListWorkItemsSchema,
@@ -36,27 +34,17 @@ import {
   getWorkItemComments,
 } from './';
 
-// Define the response type based on observed usage
-interface CallToolResponse {
-  content: Array<{ type: string; text: string }>;
-}
-
 /**
  * Checks if the request is for the work items feature
  */
-export const isWorkItemsRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return [
-    'get_work_item',
-    'list_work_items',
-    'create_work_item',
-    'update_work_item',
-    'manage_work_item_link',
-    'get_work_item_comments',
-  ].includes(toolName);
-};
+export const isWorkItemsRequest = createRequestIdentifier([
+  'get_work_item',
+  'list_work_items',
+  'create_work_item',
+  'update_work_item',
+  'manage_work_item_link',
+  'get_work_item_comments',
+]);
 
 /**
  * Handles work items feature requests
@@ -64,7 +52,7 @@ export const isWorkItemsRequest: RequestIdentifier = (
 export const handleWorkItemsRequest: RequestHandler = async (
   connection: WebApi,
   request: CallToolRequest,
-): Promise<CallToolResponse> => {
+): Promise<{ content: Array<{ type: string; text: string }> }> => {
   switch (request.params.name) {
     case 'get_work_item': {
       const args = GetWorkItemSchema.parse(request.params.arguments);
@@ -73,9 +61,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         args.workItemId,
         args.expand,
       );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'list_work_items': {
       const args = ListWorkItemsSchema.parse(request.params.arguments);
@@ -87,9 +73,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         top: args.top,
         skip: args.skip,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'create_work_item': {
       const args = CreateWorkItemSchema.parse(request.params.arguments);
@@ -109,9 +93,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
           additionalFields: args.additionalFields,
         },
       );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'update_work_item': {
       const args = UpdateWorkItemSchema.parse(request.params.arguments);
@@ -128,9 +110,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         tagsToRemove: args.tagsToRemove,
         additionalFields: args.additionalFields,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'manage_work_item_link': {
       const args = ManageWorkItemLinkSchema.parse(request.params.arguments);
@@ -146,9 +126,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
           comment: args.comment,
         },
       );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_work_item_comments': {
       const args = GetWorkItemCommentsSchema.parse(request.params.arguments);
@@ -161,9 +139,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         expand: args.expand,
         order: args.order,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     default:
       throw new Error(`Unknown work items tool: ${request.params.name}`);
