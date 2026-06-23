@@ -52,10 +52,15 @@ describe('updateWorkItem unit', () => {
     ).rejects.toThrow('Failed to update work item: Unexpected error');
   });
 
-  test('should overwrite tags directly when tags parameter is provided', async () => {
+  test('should overwrite tags using replace when existing tags are present', async () => {
+    const mockGetWorkItem = jest.fn().mockResolvedValue({
+      id: 123,
+      fields: { 'System.Tags': 'old1; old2' },
+    });
     const mockUpdateWorkItem = jest.fn().mockResolvedValue({ id: 123 });
     const mockConnection: any = {
       getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: mockGetWorkItem,
         updateWorkItem: mockUpdateWorkItem,
       }),
     };
@@ -64,6 +69,43 @@ describe('updateWorkItem unit', () => {
       tags: ['tag1', 'tag2'],
     });
 
+    expect(mockGetWorkItem).toHaveBeenCalledWith(123, ['System.Tags']);
+    expect(mockUpdateWorkItem).toHaveBeenCalledWith(
+      {},
+      [
+        {
+          op: 'replace',
+          path: '/fields/System.Tags',
+          value: 'tag1; tag2',
+        },
+      ],
+      123,
+      undefined,
+      false,
+      false,
+      false,
+      expect.any(Number),
+    );
+  });
+
+  test('should overwrite tags using add when no existing tags', async () => {
+    const mockGetWorkItem = jest.fn().mockResolvedValue({
+      id: 123,
+      fields: {},
+    });
+    const mockUpdateWorkItem = jest.fn().mockResolvedValue({ id: 123 });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: mockGetWorkItem,
+        updateWorkItem: mockUpdateWorkItem,
+      }),
+    };
+
+    await updateWorkItem(mockConnection, 123, {
+      tags: ['tag1', 'tag2'],
+    });
+
+    expect(mockGetWorkItem).toHaveBeenCalledWith(123, ['System.Tags']);
     expect(mockUpdateWorkItem).toHaveBeenCalledWith(
       {},
       [
@@ -82,10 +124,15 @@ describe('updateWorkItem unit', () => {
     );
   });
 
-  test('should clear tags when tags parameter is empty array', async () => {
+  test('should clear tags using replace when existing tags are present', async () => {
+    const mockGetWorkItem = jest.fn().mockResolvedValue({
+      id: 123,
+      fields: { 'System.Tags': 'old1; old2' },
+    });
     const mockUpdateWorkItem = jest.fn().mockResolvedValue({ id: 123 });
     const mockConnection: any = {
       getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: mockGetWorkItem,
         updateWorkItem: mockUpdateWorkItem,
       }),
     };
@@ -94,6 +141,43 @@ describe('updateWorkItem unit', () => {
       tags: [],
     });
 
+    expect(mockGetWorkItem).toHaveBeenCalledWith(123, ['System.Tags']);
+    expect(mockUpdateWorkItem).toHaveBeenCalledWith(
+      {},
+      [
+        {
+          op: 'replace',
+          path: '/fields/System.Tags',
+          value: '',
+        },
+      ],
+      123,
+      undefined,
+      false,
+      false,
+      false,
+      expect.any(Number),
+    );
+  });
+
+  test('should clear tags using add when no existing tags', async () => {
+    const mockGetWorkItem = jest.fn().mockResolvedValue({
+      id: 123,
+      fields: {},
+    });
+    const mockUpdateWorkItem = jest.fn().mockResolvedValue({ id: 123 });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: mockGetWorkItem,
+        updateWorkItem: mockUpdateWorkItem,
+      }),
+    };
+
+    await updateWorkItem(mockConnection, 123, {
+      tags: [],
+    });
+
+    expect(mockGetWorkItem).toHaveBeenCalledWith(123, ['System.Tags']);
     expect(mockUpdateWorkItem).toHaveBeenCalledWith(
       {},
       [
@@ -136,7 +220,7 @@ describe('updateWorkItem unit', () => {
       {},
       [
         {
-          op: 'add',
+          op: 'replace',
           path: '/fields/System.Tags',
           value: 'existing1; existing2; newTag',
         },
@@ -174,7 +258,7 @@ describe('updateWorkItem unit', () => {
       {},
       [
         {
-          op: 'add',
+          op: 'replace',
           path: '/fields/System.Tags',
           value: 'existing1; existing3',
         },
@@ -211,7 +295,7 @@ describe('updateWorkItem unit', () => {
       {},
       [
         {
-          op: 'add',
+          op: 'replace',
           path: '/fields/System.Tags',
           value: 'Enhancement',
         },
@@ -248,7 +332,7 @@ describe('updateWorkItem unit', () => {
       {},
       [
         {
-          op: 'add',
+          op: 'replace',
           path: '/fields/System.Tags',
           value: 'Bug; Feature; NewTag',
         },

@@ -84,9 +84,23 @@ export async function updateWorkItem(
     }
 
     // Add tags logic
+    // Azure DevOps treats op:'add' on System.Tags as additive (merge) rather
+    // than a full replacement.  Use op:'replace' to truly overwrite when the
+    // field already has a value; fall back to op:'add' when it is empty
+    // (JSON-Patch 'replace' fails on a missing/empty field).
     if (options.tags !== undefined) {
+      const currentWorkItem = await witApi.getWorkItem(workItemId, [
+        'System.Tags',
+      ]);
+      if (!currentWorkItem) {
+        throw new AzureDevOpsResourceNotFoundError(
+          `Work item '${workItemId}' not found`,
+        );
+      }
+      const currentTagsStr =
+        (currentWorkItem.fields?.['System.Tags'] as string) || '';
       document.push({
-        op: 'add',
+        op: currentTagsStr ? 'replace' : 'add',
         path: '/fields/System.Tags',
         value: options.tags.length > 0 ? options.tags.join('; ') : '',
       });
@@ -131,7 +145,7 @@ export async function updateWorkItem(
       }
 
       document.push({
-        op: 'add',
+        op: currentTagsStr ? 'replace' : 'add',
         path: '/fields/System.Tags',
         value: tagsList.length > 0 ? tagsList.join('; ') : '',
       });
