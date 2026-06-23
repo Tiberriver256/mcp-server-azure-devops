@@ -1,10 +1,10 @@
 import { listOrganizations } from './feature';
 import {
   getTestConfig,
-  shouldSkipIntegrationTest,
+  shouldSkipAzureDevOpsTests,
 } from '@/shared/test/test-helpers';
 
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const describeOrSkip = shouldSkip ? describe.skip : describe;
 
 describeOrSkip('listOrganizations integration', () => {

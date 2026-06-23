@@ -2,7 +2,7 @@ import { WebApi } from 'azure-devops-node-api';
 import { getWorkItem } from './feature';
 import {
   getTestConnection,
-  shouldSkipIntegrationTest,
+  shouldSkipAzureDevOpsTests,
 } from '../__test__/test-helpers';
 
 import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
@@ -10,7 +10,7 @@ import { createWorkItem } from '../create-work-item/feature';
 import { manageWorkItemLink } from '../manage-work-item-link/feature';
 import { CreateWorkItemOptions } from '../types';
 
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const describeOrSkip = shouldSkip ? describe.skip : describe;
 
 describeOrSkip('getWorkItem integration', () => {

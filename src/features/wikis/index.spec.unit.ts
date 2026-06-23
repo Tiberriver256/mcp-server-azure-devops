@@ -5,6 +5,7 @@ import { getWikis, GetWikisSchema } from './get-wikis';
 import { getWikiPage, GetWikiPageSchema } from './get-wiki-page';
 import { createWiki, CreateWikiSchema, WikiType } from './create-wiki';
 import { updateWikiPage, UpdateWikiPageSchema } from './update-wiki-page';
+import { getTextContent } from '../../shared/test/test-helpers';
 
 // Mock the imported modules
 jest.mock('./get-wikis', () => ({
@@ -93,7 +94,7 @@ describe('Wikis Request Handlers', () => {
 
       const response = await handleWikisRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(mockWikis);
+      expect(JSON.parse(getTextContent(response.content))).toEqual(mockWikis);
       expect(getWikis).toHaveBeenCalledWith(
         mockConnection,
         expect.objectContaining({
@@ -127,7 +128,7 @@ describe('Wikis Request Handlers', () => {
 
       const response = await handleWikisRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(response.content[0].text as string).toEqual(mockWikiContent);
+      expect(getTextContent(response.content)).toEqual(mockWikiContent);
       expect(getWikiPage).toHaveBeenCalledWith(
         expect.objectContaining({
           projectId: 'project1',
@@ -163,7 +164,7 @@ describe('Wikis Request Handlers', () => {
 
       const response = await handleWikisRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(mockWiki);
+      expect(JSON.parse(getTextContent(response.content))).toEqual(mockWiki);
       expect(createWiki).toHaveBeenCalledWith(
         mockConnection,
         expect.objectContaining({
@@ -203,7 +204,7 @@ describe('Wikis Request Handlers', () => {
 
       const response = await handleWikisRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockUpdateResult,
       );
       expect(updateWikiPage).toHaveBeenCalledWith(

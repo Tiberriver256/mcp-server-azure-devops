@@ -51,7 +51,7 @@ import { someFunction } from '@/shared/utils';
 Test helpers are located in a centralized location for all tests:
 
 ```typescript
-import { getTestConnection, shouldSkipIntegrationTest } from '@/shared/test/test-helpers';
+import { getTestConnection, shouldSkipAzureDevOpsTests } from '@/shared/test/test-helpers';
 ```
 
 ## Running Tests

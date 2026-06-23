@@ -3,11 +3,11 @@ import { updateWorkItem } from './feature';
 import { createWorkItem } from '../create-work-item/feature';
 import {
   getTestConnection,
-  shouldSkipIntegrationTest,
+  shouldSkipAzureDevOpsTests,
 } from '@/shared/test/test-helpers';
 import { CreateWorkItemOptions, UpdateWorkItemOptions } from '../types';
 
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const describeOrSkip = shouldSkip ? describe.skip : describe;
 
 describeOrSkip('updateWorkItem integration', () => {

@@ -2,11 +2,11 @@ import { WebApi } from 'azure-devops-node-api';
 import { listProjects } from './feature';
 import {
   getTestConnection,
-  shouldSkipIntegrationTest,
+  shouldSkipAzureDevOpsTests,
 } from '@/shared/test/test-helpers';
 import { ListProjectsOptions } from '../types';
 
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const describeOrSkip = shouldSkip ? describe.skip : describe;
 
 describeOrSkip('listProjects integration', () => {

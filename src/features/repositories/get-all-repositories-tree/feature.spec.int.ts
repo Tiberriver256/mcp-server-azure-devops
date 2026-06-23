@@ -1,11 +1,11 @@
 import { getConnection } from '../../../server';
-import { shouldSkipIntegrationTest } from '../../../shared/test/test-helpers';
+import { shouldSkipAzureDevOpsTests } from '../../../shared/test/test-helpers';
 import { getAllRepositoriesTree } from './feature';
 import { AzureDevOpsConfig } from '../../../shared/types';
 import { WebApi } from 'azure-devops-node-api';
 import { AuthenticationMethod } from '../../../shared/auth';
 
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const projectId =
   process.env.AZURE_DEVOPS_TEST_PROJECT_ID ||
   process.env.AZURE_DEVOPS_DEFAULT_PROJECT ||

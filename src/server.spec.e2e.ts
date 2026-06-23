@@ -5,11 +5,15 @@ import { join } from 'path';
 import dotenv from 'dotenv';
 import { Organization } from './features/organizations/types';
 import fs from 'fs';
+import { shouldSkipAzureDevOpsTests } from '@/shared/test/test-helpers';
 
 // Load environment variables from .env file
 dotenv.config();
 
-describe('Azure DevOps MCP Server E2E Tests', () => {
+const shouldSkip = shouldSkipAzureDevOpsTests();
+const describeOrSkip = shouldSkip ? describe.skip : describe;
+
+describeOrSkip('Azure DevOps MCP Server E2E Tests', () => {
   let client: Client;
   let serverProcess: ReturnType<typeof spawn>;
   let transport: StdioClientTransport;
@@ -95,9 +99,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
         version: '1.0.0',
       },
       {
-        capabilities: {
-          tools: {},
-        },
+        capabilities: {},
       },
     );
 
