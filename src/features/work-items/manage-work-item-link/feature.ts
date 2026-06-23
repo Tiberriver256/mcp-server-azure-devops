@@ -1,4 +1,5 @@
 import { WebApi } from 'azure-devops-node-api';
+import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
@@ -66,12 +67,44 @@ export async function manageWorkItemLink(
     // Construct the relationship URL
     const relationshipUrl = `${connection.serverUrl}/_apis/wit/workItems/${targetWorkItemId}`;
 
+    let relationIndex = -1;
+    if (operation === 'remove' || operation === 'update') {
+      const sourceWorkItem = await witApi.getWorkItem(
+        sourceWorkItemId,
+        undefined,
+        undefined,
+        WorkItemExpand.Relations,
+      );
+
+      if (!sourceWorkItem) {
+        throw new AzureDevOpsResourceNotFoundError(
+          `Work item '${sourceWorkItemId}' not found`,
+        );
+      }
+
+      const relations = sourceWorkItem.relations || [];
+      const targetSuffix =
+        `/_apis/wit/workItems/${targetWorkItemId}`.toLowerCase();
+
+      relationIndex = relations.findIndex(
+        (rel) =>
+          rel.rel?.toLowerCase() === relationType.toLowerCase() &&
+          rel.url?.toLowerCase().endsWith(targetSuffix),
+      );
+
+      if (relationIndex === -1) {
+        throw new AzureDevOpsResourceNotFoundError(
+          `Relation of type '${relationType}' to target work item '${targetWorkItemId}' not found on source work item '${sourceWorkItemId}'`,
+        );
+      }
+    }
+
     if (operation === 'add' || operation === 'update') {
       // For 'update', we'll first remove the old link, then add the new one
       if (operation === 'update') {
         document.push({
           op: 'remove',
-          path: `/relations/+[rel=${relationType};url=${relationshipUrl}]`,
+          path: `/relations/${relationIndex}`,
         });
       }
 
@@ -89,7 +122,7 @@ export async function manageWorkItemLink(
       // Remove the relationship
       document.push({
         op: 'remove',
-        path: `/relations/+[rel=${relationType};url=${relationshipUrl}]`,
+        path: `/relations/${relationIndex}`,
       });
     }
 

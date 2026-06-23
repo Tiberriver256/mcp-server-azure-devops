@@ -1,5 +1,6 @@
 import { manageWorkItemLink } from './feature';
 import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
+import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 
 describe('manageWorkItemLink', () => {
   let mockConnection: any;
@@ -15,6 +16,7 @@ describe('manageWorkItemLink', () => {
   beforeEach(() => {
     mockWitApi = {
       updateWorkItem: jest.fn(),
+      getWorkItem: jest.fn(),
     };
 
     mockConnection = {
@@ -67,6 +69,15 @@ describe('manageWorkItemLink', () => {
       id: sourceWorkItemId,
       fields: { 'System.Title': 'Test' },
     };
+    mockWitApi.getWorkItem.mockResolvedValue({
+      id: sourceWorkItemId,
+      relations: [
+        {
+          rel: relationType,
+          url: `${mockConnection.serverUrl}/_apis/wit/workItems/${targetWorkItemId}`,
+        },
+      ],
+    });
     mockWitApi.updateWorkItem.mockResolvedValue(updatedWorkItem);
 
     // Execute
@@ -79,12 +90,18 @@ describe('manageWorkItemLink', () => {
 
     // Verify
     expect(mockConnection.getWorkItemTrackingApi).toHaveBeenCalled();
+    expect(mockWitApi.getWorkItem).toHaveBeenCalledWith(
+      sourceWorkItemId,
+      undefined,
+      undefined,
+      WorkItemExpand.Relations,
+    );
     expect(mockWitApi.updateWorkItem).toHaveBeenCalledWith(
       {}, // customHeaders
       [
         {
           op: 'remove',
-          path: `/relations/+[rel=${relationType};url=${mockConnection.serverUrl}/_apis/wit/workItems/${targetWorkItemId}]`,
+          path: '/relations/0',
         },
       ],
       sourceWorkItemId,
@@ -99,6 +116,15 @@ describe('manageWorkItemLink', () => {
       id: sourceWorkItemId,
       fields: { 'System.Title': 'Test' },
     };
+    mockWitApi.getWorkItem.mockResolvedValue({
+      id: sourceWorkItemId,
+      relations: [
+        {
+          rel: relationType,
+          url: `${mockConnection.serverUrl}/_apis/wit/workItems/${targetWorkItemId}`,
+        },
+      ],
+    });
     mockWitApi.updateWorkItem.mockResolvedValue(updatedWorkItem);
 
     // Execute
@@ -113,12 +139,18 @@ describe('manageWorkItemLink', () => {
 
     // Verify
     expect(mockConnection.getWorkItemTrackingApi).toHaveBeenCalled();
+    expect(mockWitApi.getWorkItem).toHaveBeenCalledWith(
+      sourceWorkItemId,
+      undefined,
+      undefined,
+      WorkItemExpand.Relations,
+    );
     expect(mockWitApi.updateWorkItem).toHaveBeenCalledWith(
       {}, // customHeaders
       [
         {
           op: 'remove',
-          path: `/relations/+[rel=${relationType};url=${mockConnection.serverUrl}/_apis/wit/workItems/${targetWorkItemId}]`,
+          path: '/relations/0',
         },
         {
           op: 'add',
@@ -162,5 +194,28 @@ describe('manageWorkItemLink', () => {
         // newRelationType is missing
       }),
     ).rejects.toThrow('New relation type is required for update operation');
+  });
+
+  test('should throw error when relation to remove is not found', async () => {
+    // Setup
+    mockWitApi.getWorkItem.mockResolvedValue({
+      id: sourceWorkItemId,
+      relations: [
+        {
+          rel: 'Some.Other.LinkType',
+          url: `${mockConnection.serverUrl}/_apis/wit/workItems/999`,
+        },
+      ],
+    });
+
+    // Execute and verify
+    await expect(
+      manageWorkItemLink(mockConnection, projectId, {
+        sourceWorkItemId,
+        targetWorkItemId,
+        operation: 'remove',
+        relationType,
+      }),
+    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
   });
 });
