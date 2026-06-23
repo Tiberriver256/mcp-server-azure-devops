@@ -160,3 +160,29 @@ export const ManageWorkItemLinkSchema = z.object({
     .optional()
     .describe('Optional comment explaining the link'),
 });
+
+/**
+ * Schema for getting work item comments
+ */
+export const GetWorkItemCommentsSchema = z.object({
+  workItemId: z.number().describe('The ID of the work item'),
+  projectId: z.string().optional().describe('The ID or name of the project'),
+  top: z.number().optional().describe('Maximum number of comments to return'),
+  continuationToken: z
+    .string()
+    .optional()
+    .describe('Continuation token to retrieve the next page of comments'),
+  includeDeleted: z.boolean().optional().describe('Include deleted comments'),
+  expand: z
+    .enum(['none', 'reactions', 'renderedText', 'all'])
+    .default('all')
+    .optional()
+    .describe(
+      'The level of detail to include in the comments response (Default: "all")',
+    ),
+  order: z
+    .enum(['asc', 'desc'])
+    .default('asc')
+    .optional()
+    .describe('The order in which to sort the comments (Default: "asc")'),
+});

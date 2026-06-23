@@ -1,6 +1,7 @@
 import {
   WorkItem,
   WorkItemReference,
+  CommentList,
 } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 
 /**
@@ -47,5 +48,18 @@ export interface UpdateWorkItemOptions {
   additionalFields?: Record<string, string | number | boolean | null>;
 }
 
-// Re-export WorkItem and WorkItemReference types for convenience
-export type { WorkItem, WorkItemReference };
+/**
+ * Options for getting work item comments
+ */
+export interface GetWorkItemCommentsOptions {
+  workItemId: number;
+  projectId?: string;
+  top?: number;
+  continuationToken?: string;
+  includeDeleted?: boolean;
+  expand?: 'none' | 'reactions' | 'renderedText' | 'all';
+  order?: 'asc' | 'desc';
+}
+
+// Re-export WorkItem, WorkItemReference and CommentList types for convenience
+export type { WorkItem, WorkItemReference, CommentList };

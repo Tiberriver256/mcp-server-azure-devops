@@ -8,6 +8,7 @@ export * from './get-work-item';
 export * from './create-work-item';
 export * from './update-work-item';
 export * from './manage-work-item-link';
+export * from './get-work-item-comments';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -26,11 +27,13 @@ import {
   CreateWorkItemSchema,
   UpdateWorkItemSchema,
   ManageWorkItemLinkSchema,
+  GetWorkItemCommentsSchema,
   listWorkItems,
   getWorkItem,
   createWorkItem,
   updateWorkItem,
   manageWorkItemLink,
+  getWorkItemComments,
 } from './';
 
 // Define the response type based on observed usage
@@ -51,6 +54,7 @@ export const isWorkItemsRequest: RequestIdentifier = (
     'create_work_item',
     'update_work_item',
     'manage_work_item_link',
+    'get_work_item_comments',
   ].includes(toolName);
 };
 
@@ -142,6 +146,21 @@ export const handleWorkItemsRequest: RequestHandler = async (
           comment: args.comment,
         },
       );
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'get_work_item_comments': {
+      const args = GetWorkItemCommentsSchema.parse(request.params.arguments);
+      const result = await getWorkItemComments(connection, {
+        workItemId: args.workItemId,
+        projectId: args.projectId,
+        top: args.top,
+        continuationToken: args.continuationToken,
+        includeDeleted: args.includeDeleted,
+        expand: args.expand,
+        order: args.order,
+      });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
