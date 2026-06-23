@@ -9,6 +9,7 @@ import {
   UpdatePullRequestSchema,
   GetPullRequestChangesSchema,
   GetPullRequestChecksSchema,
+  UpdatePullRequestThreadStatusSchema,
 } from './schemas';
 
 /**
@@ -63,5 +64,11 @@ export const pullRequestsTools: ToolDefinition[] = [
       '- Pair with pipeline tools (e.g., get_pipeline_run, pipeline_timeline) to inspect failures in depth.',
     ].join('\n'),
     inputSchema: zodToJsonSchema(GetPullRequestChecksSchema),
+  },
+  {
+    name: 'update_pull_request_thread_status',
+    description:
+      'Update the status of a comment thread in a pull request (repositoryId optional; derived from pullRequestId when omitted)',
+    inputSchema: zodToJsonSchema(UpdatePullRequestThreadStatusSchema),
   },
 ];

@@ -123,3 +123,29 @@ export interface UpdatePullRequestOptions {
   removeTags?: string[];
   additionalProperties?: Record<string, string | number | boolean>;
 }
+
+/**
+ * Options for updating a pull request thread status
+ */
+export interface UpdatePullRequestThreadStatusOptions {
+  projectId?: string;
+  organizationId?: string;
+  repositoryId?: string;
+  pullRequestId: number;
+  threadId: number;
+  status:
+    | 'active'
+    | 'fixed'
+    | 'wontFix'
+    | 'closed'
+    | 'pending'
+    | 'byDesign'
+    | 'unknown';
+}
+
+/**
+ * Response type for updating a pull request thread status
+ */
+export interface UpdatePullRequestThreadStatusResponse {
+  thread: CommentThreadWithStringEnums;
+}

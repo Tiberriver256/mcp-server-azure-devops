@@ -293,3 +293,36 @@ export const GetPullRequestChangesResponseSchema = z.object({
   sourceRefName: z.string().optional(),
   targetRefName: z.string().optional(),
 });
+
+/**
+ * Schema for updating pull request thread status
+ */
+export const UpdatePullRequestThreadStatusSchema = z.object({
+  projectId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  repositoryId: z
+    .string()
+    .optional()
+    .describe(
+      'The ID or name of the repository (optional; derived from pullRequestId when omitted)',
+    ),
+  pullRequestId: z.number().describe('The ID of the pull request'),
+  threadId: z.number().describe('The ID of the thread to update'),
+  status: z
+    .enum([
+      'active',
+      'fixed',
+      'wontFix',
+      'closed',
+      'pending',
+      'byDesign',
+      'unknown',
+    ])
+    .describe('The status to set on the thread'),
+});
