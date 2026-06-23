@@ -1,11 +1,8 @@
 import { z } from 'zod';
-import { defaultProject } from '../../../utils/environment';
+import { projectIdField } from '../../../shared/schemas';
 
 export const DownloadPipelineArtifactSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  projectId: projectIdField,
   runId: z.number().int().min(1).describe('Pipeline run identifier'),
   artifactPath: z
     .string()
