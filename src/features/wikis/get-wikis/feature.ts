@@ -64,6 +64,7 @@ export async function getWikis(
     // Otherwise, wrap it in a generic error
     throw new AzureDevOpsError(
       `Failed to get wikis: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

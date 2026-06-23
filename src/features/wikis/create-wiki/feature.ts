@@ -110,6 +110,7 @@ export async function createWiki(
     // Otherwise wrap in AzureDevOpsError
     throw new AzureDevOpsError(
       `Failed to create wiki: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

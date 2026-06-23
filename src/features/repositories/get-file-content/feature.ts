@@ -144,6 +144,7 @@ export async function getFileContent(
     // Otherwise, wrap it in a ResourceNotFoundError
     throw new AzureDevOpsResourceNotFoundError(
       `Failed to get content for path '${path}': ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

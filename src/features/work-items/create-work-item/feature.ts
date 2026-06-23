@@ -124,8 +124,9 @@ export async function createWorkItem(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to create work item: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

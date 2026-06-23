@@ -97,6 +97,7 @@ export async function getPipelineLog(
       `Failed to retrieve pipeline log: ${
         error instanceof Error ? error.message : String(error)
       }`,
+      { cause: error },
     );
   }
 }

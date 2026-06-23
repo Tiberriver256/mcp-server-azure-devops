@@ -145,8 +145,9 @@ export async function manageWorkItemLink(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to manage work item link: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

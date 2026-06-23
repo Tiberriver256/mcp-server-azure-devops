@@ -136,8 +136,9 @@ export async function createPullRequest(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to create pull request: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

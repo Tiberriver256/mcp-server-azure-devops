@@ -201,8 +201,9 @@ export async function createCommit(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to create commit: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

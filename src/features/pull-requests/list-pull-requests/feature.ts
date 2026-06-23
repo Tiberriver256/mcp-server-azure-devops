@@ -105,8 +105,9 @@ export async function listPullRequests(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to list pull requests: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

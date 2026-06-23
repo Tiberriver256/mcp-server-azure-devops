@@ -105,6 +105,7 @@ export async function getPipelineTimeline(
       `Failed to retrieve pipeline timeline: ${
         error instanceof Error ? error.message : String(error)
       }`,
+      { cause: error },
     );
   }
 }

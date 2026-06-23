@@ -88,8 +88,9 @@ export async function getRepositoryDetails(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to get repository details: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }
