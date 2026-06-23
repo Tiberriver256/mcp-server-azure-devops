@@ -86,7 +86,7 @@ export async function updateWorkItem(
     // Add tags logic
     if (options.tags !== undefined) {
       document.push({
-        op: 'add',
+        op: 'replace',
         path: '/fields/System.Tags',
         value: options.tags.length > 0 ? options.tags.join('; ') : '',
       });
@@ -125,7 +125,7 @@ export async function updateWorkItem(
       }
 
       document.push({
-        op: 'add',
+        op: 'replace',
         path: '/fields/System.Tags',
         value: tagsList.length > 0 ? tagsList.join('; ') : '',
       });

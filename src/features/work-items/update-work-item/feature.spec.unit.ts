@@ -68,7 +68,7 @@ describe('updateWorkItem unit', () => {
       {},
       [
         {
-          op: 'add',
+          op: 'replace',
           path: '/fields/System.Tags',
           value: 'tag1; tag2',
         },
@@ -98,7 +98,7 @@ describe('updateWorkItem unit', () => {
       {},
       [
         {
-          op: 'add',
+          op: 'replace',
           path: '/fields/System.Tags',
           value: '',
         },
@@ -136,7 +136,7 @@ describe('updateWorkItem unit', () => {
       {},
       [
         {
-          op: 'add',
+          op: 'replace',
           path: '/fields/System.Tags',
           value: 'existing1; existing2; newTag',
         },
@@ -174,7 +174,7 @@ describe('updateWorkItem unit', () => {
       {},
       [
         {
-          op: 'add',
+          op: 'replace',
           path: '/fields/System.Tags',
           value: 'existing1; existing3',
         },
