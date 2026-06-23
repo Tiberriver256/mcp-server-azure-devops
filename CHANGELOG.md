@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.46](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.45...mcp-server-azure-devops-v0.1.46) (2026-06-23)
+
+
+### Features
+
+* add first-class tags management for work items ([#297](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/297)) ([#301](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/301)) ([9e37e93](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/9e37e93a19a0d0471bfab02c0f4399197c551553))
+* add get_work_item_comments tool ([#276](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/276)) ([#302](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/302)) ([318f6f1](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/318f6f1fc926d97ed4fe9b0081b6f8da03f09ca4))
+* add update_pull_request_thread_status tool ([#294](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/294)) ([#303](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/303)) ([761b417](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/761b4172081b5409536b6cf986516e3b0bc26570))
+
 ## [0.1.45](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.44...mcp-server-azure-devops-v0.1.45) (2026-02-05)
 
 
