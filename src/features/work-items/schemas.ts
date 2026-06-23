@@ -175,14 +175,14 @@ export const GetWorkItemCommentsSchema = z.object({
   includeDeleted: z.boolean().optional().describe('Include deleted comments'),
   expand: z
     .enum(['none', 'reactions', 'renderedText', 'all'])
-    .default('all')
     .optional()
+    .default('all')
     .describe(
       'The level of detail to include in the comments response (Default: "all")',
     ),
   order: z
     .enum(['asc', 'desc'])
-    .default('asc')
     .optional()
+    .default('asc')
     .describe('The order in which to sort the comments (Default: "asc")'),
 });

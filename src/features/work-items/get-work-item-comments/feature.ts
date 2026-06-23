@@ -27,6 +27,19 @@ const orderMap: Record<string, CommentSortOrder> = {
   desc: CommentSortOrder.Desc,
 };
 
+function isNotFoundError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const errorObj = error as {
+    statusCode?: number;
+    response?: { status?: number };
+  };
+
+  return errorObj.statusCode === 404 || errorObj.response?.status === 404;
+}
+
 /**
  * Get comments for a work item
  *
@@ -70,9 +83,12 @@ export async function getWorkItemComments(
         if (error instanceof AzureDevOpsError) {
           throw error;
         }
-        throw new AzureDevOpsResourceNotFoundError(
-          `Work item '${workItemId}' not found`,
-        );
+        if (isNotFoundError(error)) {
+          throw new AzureDevOpsResourceNotFoundError(
+            `Work item '${workItemId}' not found`,
+          );
+        }
+        throw error;
       }
     }
 

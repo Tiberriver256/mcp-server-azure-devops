@@ -1,5 +1,8 @@
 import { getWorkItemComments } from './feature';
-import { AzureDevOpsError } from '../../../shared/errors';
+import {
+  AzureDevOpsError,
+  AzureDevOpsResourceNotFoundError,
+} from '../../../shared/errors';
 import {
   CommentExpandOptions,
   CommentSortOrder,
@@ -90,5 +93,37 @@ describe('getWorkItemComments unit', () => {
       CommentExpandOptions.All,
       CommentSortOrder.Asc,
     );
+  });
+
+  test('should map 404 project resolution errors to resource not found', async () => {
+    const notFoundError = Object.assign(new Error('Not found'), {
+      statusCode: 404,
+    });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: jest.fn().mockRejectedValue(notFoundError),
+        getComments: jest.fn(),
+      }),
+    };
+
+    await expect(
+      getWorkItemComments(mockConnection, { workItemId: 123 }),
+    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+  });
+
+  test('should preserve non-404 project resolution errors', async () => {
+    const forbiddenError = Object.assign(new Error('Forbidden'), {
+      statusCode: 403,
+    });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: jest.fn().mockRejectedValue(forbiddenError),
+        getComments: jest.fn(),
+      }),
+    };
+
+    await expect(
+      getWorkItemComments(mockConnection, { workItemId: 123 }),
+    ).rejects.toThrow('Failed to get work item comments: Forbidden');
   });
 });
