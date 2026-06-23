@@ -11,10 +11,12 @@ export * from './tool-definitions';
 // New exports for request handling
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
+import { RequestHandler } from '../../shared/types/request-handler';
 import {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
+  createRequestIdentifier,
+  jsonResponse,
+  textResponse,
+} from '../../shared/handlers';
 import { defaultProject, defaultOrg } from '../../utils/environment';
 import {
   GetWikisSchema,
@@ -34,19 +36,14 @@ import {
 /**
  * Checks if the request is for the wikis feature
  */
-export const isWikisRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return [
-    'get_wikis',
-    'get_wiki_page',
-    'create_wiki',
-    'update_wiki_page',
-    'list_wiki_pages',
-    'create_wiki_page',
-  ].includes(toolName);
-};
+export const isWikisRequest = createRequestIdentifier([
+  'get_wikis',
+  'get_wiki_page',
+  'create_wiki',
+  'update_wiki_page',
+  'list_wiki_pages',
+  'create_wiki_page',
+]);
 
 /**
  * Handles wikis feature requests
@@ -62,9 +59,7 @@ export const handleWikisRequest: RequestHandler = async (
         organizationId: args.organizationId ?? defaultOrg,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_wiki_page': {
       const args = GetWikiPageSchema.parse(request.params.arguments);
@@ -74,9 +69,7 @@ export const handleWikisRequest: RequestHandler = async (
         wikiId: args.wikiId,
         pagePath: args.pagePath,
       });
-      return {
-        content: [{ type: 'text', text: result }],
-      };
+      return textResponse(result);
     }
     case 'create_wiki': {
       const args = CreateWikiSchema.parse(request.params.arguments);
@@ -88,9 +81,7 @@ export const handleWikisRequest: RequestHandler = async (
         repositoryId: args.repositoryId ?? undefined,
         mappedPath: args.mappedPath ?? undefined,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'update_wiki_page': {
       const args = UpdateWikiPageSchema.parse(request.params.arguments);
@@ -102,9 +93,7 @@ export const handleWikisRequest: RequestHandler = async (
         content: args.content,
         comment: args.comment,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'list_wiki_pages': {
       const args = ListWikiPagesSchema.parse(request.params.arguments);
@@ -113,9 +102,7 @@ export const handleWikisRequest: RequestHandler = async (
         projectId: args.projectId ?? defaultProject,
         wikiId: args.wikiId,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'create_wiki_page': {
       const args = CreateWikiPageSchema.parse(request.params.arguments);
@@ -127,9 +114,7 @@ export const handleWikisRequest: RequestHandler = async (
         content: args.content,
         comment: args.comment,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     default:
       throw new Error(`Unknown wikis tool: ${request.params.name}`);
