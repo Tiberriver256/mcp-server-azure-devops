@@ -229,17 +229,15 @@ async function enrichResultsWithContent(
             });
           }
         } catch (error) {
-          // Log the error but don't fail the entire operation
-          console.error(
-            `Failed to fetch content for ${result.path}: ${error instanceof Error ? error.message : String(error)}`,
+          process.stderr.write(
+            `Failed to fetch content for ${result.path}: ${error instanceof Error ? error.message : String(error)}\n`,
           );
         }
       }),
     );
   } catch (error) {
-    // Log the error but don't fail the entire operation
-    console.error(
-      `Failed to enrich results with content: ${error instanceof Error ? error.message : String(error)}`,
+    process.stderr.write(
+      `Failed to enrich results with content: ${error instanceof Error ? error.message : String(error)}\n`,
     );
   }
 }
