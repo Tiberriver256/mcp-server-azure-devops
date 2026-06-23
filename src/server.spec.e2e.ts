@@ -9,6 +9,41 @@ import fs from 'fs';
 // Load environment variables from .env file
 dotenv.config();
 
+/**
+ * Helper function to create a client with custom CLI arguments
+ */
+async function createClientWithArgs(
+  args: string[] = [],
+): Promise<{ client: Client; transport: StdioClientTransport }> {
+  const serverPath = join(process.cwd(), 'dist', 'index.js');
+  const tempEnvFile = join(process.cwd(), '.env.e2e-test');
+
+  const transport = new StdioClientTransport({
+    command: 'node',
+    args: ['-r', 'dotenv/config', serverPath, ...args],
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      DOTENV_CONFIG_PATH: tempEnvFile,
+    },
+  });
+
+  const client = new Client(
+    {
+      name: 'e2e-test-client',
+      version: '1.0.0',
+    },
+    {
+      capabilities: {
+        tools: {},
+      },
+    },
+  );
+
+  await client.connect(transport);
+  return { client, transport };
+}
+
 describe('Azure DevOps MCP Server E2E Tests', () => {
   let client: Client;
   let serverProcess: ReturnType<typeof spawn>;
@@ -131,6 +166,218 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       setTimeout(() => {
         resolve();
       }, 500);
+    });
+  });
+
+  describe('Domain Filtering', () => {
+    test('should load all 43 tools by default (no filtering)', async () => {
+      // Arrange - use default client without any domain args
+      const tools = await client.listTools();
+
+      // Assert
+      expect(tools.tools).toBeDefined();
+      expect(tools.tools.length).toBe(43);
+    });
+
+    test('should load only 5 work-items tools when --domains work-items', async () => {
+      // Arrange
+      const { client: filteredClient, transport: filteredTransport } =
+        await createClientWithArgs(['--domains', 'work-items']);
+
+      try {
+        // Act
+        const tools = await filteredClient.listTools();
+
+        // Assert
+        expect(tools.tools).toBeDefined();
+        expect(tools.tools.length).toBe(5);
+
+        const toolNames = tools.tools.map((t) => t.name);
+        expect(toolNames).toContain('list_work_items');
+        expect(toolNames).toContain('get_work_item');
+        expect(toolNames).toContain('create_work_item');
+        expect(toolNames).toContain('update_work_item');
+        expect(toolNames).toContain('manage_work_item_link');
+
+        // Should not contain tools from other domains
+        expect(toolNames).not.toContain('list_repositories');
+        expect(toolNames).not.toContain('list_projects');
+        expect(toolNames).not.toContain('list_pipelines');
+      } finally {
+        await filteredClient.close();
+        await filteredTransport.close();
+      }
+    });
+
+    test('should load 10 tools when --domains core work-items', async () => {
+      // Arrange
+      const { client: filteredClient, transport: filteredTransport } =
+        await createClientWithArgs(['--domains', 'core', 'work-items']);
+
+      try {
+        // Act
+        const tools = await filteredClient.listTools();
+
+        // Assert
+        expect(tools.tools).toBeDefined();
+        expect(tools.tools.length).toBe(10);
+
+        const toolNames = tools.tools.map((t) => t.name);
+
+        // Core domain tools (5)
+        expect(toolNames).toContain('list_organizations');
+        expect(toolNames).toContain('list_projects');
+        expect(toolNames).toContain('get_project');
+        expect(toolNames).toContain('get_project_details');
+        expect(toolNames).toContain('get_me');
+
+        // Work items domain tools (5)
+        expect(toolNames).toContain('list_work_items');
+        expect(toolNames).toContain('get_work_item');
+
+        // Should not contain tools from other domains
+        expect(toolNames).not.toContain('list_repositories');
+        expect(toolNames).not.toContain('list_pipelines');
+      } finally {
+        await filteredClient.close();
+        await filteredTransport.close();
+      }
+    });
+
+    test('should support comma-separated domains', async () => {
+      // Arrange
+      const { client: filteredClient, transport: filteredTransport } =
+        await createClientWithArgs(['--domains', 'core,work-items']);
+
+      try {
+        // Act
+        const tools = await filteredClient.listTools();
+
+        // Assert - should be same as space-separated
+        expect(tools.tools).toBeDefined();
+        expect(tools.tools.length).toBe(10);
+      } finally {
+        await filteredClient.close();
+        await filteredTransport.close();
+      }
+    });
+  });
+
+  describe('Read-Only Mode', () => {
+    test('should filter out write operations when --read-only', async () => {
+      // Arrange
+      const { client: readOnlyClient, transport: readOnlyTransport } =
+        await createClientWithArgs(['--read-only']);
+
+      try {
+        // Act
+        const tools = await readOnlyClient.listTools();
+
+        // Assert - 31 read-only tools out of 43 total
+        expect(tools.tools).toBeDefined();
+        expect(tools.tools.length).toBe(31);
+
+        const toolNames = tools.tools.map((t) => t.name);
+
+        // Should contain read-only tools
+        expect(toolNames).toContain('list_work_items');
+        expect(toolNames).toContain('get_work_item');
+        expect(toolNames).toContain('list_repositories');
+        expect(toolNames).toContain('get_repository');
+        expect(toolNames).toContain('list_projects');
+        expect(toolNames).toContain('get_project');
+
+        // Should NOT contain write operations
+        expect(toolNames).not.toContain('create_work_item');
+        expect(toolNames).not.toContain('update_work_item');
+        expect(toolNames).not.toContain('create_branch');
+        expect(toolNames).not.toContain('create_commit');
+        expect(toolNames).not.toContain('create_pull_request');
+        expect(toolNames).not.toContain('update_pull_request');
+        expect(toolNames).not.toContain('trigger_pipeline');
+        expect(toolNames).not.toContain('create_wiki');
+        expect(toolNames).not.toContain('update_wiki_page');
+      } finally {
+        await readOnlyClient.close();
+        await readOnlyTransport.close();
+      }
+    });
+  });
+
+  describe('Combined Filtering (Domain + Read-Only)', () => {
+    test('should load only 2 tools when --domains work-items --read-only', async () => {
+      // Arrange
+      const { client: filteredClient, transport: filteredTransport } =
+        await createClientWithArgs([
+          '--domains',
+          'work-items',
+          '--read-only',
+        ]);
+
+      try {
+        // Act
+        const tools = await filteredClient.listTools();
+
+        // Assert - 95% reduction! (43 -> 2)
+        expect(tools.tools).toBeDefined();
+        expect(tools.tools.length).toBe(2);
+
+        const toolNames = tools.tools.map((t) => t.name);
+        expect(toolNames).toContain('list_work_items');
+        expect(toolNames).toContain('get_work_item');
+
+        // Should not contain write operations
+        expect(toolNames).not.toContain('create_work_item');
+        expect(toolNames).not.toContain('update_work_item');
+
+        // Should not contain tools from other domains
+        expect(toolNames).not.toContain('list_repositories');
+        expect(toolNames).not.toContain('list_projects');
+      } finally {
+        await filteredClient.close();
+        await filteredTransport.close();
+      }
+    });
+
+    test('should handle multiple domains with read-only mode', async () => {
+      // Arrange
+      const { client: filteredClient, transport: filteredTransport } =
+        await createClientWithArgs([
+          '--domains',
+          'core',
+          'repositories',
+          '--read-only',
+        ]);
+
+      try {
+        // Act
+        const tools = await filteredClient.listTools();
+
+        // Assert
+        const toolNames = tools.tools.map((t) => t.name);
+
+        // Core domain read-only tools
+        expect(toolNames).toContain('list_organizations');
+        expect(toolNames).toContain('list_projects');
+        expect(toolNames).toContain('get_project');
+        expect(toolNames).toContain('get_me');
+
+        // Repositories domain read-only tools
+        expect(toolNames).toContain('list_repositories');
+        expect(toolNames).toContain('get_repository');
+        expect(toolNames).toContain('get_file_content');
+
+        // Should not contain write operations
+        expect(toolNames).not.toContain('create_branch');
+        expect(toolNames).not.toContain('create_commit');
+
+        // Should not contain tools from other domains
+        expect(toolNames).not.toContain('list_work_items');
+        expect(toolNames).not.toContain('list_pipelines');
+      } finally {
+        await filteredClient.close();
+        await filteredTransport.close();
+      }
     });
   });
 
