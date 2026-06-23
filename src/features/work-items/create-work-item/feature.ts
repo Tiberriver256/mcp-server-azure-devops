@@ -87,6 +87,15 @@ export async function createWorkItem(
       });
     }
 
+    // Add tags logic
+    if (options.tags && options.tags.length > 0) {
+      document.push({
+        op: 'add',
+        path: '/fields/System.Tags',
+        value: options.tags.join('; '),
+      });
+    }
+
     // Add any additional fields
     if (options.additionalFields) {
       for (const [key, value] of Object.entries(options.additionalFields)) {

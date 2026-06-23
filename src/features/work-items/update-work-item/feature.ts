@@ -83,6 +83,54 @@ export async function updateWorkItem(
       });
     }
 
+    // Add tags logic
+    if (options.tags !== undefined) {
+      document.push({
+        op: 'add',
+        path: '/fields/System.Tags',
+        value: options.tags.length > 0 ? options.tags.join('; ') : '',
+      });
+    } else if (
+      (options.tagsToAdd && options.tagsToAdd.length > 0) ||
+      (options.tagsToRemove && options.tagsToRemove.length > 0)
+    ) {
+      const currentWorkItem = await witApi.getWorkItem(workItemId, [
+        'System.Tags',
+      ]);
+      if (!currentWorkItem) {
+        throw new AzureDevOpsResourceNotFoundError(
+          `Work item '${workItemId}' not found`,
+        );
+      }
+
+      const currentTagsStr =
+        (currentWorkItem.fields?.['System.Tags'] as string) || '';
+      let tagsList = currentTagsStr
+        .split(';')
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+
+      if (options.tagsToAdd) {
+        for (const tag of options.tagsToAdd) {
+          const trimmed = tag.trim();
+          if (trimmed && !tagsList.includes(trimmed)) {
+            tagsList.push(trimmed);
+          }
+        }
+      }
+
+      if (options.tagsToRemove) {
+        const toRemove = new Set(options.tagsToRemove.map((t) => t.trim()));
+        tagsList = tagsList.filter((t) => !toRemove.has(t));
+      }
+
+      document.push({
+        op: 'add',
+        path: '/fields/System.Tags',
+        value: tagsList.length > 0 ? tagsList.join('; ') : '',
+      });
+    }
+
     // Add any additional fields
     if (options.additionalFields) {
       for (const [key, value] of Object.entries(options.additionalFields)) {
