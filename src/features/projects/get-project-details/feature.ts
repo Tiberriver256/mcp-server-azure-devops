@@ -215,9 +215,8 @@ export async function getProjectDetails(
                   }),
                 );
               } catch (typeFieldError) {
-                console.error(
-                  `Error fetching fields for work item type ${wit.name}:`,
-                  typeFieldError,
+                process.stderr.write(
+                  `Error fetching fields for work item type ${wit.name}: ${typeFieldError instanceof Error ? typeFieldError.message : String(typeFieldError)}\n`,
                 );
 
                 // Fallback to basic fields
@@ -238,7 +237,9 @@ export async function getProjectDetails(
               }
             }
           } catch (fieldError) {
-            console.error('Error in field processing:', fieldError);
+            process.stderr.write(
+              `Error in field processing: ${fieldError instanceof Error ? fieldError.message : String(fieldError)}\n`,
+            );
 
             // Fallback to default fields if API call fails
             processWorkItemTypes.forEach((wit) => {
