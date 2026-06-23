@@ -104,7 +104,7 @@ describe('Repositories Request Handlers', () => {
 
       const response = await handleRepositoriesRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockRepository,
       );
       expect(getRepository).toHaveBeenCalledWith(
@@ -138,7 +138,7 @@ describe('Repositories Request Handlers', () => {
 
       const response = await handleRepositoriesRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockRepositoryDetails,
       );
       expect(getRepositoryDetails).toHaveBeenCalledWith(
@@ -171,7 +171,7 @@ describe('Repositories Request Handlers', () => {
 
       const response = await handleRepositoriesRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockRepositories,
       );
       expect(listRepositories).toHaveBeenCalledWith(
@@ -202,7 +202,7 @@ describe('Repositories Request Handlers', () => {
 
       const response = await handleRepositoriesRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockFileContent,
       );
       expect(getFileContent).toHaveBeenCalledWith(
@@ -242,7 +242,7 @@ describe('Repositories Request Handlers', () => {
 
       const response = await handleRepositoriesRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(response.content[0].text as string).toContain('repo1');
+      expect((response.content[0] as any).text as string).toContain('repo1');
       expect(getAllRepositoriesTree).toHaveBeenCalledWith(
         mockConnection,
         expect.objectContaining({
@@ -275,7 +275,7 @@ describe('Repositories Request Handlers', () => {
       } as CallToolRequest;
 
       const response = await handleRepositoriesRequest(mockConnection, request);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockResponse,
       );
       expect(getRepositoryTree).toHaveBeenCalled();
@@ -295,7 +295,7 @@ describe('Repositories Request Handlers', () => {
       } as CallToolRequest;
 
       const response = await handleRepositoriesRequest(mockConnection, request);
-      expect(response.content[0].text).toContain('Branch created');
+      expect((response.content[0] as any).text).toContain('Branch created');
       expect(createBranch).toHaveBeenCalled();
     });
 
@@ -314,7 +314,7 @@ describe('Repositories Request Handlers', () => {
       } as CallToolRequest;
 
       const response = await handleRepositoriesRequest(mockConnection, request);
-      expect(response.content[0].text).toContain('Commit created');
+      expect((response.content[0] as any).text).toContain('Commit created');
       expect(createCommit).toHaveBeenCalled();
     });
 
@@ -333,7 +333,7 @@ describe('Repositories Request Handlers', () => {
       } as CallToolRequest;
 
       const response = await handleRepositoriesRequest(mockConnection, request);
-      expect(JSON.parse(response.content[0].text as string)).toEqual({
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual({
         commits: [],
       });
       expect(listCommits).toHaveBeenCalled();

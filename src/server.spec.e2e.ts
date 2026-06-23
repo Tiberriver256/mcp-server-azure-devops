@@ -89,17 +89,10 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       },
     });
 
-    client = new Client(
-      {
-        name: 'e2e-test-client',
-        version: '1.0.0',
-      },
-      {
-        capabilities: {
-          tools: {},
-        },
-      },
-    );
+    client = new Client({
+      name: 'e2e-test-client',
+      version: '1.0.0',
+    });
 
     await client.connect(transport);
   });
