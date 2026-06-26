@@ -48,7 +48,7 @@ describe('Users Request Handlers', () => {
 
       const response = await handleUsersRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockUserProfile,
       );
       expect(getMe).toHaveBeenCalledWith(mockConnection);

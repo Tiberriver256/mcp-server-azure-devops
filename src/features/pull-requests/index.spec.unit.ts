@@ -92,7 +92,7 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockPullRequest,
       );
       expect(createPullRequest).toHaveBeenCalledWith(
@@ -132,7 +132,7 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockPullRequests,
       );
       expect(listPullRequests).toHaveBeenCalledWith(
@@ -162,7 +162,7 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockPullRequest,
       );
       expect(getPullRequest).toHaveBeenCalledWith(mockConnection, {
@@ -195,7 +195,7 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockComments,
       );
       expect(getPullRequestComments).toHaveBeenCalledWith(
@@ -245,7 +245,7 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockResult,
       );
       expect(addPullRequestComment).toHaveBeenCalledWith(
@@ -275,7 +275,7 @@ describe('Pull Requests Request Handlers', () => {
       } as CallToolRequest;
 
       const response = await handlePullRequestsRequest(mockConnection, request);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockResult,
       );
       expect(getPullRequestChanges).toHaveBeenCalled();
@@ -295,7 +295,7 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
 
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockResult,
       );
       expect(getPullRequestChecks).toHaveBeenCalledWith(

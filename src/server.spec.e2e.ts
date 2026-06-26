@@ -95,9 +95,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
         version: '1.0.0',
       },
       {
-        capabilities: {
-          tools: {},
-        },
+        capabilities: {},
       },
     );
 
