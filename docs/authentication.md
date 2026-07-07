@@ -201,6 +201,28 @@ Azure CLI authentication uses the `AzureCliCredential` class from the `@azure/id
    - Error: `TF400813: The user is not authorized to access this resource`
    - Solution: Log in with an account that has access to Azure DevOps
 
+### MCP Client Connection Issues (Claude Desktop/Cursor)
+
+1. **Wrong top-level key**: Claude Desktop expects `mcpServers`
+
+   - Symptom: Server never starts or appears disconnected
+   - Solution: Use `"mcpServers"` instead of `"servers"` in your MCP config JSON
+
+2. **Windows command resolution**: `npx` may not resolve reliably when launched directly
+
+   - Symptom: Connection failure with little/no server output
+   - Solution: Use `"command": "cmd"` and args `["/c", "npx", "-y", "@tiberriver256/mcp-server-azure-devops"]`
+
+3. **Invalid organization URL format**: Azure DevOps URL must include your organization segment
+
+   - Symptom: API calls fail with errors like `Failed to find api location for area...`
+   - Solution: Ensure `AZURE_DEVOPS_ORG_URL` is `https://dev.azure.com/<your-organization>`
+
+4. **Empty default project value**: Empty strings can produce unexpected request behavior
+
+   - Symptom: Tool calls fail when project is omitted
+   - Solution: Omit `AZURE_DEVOPS_DEFAULT_PROJECT` entirely if you do not want a default project
+
 ## Best Practices
 
 1. **Choose the right authentication method for your environment**:
