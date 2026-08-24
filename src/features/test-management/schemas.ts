@@ -70,6 +70,12 @@ const TestOutcomeSchema = z.enum([
   'Inconclusive',
   'Paused',
   'NotExecuted',
+  'Timeout',
+  'Aborted',
+  'Warning',
+  'Error',
+  'InProgress',
+  'NotImpacted',
 ]);
 
 export const UpdateTestResultsSchema = z.object({
