@@ -221,6 +221,19 @@ The Azure DevOps MCP server provides a variety of tools for interacting with Azu
 - `list_work_items`: List work items in a project
 - `manage_work_item_link`: Add, remove, or update links between work items
 
+### Test Management Tools
+
+- `list_test_plans`: List Test Plans in a project
+- `list_test_suites`: List the suites in a Test Plan
+- `list_suite_test_cases`: List Test Cases that belong to a suite
+- `list_test_points`: List executable points, including their configurations
+- `create_test_run`: Create a manual run from selected points
+- `list_test_results`: List the results in a run
+- `update_test_results`: Record results such as Passed, Failed, or Blocked
+- `complete_test_run`: Complete a test run
+
+For Azure DevOps Server, the Test Management tools use REST API 5.0 by default for broad compatibility (including the required Test Plan preview variants). Set `AZURE_DEVOPS_API_VERSION` to a base version, such as `6.0` or `7.1`, when your server requires it. The configured PAT needs Test Management read access to discover plans and write access to create runs or record results.
+
 ### Search Tools
 
 - `search_code`: Search for code across repositories in a project
