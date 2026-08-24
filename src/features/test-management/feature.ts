@@ -9,22 +9,13 @@ import {
 import { resolveAzureDevOpsBaseUrls } from '../../shared/azure-devops-url';
 
 const TEST_MANAGEMENT_API_VERSION =
-  process.env.AZURE_DEVOPS_API_VERSION ?? '5.0';
-
-function testPlanApiVersion(path: string): string {
-  const baseVersion = TEST_MANAGEMENT_API_VERSION.replace(
-    /-preview\.\d+$/,
-    '',
-  );
-  return /testcase|testpoint/i.test(path)
-    ? `${baseVersion}-preview.2`
-    : `${baseVersion}-preview.1`;
-}
+  process.env.AZURE_DEVOPS_API_VERSION ?? '7.0';
 
 type QueryValue = string | number | boolean | undefined;
 
 interface RestResponse<T> {
   result: T | null;
+  headers?: Record<string, unknown>;
 }
 
 interface TestApiClient {
@@ -63,7 +54,8 @@ export interface ListTestPointsOptions {
   planId: number;
   suiteId: number;
   testCaseId?: number;
-  continuationToken?: string;
+  skip: number;
+  top: number;
 }
 
 export interface CreateTestRunOptions {
@@ -149,14 +141,15 @@ export async function listTestPoints(
   connection: WebApi,
   options: ListTestPointsOptions,
 ): Promise<unknown> {
-  return requestTestPlanApi(
+  return requestTestApi(
     connection,
     options.projectId,
     'get',
-    `plans/${options.planId}/suites/${options.suiteId}/testpoint`,
+    `plans/${options.planId}/suites/${options.suiteId}/points`,
     {
       testCaseId: options.testCaseId,
-      continuationToken: options.continuationToken,
+      $skip: options.skip,
+      $top: options.top,
     },
   );
 }
@@ -256,10 +249,7 @@ async function request(
 ): Promise<unknown> {
   try {
     const testApi = (await connection.getTestApi()) as unknown as TestApiClient;
-    const apiVersion =
-      area === 'testplan'
-        ? testPlanApiVersion(path)
-        : TEST_MANAGEMENT_API_VERSION;
+    const apiVersion = TEST_MANAGEMENT_API_VERSION;
     const baseUrls = resolveAzureDevOpsBaseUrls(connection.serverUrl, {
       projectId,
     });
@@ -297,10 +287,35 @@ async function request(
       );
     }
 
-    return response.result ?? {};
+    return addContinuationToken(
+      response.result ?? {},
+      response.headers ?? {},
+    );
   } catch (error) {
     throw asAzureDevOpsError(error);
   }
+}
+
+function addContinuationToken(
+  result: unknown,
+  headers: Record<string, unknown>,
+): unknown {
+  const continuationToken = Object.entries(headers).find(
+    ([key]) => key.toLowerCase() === 'x-ms-continuationtoken',
+  )?.[1];
+  const token = Array.isArray(continuationToken)
+    ? continuationToken[0]
+    : continuationToken;
+
+  if (typeof token !== 'string' || token.length === 0) {
+    return result;
+  }
+
+  if (result && typeof result === 'object' && !Array.isArray(result)) {
+    return { ...(result as Record<string, unknown>), continuationToken: token };
+  }
+
+  return { value: result, continuationToken: token };
 }
 
 function asAzureDevOpsError(error: unknown): AzureDevOpsError {

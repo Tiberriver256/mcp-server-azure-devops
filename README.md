@@ -164,7 +164,7 @@ Key environment variables include:
 | `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization or Server collection (e.g., `https://server:8080/tfs/DefaultCollection`) | Yes                          | -                |
 | `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                                               | Only with PAT auth           | -                |
 | `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                                                  | No                           | -                |
-| `AZURE_DEVOPS_API_VERSION`     | API version to use                                                                 | No                           | Latest           |
+| `AZURE_DEVOPS_API_VERSION`     | API version to use (Test Management targets Azure DevOps Server 2022)              | No                           | `7.0` for Test Management |
 | `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                                        | Only with service principals | -                |
 | `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                                   | Only with service principals | -                |
 | `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                                    | Only with service principals | -                |
@@ -232,7 +232,7 @@ The Azure DevOps MCP server provides a variety of tools for interacting with Azu
 - `update_test_results`: Record results such as Passed, Failed, or Blocked
 - `complete_test_run`: Complete a test run
 
-For Azure DevOps Server, the Test Management tools use REST API 5.0 by default for broad compatibility (including the required Test Plan preview variants). Set `AZURE_DEVOPS_API_VERSION` to a base version, such as `6.0` or `7.1`, when your server requires it. The configured PAT needs Test Management read access to discover plans and write access to create runs or record results.
+The Test Management tools target Azure DevOps Server 2022 and use its stable REST API `7.0` by default. Paged list responses include a `continuationToken` for the next call; `list_test_points` uses `skip` and `top` pagination. The configured PAT needs Test Management read access to discover plans and write access to create runs or record results.
 
 ### Search Tools
 

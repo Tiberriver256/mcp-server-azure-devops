@@ -40,7 +40,8 @@ export const ListTestPointsSchema = z.object({
   planId: positiveId.describe('The test plan ID'),
   suiteId: positiveId.describe('The test suite ID'),
   testCaseId: positiveId.optional(),
-  continuationToken: z.string().min(1).optional(),
+  skip: z.number().int().min(0).optional().default(0),
+  top: z.number().int().min(1).max(1000).optional().default(200),
 });
 
 export const CreateTestRunSchema = z.object({
