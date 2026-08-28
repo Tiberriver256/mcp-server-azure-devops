@@ -262,7 +262,7 @@ Contributions are welcome! Please see [CONTRIBUTING.md](https://github.com/tiber
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=tiberriver256/mcp-server-azure-devops&type=Date)](https://www.star-history.com/#tiberriver256/mcp-server-azure-devops&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=tiberriver256/mcp-server-azure-devops&type=Date)](https://star-history.dera.page/#tiberriver256/mcp-server-azure-devops&Date)
 
 ## License
 
