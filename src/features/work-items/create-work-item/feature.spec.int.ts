@@ -155,4 +155,55 @@ describeOrSkip('createWorkItem integration', () => {
     );
     expect(parentRelation).toBeDefined();
   });
+
+  test('should create a Bug with severity set via additionalFields', async () => {
+    // Skip if no connection is available
+    if (shouldSkipIntegrationTest()) {
+      return;
+    }
+
+    // This connection must be available if we didn't skip
+    if (!connection) {
+      throw new Error(
+        'Connection should be available when test is not skipped',
+      );
+    }
+
+    // Create a unique title using timestamp to avoid conflicts
+    const uniqueTitle = `Test Bug with Severity ${new Date().toISOString()}`;
+
+    // For a true integration test, use a real project
+    const projectName =
+      process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
+    const workItemType = 'Bug'; // Bug work items support severity
+
+    const options: CreateWorkItemOptions = {
+      title: uniqueTitle,
+      description: 'This is a test bug with severity set via additionalFields',
+      additionalFields: {
+        'Microsoft.VSTS.Common.Severity': '1 - Critical',
+      },
+    };
+
+    // Act - make an actual API call to Azure DevOps
+    const result = await createWorkItem(
+      connection,
+      projectName,
+      workItemType,
+      options,
+    );
+
+    // Assert on the actual response
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+
+    // Verify severity field was set correctly
+    expect(result.fields).toBeDefined();
+    if (result.fields) {
+      expect(result.fields['System.Title']).toBe(uniqueTitle);
+      expect(result.fields['Microsoft.VSTS.Common.Severity']).toBe(
+        '1 - Critical',
+      );
+    }
+  });
 });
