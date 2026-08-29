@@ -10,10 +10,8 @@ export * from './tool-definitions';
 
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
-import {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
+import { RequestHandler } from '../../shared/types/request-handler';
+import { createRequestIdentifier, jsonResponse } from '../../shared/handlers';
 import { listOrganizations } from './list-organizations';
 import { AzureDevOpsConfig } from '../../shared/types';
 import { AuthenticationMethod } from '../../shared/auth';
@@ -21,12 +19,9 @@ import { AuthenticationMethod } from '../../shared/auth';
 /**
  * Checks if the request is for the organizations feature
  */
-export const isOrganizationsRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return ['list_organizations'].includes(toolName);
-};
+export const isOrganizationsRequest = createRequestIdentifier([
+  'list_organizations',
+]);
 
 /**
  * Handles organizations feature requests
@@ -52,9 +47,7 @@ export const handleOrganizationsRequest: RequestHandler = async (
       };
 
       const result = await listOrganizations(config);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     default:
       throw new Error(`Unknown organizations tool: ${request.params.name}`);

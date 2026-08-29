@@ -1,32 +1,20 @@
 import { z } from 'zod';
-import { defaultProject, defaultOrg } from '../../utils/environment';
+import { projectIdField, organizationIdField } from '../../shared/schemas';
 
 /**
  * Schema for getting a project
  */
 export const GetProjectSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: projectIdField,
+  organizationId: organizationIdField,
 });
 
 /**
  * Schema for getting detailed project information
  */
 export const GetProjectDetailsSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: projectIdField,
+  organizationId: organizationIdField,
   includeProcess: z
     .boolean()
     .optional()
@@ -58,10 +46,7 @@ export const GetProjectDetailsSchema = z.object({
  * Schema for listing projects
  */
 export const ListProjectsSchema = z.object({
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  organizationId: organizationIdField,
   stateFilter: z
     .number()
     .optional()

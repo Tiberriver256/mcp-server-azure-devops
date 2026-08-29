@@ -13,21 +13,14 @@ export * from './tool-definitions';
 // New exports for request handling
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
-import {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
+import { RequestHandler } from '../../shared/types/request-handler';
+import { createRequestIdentifier, jsonResponse } from '../../shared/handlers';
 import { getMe } from './';
 
 /**
  * Checks if the request is for the users feature
  */
-export const isUsersRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return ['get_me'].includes(toolName);
-};
+export const isUsersRequest = createRequestIdentifier(['get_me']);
 
 /**
  * Handles users feature requests
@@ -39,9 +32,7 @@ export const handleUsersRequest: RequestHandler = async (
   switch (request.params.name) {
     case 'get_me': {
       const result = await getMe(connection);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     default:
       throw new Error(`Unknown users tool: ${request.params.name}`);

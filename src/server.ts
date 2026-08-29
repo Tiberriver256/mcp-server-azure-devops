@@ -17,7 +17,7 @@ import {
 } from './shared/errors';
 import { handleResponseError } from './shared/errors/handle-request-error';
 import { AuthenticationMethod, AzureDevOpsClient } from './shared/auth';
-// Import environment defaults when needed in feature handlers
+import { routeRequest, FeatureModule } from './shared/handlers';
 
 // Import feature modules with request handlers and tool definitions
 import {
@@ -73,6 +73,27 @@ import {
   isWikisRequest,
   handleWikisRequest,
 } from './features/wikis';
+
+const featureRegistry: FeatureModule[] = [
+  { isRequest: isWorkItemsRequest, handleRequest: handleWorkItemsRequest },
+  { isRequest: isProjectsRequest, handleRequest: handleProjectsRequest },
+  {
+    isRequest: isRepositoriesRequest,
+    handleRequest: handleRepositoriesRequest,
+  },
+  {
+    isRequest: isOrganizationsRequest,
+    handleRequest: handleOrganizationsRequest,
+  },
+  { isRequest: isSearchRequest, handleRequest: handleSearchRequest },
+  { isRequest: isUsersRequest, handleRequest: handleUsersRequest },
+  {
+    isRequest: isPullRequestsRequest,
+    handleRequest: handlePullRequestsRequest,
+  },
+  { isRequest: isPipelinesRequest, handleRequest: handlePipelinesRequest },
+  { isRequest: isWikisRequest, handleRequest: handleWikisRequest },
+];
 
 // Create a safe console logging function that won't interfere with MCP protocol
 function safeLog(message: string) {
@@ -295,45 +316,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
       const connection = await getConnection(config);
 
       // Route the request to the appropriate feature handler
-      if (isWorkItemsRequest(request)) {
-        return await handleWorkItemsRequest(connection, request);
-      }
-
-      if (isProjectsRequest(request)) {
-        return await handleProjectsRequest(connection, request);
-      }
-
-      if (isRepositoriesRequest(request)) {
-        return await handleRepositoriesRequest(connection, request);
-      }
-
-      if (isOrganizationsRequest(request)) {
-        // Organizations feature doesn't need the config object anymore
-        return await handleOrganizationsRequest(connection, request);
-      }
-
-      if (isSearchRequest(request)) {
-        return await handleSearchRequest(connection, request);
-      }
-
-      if (isUsersRequest(request)) {
-        return await handleUsersRequest(connection, request);
-      }
-
-      if (isPullRequestsRequest(request)) {
-        return await handlePullRequestsRequest(connection, request);
-      }
-
-      if (isPipelinesRequest(request)) {
-        return await handlePipelinesRequest(connection, request);
-      }
-
-      if (isWikisRequest(request)) {
-        return await handleWikisRequest(connection, request);
-      }
-
-      // If we get here, the tool is not recognized by any feature handler
-      throw new Error(`Unknown tool: ${request.params.name}`);
+      return await routeRequest(featureRegistry, connection, request);
     } catch (error) {
       return handleResponseError(error);
     }

@@ -10,10 +10,8 @@ export * from './tool-definitions';
 // New exports for request handling
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
-import {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
+import { RequestHandler } from '../../shared/types/request-handler';
+import { createRequestIdentifier, jsonResponse } from '../../shared/handlers';
 import {
   SearchCodeSchema,
   SearchWikiSchema,
@@ -26,12 +24,11 @@ import {
 /**
  * Checks if the request is for the search feature
  */
-export const isSearchRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return ['search_code', 'search_wiki', 'search_work_items'].includes(toolName);
-};
+export const isSearchRequest = createRequestIdentifier([
+  'search_code',
+  'search_wiki',
+  'search_work_items',
+]);
 
 /**
  * Handles search feature requests
@@ -44,23 +41,17 @@ export const handleSearchRequest: RequestHandler = async (
     case 'search_code': {
       const args = SearchCodeSchema.parse(request.params.arguments);
       const result = await searchCode(connection, args);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'search_wiki': {
       const args = SearchWikiSchema.parse(request.params.arguments);
       const result = await searchWiki(connection, args);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'search_work_items': {
       const args = SearchWorkItemsSchema.parse(request.params.arguments);
       const result = await searchWorkItems(connection, args);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     default:
       throw new Error(`Unknown search tool: ${request.params.name}`);

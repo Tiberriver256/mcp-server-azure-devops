@@ -1,21 +1,13 @@
 import { z } from 'zod';
-import { defaultOrg, defaultProject } from '../../utils/environment';
+import { projectIdField, organizationIdField } from '../../shared/schemas';
 
 /**
  * Schema for searching code in Azure DevOps repositories
  */
 export const SearchCodeSchema = z.object({
   searchText: z.string().describe('The text to search for'),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
-  projectId: z
-    .string()
-    .optional()
-    .describe(
-      `The ID or name of the project to search in (Default: ${defaultProject}). If not provided, the default project will be used.`,
-    ),
+  organizationId: organizationIdField,
+  projectId: projectIdField,
   filters: z
     .object({
       Repository: z
@@ -61,16 +53,8 @@ export const SearchCodeSchema = z.object({
  */
 export const SearchWikiSchema = z.object({
   searchText: z.string().describe('The text to search for in wikis'),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
-  projectId: z
-    .string()
-    .optional()
-    .describe(
-      'The ID or name of the project to search in. If omitted, the search runs across the organization when supported.',
-    ),
+  organizationId: organizationIdField,
+  projectId: projectIdField,
   filters: z
     .object({
       Project: z
@@ -104,16 +88,8 @@ export const SearchWikiSchema = z.object({
  */
 export const SearchWorkItemsSchema = z.object({
   searchText: z.string().describe('The text to search for in work items'),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
-  projectId: z
-    .string()
-    .optional()
-    .describe(
-      'The ID or name of the project to search in. If omitted, the search runs across the organization when supported.',
-    ),
+  organizationId: organizationIdField,
+  projectId: projectIdField,
   filters: z
     .object({
       'System.TeamProject': z

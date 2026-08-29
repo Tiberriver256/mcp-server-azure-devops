@@ -16,10 +16,12 @@ export * from './tool-definitions';
 
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
+import { RequestHandler } from '../../shared/types/request-handler';
 import {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
+  createRequestIdentifier,
+  jsonResponse,
+  textResponse,
+} from '../../shared/handlers';
 import { ListPipelinesSchema } from './list-pipelines';
 import { GetPipelineSchema } from './get-pipeline';
 import { ListPipelineRunsSchema } from './list-pipeline-runs';
@@ -41,21 +43,16 @@ import { defaultProject } from '../../utils/environment';
 /**
  * Checks if the request is for the pipelines feature
  */
-export const isPipelinesRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return [
-    'list_pipelines',
-    'get_pipeline',
-    'list_pipeline_runs',
-    'get_pipeline_run',
-    'download_pipeline_artifact',
-    'pipeline_timeline',
-    'get_pipeline_log',
-    'trigger_pipeline',
-  ].includes(toolName);
-};
+export const isPipelinesRequest = createRequestIdentifier([
+  'list_pipelines',
+  'get_pipeline',
+  'list_pipeline_runs',
+  'get_pipeline_run',
+  'download_pipeline_artifact',
+  'pipeline_timeline',
+  'get_pipeline_log',
+  'trigger_pipeline',
+]);
 
 /**
  * Handles pipelines feature requests
@@ -71,9 +68,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_pipeline': {
       const args = GetPipelineSchema.parse(request.params.arguments);
@@ -81,9 +76,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'list_pipeline_runs': {
       const args = ListPipelineRunsSchema.parse(request.params.arguments);
@@ -91,9 +84,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_pipeline_run': {
       const args = GetPipelineRunSchema.parse(request.params.arguments);
@@ -101,9 +92,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'download_pipeline_artifact': {
       const args = DownloadPipelineArtifactSchema.parse(
@@ -113,9 +102,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'pipeline_timeline': {
       const args = GetPipelineTimelineSchema.parse(request.params.arguments);
@@ -123,9 +110,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_pipeline_log': {
       const args = GetPipelineLogSchema.parse(request.params.arguments);
@@ -133,11 +118,9 @@ export const handlePipelinesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      const text =
-        typeof result === 'string' ? result : JSON.stringify(result, null, 2);
-      return {
-        content: [{ type: 'text', text }],
-      };
+      return typeof result === 'string'
+        ? textResponse(result)
+        : jsonResponse(result);
     }
     case 'trigger_pipeline': {
       const args = TriggerPipelineSchema.parse(request.params.arguments);
@@ -145,9 +128,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     default:
       throw new Error(`Unknown pipelines tool: ${request.params.name}`);

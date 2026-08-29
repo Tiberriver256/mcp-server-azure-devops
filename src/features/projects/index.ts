@@ -13,10 +13,9 @@ export * from './tool-definitions';
 // New exports for request handling
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
-import {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
+import { RequestHandler } from '../../shared/types/request-handler';
+import { createRequestIdentifier } from '../../shared/handlers';
+import { jsonResponse } from '../../shared/handlers';
 import { defaultProject } from '../../utils/environment';
 import {
   GetProjectSchema,
@@ -30,14 +29,11 @@ import {
 /**
  * Checks if the request is for the projects feature
  */
-export const isProjectsRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return ['list_projects', 'get_project', 'get_project_details'].includes(
-    toolName,
-  );
-};
+export const isProjectsRequest = createRequestIdentifier([
+  'list_projects',
+  'get_project',
+  'get_project_details',
+]);
 
 /**
  * Handles projects feature requests
@@ -55,9 +51,7 @@ export const handleProjectsRequest: RequestHandler = async (
         skip: args.skip,
         continuationToken: args.continuationToken,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_project': {
       const args = GetProjectSchema.parse(request.params.arguments);
@@ -65,9 +59,7 @@ export const handleProjectsRequest: RequestHandler = async (
         connection,
         args.projectId ?? defaultProject,
       );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     case 'get_project_details': {
       const args = GetProjectDetailsSchema.parse(request.params.arguments);
@@ -79,9 +71,7 @@ export const handleProjectsRequest: RequestHandler = async (
         includeTeams: args.includeTeams,
         expandTeamIdentity: args.expandTeamIdentity,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      return jsonResponse(result);
     }
     default:
       throw new Error(`Unknown projects tool: ${request.params.name}`);

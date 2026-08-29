@@ -1,11 +1,8 @@
 import { z } from 'zod';
-import { defaultProject } from '../../../utils/environment';
+import { projectIdField } from '../../../shared/schemas';
 
 export const ListPipelineRunsSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  projectId: projectIdField,
   pipelineId: z.number().int().min(1).describe('Pipeline numeric ID'),
   top: z
     .number()
