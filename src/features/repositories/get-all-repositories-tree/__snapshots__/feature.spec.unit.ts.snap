@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`getAllRepositoriesTree should format complex repository tree structures correctly 1`] = `
 "complex-repo/
