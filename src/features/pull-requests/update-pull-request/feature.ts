@@ -339,10 +339,10 @@ async function handleWorkItems(
             }
           }
         } catch (error) {
-          console.log(
+          process.stderr.write(
             `Error removing work item ${workItemId} from pull request ${pullRequestId}: ${
               error instanceof Error ? error.message : String(error)
-            }`,
+            }\n`,
           );
         }
       }
@@ -397,10 +397,10 @@ async function handleReviewers(
             projectId,
           );
         } catch (error) {
-          console.log(
+          process.stderr.write(
             `Error adding reviewer ${reviewer} to pull request ${pullRequestId}: ${
               error instanceof Error ? error.message : String(error)
-            }`,
+            }\n`,
           );
         }
       }
@@ -417,10 +417,10 @@ async function handleReviewers(
             projectId,
           );
         } catch (error) {
-          console.log(
+          process.stderr.write(
             `Error removing reviewer ${reviewer} from pull request ${pullRequestId}: ${
               error instanceof Error ? error.message : String(error)
-            }`,
+            }\n`,
           );
         }
       }

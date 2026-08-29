@@ -12,12 +12,19 @@ import {
 import { ListWorkItemsOptions, WorkItem as WorkItemType } from '../types';
 
 /**
+ * Sanitizes a value for use in a WIQL query by escaping single quotes.
+ */
+function sanitizeWiqlValue(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
+/**
  * Constructs the default WIQL query for listing work items
  */
 function constructDefaultWiql(projectId: string, teamId?: string): string {
-  let query = `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '${projectId}'`;
+  let query = `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '${sanitizeWiqlValue(projectId)}'`;
   if (teamId) {
-    query += ` AND [System.TeamId] = '${teamId}'`;
+    query += ` AND [System.TeamId] = '${sanitizeWiqlValue(teamId)}'`;
   }
   query += ' ORDER BY [System.Id]';
   return query;

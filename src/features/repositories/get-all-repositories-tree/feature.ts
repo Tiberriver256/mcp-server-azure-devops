@@ -312,7 +312,7 @@ async function processItems(
         );
       } catch (error) {
         // Ignore errors in child items and continue with siblings
-        console.error(`Error processing folder ${path}: ${error}`);
+        process.stderr.write(`Error processing folder ${path}: ${error}\n`);
       }
     }
   }

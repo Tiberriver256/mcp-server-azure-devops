@@ -66,7 +66,7 @@ describe('Search Request Handlers', () => {
 
       const response = await handleSearchRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockSearchResults,
       );
       expect(searchCode).toHaveBeenCalledWith(
@@ -98,7 +98,7 @@ describe('Search Request Handlers', () => {
 
       const response = await handleSearchRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockSearchResults,
       );
       expect(searchWiki).toHaveBeenCalledWith(
@@ -133,7 +133,7 @@ describe('Search Request Handlers', () => {
 
       const response = await handleSearchRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockSearchResults,
       );
       expect(searchWorkItems).toHaveBeenCalledWith(

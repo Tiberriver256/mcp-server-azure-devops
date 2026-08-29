@@ -67,7 +67,7 @@ describe('Projects Request Handlers', () => {
 
       const response = await handleProjectsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockProjects,
       );
       expect(listProjects).toHaveBeenCalledWith(
@@ -94,7 +94,7 @@ describe('Projects Request Handlers', () => {
 
       const response = await handleProjectsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockProject,
       );
       expect(getProject).toHaveBeenCalledWith(mockConnection, 'Project 1');
@@ -122,7 +122,7 @@ describe('Projects Request Handlers', () => {
 
       const response = await handleProjectsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse((response.content[0] as any).text as string)).toEqual(
         mockProjectDetails,
       );
       expect(getProjectDetails).toHaveBeenCalledWith(
