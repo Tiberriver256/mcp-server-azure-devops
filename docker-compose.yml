@@ -1,0 +1,18 @@
+services:
+  azure-devops-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mcp-server-azure-devops:http
+    ports:
+      - '3000:3000'
+    environment:
+      AZURE_DEVOPS_ORG_URL: ${AZURE_DEVOPS_ORG_URL}
+      AZURE_DEVOPS_AUTH_METHOD: ${AZURE_DEVOPS_AUTH_METHOD:-pat}
+      AZURE_DEVOPS_PAT: ${AZURE_DEVOPS_PAT:-}
+      AZURE_DEVOPS_DEFAULT_PROJECT: ${AZURE_DEVOPS_DEFAULT_PROJECT:-}
+      AZURE_DEVOPS_API_VERSION: ${AZURE_DEVOPS_API_VERSION:-}
+      MCP_TRANSPORT: http
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 3000
+    restart: unless-stopped

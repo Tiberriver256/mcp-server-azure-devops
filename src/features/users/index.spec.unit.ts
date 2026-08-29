@@ -2,6 +2,7 @@ import { WebApi } from 'azure-devops-node-api';
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { isUsersRequest, handleUsersRequest } from './index';
 import { getMe } from './get-me';
+import { getTextContent } from '../../shared/test/test-helpers';
 
 // Mock the imported modules
 jest.mock('./get-me', () => ({
@@ -48,7 +49,7 @@ describe('Users Request Handlers', () => {
 
       const response = await handleUsersRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockUserProfile,
       );
       expect(getMe).toHaveBeenCalledWith(mockConnection);

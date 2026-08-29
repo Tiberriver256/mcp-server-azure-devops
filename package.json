@@ -93,7 +93,7 @@
   "license": "MIT",
   "dependencies": {
     "@azure/identity": "^4.8.0",
-    "@modelcontextprotocol/sdk": "^1.6.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "axios": "^1.8.3",
     "azure-devops-node-api": "^13.0.0",
     "diff": "^8.0.2",

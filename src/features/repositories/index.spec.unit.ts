@@ -14,6 +14,7 @@ import { createBranch } from './create-branch';
 import { createCommit } from './create-commit';
 import { listCommits } from './list-commits';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { getTextContent } from '../../shared/test/test-helpers';
 
 // Mock the imported modules
 jest.mock('./get-repository', () => ({
@@ -104,7 +105,7 @@ describe('Repositories Request Handlers', () => {
 
       const response = await handleRepositoriesRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockRepository,
       );
       expect(getRepository).toHaveBeenCalledWith(
@@ -138,7 +139,7 @@ describe('Repositories Request Handlers', () => {
 
       const response = await handleRepositoriesRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockRepositoryDetails,
       );
       expect(getRepositoryDetails).toHaveBeenCalledWith(
@@ -171,7 +172,7 @@ describe('Repositories Request Handlers', () => {
 
       const response = await handleRepositoriesRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockRepositories,
       );
       expect(listRepositories).toHaveBeenCalledWith(
@@ -202,7 +203,7 @@ describe('Repositories Request Handlers', () => {
 
       const response = await handleRepositoriesRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockFileContent,
       );
       expect(getFileContent).toHaveBeenCalledWith(
@@ -242,7 +243,7 @@ describe('Repositories Request Handlers', () => {
 
       const response = await handleRepositoriesRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(response.content[0].text as string).toContain('repo1');
+      expect(getTextContent(response.content)).toContain('repo1');
       expect(getAllRepositoriesTree).toHaveBeenCalledWith(
         mockConnection,
         expect.objectContaining({
@@ -275,7 +276,7 @@ describe('Repositories Request Handlers', () => {
       } as CallToolRequest;
 
       const response = await handleRepositoriesRequest(mockConnection, request);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockResponse,
       );
       expect(getRepositoryTree).toHaveBeenCalled();
@@ -295,7 +296,7 @@ describe('Repositories Request Handlers', () => {
       } as CallToolRequest;
 
       const response = await handleRepositoriesRequest(mockConnection, request);
-      expect(response.content[0].text).toContain('Branch created');
+      expect(getTextContent(response.content)).toContain('Branch created');
       expect(createBranch).toHaveBeenCalled();
     });
 
@@ -314,7 +315,7 @@ describe('Repositories Request Handlers', () => {
       } as CallToolRequest;
 
       const response = await handleRepositoriesRequest(mockConnection, request);
-      expect(response.content[0].text).toContain('Commit created');
+      expect(getTextContent(response.content)).toContain('Commit created');
       expect(createCommit).toHaveBeenCalled();
     });
 
@@ -333,7 +334,7 @@ describe('Repositories Request Handlers', () => {
       } as CallToolRequest;
 
       const response = await handleRepositoriesRequest(mockConnection, request);
-      expect(JSON.parse(response.content[0].text as string)).toEqual({
+      expect(JSON.parse(getTextContent(response.content))).toEqual({
         commits: [],
       });
       expect(listCommits).toHaveBeenCalled();

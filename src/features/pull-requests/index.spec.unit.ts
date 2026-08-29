@@ -9,6 +9,7 @@ import { addPullRequestComment } from './add-pull-request-comment';
 import { AddPullRequestCommentSchema } from './schemas';
 import { getPullRequestChanges } from './get-pull-request-changes';
 import { getPullRequestChecks } from './get-pull-request-checks';
+import { getTextContent } from '../../shared/test/test-helpers';
 
 // Mock the imported modules
 jest.mock('./create-pull-request', () => ({
@@ -92,7 +93,7 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockPullRequest,
       );
       expect(createPullRequest).toHaveBeenCalledWith(
@@ -132,7 +133,7 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockPullRequests,
       );
       expect(listPullRequests).toHaveBeenCalledWith(
@@ -162,7 +163,7 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockPullRequest,
       );
       expect(getPullRequest).toHaveBeenCalledWith(mockConnection, {
@@ -195,7 +196,7 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockComments,
       );
       expect(getPullRequestComments).toHaveBeenCalledWith(
@@ -245,9 +246,7 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
-        mockResult,
-      );
+      expect(JSON.parse(getTextContent(response.content))).toEqual(mockResult);
       expect(addPullRequestComment).toHaveBeenCalledWith(
         mockConnection,
         expect.any(String),
@@ -275,9 +274,7 @@ describe('Pull Requests Request Handlers', () => {
       } as CallToolRequest;
 
       const response = await handlePullRequestsRequest(mockConnection, request);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
-        mockResult,
-      );
+      expect(JSON.parse(getTextContent(response.content))).toEqual(mockResult);
       expect(getPullRequestChanges).toHaveBeenCalled();
     });
 
@@ -295,9 +292,7 @@ describe('Pull Requests Request Handlers', () => {
 
       const response = await handlePullRequestsRequest(mockConnection, request);
 
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
-        mockResult,
-      );
+      expect(JSON.parse(getTextContent(response.content))).toEqual(mockResult);
       expect(getPullRequestChecks).toHaveBeenCalledWith(
         mockConnection,
         expect.objectContaining({

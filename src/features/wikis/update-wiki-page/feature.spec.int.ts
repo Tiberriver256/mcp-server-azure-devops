@@ -1,8 +1,8 @@
 import { updateWikiPage } from './feature';
-import { shouldSkipIntegrationTest } from '@/shared/test/test-helpers';
+import { shouldSkipAzureDevOpsTests } from '@/shared/test/test-helpers';
 import { getOrgNameFromUrl } from '@/utils/environment';
 
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const describeOrSkip = shouldSkip ? describe.skip : describe;
 
 describeOrSkip('updateWikiPage integration', () => {

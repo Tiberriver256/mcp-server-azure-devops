@@ -3,12 +3,12 @@ import { createWiki } from './feature';
 import { WikiType } from './schema';
 import {
   getTestConnection,
-  shouldSkipIntegrationTest,
+  shouldSkipAzureDevOpsTests,
 } from '@/shared/test/test-helpers';
 import { getWikis } from '../get-wikis/feature';
 import { AzureDevOpsError } from '@/shared/errors';
 
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const describeOrSkip = shouldSkip ? describe.skip : describe;
 
 describeOrSkip('createWiki (Integration)', () => {

@@ -2,10 +2,10 @@ import { WebApi } from 'azure-devops-node-api';
 import { listPipelines } from './feature';
 import {
   getTestConnection,
-  shouldSkipIntegrationTest,
+  shouldSkipAzureDevOpsTests,
 } from '../../../shared/test/test-helpers';
 
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const projectId = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '';
 const hasProjectId = Boolean(projectId);
 const describeOrSkip = !shouldSkip && hasProjectId ? describe : describe.skip;

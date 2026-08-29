@@ -5,7 +5,7 @@ import { getWikiPage } from '../get-wiki-page/feature';
 import { getWikis } from '../get-wikis/feature';
 import {
   getTestConnection,
-  shouldSkipIntegrationTest,
+  shouldSkipAzureDevOpsTests,
 } from '@/shared/test/test-helpers';
 import { getOrgNameFromUrl } from '@/utils/environment';
 import { AzureDevOpsError } from '@/shared/errors/azure-devops-errors';
@@ -15,7 +15,7 @@ import { z } from 'zod';
 process.env.AZURE_DEVOPS_DEFAULT_PROJECT =
   process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'default-project';
 
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const describeOrSkip = shouldSkip ? describe.skip : describe;
 
 describeOrSkip('createWikiPage Integration Tests', () => {

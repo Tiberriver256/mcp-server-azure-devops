@@ -3,10 +3,10 @@ import { getPipeline } from './feature';
 import { listPipelines } from '../list-pipelines/feature';
 import {
   getTestConnection,
-  shouldSkipIntegrationTest,
+  shouldSkipAzureDevOpsTests,
 } from '../../../shared/test/test-helpers';
 
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const projectId = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '';
 const hasProjectId = Boolean(projectId);
 const describeOrSkip = !shouldSkip && hasProjectId ? describe : describe.skip;

@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.github
+.vscode
+.idea
+coverage
+logs
+diffs
+.codex
+.agents
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -25,14 +25,14 @@ export function getTestConfig(): AzureDevOpsConfig | null {
 }
 
 /**
- * Determines if integration tests should be skipped
+ * Determines if Azure DevOps-backed tests should be skipped.
  *
- * @returns true if integration tests should be skipped
+ * @returns true if Azure DevOps-backed tests should be skipped
  */
-export function shouldSkipIntegrationTest(): boolean {
+export function shouldSkipAzureDevOpsTests(): boolean {
   if (!process.env.AZURE_DEVOPS_ORG_URL || !process.env.AZURE_DEVOPS_PAT) {
     console.log(
-      'Skipping integration test: No real Azure DevOps connection available',
+      'Skipping Azure DevOps-backed tests: No real Azure DevOps connection available',
     );
     return true;
   }

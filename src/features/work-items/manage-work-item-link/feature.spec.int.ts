@@ -3,13 +3,13 @@ import { manageWorkItemLink } from './feature';
 import { createWorkItem } from '../create-work-item/feature';
 import {
   getTestConnection,
-  shouldSkipIntegrationTest,
+  shouldSkipAzureDevOpsTests,
 } from '../../../shared/test/test-helpers';
 import { CreateWorkItemOptions } from '../types';
 
 // Note: These tests will be skipped in CI due to missing credentials
 // They are meant to be run manually in a dev environment with proper Azure DevOps setup
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const describeOrSkip = shouldSkip ? describe.skip : describe;
 
 describeOrSkip('manageWorkItemLink integration', () => {

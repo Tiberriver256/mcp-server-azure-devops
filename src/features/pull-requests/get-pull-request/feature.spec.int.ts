@@ -4,10 +4,10 @@ import { getPullRequest } from './feature';
 import { createPullRequest } from '../create-pull-request/feature';
 import {
   getTestConnection,
-  shouldSkipIntegrationTest,
+  shouldSkipAzureDevOpsTests,
 } from '../../../shared/test/test-helpers';
 
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const describeOrSkip = shouldSkip ? describe.skip : describe;
 
 describeOrSkip('getPullRequest integration', () => {

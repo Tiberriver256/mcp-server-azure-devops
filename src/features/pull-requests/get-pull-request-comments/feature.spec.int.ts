@@ -8,10 +8,10 @@ import { addPullRequestComment } from '../add-pull-request-comment/feature';
 import { createPullRequest } from '../create-pull-request/feature';
 import {
   getTestConnection,
-  shouldSkipIntegrationTest,
+  shouldSkipAzureDevOpsTests,
 } from '@/shared/test/test-helpers';
 
-const shouldSkip = shouldSkipIntegrationTest();
+const shouldSkip = shouldSkipAzureDevOpsTests();
 const describeOrSkip = shouldSkip ? describe.skip : describe;
 
 describeOrSkip('getPullRequestComments integration', () => {

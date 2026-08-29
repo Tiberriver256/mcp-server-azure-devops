@@ -4,10 +4,13 @@
  */
 
 import { createAzureDevOpsServer } from './server';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import dotenv from 'dotenv';
 import { AzureDevOpsConfig } from './shared/types';
 import { AuthenticationMethod } from './shared/auth/auth-factory';
+import { formatAzureDevOpsError, isAzureDevOpsError } from './shared/errors';
+import { getTransportConfig } from './transports/config';
+import { runHttpTransport } from './transports/http';
+import { runStdioTransport } from './transports/stdio';
 
 /**
  * Normalize auth method string to a valid AuthenticationMethod enum value
@@ -49,46 +52,58 @@ export function normalizeAuthMethod(
 // Load environment variables
 dotenv.config();
 
-function getConfig(): AzureDevOpsConfig {
+export function getConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): AzureDevOpsConfig {
   // Debug log the environment variables to help diagnose issues
   process.stderr.write(`DEBUG - Environment variables in getConfig():
-  AZURE_DEVOPS_ORG_URL: ${process.env.AZURE_DEVOPS_ORG_URL || 'NOT SET'}
-  AZURE_DEVOPS_AUTH_METHOD: ${process.env.AZURE_DEVOPS_AUTH_METHOD || 'NOT SET'}
-  AZURE_DEVOPS_PAT: ${process.env.AZURE_DEVOPS_PAT ? 'SET (hidden)' : 'NOT SET'}
-  AZURE_DEVOPS_DEFAULT_PROJECT: ${process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'NOT SET'}
-  AZURE_DEVOPS_API_VERSION: ${process.env.AZURE_DEVOPS_API_VERSION || 'NOT SET'}
-  NODE_ENV: ${process.env.NODE_ENV || 'NOT SET'}
+  AZURE_DEVOPS_ORG_URL: ${env.AZURE_DEVOPS_ORG_URL || 'NOT SET'}
+  AZURE_DEVOPS_AUTH_METHOD: ${env.AZURE_DEVOPS_AUTH_METHOD || 'NOT SET'}
+  AZURE_DEVOPS_PAT: ${env.AZURE_DEVOPS_PAT ? 'SET (hidden)' : 'NOT SET'}
+  AZURE_DEVOPS_DEFAULT_PROJECT: ${env.AZURE_DEVOPS_DEFAULT_PROJECT || 'NOT SET'}
+  AZURE_DEVOPS_API_VERSION: ${env.AZURE_DEVOPS_API_VERSION || 'NOT SET'}
+  MCP_TRANSPORT: ${env.MCP_TRANSPORT || 'NOT SET'}
+  MCP_HOST: ${env.MCP_HOST || 'NOT SET'}
+  MCP_PORT: ${env.MCP_PORT || 'NOT SET'}
+  NODE_ENV: ${env.NODE_ENV || 'NOT SET'}
 \n`);
 
   return {
-    organizationUrl: process.env.AZURE_DEVOPS_ORG_URL || '',
-    authMethod: normalizeAuthMethod(process.env.AZURE_DEVOPS_AUTH_METHOD),
-    personalAccessToken: process.env.AZURE_DEVOPS_PAT,
-    defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT,
-    apiVersion: process.env.AZURE_DEVOPS_API_VERSION,
+    organizationUrl: env.AZURE_DEVOPS_ORG_URL || '',
+    authMethod: normalizeAuthMethod(env.AZURE_DEVOPS_AUTH_METHOD),
+    personalAccessToken: env.AZURE_DEVOPS_PAT,
+    defaultProject: env.AZURE_DEVOPS_DEFAULT_PROJECT,
+    apiVersion: env.AZURE_DEVOPS_API_VERSION,
   };
 }
 
-async function main() {
-  try {
-    // Create the server with configuration
-    const server = createAzureDevOpsServer(getConfig());
+export async function main(
+  args: string[] = process.argv.slice(2),
+  env: NodeJS.ProcessEnv = process.env,
+) {
+  const config = getConfig(env);
+  const transportConfig = getTransportConfig(args, env);
 
-    // Connect to stdio transport
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-
-    process.stderr.write('Azure DevOps MCP Server running on stdio\n');
-  } catch (error) {
-    process.stderr.write(`Error starting server: ${error}\n`);
-    process.exit(1);
+  if (transportConfig.transport === 'http') {
+    await runHttpTransport(
+      () => createAzureDevOpsServer(config),
+      transportConfig,
+    );
+    return;
   }
+
+  const server = createAzureDevOpsServer(config);
+  await runStdioTransport(server);
 }
 
 // Start the server when this script is run directly
 if (require.main === module) {
   main().catch((error) => {
-    process.stderr.write(`Fatal error in main(): ${error}\n`);
+    const errorMessage = isAzureDevOpsError(error)
+      ? formatAzureDevOpsError(error)
+      : String(error);
+
+    process.stderr.write(`Fatal error in main(): ${errorMessage}\n`);
     process.exit(1);
   });
 }
