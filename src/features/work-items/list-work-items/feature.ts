@@ -74,12 +74,15 @@ export async function listWorkItems(
       return [];
     }
 
-    const fields = [
+    const defaultFields = [
       'System.Id',
       'System.Title',
       'System.State',
       'System.AssignedTo',
     ];
+    const fields = options.fields
+      ? [...new Set([...defaultFields, ...options.fields])]
+      : defaultFields;
     const workItems = await witApi.getWorkItems(
       workItemIds,
       fields,

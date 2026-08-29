@@ -121,4 +121,105 @@ describe('listWorkItems unit', () => {
       listWorkItems(mockConnection, { projectId: 'test-project' }),
     ).rejects.toThrow('Failed to list work items: Unexpected error');
   });
+
+  test('should request only default fields when no fields option is provided', async () => {
+    // Arrange
+    const mockWorkItemRefs = [{ id: 1 }];
+    const mockWorkItems = [{ id: 1, fields: { 'System.Title': 'Item 1' } }];
+    const mockGetWorkItems = jest.fn().mockResolvedValue(mockWorkItems);
+
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockImplementation(() => ({
+        queryByWiql: jest
+          .fn()
+          .mockResolvedValue({ workItems: mockWorkItemRefs }),
+        getWorkItems: mockGetWorkItems,
+      })),
+    };
+
+    // Act
+    await listWorkItems(mockConnection, { projectId: 'test-project' });
+
+    // Assert: getWorkItems called with exactly the 4 default fields
+    const calledFields = mockGetWorkItems.mock.calls[0][1];
+    expect(calledFields).toEqual([
+      'System.Id',
+      'System.Title',
+      'System.State',
+      'System.AssignedTo',
+    ]);
+  });
+
+  test('should include additional fields alongside the defaults when fields option is provided', async () => {
+    // Arrange
+    const mockWorkItemRefs = [{ id: 1 }];
+    const mockWorkItems = [
+      {
+        id: 1,
+        fields: {
+          'System.Title': 'Item 1',
+          'Microsoft.VSTS.Scheduling.StoryPoints': 5,
+          'System.IterationPath': 'MyProject\\Sprint 1',
+        },
+      },
+    ];
+    const mockGetWorkItems = jest.fn().mockResolvedValue(mockWorkItems);
+
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockImplementation(() => ({
+        queryByWiql: jest
+          .fn()
+          .mockResolvedValue({ workItems: mockWorkItemRefs }),
+        getWorkItems: mockGetWorkItems,
+      })),
+    };
+
+    // Act
+    const result = await listWorkItems(mockConnection, {
+      projectId: 'test-project',
+      fields: ['Microsoft.VSTS.Scheduling.StoryPoints', 'System.IterationPath'],
+    });
+
+    // Assert: getWorkItems was called with both default and requested fields (no duplicates)
+    const calledFields = mockGetWorkItems.mock.calls[0][1];
+    expect(calledFields).toContain('System.Id');
+    expect(calledFields).toContain('System.Title');
+    expect(calledFields).toContain('System.State');
+    expect(calledFields).toContain('System.AssignedTo');
+    expect(calledFields).toContain('Microsoft.VSTS.Scheduling.StoryPoints');
+    expect(calledFields).toContain('System.IterationPath');
+    expect(calledFields.length).toBe(6); // 4 defaults + 2 extra, no duplicates
+
+    // Assert: the extra field values are present in the returned items
+    expect(result[0].fields?.['Microsoft.VSTS.Scheduling.StoryPoints']).toBe(5);
+    expect(result[0].fields?.['System.IterationPath']).toBe(
+      'MyProject\\Sprint 1',
+    );
+  });
+
+  test('should deduplicate fields when a requested field overlaps with a default field', async () => {
+    // Arrange
+    const mockWorkItemRefs = [{ id: 1 }];
+    const mockWorkItems = [{ id: 1, fields: { 'System.Title': 'Item 1' } }];
+    const mockGetWorkItems = jest.fn().mockResolvedValue(mockWorkItems);
+
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockImplementation(() => ({
+        queryByWiql: jest
+          .fn()
+          .mockResolvedValue({ workItems: mockWorkItemRefs }),
+        getWorkItems: mockGetWorkItems,
+      })),
+    };
+
+    // Act
+    await listWorkItems(mockConnection, {
+      projectId: 'test-project',
+      fields: ['System.Title', 'System.State'], // Both are already defaults
+    });
+
+    // Assert: no duplicates — still only 4 fields
+    const calledFields = mockGetWorkItems.mock.calls[0][1];
+    expect(calledFields.length).toBe(4);
+  });
 });
