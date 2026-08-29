@@ -127,6 +127,7 @@ export async function listOrganizations(
 
     throw new AzureDevOpsAuthenticationError(
       `Failed to list organizations: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

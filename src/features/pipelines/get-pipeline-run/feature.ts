@@ -135,6 +135,7 @@ export async function getPipelineRun(
       `Failed to get pipeline run: ${
         error instanceof Error ? error.message : String(error)
       }`,
+      { cause: error },
     );
   }
 }

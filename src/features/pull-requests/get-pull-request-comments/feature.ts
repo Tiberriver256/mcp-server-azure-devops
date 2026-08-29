@@ -60,8 +60,9 @@ export async function getPullRequestComments(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to get pull request comments: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

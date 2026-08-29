@@ -105,6 +105,7 @@ export async function searchWorkItems(
     // Otherwise, wrap it in a generic error
     throw new AzureDevOpsError(
       `Failed to search work items: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

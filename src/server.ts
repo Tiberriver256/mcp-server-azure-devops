@@ -279,6 +279,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
       }
       throw new AzureDevOpsResourceNotFoundError(
         `Failed to read resource: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
       );
     }
   });

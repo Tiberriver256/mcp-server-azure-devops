@@ -104,8 +104,9 @@ export async function getWorkItem(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to get work item: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

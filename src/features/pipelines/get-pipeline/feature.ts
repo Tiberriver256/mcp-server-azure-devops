@@ -68,6 +68,7 @@ export async function getPipeline(
     // Otherwise, wrap it in a generic error
     throw new AzureDevOpsError(
       `Failed to get pipeline: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

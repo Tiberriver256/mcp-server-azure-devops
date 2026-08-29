@@ -161,8 +161,9 @@ export async function getAllRepositoriesTree(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to get repository tree: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }
@@ -311,8 +312,9 @@ async function processItems(
           pattern,
         );
       } catch (error) {
-        // Ignore errors in child items and continue with siblings
-        console.error(`Error processing folder ${path}: ${error}`);
+        process.stderr.write(
+          `Error processing folder ${path}: ${error instanceof Error ? error.message : String(error)}\n`,
+        );
       }
     }
   }

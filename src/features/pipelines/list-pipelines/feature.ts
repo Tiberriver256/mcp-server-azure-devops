@@ -62,6 +62,7 @@ export async function listPipelines(
     // Otherwise, wrap it in a generic error
     throw new AzureDevOpsError(
       `Failed to list pipelines: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

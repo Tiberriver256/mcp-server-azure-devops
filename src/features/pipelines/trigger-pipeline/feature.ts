@@ -96,6 +96,7 @@ export async function triggerPipeline(
     // Otherwise, wrap it in a generic error
     throw new AzureDevOpsError(
       `Failed to trigger pipeline: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

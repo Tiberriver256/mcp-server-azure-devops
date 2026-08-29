@@ -42,8 +42,9 @@ export async function createBranch(
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new Error(
+    throw new AzureDevOpsError(
       `Failed to create branch: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

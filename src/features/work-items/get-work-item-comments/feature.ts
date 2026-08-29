@@ -119,6 +119,7 @@ export async function getWorkItemComments(
     }
     throw new AzureDevOpsError(
       `Failed to get work item comments: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

@@ -155,6 +155,7 @@ export async function listPipelineRuns(
       `Failed to list pipeline runs: ${
         error instanceof Error ? error.message : String(error)
       }`,
+      { cause: error },
     );
   }
 }
