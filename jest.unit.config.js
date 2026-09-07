@@ -7,7 +7,18 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  collectCoverage: false,
+  collectCoverage: true,
+  coverageDirectory: '<rootDir>/coverage',
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.spec.*.ts', '!src/types/**'],
+  coverageReporters: ['text', 'lcov'],
+  coverageThreshold: {
+    global: {
+      statements: 70,
+      branches: 50,
+      functions: 60,
+      lines: 70,
+    },
+  },
   verbose: true,
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
