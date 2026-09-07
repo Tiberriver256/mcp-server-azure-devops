@@ -40,12 +40,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Use latest Node LTS
+      - name: Use Node 22
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          node-version: '22'
+          cache: 'npm'
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
+      - name: Security Audit
+        run: npm audit --audit-level=high
       - name: Lint
         run: npm run lint
       - name: Build
