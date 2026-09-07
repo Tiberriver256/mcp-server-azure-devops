@@ -4,6 +4,7 @@ import { spawn } from 'child_process';
 import { join } from 'path';
 import dotenv from 'dotenv';
 import { Organization } from './features/organizations/types';
+import { getTextContent } from '@/shared/test/text-content';
 import fs from 'fs';
 
 // Load environment variables from .env file
@@ -146,13 +147,12 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
       // Assert
       expect(result).toBeDefined();
 
-      // Access the content safely
-      const content = result.content as Array<{ type: string; text: string }>;
-      expect(content).toBeDefined();
-      expect(content.length).toBeGreaterThan(0);
+      const blocks = result.content as Array<{ type: string }>;
+      expect(blocks).toBeDefined();
+      expect(blocks.length).toBeGreaterThan(0);
 
       // Parse the result content
-      const resultText = content[0].text;
+      const resultText = getTextContent(result.content);
       const organizations: Organization[] = JSON.parse(resultText);
 
       // Verify the response structure
@@ -177,12 +177,12 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
 
       // Assert
       expect(result).toBeDefined();
-      const content = result.content as Array<{ type: string; text: string }>;
-      expect(content).toBeDefined();
-      expect(content.length).toBeGreaterThan(0);
+      const blocks = result.content as Array<{ type: string }>;
+      expect(blocks).toBeDefined();
+      expect(blocks.length).toBeGreaterThan(0);
 
       // Verify we got a valid JSON response
-      const resultText = content[0].text;
+      const resultText = getTextContent(result.content);
       const organizations = JSON.parse(resultText);
       expect(Array.isArray(organizations)).toBe(true);
     });
@@ -197,12 +197,12 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
 
       // Assert
       expect(result).toBeDefined();
-      const content = result.content as Array<{ type: string; text: string }>;
-      expect(content).toBeDefined();
-      expect(content.length).toBeGreaterThan(0);
+      const blocks = result.content as Array<{ type: string }>;
+      expect(blocks).toBeDefined();
+      expect(blocks.length).toBeGreaterThan(0);
 
       // Verify we got a valid JSON response with user info
-      const resultText = content[0].text;
+      const resultText = getTextContent(result.content);
       const userInfo = JSON.parse(resultText);
       expect(userInfo).toHaveProperty('id');
       expect(userInfo).toHaveProperty('displayName');
@@ -220,12 +220,12 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
 
       // Assert
       expect(result).toBeDefined();
-      const content = result.content as Array<{ type: string; text: string }>;
-      expect(content).toBeDefined();
-      expect(content.length).toBeGreaterThan(0);
+      const blocks = result.content as Array<{ type: string }>;
+      expect(blocks).toBeDefined();
+      expect(blocks.length).toBeGreaterThan(0);
 
       // Verify we got a valid JSON response
-      const resultText = content[0].text;
+      const resultText = getTextContent(result.content);
       const projects = JSON.parse(resultText);
       expect(Array.isArray(projects)).toBe(true);
     });
@@ -240,12 +240,12 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
 
       // Assert
       expect(result).toBeDefined();
-      const content = result.content as Array<{ type: string; text: string }>;
-      expect(content).toBeDefined();
-      expect(content.length).toBeGreaterThan(0);
+      const blocks = result.content as Array<{ type: string }>;
+      expect(blocks).toBeDefined();
+      expect(blocks.length).toBeGreaterThan(0);
 
       // Verify we got a valid JSON response with project info
-      const resultText = content[0].text;
+      const resultText = getTextContent(result.content);
       const project = JSON.parse(resultText);
       expect(project).toHaveProperty('id');
       expect(project).toHaveProperty('name');
@@ -261,12 +261,12 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
 
       // Assert
       expect(result).toBeDefined();
-      const content = result.content as Array<{ type: string; text: string }>;
-      expect(content).toBeDefined();
-      expect(content.length).toBeGreaterThan(0);
+      const blocks = result.content as Array<{ type: string }>;
+      expect(blocks).toBeDefined();
+      expect(blocks.length).toBeGreaterThan(0);
 
       // Verify we got a valid JSON response
-      const resultText = content[0].text;
+      const resultText = getTextContent(result.content);
       const repositories = JSON.parse(resultText);
       expect(Array.isArray(repositories)).toBe(true);
     });
