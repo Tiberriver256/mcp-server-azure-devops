@@ -5,12 +5,12 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { defaultProject } from '../../../utils/environment';
+import { apiVersion, defaultProject } from '../../../utils/environment';
 import { fetchRunArtifacts } from '../artifacts';
 import { coercePipelineId, resolvePipelineId } from '../helpers';
 import { GetPipelineRunOptions, PipelineRunDetails } from '../types';
 
-const API_VERSION = '7.1';
+const API_VERSION = apiVersion;
 
 export async function getPipelineRun(
   connection: WebApi,

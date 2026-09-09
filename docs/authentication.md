@@ -145,7 +145,7 @@ Azure CLI authentication uses the `AzureCliCredential` class from the `@azure/id
 | `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization                                         | Yes                          | -                |
 | `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                                               | Only with PAT auth           | -                |
 | `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                                                  | No                           | -                |
-| `AZURE_DEVOPS_API_VERSION`     | API version to use                                                                 | No                           | Latest           |
+| `AZURE_DEVOPS_API_VERSION`     | REST api-version for direct REST calls (set to `7.0` for Azure DevOps Server 2022 and older) | No                           | `7.1`            |
 | `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                                        | Only with service principals | -                |
 | `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                                   | Only with service principals | -                |
 | `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                                    | Only with service principals | -                |
