@@ -1,7 +1,12 @@
 import { WebApi } from 'azure-devops-node-api';
 import axios from 'axios';
 import { searchWiki } from './feature';
-import { AzureDevOpsValidationError } from '../../../shared/errors';
+import {
+  AzureDevOpsError,
+  AzureDevOpsValidationError,
+  AzureDevOpsResourceNotFoundError,
+  AzureDevOpsPermissionError,
+} from '../../../shared/errors';
 
 // Mock Azure Identity
 jest.mock('@azure/identity', () => {
@@ -203,5 +208,198 @@ describe('searchWiki unit', () => {
         searchText: 'example',
       }),
     ).rejects.toThrow(AzureDevOpsValidationError);
+  });
+
+  test('should merge custom Project filters with projectId filter', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { count: 0, results: [] },
+    });
+
+    await searchWiki(mockConnection, {
+      searchText: 'test',
+      projectId: 'ProjectA',
+      filters: { Project: ['ProjectB'] },
+    });
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        filters: expect.objectContaining({
+          Project: expect.arrayContaining(['ProjectA', 'ProjectB']),
+        }),
+      }),
+      expect.any(Object),
+    );
+  });
+
+  test('should pass skip and top parameters', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { count: 0, results: [] },
+    });
+
+    await searchWiki(mockConnection, {
+      searchText: 'test',
+      skip: 10,
+      top: 5,
+    });
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        $skip: 10,
+        $top: 5,
+      }),
+      expect.any(Object),
+    );
+  });
+
+  test('should pass includeFacets parameter', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { count: 0, results: [] },
+    });
+
+    await searchWiki(mockConnection, {
+      searchText: 'test',
+      includeFacets: true,
+    });
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        includeFacets: true,
+      }),
+      expect.any(Object),
+    );
+  });
+
+  describe('error handling', () => {
+    test('should rethrow AzureDevOpsError as-is', async () => {
+      const adoError = new AzureDevOpsError('custom ado error');
+      mockedAxios.post.mockRejectedValueOnce(adoError);
+
+      await expect(
+        searchWiki(mockConnection, { searchText: 'test' }),
+      ).rejects.toThrow(adoError);
+    });
+
+    test('should throw AzureDevOpsResourceNotFoundError for 404 axios error', async () => {
+      const axiosError = new Error('Request failed') as any;
+      axiosError.isAxiosError = true;
+      axiosError.response = { status: 404, data: { message: 'Not found' } };
+      jest.spyOn(axios, 'isAxiosError').mockImplementation(() => true);
+      mockedAxios.post.mockRejectedValueOnce(axiosError);
+
+      await expect(
+        searchWiki(mockConnection, { searchText: 'test' }),
+      ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+    });
+
+    test('should throw AzureDevOpsValidationError for 400 axios error', async () => {
+      const axiosError = new Error('Request failed') as any;
+      axiosError.isAxiosError = true;
+      axiosError.response = {
+        status: 400,
+        data: { message: 'Bad request' },
+      };
+      jest.spyOn(axios, 'isAxiosError').mockImplementation(() => true);
+      mockedAxios.post.mockRejectedValueOnce(axiosError);
+
+      await expect(
+        searchWiki(mockConnection, { searchText: 'test' }),
+      ).rejects.toThrow(AzureDevOpsValidationError);
+    });
+
+    test('should throw AzureDevOpsPermissionError for 401 axios error', async () => {
+      const axiosError = new Error('Request failed') as any;
+      axiosError.isAxiosError = true;
+      axiosError.response = {
+        status: 401,
+        data: { message: 'Unauthorized' },
+      };
+      jest.spyOn(axios, 'isAxiosError').mockImplementation(() => true);
+      mockedAxios.post.mockRejectedValueOnce(axiosError);
+
+      await expect(
+        searchWiki(mockConnection, { searchText: 'test' }),
+      ).rejects.toThrow(AzureDevOpsPermissionError);
+    });
+
+    test('should throw AzureDevOpsPermissionError for 403 axios error', async () => {
+      const axiosError = new Error('Request failed') as any;
+      axiosError.isAxiosError = true;
+      axiosError.response = { status: 403, data: { message: 'Forbidden' } };
+      jest.spyOn(axios, 'isAxiosError').mockImplementation(() => true);
+      mockedAxios.post.mockRejectedValueOnce(axiosError);
+
+      await expect(
+        searchWiki(mockConnection, { searchText: 'test' }),
+      ).rejects.toThrow(AzureDevOpsPermissionError);
+    });
+
+    test('should throw AzureDevOpsError for other axios status codes', async () => {
+      const axiosError = new Error('Request failed') as any;
+      axiosError.isAxiosError = true;
+      axiosError.response = {
+        status: 500,
+        data: { message: 'Internal error' },
+      };
+      jest.spyOn(axios, 'isAxiosError').mockImplementation(() => true);
+      mockedAxios.post.mockRejectedValueOnce(axiosError);
+
+      await expect(
+        searchWiki(mockConnection, { searchText: 'test' }),
+      ).rejects.toThrow(AzureDevOpsError);
+    });
+
+    test('should wrap non-axios, non-AzureDevOps errors', async () => {
+      jest.spyOn(axios, 'isAxiosError').mockImplementation(() => false);
+      mockedAxios.post.mockRejectedValueOnce(new Error('random failure'));
+
+      await expect(
+        searchWiki(mockConnection, { searchText: 'test' }),
+      ).rejects.toThrow('Failed to search wiki: random failure');
+    });
+
+    test('should wrap non-Error thrown values', async () => {
+      jest.spyOn(axios, 'isAxiosError').mockImplementation(() => false);
+      mockedAxios.post.mockRejectedValueOnce('string error');
+
+      await expect(
+        searchWiki(mockConnection, { searchText: 'test' }),
+      ).rejects.toThrow('Failed to search wiki: string error');
+    });
+  });
+
+  describe('PAT authentication', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = { ...originalEnv };
+    });
+
+    afterAll(() => {
+      process.env = originalEnv;
+    });
+
+    test('should use PAT auth when configured', async () => {
+      process.env.AZURE_DEVOPS_AUTH_METHOD = 'pat';
+      process.env.AZURE_DEVOPS_PAT = 'test-pat-token';
+
+      mockedAxios.post.mockResolvedValueOnce({
+        data: { count: 0, results: [] },
+      });
+
+      await searchWiki(mockConnection, { searchText: 'test' });
+
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining('Basic'),
+          }),
+        }),
+      );
+    });
   });
 });
