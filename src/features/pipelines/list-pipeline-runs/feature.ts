@@ -5,10 +5,10 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { defaultProject } from '../../../utils/environment';
+import { apiVersion, defaultProject } from '../../../utils/environment';
 import { ListPipelineRunsOptions, ListPipelineRunsResult, Run } from '../types';
 
-const API_VERSION = '7.1';
+const API_VERSION = apiVersion;
 
 function normalizeBranch(branch?: string): string | undefined {
   if (!branch) {
