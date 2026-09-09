@@ -45,7 +45,7 @@ export const createWikiPage = async (
         project ? `${project}/` : ''
       }_apis/wiki/wikis/${wikiId}/pages?path=${encodeURIComponent(
         pagePath ?? '/',
-      )}&api-version=${apiVersion}-preview.1`;
+      )}&api-version=${apiVersion}`;
 
       // Prepare the request body
       const requestBody: Record<string, unknown> = { content };
