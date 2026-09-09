@@ -2,7 +2,11 @@ import { z } from 'zod';
 import * as azureDevOpsClient from '../../../clients/azure-devops';
 import { handleRequestError } from '../../../shared/errors/handle-request-error';
 import { CreateWikiPageSchema } from './schema';
-import { defaultOrg, defaultProject } from '../../../utils/environment';
+import {
+  apiVersion,
+  defaultOrg,
+  defaultProject,
+} from '../../../utils/environment';
 
 /**
  * Creates a new wiki page in Azure DevOps.
@@ -41,7 +45,7 @@ export const createWikiPage = async (
         project ? `${project}/` : ''
       }_apis/wiki/wikis/${wikiId}/pages?path=${encodeURIComponent(
         pagePath ?? '/',
-      )}&api-version=7.1-preview.1`;
+      )}&api-version=${apiVersion}-preview.1`;
 
       // Prepare the request body
       const requestBody: Record<string, unknown> = { content };

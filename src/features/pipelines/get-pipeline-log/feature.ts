@@ -4,10 +4,10 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { defaultProject } from '../../../utils/environment';
+import { apiVersion, defaultProject } from '../../../utils/environment';
 import { GetPipelineLogOptions, PipelineLogContent } from '../types';
 
-const API_VERSION = '7.1';
+const API_VERSION = apiVersion;
 
 export async function getPipelineLog(
   connection: WebApi,
