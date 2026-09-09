@@ -8,6 +8,7 @@ import {
   AzureDevOpsPermissionError,
 } from '../../../shared/errors';
 import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url';
+import { apiVersion } from '../../../utils/environment';
 import {
   SearchWorkItemsOptions,
   WorkItemSearchRequest,
@@ -58,8 +59,8 @@ export async function searchWorkItems(
     // Make the search API request
     // If projectId is provided, include it in the URL, otherwise perform organization-wide search
     const searchUrl = options.projectId
-      ? `${baseUrls.searchBaseUrl}/${options.projectId}/_apis/search/workitemsearchresults?api-version=7.1`
-      : `${baseUrls.searchBaseUrl}/_apis/search/workitemsearchresults?api-version=7.1`;
+      ? `${baseUrls.searchBaseUrl}/${options.projectId}/_apis/search/workitemsearchresults?api-version=${apiVersion}`
+      : `${baseUrls.searchBaseUrl}/_apis/search/workitemsearchresults?api-version=${apiVersion}`;
 
     const searchResponse = await axios.post<WorkItemSearchResponse>(
       searchUrl,

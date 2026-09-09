@@ -73,4 +73,24 @@ describe('environment utilities', () => {
       expect(typeof orgNameFromUrl).toBe('string');
     });
   });
+  describe('apiVersion', () => {
+    const loadApiVersion = (): string => {
+      let value = '';
+      jest.isolateModules(() => {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        value = jest.requireActual('./environment').apiVersion;
+      });
+      return value;
+    };
+
+    it('should default to 7.1', () => {
+      delete process.env.AZURE_DEVOPS_API_VERSION;
+      expect(loadApiVersion()).toBe('7.1');
+    });
+
+    it('should honour AZURE_DEVOPS_API_VERSION for on-prem servers', () => {
+      process.env.AZURE_DEVOPS_API_VERSION = '7.0';
+      expect(loadApiVersion()).toBe('7.0');
+    });
+  });
 });
