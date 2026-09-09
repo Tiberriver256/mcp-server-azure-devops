@@ -59,7 +59,7 @@ describe('createWikiPage Feature', () => {
 
     expect(mockPut).toHaveBeenCalledTimes(1);
     expect(mockPut).toHaveBeenCalledWith(
-      'defaultOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1-preview.1',
+      'defaultOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1',
       { content: 'Hello world' },
     );
   });
@@ -73,7 +73,7 @@ describe('createWikiPage Feature', () => {
     await createWikiPage(paramsWithProject, client as any);
 
     expect(mockPut).toHaveBeenCalledWith(
-      'defaultOrg/customProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1-preview.1',
+      'defaultOrg/customProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1',
       { content: 'Hello world' },
     );
   });
@@ -87,7 +87,7 @@ describe('createWikiPage Feature', () => {
     await createWikiPage(paramsWithOrg, client as any);
 
     expect(mockPut).toHaveBeenCalledWith(
-      'customOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1-preview.1',
+      'customOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1',
       { content: 'Hello world' },
     );
   });
@@ -111,7 +111,7 @@ describe('createWikiPage Feature', () => {
     await createWikiPage(paramsWithNullProject, clientWithoutProject as any);
 
     expect(mockPut).toHaveBeenCalledWith(
-      'defaultOrg/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1-preview.1',
+      'defaultOrg/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1',
       { content: 'Hello world' },
     );
   });
@@ -125,7 +125,7 @@ describe('createWikiPage Feature', () => {
     await createWikiPage(paramsWithPath, client as any);
 
     expect(mockPut).toHaveBeenCalledWith(
-      'defaultOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2FMy%20Test%20Page%2FSub%20Page&api-version=7.1-preview.1',
+      'defaultOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2FMy%20Test%20Page%2FSub%20Page&api-version=7.1',
       { content: 'Hello world' },
     );
   });
@@ -139,7 +139,7 @@ describe('createWikiPage Feature', () => {
     await createWikiPage(paramsWithPath, client as any);
 
     expect(mockPut).toHaveBeenCalledWith(
-      'defaultOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1-preview.1',
+      'defaultOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1',
       { content: 'Hello world' },
     );
   });
@@ -153,7 +153,7 @@ describe('createWikiPage Feature', () => {
     await createWikiPage(paramsWithComment, client as any);
 
     expect(mockPut).toHaveBeenCalledWith(
-      'defaultOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1-preview.1',
+      'defaultOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1',
       { content: 'Hello world', comment: 'Initial page creation' },
     );
   });
