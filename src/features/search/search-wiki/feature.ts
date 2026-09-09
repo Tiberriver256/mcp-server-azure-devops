@@ -8,6 +8,7 @@ import {
   AzureDevOpsPermissionError,
 } from '../../../shared/errors';
 import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url';
+import { apiVersion } from '../../../utils/environment';
 import {
   SearchWikiOptions,
   WikiSearchRequest,
@@ -76,8 +77,8 @@ export async function searchWiki(
     // Make the search API request
     // If projectId is provided, include it in the URL, otherwise perform organization-wide search
     const searchUrl = options.projectId
-      ? `${baseUrls.searchBaseUrl}/${options.projectId}/_apis/search/wikisearchresults?api-version=7.1`
-      : `${baseUrls.searchBaseUrl}/_apis/search/wikisearchresults?api-version=7.1`;
+      ? `${baseUrls.searchBaseUrl}/${options.projectId}/_apis/search/wikisearchresults?api-version=${apiVersion}`
+      : `${baseUrls.searchBaseUrl}/_apis/search/wikisearchresults?api-version=${apiVersion}`;
 
     const searchResponse = await axios.post<WikiSearchResponse>(
       searchUrl,
