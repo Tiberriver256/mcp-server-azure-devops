@@ -15,31 +15,37 @@ export const wikisTools: ToolDefinition[] = [
     name: 'get_wikis',
     description: 'Get details of wikis in a project',
     inputSchema: zodToJsonSchema(GetWikisSchema),
+    readOnly: true,
   },
   {
     name: 'get_wiki_page',
     description: 'Get the content of a wiki page',
     inputSchema: zodToJsonSchema(GetWikiPageSchema),
+    readOnly: true,
   },
   {
     name: 'create_wiki',
     description: 'Create a new wiki in the project',
     inputSchema: zodToJsonSchema(CreateWikiSchema),
+    readOnly: false,
   },
   {
     name: 'update_wiki_page',
     description: 'Update content of a wiki page',
     inputSchema: zodToJsonSchema(UpdateWikiPageSchema),
+    readOnly: false,
   },
   {
     name: 'list_wiki_pages',
     description: 'List pages within an Azure DevOps wiki',
     inputSchema: zodToJsonSchema(ListWikiPagesSchema),
+    readOnly: true,
   },
   {
     name: 'create_wiki_page',
     description:
       'Create a new page in a wiki. If the page already exists at the specified path, it will be updated.',
     inputSchema: zodToJsonSchema(CreateWikiPageSchema),
+    readOnly: false,
   },
 ];
