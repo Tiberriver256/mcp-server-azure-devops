@@ -145,11 +145,37 @@ Azure CLI authentication uses the `AzureCliCredential` class from the `@azure/id
 | `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization                                         | Yes                          | -                |
 | `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                                               | Only with PAT auth           | -                |
 | `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                                                  | No                           | -                |
-| `AZURE_DEVOPS_API_VERSION`     | REST api-version for direct REST calls (set to `7.0` for Azure DevOps Server 2022 and older) | No                           | `7.1`            |
+| `AZURE_DEVOPS_API_VERSION`     | REST api-version for the tools that call the REST API directly (see [REST API version](#rest-api-version)) | No                           | `7.1`            |
 | `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                                        | Only with service principals | -                |
 | `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                                   | Only with service principals | -                |
 | `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                                    | Only with service principals | -                |
 | `LOG_LEVEL`                    | Logging level (debug, info, warn, error)                                           | No                           | info             |
+
+### REST API version
+
+Most tools go through `azure-devops-node-api`, which negotiates the REST
+api-version with the server on its own. The pipeline, search and wiki tools call
+the REST API directly and use `AZURE_DEVOPS_API_VERSION` instead.
+
+The default `7.1` is what Azure DevOps Services expects. On-premises releases cap
+out earlier, and a version above the cap is rejected with
+`The requested REST API version of <x> is out of range for this server`:
+
+| Product                     | Highest api-version |
+| --------------------------- | ------------------- |
+| Azure DevOps Services       | `7.1`               |
+| Azure DevOps Server 2022    | `7.0`               |
+| Azure DevOps Server 2020    | `6.0`               |
+| Azure DevOps Server 2019    | `5.0`               |
+| Team Foundation Server 2018 | `4.0`               |
+
+See [REST API versioning](https://learn.microsoft.com/en-us/azure/devops/integrate/concepts/rest-api-versioning)
+for the full matrix.
+
+Known limitation: this is one value for every direct call. On `6.0` and older,
+some areas (pipelines, search) only ship as `-preview.N` revisions while others
+are stable at the same major version, so a single setting cannot satisfy both and
+part of the tools may still be rejected on those releases.
 
 ## Troubleshooting Authentication Issues
 
