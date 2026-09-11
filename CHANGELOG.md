@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.48](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.47...mcp-server-azure-devops-v0.1.48) (2026-09-10)
+
+
+### Bug Fixes
+
+* align createWikiPage unit API version with default 7.1 ([#328](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/328)) ([bbbec77](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/bbbec77863edeea82cbed5107dd12017ab074eb2))
+
 ## [0.1.47](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.46...mcp-server-azure-devops-v0.1.47) (2026-09-09)
 
 
