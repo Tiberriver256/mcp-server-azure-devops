@@ -100,7 +100,7 @@
     "dotenv": "^17.4.2",
     "jszip": "^3.10.1",
     "minimatch": "^10.2.6",
-    "zod": "^3.24.2",
+    "zod": "^4.5.4",
     "zod-to-json-schema": "^3.24.5"
   },
   "devDependencies": {
