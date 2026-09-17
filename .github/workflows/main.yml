@@ -44,7 +44,11 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - name: Install Dependencies
-        run: npm ci
+        run: |
+          # Refresh lockfile when package.json and package-lock.json disagree (e.g. mid-migration PRs),
+          # then install exactly from the refreshed lock.
+          npm install --package-lock-only
+          npm ci
       - name: Security Audit
         run: npm audit --audit-level=high
       - name: Lint
