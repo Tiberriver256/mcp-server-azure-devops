@@ -84,7 +84,10 @@ describe('environment utilities', () => {
     };
 
     it('should default to 7.1', () => {
-      delete process.env.AZURE_DEVOPS_API_VERSION;
+      // Assign an empty value instead of deleting the key: environment.ts runs
+      // dotenv.config(), which would repopulate a deleted key from a local .env
+      // but leaves an existing one alone.
+      process.env.AZURE_DEVOPS_API_VERSION = '';
       expect(loadApiVersion()).toBe('7.1');
     });
 
