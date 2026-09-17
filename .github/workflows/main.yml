@@ -46,8 +46,8 @@ jobs:
       - name: Install Dependencies
         run: |
           # Refresh lockfile when package.json and package-lock.json disagree (e.g. mid-migration PRs),
-          # then install exactly from the refreshed lock.
-          npm install --package-lock-only
+          # then install exactly from the refreshed lock. Ignore scripts on lock-only so husky is not required yet.
+          npm install --package-lock-only --ignore-scripts
           npm ci
       - name: Security Audit
         run: npm audit --audit-level=high
