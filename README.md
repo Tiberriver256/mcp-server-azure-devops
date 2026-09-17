@@ -78,6 +78,9 @@ npm run dev            # runs src/index.ts via ts-node-dev
 
 To integrate with Claude Desktop or Cursor AI, add one of the following configurations to your configuration file.
 
+> [!IMPORTANT]
+> Claude Desktop expects the top-level key to be `mcpServers` (not `servers`).
+
 #### Azure Identity Authentication
 
 Be sure you are logged in to Azure CLI with `az login` then add the following:
@@ -117,6 +120,26 @@ Be sure you are logged in to Azure CLI with `az login` then add the following:
 }
 ```
 
+#### Windows (Claude Desktop) command wrapper
+
+On Windows, prefer invoking `npx` through `cmd`:
+
+```json
+{
+  "mcpServers": {
+    "azureDevOps": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@tiberriver256/mcp-server-azure-devops"],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "https://dev.azure.com/your-organization",
+        "AZURE_DEVOPS_AUTH_METHOD": "pat",
+        "AZURE_DEVOPS_PAT": "<YOUR_PAT>"
+      }
+    }
+  }
+}
+```
+
 Azure DevOps Server (on-prem) requires PAT authentication. Example:
 
 ```json
@@ -137,6 +160,13 @@ Azure DevOps Server (on-prem) requires PAT authentication. Example:
 ```
 
 For detailed configuration instructions and more authentication options, see the [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md).
+
+If Claude Desktop reports connection failures:
+
+- Ensure your config uses `mcpServers` (not `servers`)
+- On Windows, use the `cmd` wrapper shown above
+- Ensure `AZURE_DEVOPS_ORG_URL` includes your organization segment (`https://dev.azure.com/<org>`)
+- If you don't want a default project, omit `AZURE_DEVOPS_DEFAULT_PROJECT` instead of setting it to an empty string
 
 ## Authentication Methods
 
