@@ -197,7 +197,7 @@
 - `start`: `node dist/index.js` (Runs compiled server).
 - `inspector`: `npm run build && npx @modelcontextprotocol/inspector node dist/index.js` (Runs server with MCP Inspector).
 - `test:unit`, `test:int`, `test:e2e`, `test`: Run respective test suites.
-- `lint`, `lint:fix`: Run Oxlint.
+- `lint`, `lint:fix`: Run Oxlint (`lint:fix` applies lint fixes only; run `format` separately).
 - `format`, `format:check`: Run oxfmt.
 - `prepare`: `husky install` (Sets up Git hooks).
 - `commit`: `cz` (Interactive commitizen).
