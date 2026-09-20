@@ -55,23 +55,27 @@ export async function getWorkItemAttachment(
       writeStream.on('finish', resolve);
     });
 
-    // Azure DevOps may return an HTML error page for invalid attachment IDs
-    // instead of throwing; detect that and surface a not-found error.
-    const head = Buffer.alloc(128);
-    const fd = fs.openSync(options.outputPath, 'r');
-    const bytesRead = fs.readSync(fd, head, 0, 128, 0);
-    fs.closeSync(fd);
-    const preview = head.subarray(0, bytesRead).toString('utf8').toLowerCase();
-    if (
-      preview.includes('<!doctype html') ||
-      preview.includes('<html') ||
-      preview.includes('tf401232') ||
-      preview.includes('attachment does not exist')
-    ) {
-      fs.unlinkSync(options.outputPath);
-      throw new Error(
-        `Failed to get attachment: Attachment not found (${options.attachmentId})`,
-      );
+    // Azure DevOps may return an HTML/JSON error body for invalid attachment
+    // IDs instead of throwing; detect that and surface a not-found error.
+    const statsBeforeCheck = fs.statSync(options.outputPath);
+    if (statsBeforeCheck.size > 0 && statsBeforeCheck.size < 4096) {
+      const preview = fs
+        .readFileSync(options.outputPath)
+        .toString('utf8')
+        .toLowerCase();
+      if (
+        preview.includes('<!doctype') ||
+        preview.includes('<html') ||
+        preview.includes('tf401232') ||
+        preview.includes('attachment does not exist') ||
+        preview.includes('"typekey"') ||
+        preview.includes('exception')
+      ) {
+        fs.unlinkSync(options.outputPath);
+        throw new Error(
+          `Failed to get attachment: Attachment not found (${options.attachmentId})`,
+        );
+      }
     }
 
     // Get the file size
