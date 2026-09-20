@@ -105,8 +105,7 @@ describeOrSkip('deleteWorkItemAttachment integration', () => {
       'relations',
     );
     const attachmentRelation = updatedWorkItem.relations?.find(
-      (r) =>
-        r.rel === 'AttachedFile' && r.url?.includes(uploadedAttachmentId),
+      (r) => r.rel === 'AttachedFile' && r.url?.includes(uploadedAttachmentId),
     );
     expect(attachmentRelation).toBeUndefined();
   });
