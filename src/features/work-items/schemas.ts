@@ -76,7 +76,7 @@ export const CreateWorkItemSchema = z.object({
     .record(z.string(), z.any())
     .optional()
     .describe(
-      'Additional fields to set on the work item. Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
+      'Additional Azure DevOps fields to set by reference name (fields not exposed as named parameters). Example for Bug severity: { "Microsoft.VSTS.Common.Severity": "1 - Critical" } (accepted values: "1 - Critical", "2 - High", "3 - Medium", "4 - Low"). Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
     ),
 });
 
@@ -125,7 +125,7 @@ export const UpdateWorkItemSchema = z.object({
     .record(z.string(), z.any())
     .optional()
     .describe(
-      'Additional fields to update on the work item. Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
+      'Additional Azure DevOps fields to update by reference name (fields not exposed as named parameters). Example for Bug severity: { "Microsoft.VSTS.Common.Severity": "1 - Critical" } (accepted values: "1 - Critical", "2 - High", "3 - Medium", "4 - Low"). Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
     ),
 });
 
