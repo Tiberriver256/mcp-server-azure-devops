@@ -4,7 +4,7 @@ Always reference these instructions first and fallback to search or bash command
 
 ## Prerequisites
 
-You need to have `Node.js` and `npm` installed. Node 20 (LTS) or later is recommended for development.
+You need to have `Node.js` and `npm` installed. Node 20.19+ (LTS) or 22.12+ is recommended for development.
 
 ## Building and Running
 
