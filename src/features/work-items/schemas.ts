@@ -195,3 +195,9 @@ export const GetWorkItemCommentsSchema = z.object({
     .default('asc')
     .describe('The order in which to sort the comments (Default: "asc")'),
 });
+
+export {
+  CreateWorkItemAttachmentSchema,
+  GetWorkItemAttachmentSchema,
+  DeleteWorkItemAttachmentSchema,
+} from './attachment-schemas';
