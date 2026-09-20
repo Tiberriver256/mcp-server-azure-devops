@@ -1,4 +1,4 @@
-import { zodToJsonSchema } from 'zod-to-json-schema';
+import { toJsonSchema } from '../../shared/utils/to-json-schema';
 import { ToolDefinition } from '../../shared/types/tool-definition';
 import { ListPipelinesSchema } from './list-pipelines/schema';
 import { GetPipelineSchema } from './get-pipeline/schema';
@@ -16,52 +16,52 @@ export const pipelinesTools: ToolDefinition[] = [
   {
     name: 'list_pipelines',
     description: 'List pipelines in a project',
-    inputSchema: zodToJsonSchema(ListPipelinesSchema),
+    inputSchema: toJsonSchema(ListPipelinesSchema),
     mcp_enabled: true,
   },
   {
     name: 'get_pipeline',
     description: 'Get details of a specific pipeline',
-    inputSchema: zodToJsonSchema(GetPipelineSchema),
+    inputSchema: toJsonSchema(GetPipelineSchema),
     mcp_enabled: true,
   },
   {
     name: 'list_pipeline_runs',
     description: 'List recent runs for a pipeline',
-    inputSchema: zodToJsonSchema(ListPipelineRunsSchema),
+    inputSchema: toJsonSchema(ListPipelineRunsSchema),
     mcp_enabled: true,
   },
   {
     name: 'get_pipeline_run',
     description: 'Get details for a specific pipeline run',
-    inputSchema: zodToJsonSchema(GetPipelineRunSchema),
+    inputSchema: toJsonSchema(GetPipelineRunSchema),
     mcp_enabled: true,
   },
   {
     name: 'download_pipeline_artifact',
     description:
       'Download a file from a pipeline run artifact and return its textual content',
-    inputSchema: zodToJsonSchema(DownloadPipelineArtifactSchema),
+    inputSchema: toJsonSchema(DownloadPipelineArtifactSchema),
     mcp_enabled: true,
   },
   {
     name: 'pipeline_timeline',
     description:
       'Retrieve the timeline of stages and jobs for a pipeline run, to reduce the amount of data returned, you can filter by state and result',
-    inputSchema: zodToJsonSchema(GetPipelineTimelineSchema),
+    inputSchema: toJsonSchema(GetPipelineTimelineSchema),
     mcp_enabled: true,
   },
   {
     name: 'get_pipeline_log',
     description:
       'Retrieve a specific pipeline log using the timeline log identifier',
-    inputSchema: zodToJsonSchema(GetPipelineLogSchema),
+    inputSchema: toJsonSchema(GetPipelineLogSchema),
     mcp_enabled: true,
   },
   {
     name: 'trigger_pipeline',
     description: 'Trigger a pipeline run',
-    inputSchema: zodToJsonSchema(TriggerPipelineSchema),
+    inputSchema: toJsonSchema(TriggerPipelineSchema),
     mcp_enabled: true,
   },
 ];

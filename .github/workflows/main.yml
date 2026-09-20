@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   changes:
@@ -17,10 +18,7 @@ jobs:
     outputs:
       code: ${{ steps.filter.outputs.code }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -32,20 +30,29 @@ jobs:
 
   test:
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && !github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     environment: external-pr-check
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Use latest Node LTS
-        uses: actions/setup-node@v4
+      - name: Use Node 22
+        uses: actions/setup-node@v7
         with:
-          node-version: 'lts/*'
+          node-version: '22'
+          cache: 'npm'
       - name: Install Dependencies
-        run: npm install
+        run: |
+          # Refresh lockfile when package.json and package-lock.json disagree (e.g. mid-migration PRs),
+          # then install exactly from the refreshed lock. Ignore scripts on lock-only so husky is not required yet.
+          npm install --package-lock-only --ignore-scripts
+          npm ci
+      - name: Security Audit
+        run: npm audit --audit-level=high
+      - name: Format Check
+        run: npm run format:check
       - name: Lint
         run: npm run lint
       - name: Build
@@ -80,6 +87,10 @@ jobs:
         run: |
           if [[ "${{ needs.changes.outputs.code }}" != "true" ]]; then
             echo "Markdown-only change; skipping CI."
+            exit 0
+          fi
+          if [[ "${{ github.event.pull_request.head.repo.fork }}" == "true" ]]; then
+            echo "Fork pull request; skipping trusted-context tests."
             exit 0
           fi
           if [[ "${{ needs.test.result }}" == "success" ]]; then

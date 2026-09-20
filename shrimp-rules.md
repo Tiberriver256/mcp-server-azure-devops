@@ -17,7 +17,7 @@
     - `zod`: For schema definition and validation.
     - `zod-to-json-schema`: For converting Zod schemas to JSON schemas for MCP tools.
 - **Testing**: Jest (for unit, integration, and e2e tests).
-- **Linting/Formatting**: ESLint, Prettier.
+- **Linting/Formatting**: Oxlint, oxfmt.
 - **Environment Management**: `dotenv`.
 
 ### Core Functionality
@@ -38,7 +38,7 @@
 - **`./` (Root)**:
     - [`package.json`](package.json:0): Project metadata, dependencies, and NPM scripts. **REFER** to this for available commands and dependencies.
     - [`tsconfig.json`](tsconfig.json:0): TypeScript compiler configuration. **ADHERE** to its settings.
-    - [`.eslintrc.json`](.eslintrc.json:0): ESLint configuration for code linting. **ADHERE** to its rules.
+    - [`.oxlintrc.json`](.oxlintrc.json:0): Oxlint configuration for code linting. **ADHERE** to its rules.
     - [`README.md`](README.md:0): General project information.
     - `setup_env.sh`: Shell script for environment setup.
     - `CHANGELOG.md` (if present): Tracks changes between versions.
@@ -85,18 +85,14 @@
 - **Types**: Feature-specific types in `src/features/[feature-name]/types.ts`; global types in `src/shared/types/`.
 
 ### Formatting
-- **Prettier**: Enforced via ESLint and lint-staged.
-- **Rule**: ADHERE to formatting rules defined by Prettier (implicitly via [`.eslintrc.json`](.eslintrc.json:1) which extends `prettier`).
-- **Action**: ALWAYS run `npm run format` (or rely on lint-staged) before committing.
+- **oxfmt**: Configuration in [`.oxfmtrc.json`](.oxfmtrc.json:1) and enforced via lint-staged.
+- **Rule**: ADHERE to formatting rules defined by oxfmt.
+- **Action**: ALWAYS run `npm run format` and `npm run format:check` (or rely on lint-staged) before committing.
 
 ### Linting
-- **ESLint**: Configuration in [`.eslintrc.json`](.eslintrc.json:1).
+- **Oxlint**: Configuration in [`.oxlintrc.json`](.oxlintrc.json:1).
 - **Rule**: ADHERE to linting rules.
 - **Action**: ALWAYS run `npm run lint` (or `npm run lint:fix`) and RESOLVE all errors/warnings before committing.
-- **Key Lint Rules (from [`.eslintrc.json`](.eslintrc.json:1))**:
-    - `prettier/prettier: "error"` (Prettier violations are ESLint errors).
-    - `@typescript-eslint/no-explicit-any: "warn"` (Avoid `any` where possible; it's "off" for `*.spec.unit.ts` and `tests/**/*.ts`).
-    - `@typescript-eslint/no-unused-vars: ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }]` (No unused variables, allowing `_` prefix for ignored ones).
 
 ### Comments
 - **TSDoc**: USE TSDoc for documenting public functions, classes, interfaces, and types (e.g., `/** ... */`).
@@ -174,7 +170,7 @@
 - **Jest**:
     - Test files co-located with source files or in feature-specific `__test__` directories.
     - Configuration in `jest.unit.config.js`, `jest.int.config.js`, `jest.e2e.config.js`.
-- **ESLint/Prettier**: See "Code Standards".
+- **Oxlint/oxfmt**: See "Code Standards".
 
 ## 6. Workflow Standards
 
@@ -201,8 +197,8 @@
 - `start`: `node dist/index.js` (Runs compiled server).
 - `inspector`: `npm run build && npx @modelcontextprotocol/inspector node dist/index.js` (Runs server with MCP Inspector).
 - `test:unit`, `test:int`, `test:e2e`, `test`: Run respective test suites.
-- `lint`, `lint:fix`: Run ESLint.
-- `format`: Run Prettier.
+- `lint`, `lint:fix`: Run Oxlint (`lint:fix` applies lint fixes only; run `format` separately).
+- `format`, `format:check`: Run oxfmt.
 - `prepare`: `husky install` (Sets up Git hooks).
 - `commit`: `cz` (Interactive commitizen).
 
@@ -223,7 +219,7 @@
 - **Configuration Changes**:
     - Environment variables: Managed via `.env` file (loaded by `dotenv` in [`src/index.ts`](src/index.ts:1)).
     - TypeScript config: [`tsconfig.json`](tsconfig.json:1).
-    - Linting config: [`.eslintrc.json`](.eslintrc.json:1).
+    - Linting config: [`.oxlintrc.json`](.oxlintrc.json:1).
 - **Dependency Management**:
     - MODIFY [`package.json`](package.json:1) to add/update dependencies.
     - RUN `npm install` or `npm ci`.
@@ -267,7 +263,7 @@
 
 - **DO NOT** include general development knowledge or LLM-known facts in this `shrimp-rules.md` document. This document is for project-specific operational rules for AI.
 - **DO NOT** explain project functionality in terms of *what it does for an end-user*. Focus on *how to modify or add to it* for an AI developer.
-- **DO NOT** use `any` type implicitly. [`tsconfig.json`](tsconfig.json:1) enforces `noImplicitAny: true`. [`.eslintrc.json`](.eslintrc.json:1) warns on explicit `any` (`@typescript-eslint/no-explicit-any: "warn"`), except in unit tests. MINIMIZE explicit `any`.
+- **DO NOT** use `any` type implicitly. [`tsconfig.json`](tsconfig.json:1) enforces `noImplicitAny: true`. MINIMIZE explicit `any`.
 - **DO NOT** bypass linting (`npm run lint`) or formatting (`npm run format`) checks. Code MUST adhere to these standards.
 - **DO NOT** commit code that fails tests (`npm test`).
 - **DO NOT** implement custom Azure DevOps authentication logic. USE the provided `AzureDevOpsClient` from `src/shared/auth/`.

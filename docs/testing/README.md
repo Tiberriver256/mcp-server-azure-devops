@@ -19,9 +19,9 @@ This project follows the Testing Trophy approach advocated by Kent C. Dodds inst
 ### Static Analysis (The Base)
 
 - TypeScript for type checking
-- ESLint for code quality and consistency
+- Oxlint for code quality and consistency
 - Runtime type checking with Zod
-- Formatter (Prettier)
+- Formatter (oxfmt)
 
 These tools catch many issues before tests are even run and provide immediate feedback during development.
 
@@ -118,7 +118,7 @@ test('should do something', () => {
 
 Our CI/CD pipeline runs all test levels to ensure code quality:
 
-1. Static analysis with TypeScript and ESLint
+1. Static analysis with TypeScript and Oxlint
 2. Unit tests
 3. Integration tests
 4. End-to-end tests

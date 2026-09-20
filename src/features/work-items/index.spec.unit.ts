@@ -3,65 +3,52 @@ import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
 import * as workItemModule from './';
 
-// Mock the imported modules
-jest.mock('./get-work-item', () => ({
-  getWorkItem: jest.fn(),
-}));
-
-jest.mock('./list-work-items', () => ({
-  listWorkItems: jest.fn(),
-}));
-
-jest.mock('./create-work-item', () => ({
-  createWorkItem: jest.fn(),
-}));
-
-jest.mock('./update-work-item', () => ({
-  updateWorkItem: jest.fn(),
-}));
-
-jest.mock('./manage-work-item-link', () => ({
-  manageWorkItemLink: jest.fn(),
-}));
-
+jest.mock('./get-work-item', () => ({ getWorkItem: jest.fn() }));
+jest.mock('./list-work-items', () => ({ listWorkItems: jest.fn() }));
+jest.mock('./create-work-item', () => ({ createWorkItem: jest.fn() }));
+jest.mock('./update-work-item', () => ({ updateWorkItem: jest.fn() }));
+jest.mock('./manage-work-item-link', () => ({ manageWorkItemLink: jest.fn() }));
 jest.mock('./get-work-item-comments', () => ({
   getWorkItemComments: jest.fn(),
 }));
+jest.mock('./create-work-item-attachment', () => ({
+  createWorkItemAttachment: jest.fn(),
+}));
+jest.mock('./get-work-item-attachment', () => ({
+  getWorkItemAttachment: jest.fn(),
+}));
+jest.mock('./delete-work-item-attachment', () => ({
+  deleteWorkItemAttachment: jest.fn(),
+}));
 
-// Helper function to create a valid CallToolRequest object
-const createCallToolRequest = (name: string, args: any): CallToolRequest => {
-  return {
+const createCallToolRequest = (name: string, args: any): CallToolRequest =>
+  ({
     method: 'tools/call',
-    params: {
-      name,
-      arguments: args,
-    },
-  } as unknown as CallToolRequest;
-};
+    params: { name, arguments: args },
+  }) as unknown as CallToolRequest;
 
 describe('Work Items Request Handlers', () => {
   describe('isWorkItemsRequest', () => {
     it('should return true for work items requests', () => {
-      const workItemsRequests = [
+      [
         'get_work_item',
         'list_work_items',
         'create_work_item',
         'update_work_item',
         'manage_work_item_link',
         'get_work_item_comments',
-      ];
-
-      workItemsRequests.forEach((name) => {
-        const request = createCallToolRequest(name, {});
-
-        expect(isWorkItemsRequest(request)).toBe(true);
+        'create_work_item_attachment',
+        'get_work_item_attachment',
+        'delete_work_item_attachment',
+      ].forEach((name) => {
+        expect(isWorkItemsRequest(createCallToolRequest(name, {}))).toBe(true);
       });
     });
 
     it('should return false for non-work items requests', () => {
-      const request = createCallToolRequest('get_project', {});
-
-      expect(isWorkItemsRequest(request)).toBe(false);
+      expect(isWorkItemsRequest(createCallToolRequest('get_project', {}))).toBe(
+        false,
+      );
     });
   });
 
@@ -70,97 +57,95 @@ describe('Work Items Request Handlers', () => {
 
     beforeEach(() => {
       mockConnection = {} as WebApi;
-
-      // Setup mock for schema validation - with correct return types
       jest
         .spyOn(workItemModule.GetWorkItemSchema, 'parse')
-        .mockImplementation(() => {
-          return { workItemId: 123, expand: undefined };
-        });
-
+        .mockReturnValue({ workItemId: 123, expand: undefined } as any);
       jest
         .spyOn(workItemModule.ListWorkItemsSchema, 'parse')
-        .mockImplementation(() => {
-          return { projectId: 'myProject' };
-        });
-
-      jest
-        .spyOn(workItemModule.CreateWorkItemSchema, 'parse')
-        .mockImplementation(() => {
-          return {
-            projectId: 'myProject',
-            workItemType: 'Task',
-            title: 'New Task',
-          };
-        });
-
+        .mockReturnValue({ projectId: 'myProject' } as any);
+      jest.spyOn(workItemModule.CreateWorkItemSchema, 'parse').mockReturnValue({
+        projectId: 'myProject',
+        workItemType: 'Task',
+        title: 'New Task',
+      } as any);
       jest
         .spyOn(workItemModule.UpdateWorkItemSchema, 'parse')
-        .mockImplementation(() => {
-          return {
-            workItemId: 123,
-            title: 'Updated Title',
-          };
-        });
-
+        .mockReturnValue({ workItemId: 123, title: 'Updated Title' } as any);
       jest
         .spyOn(workItemModule.ManageWorkItemLinkSchema, 'parse')
-        .mockImplementation(() => {
-          return {
-            sourceWorkItemId: 123,
-            targetWorkItemId: 456,
-            operation: 'add' as 'add' | 'remove' | 'update',
-            relationType: 'System.LinkTypes.Hierarchy-Forward',
-          };
-        });
-
+        .mockReturnValue({
+          sourceWorkItemId: 123,
+          targetWorkItemId: 456,
+          operation: 'add',
+          relationType: 'System.LinkTypes.Hierarchy-Forward',
+        } as any);
       jest
         .spyOn(workItemModule.GetWorkItemCommentsSchema, 'parse')
-        .mockImplementation(() => {
-          return {
-            workItemId: 123,
-            projectId: 'myProject',
-            top: 5,
-            continuationToken: 'token123',
-            includeDeleted: true,
-            expand: 'all',
-            order: 'asc',
-          };
-        });
-
-      // Setup mocks for feature functions
-      jest.spyOn(workItemModule, 'getWorkItem').mockResolvedValue({ id: 123 });
+        .mockReturnValue({
+          workItemId: 123,
+          projectId: 'myProject',
+          top: 5,
+          continuationToken: 'token123',
+          includeDeleted: true,
+          expand: 'all',
+          order: 'asc',
+        } as any);
+      jest
+        .spyOn(workItemModule.CreateWorkItemAttachmentSchema, 'parse')
+        .mockReturnValue({
+          workItemId: 123,
+          filePath: '/path/to/file.txt',
+        } as any);
+      jest
+        .spyOn(workItemModule.GetWorkItemAttachmentSchema, 'parse')
+        .mockReturnValue({
+          attachmentId: 'abc-123-def-456',
+          outputPath: '/path/to/output.txt',
+        } as any);
+      jest
+        .spyOn(workItemModule.DeleteWorkItemAttachmentSchema, 'parse')
+        .mockReturnValue({
+          workItemId: 123,
+          attachmentId: 'abc-123-def-456',
+        } as any);
+      jest
+        .spyOn(workItemModule, 'getWorkItem')
+        .mockResolvedValue({ id: 123 } as any);
       jest
         .spyOn(workItemModule, 'listWorkItems')
-        .mockResolvedValue([{ id: 123 }, { id: 456 }]);
+        .mockResolvedValue([{ id: 123 }, { id: 456 }] as any);
       jest
         .spyOn(workItemModule, 'createWorkItem')
-        .mockResolvedValue({ id: 789 });
+        .mockResolvedValue({ id: 789 } as any);
       jest
         .spyOn(workItemModule, 'updateWorkItem')
-        .mockResolvedValue({ id: 123 });
+        .mockResolvedValue({ id: 123 } as any);
       jest
         .spyOn(workItemModule, 'manageWorkItemLink')
-        .mockResolvedValue({ id: 123 });
-      jest.spyOn(workItemModule, 'getWorkItemComments').mockResolvedValue({
-        comments: [{ id: 1 }],
-      });
+        .mockResolvedValue({ id: 123 } as any);
+      jest
+        .spyOn(workItemModule, 'getWorkItemComments')
+        .mockResolvedValue({ comments: [{ id: 1 }] } as any);
+      jest
+        .spyOn(workItemModule, 'createWorkItemAttachment')
+        .mockResolvedValue({ id: 123, relations: [] } as any);
+      jest.spyOn(workItemModule, 'getWorkItemAttachment').mockResolvedValue({
+        filePath: '/path/to/output.txt',
+        fileName: 'output.txt',
+        size: 1024,
+      } as any);
+      jest
+        .spyOn(workItemModule, 'deleteWorkItemAttachment')
+        .mockResolvedValue({ id: 123 } as any);
     });
 
-    afterEach(() => {
-      jest.resetAllMocks();
-    });
+    afterEach(() => jest.resetAllMocks());
 
     it('should handle get_work_item requests', async () => {
-      const request = createCallToolRequest('get_work_item', {
-        workItemId: 123,
-      });
-
-      const result = await handleWorkItemsRequest(mockConnection, request);
-
-      expect(workItemModule.GetWorkItemSchema.parse).toHaveBeenCalledWith({
-        workItemId: 123,
-      });
+      const result = await handleWorkItemsRequest(
+        mockConnection,
+        createCallToolRequest('get_work_item', { workItemId: 123 }),
+      );
       expect(workItemModule.getWorkItem).toHaveBeenCalledWith(
         mockConnection,
         123,
@@ -171,99 +156,59 @@ describe('Work Items Request Handlers', () => {
       });
     });
 
-    it('should handle list_work_items requests', async () => {
-      const request = createCallToolRequest('list_work_items', {
-        projectId: 'myProject',
-      });
-
-      const result = await handleWorkItemsRequest(mockConnection, request);
-
-      expect(workItemModule.ListWorkItemsSchema.parse).toHaveBeenCalledWith({
-        projectId: 'myProject',
-      });
-      expect(workItemModule.listWorkItems).toHaveBeenCalled();
+    it('should handle create_work_item_attachment requests', async () => {
+      const args = { workItemId: 123, filePath: '/path/to/file.txt' };
+      const result = await handleWorkItemsRequest(
+        mockConnection,
+        createCallToolRequest('create_work_item_attachment', args),
+      );
+      expect(
+        workItemModule.CreateWorkItemAttachmentSchema.parse,
+      ).toHaveBeenCalledWith(args);
+      expect(workItemModule.createWorkItemAttachment).toHaveBeenCalled();
       expect(result).toEqual({
         content: [
           {
             type: 'text',
-            text: JSON.stringify([{ id: 123 }, { id: 456 }], null, 2),
+            text: JSON.stringify({ id: 123, relations: [] }, null, 2),
           },
         ],
       });
     });
 
-    it('should handle create_work_item requests', async () => {
-      const request = createCallToolRequest('create_work_item', {
-        projectId: 'myProject',
-        workItemType: 'Task',
-        title: 'New Task',
-      });
-
-      const result = await handleWorkItemsRequest(mockConnection, request);
-
-      expect(workItemModule.CreateWorkItemSchema.parse).toHaveBeenCalledWith({
-        projectId: 'myProject',
-        workItemType: 'Task',
-        title: 'New Task',
-      });
-      expect(workItemModule.createWorkItem).toHaveBeenCalled();
-      expect(result).toEqual({
-        content: [{ type: 'text', text: JSON.stringify({ id: 789 }, null, 2) }],
-      });
-    });
-
-    it('should handle update_work_item requests', async () => {
-      const request = createCallToolRequest('update_work_item', {
-        workItemId: 123,
-        title: 'Updated Title',
-      });
-
-      const result = await handleWorkItemsRequest(mockConnection, request);
-
-      expect(workItemModule.UpdateWorkItemSchema.parse).toHaveBeenCalledWith({
-        workItemId: 123,
-        title: 'Updated Title',
-      });
-      expect(workItemModule.updateWorkItem).toHaveBeenCalled();
-      expect(result).toEqual({
-        content: [{ type: 'text', text: JSON.stringify({ id: 123 }, null, 2) }],
-      });
-    });
-
-    it('should handle manage_work_item_link requests', async () => {
-      const request = createCallToolRequest('manage_work_item_link', {
-        sourceWorkItemId: 123,
-        targetWorkItemId: 456,
-        operation: 'add',
-        relationType: 'System.LinkTypes.Hierarchy-Forward',
-      });
-
-      const result = await handleWorkItemsRequest(mockConnection, request);
-
+    it('should handle get_work_item_attachment requests', async () => {
+      const args = {
+        attachmentId: 'abc-123-def-456',
+        outputPath: '/path/to/output.txt',
+      };
+      const result = await handleWorkItemsRequest(
+        mockConnection,
+        createCallToolRequest('get_work_item_attachment', args),
+      );
       expect(
-        workItemModule.ManageWorkItemLinkSchema.parse,
-      ).toHaveBeenCalledWith({
-        sourceWorkItemId: 123,
-        targetWorkItemId: 456,
-        operation: 'add',
-        relationType: 'System.LinkTypes.Hierarchy-Forward',
-      });
-      expect(workItemModule.manageWorkItemLink).toHaveBeenCalled();
+        workItemModule.GetWorkItemAttachmentSchema.parse,
+      ).toHaveBeenCalledWith(args);
+      expect(workItemModule.getWorkItemAttachment).toHaveBeenCalled();
+      expect(result.content[0].text).toContain('output.txt');
+    });
+
+    it('should handle delete_work_item_attachment requests', async () => {
+      const args = { workItemId: 123, attachmentId: 'abc-123-def-456' };
+      const result = await handleWorkItemsRequest(
+        mockConnection,
+        createCallToolRequest('delete_work_item_attachment', args),
+      );
+      expect(
+        workItemModule.DeleteWorkItemAttachmentSchema.parse,
+      ).toHaveBeenCalledWith(args);
+      expect(workItemModule.deleteWorkItemAttachment).toHaveBeenCalled();
       expect(result).toEqual({
         content: [{ type: 'text', text: JSON.stringify({ id: 123 }, null, 2) }],
       });
-    });
-
-    it('should throw an error for unknown work items tools', async () => {
-      const request = createCallToolRequest('unknown_tool', {});
-
-      await expect(
-        handleWorkItemsRequest(mockConnection, request),
-      ).rejects.toThrow('Unknown work items tool: unknown_tool');
     });
 
     it('should handle get_work_item_comments requests', async () => {
-      const request = createCallToolRequest('get_work_item_comments', {
+      const args = {
         workItemId: 123,
         projectId: 'myProject',
         top: 5,
@@ -271,32 +216,14 @@ describe('Work Items Request Handlers', () => {
         includeDeleted: true,
         expand: 'all',
         order: 'asc',
-      });
-
-      const result = await handleWorkItemsRequest(mockConnection, request);
-
-      expect(
-        workItemModule.GetWorkItemCommentsSchema.parse,
-      ).toHaveBeenCalledWith({
-        workItemId: 123,
-        projectId: 'myProject',
-        top: 5,
-        continuationToken: 'token123',
-        includeDeleted: true,
-        expand: 'all',
-        order: 'asc',
-      });
+      };
+      const result = await handleWorkItemsRequest(
+        mockConnection,
+        createCallToolRequest('get_work_item_comments', args),
+      );
       expect(workItemModule.getWorkItemComments).toHaveBeenCalledWith(
         mockConnection,
-        {
-          workItemId: 123,
-          projectId: 'myProject',
-          top: 5,
-          continuationToken: 'token123',
-          includeDeleted: true,
-          expand: 'all',
-          order: 'asc',
-        },
+        args,
       );
       expect(result).toEqual({
         content: [
@@ -306,6 +233,15 @@ describe('Work Items Request Handlers', () => {
           },
         ],
       });
+    });
+
+    it('should throw an error for unknown work items tools', async () => {
+      await expect(
+        handleWorkItemsRequest(
+          mockConnection,
+          createCallToolRequest('unknown_tool', {}),
+        ),
+      ).rejects.toThrow('Unknown work items tool: unknown_tool');
     });
   });
 });

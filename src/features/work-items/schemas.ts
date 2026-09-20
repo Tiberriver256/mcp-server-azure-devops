@@ -31,6 +31,15 @@ export const ListWorkItemsSchema = z.object({
   wiql: z.string().optional().describe('Work Item Query Language (WIQL) query'),
   top: z.number().optional().describe('Maximum number of work items to return'),
   skip: z.number().optional().describe('Number of work items to skip'),
+  fields: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'List of additional fields to include in the response beyond the defaults ' +
+        '(System.Id, System.Title, System.State, System.AssignedTo). ' +
+        'Use full field reference names, e.g. "Microsoft.VSTS.Scheduling.StoryPoints", ' +
+        '"System.IterationPath", "System.AreaPath".',
+    ),
 });
 
 /**
@@ -76,7 +85,7 @@ export const CreateWorkItemSchema = z.object({
     .record(z.string(), z.any())
     .optional()
     .describe(
-      'Additional fields to set on the work item. Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
+      'Additional Azure DevOps fields to set by reference name (fields not exposed as named parameters). Example for Bug severity: { "Microsoft.VSTS.Common.Severity": "1 - Critical" } (accepted values: "1 - Critical", "2 - High", "3 - Medium", "4 - Low"). Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
     ),
 });
 
@@ -125,7 +134,7 @@ export const UpdateWorkItemSchema = z.object({
     .record(z.string(), z.any())
     .optional()
     .describe(
-      'Additional fields to update on the work item. Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
+      'Additional Azure DevOps fields to update by reference name (fields not exposed as named parameters). Example for Bug severity: { "Microsoft.VSTS.Common.Severity": "1 - Critical" } (accepted values: "1 - Critical", "2 - High", "3 - Medium", "4 - Low"). Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
     ),
 });
 
@@ -186,3 +195,9 @@ export const GetWorkItemCommentsSchema = z.object({
     .default('asc')
     .describe('The order in which to sort the comments (Default: "asc")'),
 });
+
+export {
+  CreateWorkItemAttachmentSchema,
+  GetWorkItemAttachmentSchema,
+  DeleteWorkItemAttachmentSchema,
+} from './attachment-schemas';

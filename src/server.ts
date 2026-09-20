@@ -248,9 +248,8 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         versionType && version ? { versionType, version } : undefined;
 
       // Import the getFileContent function from repositories feature
-      const { getFileContent } = await import(
-        './features/repositories/get-file-content/index.js'
-      );
+      const { getFileContent } =
+        await import('./features/repositories/get-file-content/index.js');
 
       const fileContent = await getFileContent(
         connection,

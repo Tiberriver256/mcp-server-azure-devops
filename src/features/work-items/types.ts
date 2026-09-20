@@ -14,6 +14,8 @@ export interface ListWorkItemsOptions {
   wiql?: string;
   top?: number;
   skip?: number;
+  /** Additional fields to include beyond the default four (Id, Title, State, AssignedTo). */
+  fields?: string[];
 }
 
 /**
@@ -59,6 +61,40 @@ export interface GetWorkItemCommentsOptions {
   includeDeleted?: boolean;
   expand?: 'none' | 'reactions' | 'renderedText' | 'all';
   order?: 'asc' | 'desc';
+}
+
+/**
+ * Options for creating an attachment on a work item
+ */
+export interface CreateWorkItemAttachmentOptions {
+  filePath: string;
+  fileName?: string;
+  comment?: string;
+}
+
+/**
+ * Options for getting an attachment from a work item
+ */
+export interface GetWorkItemAttachmentOptions {
+  attachmentId: string;
+  outputPath: string;
+}
+
+/**
+ * Result of getting an attachment
+ */
+export interface GetWorkItemAttachmentResult {
+  filePath: string;
+  fileName: string;
+  size: number;
+}
+
+/**
+ * Options for deleting an attachment from a work item
+ */
+export interface DeleteWorkItemAttachmentOptions {
+  workItemId: number;
+  attachmentId: string;
 }
 
 // Re-export WorkItem, WorkItemReference and CommentList types for convenience

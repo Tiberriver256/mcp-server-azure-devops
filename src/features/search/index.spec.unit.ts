@@ -1,5 +1,6 @@
 import { WebApi } from 'azure-devops-node-api';
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import { getTextContent } from '@/shared/test/text-content';
 import { isSearchRequest, handleSearchRequest } from './index';
 import { searchCode } from './search-code';
 import { searchWiki } from './search-wiki';
@@ -66,7 +67,7 @@ describe('Search Request Handlers', () => {
 
       const response = await handleSearchRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockSearchResults,
       );
       expect(searchCode).toHaveBeenCalledWith(
@@ -98,7 +99,7 @@ describe('Search Request Handlers', () => {
 
       const response = await handleSearchRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockSearchResults,
       );
       expect(searchWiki).toHaveBeenCalledWith(
@@ -133,7 +134,7 @@ describe('Search Request Handlers', () => {
 
       const response = await handleSearchRequest(mockConnection, request);
       expect(response.content).toHaveLength(1);
-      expect(JSON.parse(response.content[0].text as string)).toEqual(
+      expect(JSON.parse(getTextContent(response.content))).toEqual(
         mockSearchResults,
       );
       expect(searchWorkItems).toHaveBeenCalledWith(
