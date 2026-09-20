@@ -14,6 +14,8 @@ export interface ListWorkItemsOptions {
   wiql?: string;
   top?: number;
   skip?: number;
+  /** Additional fields to include beyond the default four (Id, Title, State, AssignedTo). */
+  fields?: string[];
 }
 
 /**
