@@ -7,6 +7,9 @@ import {
   ManageWorkItemLinkSchema,
   GetWorkItemSchema,
   GetWorkItemCommentsSchema,
+  CreateWorkItemAttachmentSchema,
+  GetWorkItemAttachmentSchema,
+  DeleteWorkItemAttachmentSchema,
 } from './schemas';
 
 /**
@@ -42,5 +45,23 @@ export const workItemsTools: ToolDefinition[] = [
     name: 'get_work_item_comments',
     description: 'Get comments and discussion history for a specific work item',
     inputSchema: toJsonSchema(GetWorkItemCommentsSchema),
+  },
+  {
+    name: 'create_work_item_attachment',
+    description:
+      'Upload a file and attach it to a work item. The file is read from the local filesystem, uploaded to Azure DevOps, and linked to the specified work item.',
+    inputSchema: toJsonSchema(CreateWorkItemAttachmentSchema),
+  },
+  {
+    name: 'get_work_item_attachment',
+    description:
+      'Download an attachment from Azure DevOps and save it to the local filesystem. The attachment ID can be obtained from the work item relations.',
+    inputSchema: toJsonSchema(GetWorkItemAttachmentSchema),
+  },
+  {
+    name: 'delete_work_item_attachment',
+    description:
+      'Delete an attachment from a work item. The attachment ID can be obtained from the work item relations.',
+    inputSchema: toJsonSchema(DeleteWorkItemAttachmentSchema),
   },
 ];
