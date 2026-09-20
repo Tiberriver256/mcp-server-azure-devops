@@ -26,8 +26,8 @@ The tech stack for the Azure DevOps MCP server is tailored to ensure compatibili
 ### Testing and Quality Assurance
 
 - **Jest**: A widely-used testing framework for unit and integration tests, ensuring the reliability of tools and server functionality.
-- **ESLint**: A linter configured with Typescript-specific rules to maintain code quality and consistency.
-- **Prettier**: A code formatter to enforce a uniform style across the project.
+- **Oxlint**: A linter configured with Typescript-specific rules to maintain code quality and consistency.
+- **oxfmt**: A code formatter to enforce a uniform style across the project.
 
 ### Version Control and CI/CD
 

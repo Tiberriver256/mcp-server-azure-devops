@@ -51,6 +51,8 @@ jobs:
           npm ci
       - name: Security Audit
         run: npm audit --audit-level=high
+      - name: Format Check
+        run: npm run format:check
       - name: Lint
         run: npm run lint
       - name: Build

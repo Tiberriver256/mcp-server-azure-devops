@@ -27,7 +27,7 @@
   },
   "lint-staged": {
     "*.ts": [
-      "prettier --write",
+      "oxfmt",
       "oxlint --fix"
     ]
   },
@@ -79,7 +79,8 @@
     "test:watch": "jest --watch",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
-    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format": "oxfmt \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format:check": "oxfmt --check \"src/**/*.ts\" \"tests/**/*.ts\"",
     "prepare": "husky install",
     "commit": "cz"
   },
@@ -114,8 +115,8 @@
     "husky": "^8.0.3",
     "jest": "^30.5.1",
     "lint-staged": "^15.5.0",
+    "oxfmt": "^0.68.0",
     "oxlint": "^1.81.0",
-    "prettier": "^3.0.0",
     "ts-jest": "^29.4.12",
     "ts-node-dev": "^2.0.0",
     "typescript": "npm:@typescript/typescript6@^6.0.2"
