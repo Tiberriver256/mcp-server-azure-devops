@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc"],
+  "env": {
+    "builtin": true,
+    "node": true,
+    "es6": true,
+    "jest": true
+  },
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "typescript/explicit-function-return-type": "off",
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+    ],
+    "no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+    ],
+    "unicorn/no-useless-fallback-in-spread": "off",
+    "oxc/number-arg-out-of-range": "off",
+    "no-unreachable": "off"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.spec.unit.ts", "tests/**/*.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "dist/**/*",
+    "project-management/**/*",
+    ".pi/**/*",
+    "node_modules/**/*"
+  ]
+}

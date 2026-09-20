@@ -26,6 +26,7 @@ export const TriggerPipelineSchema = z.object({
   // Variables to pass to the pipeline run
   variables: z
     .record(
+      z.string(),
       z.object({
         value: z.string(),
         isSecret: z.boolean().optional(),
@@ -35,7 +36,7 @@ export const TriggerPipelineSchema = z.object({
     .describe('Variables to pass to the pipeline run'),
   // Parameters for template-based pipelines
   templateParameters: z
-    .record(z.string())
+    .record(z.string(), z.string())
     .optional()
     .describe('Parameters for template-based pipelines'),
   // Stages to skip in the pipeline run

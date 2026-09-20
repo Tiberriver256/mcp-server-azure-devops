@@ -9,6 +9,7 @@ import {
   AzureDevOpsAuthenticationError,
 } from '../../../shared/errors';
 import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url';
+import { apiVersion } from '../../../utils/environment';
 import {
   SearchCodeOptions,
   CodeSearchRequest,
@@ -66,7 +67,7 @@ export async function searchCode(
     });
 
     // Make the search API request with the project ID
-    const searchUrl = `${baseUrls.searchBaseUrl}/${projectId}/_apis/search/codesearchresults?api-version=7.1`;
+    const searchUrl = `${baseUrls.searchBaseUrl}/${projectId}/_apis/search/codesearchresults?api-version=${apiVersion}`;
 
     const searchResponse = await axios.post<CodeSearchResponse>(
       searchUrl,

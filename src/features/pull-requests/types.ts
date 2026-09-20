@@ -23,8 +23,10 @@ export interface CommentWithStringEnums extends Omit<Comment, 'commentType'> {
 /**
  * Extended GitPullRequestCommentThread type with string enum values
  */
-export interface CommentThreadWithStringEnums
-  extends Omit<GitPullRequestCommentThread, 'status' | 'comments'> {
+export interface CommentThreadWithStringEnums extends Omit<
+  GitPullRequestCommentThread,
+  'status' | 'comments'
+> {
   status?: string;
   comments?: CommentWithStringEnums[];
 }
@@ -122,4 +124,30 @@ export interface UpdatePullRequestOptions {
   addTags?: string[];
   removeTags?: string[];
   additionalProperties?: Record<string, string | number | boolean>;
+}
+
+/**
+ * Options for updating a pull request thread status
+ */
+export interface UpdatePullRequestThreadStatusOptions {
+  projectId?: string;
+  organizationId?: string;
+  repositoryId?: string;
+  pullRequestId: number;
+  threadId: number;
+  status:
+    | 'active'
+    | 'fixed'
+    | 'wontFix'
+    | 'closed'
+    | 'pending'
+    | 'byDesign'
+    | 'unknown';
+}
+
+/**
+ * Response type for updating a pull request thread status
+ */
+export interface UpdatePullRequestThreadStatusResponse {
+  thread: CommentThreadWithStringEnums;
 }

@@ -80,6 +80,20 @@ describeOrSkip('manageWorkItemLink integration', () => {
     expect(result.id).toBe(sourceWorkItemId);
   });
 
+  test('should remove a link between two existing work items', async () => {
+    // Act & Assert - should not throw
+    const result = await manageWorkItemLink(connection, projectName, {
+      sourceWorkItemId,
+      targetWorkItemId,
+      operation: 'remove',
+      relationType: 'System.LinkTypes.Related',
+    });
+
+    // Assert
+    expect(result).toBeDefined();
+    expect(result.id).toBe(sourceWorkItemId);
+  });
+
   test('should handle non-existent work items gracefully', async () => {
     // Use a very large ID that's unlikely to exist
     const nonExistentId = 999999999;

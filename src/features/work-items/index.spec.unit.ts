@@ -24,6 +24,10 @@ jest.mock('./manage-work-item-link', () => ({
   manageWorkItemLink: jest.fn(),
 }));
 
+jest.mock('./get-work-item-comments', () => ({
+  getWorkItemComments: jest.fn(),
+}));
+
 // Helper function to create a valid CallToolRequest object
 const createCallToolRequest = (name: string, args: any): CallToolRequest => {
   return {
@@ -44,6 +48,7 @@ describe('Work Items Request Handlers', () => {
         'create_work_item',
         'update_work_item',
         'manage_work_item_link',
+        'get_work_item_comments',
       ];
 
       workItemsRequests.forEach((name) => {
@@ -109,6 +114,20 @@ describe('Work Items Request Handlers', () => {
           };
         });
 
+      jest
+        .spyOn(workItemModule.GetWorkItemCommentsSchema, 'parse')
+        .mockImplementation(() => {
+          return {
+            workItemId: 123,
+            projectId: 'myProject',
+            top: 5,
+            continuationToken: 'token123',
+            includeDeleted: true,
+            expand: 'all',
+            order: 'asc',
+          };
+        });
+
       // Setup mocks for feature functions
       jest.spyOn(workItemModule, 'getWorkItem').mockResolvedValue({ id: 123 });
       jest
@@ -123,6 +142,9 @@ describe('Work Items Request Handlers', () => {
       jest
         .spyOn(workItemModule, 'manageWorkItemLink')
         .mockResolvedValue({ id: 123 });
+      jest.spyOn(workItemModule, 'getWorkItemComments').mockResolvedValue({
+        comments: [{ id: 1 }],
+      });
     });
 
     afterEach(() => {
@@ -238,6 +260,52 @@ describe('Work Items Request Handlers', () => {
       await expect(
         handleWorkItemsRequest(mockConnection, request),
       ).rejects.toThrow('Unknown work items tool: unknown_tool');
+    });
+
+    it('should handle get_work_item_comments requests', async () => {
+      const request = createCallToolRequest('get_work_item_comments', {
+        workItemId: 123,
+        projectId: 'myProject',
+        top: 5,
+        continuationToken: 'token123',
+        includeDeleted: true,
+        expand: 'all',
+        order: 'asc',
+      });
+
+      const result = await handleWorkItemsRequest(mockConnection, request);
+
+      expect(
+        workItemModule.GetWorkItemCommentsSchema.parse,
+      ).toHaveBeenCalledWith({
+        workItemId: 123,
+        projectId: 'myProject',
+        top: 5,
+        continuationToken: 'token123',
+        includeDeleted: true,
+        expand: 'all',
+        order: 'asc',
+      });
+      expect(workItemModule.getWorkItemComments).toHaveBeenCalledWith(
+        mockConnection,
+        {
+          workItemId: 123,
+          projectId: 'myProject',
+          top: 5,
+          continuationToken: 'token123',
+          includeDeleted: true,
+          expand: 'all',
+          order: 'asc',
+        },
+      );
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ comments: [{ id: 1 }] }, null, 2),
+          },
+        ],
+      });
     });
   });
 });

@@ -51,3 +51,10 @@ export const defaultProject =
  * Default organization name derived from the organization URL
  */
 export const defaultOrg = getOrgNameFromUrl(process.env.AZURE_DEVOPS_ORG_URL);
+
+/**
+ * REST api-version for features that call the REST API directly instead of
+ * going through azure-devops-node-api (which negotiates the version itself).
+ * Azure DevOps Server (on-prem) tops out at 7.0, so it needs an override.
+ */
+export const apiVersion = process.env.AZURE_DEVOPS_API_VERSION || '7.1';

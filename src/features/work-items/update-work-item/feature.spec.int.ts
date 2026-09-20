@@ -113,4 +113,37 @@ describeOrSkip('updateWorkItem integration', () => {
       updateWorkItem(connection, nonExistentId, options),
     ).rejects.toThrow(/Failed to update work item|not found/);
   });
+
+  test('should manage tags using first-class fields (tags, tagsToAdd, tagsToRemove)', async () => {
+    // 1. Overwrite tags
+    let result = await updateWorkItem(connection, createdWorkItemId, {
+      tags: ['A', 'B'],
+    });
+    expect(result.fields).toBeDefined();
+    expect(result.fields?.['System.Tags']).toBe('A; B');
+
+    // 2. Append tags
+    result = await updateWorkItem(connection, createdWorkItemId, {
+      tagsToAdd: ['B', 'C', 'D'],
+    });
+    expect(result.fields?.['System.Tags']).toContain('A');
+    expect(result.fields?.['System.Tags']).toContain('B');
+    expect(result.fields?.['System.Tags']).toContain('C');
+    expect(result.fields?.['System.Tags']).toContain('D');
+
+    // 3. Remove tags
+    result = await updateWorkItem(connection, createdWorkItemId, {
+      tagsToRemove: ['A', 'D', 'E'],
+    });
+    expect(result.fields?.['System.Tags']).not.toContain('A');
+    expect(result.fields?.['System.Tags']).toContain('B');
+    expect(result.fields?.['System.Tags']).toContain('C');
+    expect(result.fields?.['System.Tags']).not.toContain('D');
+
+    // 4. Overwrite to clear
+    result = await updateWorkItem(connection, createdWorkItemId, {
+      tags: [],
+    });
+    expect(result.fields?.['System.Tags'] || '').toBe('');
+  });
 });

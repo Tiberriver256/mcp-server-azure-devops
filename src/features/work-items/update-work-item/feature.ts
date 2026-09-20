@@ -83,6 +83,74 @@ export async function updateWorkItem(
       });
     }
 
+    // Add tags logic
+    // Azure DevOps treats op:'add' on System.Tags as additive (merge) rather
+    // than a full replacement.  Use op:'replace' to truly overwrite when the
+    // field already has a value; fall back to op:'add' when it is empty
+    // (JSON-Patch 'replace' fails on a missing/empty field).
+    if (options.tags !== undefined) {
+      const currentWorkItem = await witApi.getWorkItem(workItemId, [
+        'System.Tags',
+      ]);
+      if (!currentWorkItem) {
+        throw new AzureDevOpsResourceNotFoundError(
+          `Work item '${workItemId}' not found`,
+        );
+      }
+      const currentTagsStr =
+        (currentWorkItem.fields?.['System.Tags'] as string) || '';
+      document.push({
+        op: currentTagsStr ? 'replace' : 'add',
+        path: '/fields/System.Tags',
+        value: options.tags.length > 0 ? options.tags.join('; ') : '',
+      });
+    } else if (
+      (options.tagsToAdd && options.tagsToAdd.length > 0) ||
+      (options.tagsToRemove && options.tagsToRemove.length > 0)
+    ) {
+      const currentWorkItem = await witApi.getWorkItem(workItemId, [
+        'System.Tags',
+      ]);
+      if (!currentWorkItem) {
+        throw new AzureDevOpsResourceNotFoundError(
+          `Work item '${workItemId}' not found`,
+        );
+      }
+
+      const currentTagsStr =
+        (currentWorkItem.fields?.['System.Tags'] as string) || '';
+      let tagsList = currentTagsStr
+        .split(';')
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+
+      if (options.tagsToAdd) {
+        for (const tag of options.tagsToAdd) {
+          const trimmed = tag.trim();
+          const trimmedLower = trimmed.toLowerCase();
+          if (
+            trimmed &&
+            !tagsList.some((t) => t.toLowerCase() === trimmedLower)
+          ) {
+            tagsList.push(trimmed);
+          }
+        }
+      }
+
+      if (options.tagsToRemove) {
+        const toRemove = new Set(
+          options.tagsToRemove.map((t) => t.trim().toLowerCase()),
+        );
+        tagsList = tagsList.filter((t) => !toRemove.has(t.toLowerCase()));
+      }
+
+      document.push({
+        op: currentTagsStr ? 'replace' : 'add',
+        path: '/fields/System.Tags',
+        value: tagsList.length > 0 ? tagsList.join('; ') : '',
+      });
+    }
+
     // Add any additional fields
     if (options.additionalFields) {
       for (const [key, value] of Object.entries(options.additionalFields)) {

@@ -8,6 +8,7 @@ export * from './add-pull-request-comment';
 export * from './update-pull-request';
 export * from './get-pull-request-changes';
 export * from './get-pull-request-checks';
+export * from './update-pull-request-thread-status';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -37,6 +38,8 @@ import {
   updatePullRequest,
   getPullRequestChanges,
   getPullRequestChecks,
+  UpdatePullRequestThreadStatusSchema,
+  updatePullRequestThreadStatus,
 } from './';
 
 /**
@@ -55,6 +58,7 @@ export const isPullRequestsRequest: RequestIdentifier = (
     'update_pull_request',
     'get_pull_request_changes',
     'get_pull_request_checks',
+    'update_pull_request_thread_status',
   ].includes(toolName);
 };
 
@@ -188,6 +192,22 @@ export const handlePullRequestsRequest: RequestHandler = async (
         repositoryId: params.repositoryId,
         pullRequestId: params.pullRequestId,
       });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'update_pull_request_thread_status': {
+      const params = UpdatePullRequestThreadStatusSchema.parse(
+        request.params.arguments,
+      );
+      const result = await updatePullRequestThreadStatus(
+        connection,
+        params.projectId ?? defaultProject,
+        params.repositoryId,
+        params.pullRequestId,
+        params.threadId,
+        params,
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
