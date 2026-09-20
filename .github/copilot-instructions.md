@@ -35,9 +35,10 @@ npm test  # Takes ~45 seconds total. NEVER CANCEL. Set timeout to 90+ seconds.
 
 ### 4. Code Quality
 ```bash
-npm run lint       # Takes ~3 seconds. Runs ESLint for code quality.
+npm run lint       # Takes ~3 seconds. Runs Oxlint for code quality.
 npm run lint:fix   # Auto-fix linting issues.
-npm run format     # Takes ~3 seconds. Runs Prettier for code formatting.
+npm run format     # Takes ~3 seconds. Runs oxfmt for code formatting.
+npm run format:check  # Checks formatting with oxfmt.
 ```
 
 ### 5. Run the Server
@@ -178,7 +179,7 @@ When updating existing features:
 **Development tools:**
 - `jest` - Testing framework (with separate configs for unit/int/e2e tests)
 - `ts-node-dev` - Development server with auto-restart
-- `eslint` + `prettier` - Code quality and formatting
+- `oxlint` + `oxfmt` - Code quality and formatting
 - `husky` - Git hooks for commit validation
 
 **CI/CD:**
@@ -229,7 +230,7 @@ The repository has extensive documentation. Reference these for specific scenari
 
 **Lint errors:**
 - Run `npm run lint:fix` to auto-fix common issues
-- Check ESLint rules in `.eslintrc.json`
+- Check Oxlint rules in `.oxlintrc.json`
 
 **Server won't start:**
 - Verify `.env` file configuration

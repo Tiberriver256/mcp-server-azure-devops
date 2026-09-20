@@ -23,8 +23,10 @@ export interface CommentWithStringEnums extends Omit<Comment, 'commentType'> {
 /**
  * Extended GitPullRequestCommentThread type with string enum values
  */
-export interface CommentThreadWithStringEnums
-  extends Omit<GitPullRequestCommentThread, 'status' | 'comments'> {
+export interface CommentThreadWithStringEnums extends Omit<
+  GitPullRequestCommentThread,
+  'status' | 'comments'
+> {
   status?: string;
   comments?: CommentWithStringEnums[];
 }
