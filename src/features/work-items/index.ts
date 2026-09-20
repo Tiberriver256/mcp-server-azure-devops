@@ -9,6 +9,9 @@ export * from './create-work-item';
 export * from './update-work-item';
 export * from './manage-work-item-link';
 export * from './get-work-item-comments';
+export * from './create-work-item-attachment';
+export * from './get-work-item-attachment';
+export * from './delete-work-item-attachment';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -28,12 +31,18 @@ import {
   UpdateWorkItemSchema,
   ManageWorkItemLinkSchema,
   GetWorkItemCommentsSchema,
+  CreateWorkItemAttachmentSchema,
+  GetWorkItemAttachmentSchema,
+  DeleteWorkItemAttachmentSchema,
   listWorkItems,
   getWorkItem,
   createWorkItem,
   updateWorkItem,
   manageWorkItemLink,
   getWorkItemComments,
+  createWorkItemAttachment,
+  getWorkItemAttachment,
+  deleteWorkItemAttachment,
 } from './';
 
 // Define the response type based on observed usage
@@ -55,6 +64,9 @@ export const isWorkItemsRequest: RequestIdentifier = (
     'update_work_item',
     'manage_work_item_link',
     'get_work_item_comments',
+    'create_work_item_attachment',
+    'get_work_item_attachment',
+    'delete_work_item_attachment',
   ].includes(toolName);
 };
 
@@ -161,6 +173,46 @@ export const handleWorkItemsRequest: RequestHandler = async (
         includeDeleted: args.includeDeleted,
         expand: args.expand,
         order: args.order,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+
+    case 'create_work_item_attachment': {
+      const args = CreateWorkItemAttachmentSchema.parse(
+        request.params.arguments,
+      );
+      const result = await createWorkItemAttachment(
+        connection,
+        args.workItemId,
+        {
+          filePath: args.filePath,
+          fileName: args.fileName,
+          comment: args.comment,
+        },
+      );
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'get_work_item_attachment': {
+      const args = GetWorkItemAttachmentSchema.parse(request.params.arguments);
+      const result = await getWorkItemAttachment(connection, {
+        attachmentId: args.attachmentId,
+        outputPath: args.outputPath,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'delete_work_item_attachment': {
+      const args = DeleteWorkItemAttachmentSchema.parse(
+        request.params.arguments,
+      );
+      const result = await deleteWorkItemAttachment(connection, {
+        workItemId: args.workItemId,
+        attachmentId: args.attachmentId,
       });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
