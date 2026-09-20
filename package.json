@@ -1,1 +1,124 @@
-PLACEHOLDER
+{
+  "name": "@tiberriver256/mcp-server-azure-devops",
+  "version": "0.1.47",
+  "description": "Azure DevOps reference server for the Model Context Protocol (MCP)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Tiberriver256/mcp-server-azure-devops"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "mcp-server-azure-devops": "./dist/index.js"
+  },
+  "files": [
+    "dist/",
+    "docs/",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "lint-staged": {
+    "*.ts": [
+      "oxfmt",
+      "oxlint --fix"
+    ]
+  },
+  "release-please": {
+    "release-type": "node",
+    "changelog-types": [
+      {
+        "type": "feat",
+        "section": "Features",
+        "hidden": false
+      },
+      {
+        "type": "fix",
+        "section": "Bug Fixes",
+        "hidden": false
+      },
+      {
+        "type": "chore",
+        "section": "Miscellaneous",
+        "hidden": false
+      },
+      {
+        "type": "docs",
+        "section": "Documentation",
+        "hidden": false
+      },
+      {
+        "type": "perf",
+        "section": "Performance Improvements",
+        "hidden": false
+      },
+      {
+        "type": "refactor",
+        "section": "Code Refactoring",
+        "hidden": false
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepack": "npm run build && chmod +x dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "node dist/index.js",
+    "inspector": "npm run build && npx @modelcontextprotocol/inspector@0.9.0 node dist/index.js",
+    "test": "npm run test:unit && npm run test:int && npm run test:e2e",
+    "test:unit": "jest --config jest.unit.config.js",
+    "test:int": "jest --config jest.int.config.js",
+    "test:e2e": "jest --config jest.e2e.config.js",
+    "test:watch": "jest --watch",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format": "oxfmt \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format:check": "oxfmt --check \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "prepare": "husky install",
+    "commit": "cz"
+  },
+  "keywords": [
+    "azure-devops",
+    "mcp",
+    "ai",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@azure/identity": "^4.13.2",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "axios": "^1.20.0",
+    "azure-devops-node-api": "^17.0.0",
+    "diff": "^8.0.4",
+    "dotenv": "^17.4.2",
+    "jszip": "^3.10.1",
+    "minimatch": "^10.2.6",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^21.2.2",
+    "@types/diff": "^7.0.2",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "commitizen": "^4.3.1",
+    "cz-conventional-changelog": "^3.3.0",
+    "husky": "^8.0.3",
+    "jest": "^30.5.1",
+    "lint-staged": "^15.5.0",
+    "oxfmt": "^0.68.0",
+    "oxlint": "^1.81.0",
+    "ts-jest": "^29.4.12",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  }
+}
