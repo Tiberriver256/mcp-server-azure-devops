@@ -28,7 +28,7 @@
   "lint-staged": {
     "*.ts": [
       "prettier --write",
-      "eslint --fix"
+      "oxlint --fix"
     ]
   },
   "release-please": {
@@ -77,8 +77,8 @@
     "test:int": "jest --config jest.int.config.js",
     "test:e2e": "jest --config jest.e2e.config.js",
     "test:watch": "jest --watch",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "prepare": "husky install",
     "commit": "cz"
@@ -108,17 +108,16 @@
     "@types/diff": "^7.0.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.27.0",
-    "@typescript-eslint/parser": "^8.27.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "commitizen": "^4.3.1",
     "cz-conventional-changelog": "^3.3.0",
-    "eslint": "^8.0.0",
     "husky": "^8.0.3",
     "jest": "^30.5.1",
     "lint-staged": "^15.5.0",
+    "oxlint": "^1.81.0",
     "prettier": "^3.0.0",
     "ts-jest": "^29.4.12",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.8.2"
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   }
 }
