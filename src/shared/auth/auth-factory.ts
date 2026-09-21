@@ -121,9 +121,7 @@ export async function createAuthClient(config: AuthConfig): Promise<WebApi> {
   }
 
   const orgDisplay = formatOrgUrlForLog(config.organizationUrl);
-  safeLog(
-    `Azure DevOps auth: method=${config.method}, org=${orgDisplay}`,
-  );
+  safeLog(`Azure DevOps auth: method=${config.method}, org=${orgDisplay}`);
 
   try {
     let client: WebApi;
