@@ -1,7 +1,11 @@
 import { WebApi, getPersonalAccessTokenHandler } from 'azure-devops-node-api';
 import { BearerCredentialHandler } from 'azure-devops-node-api/handlers/bearertoken';
 import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
-import { AzureDevOpsAuthenticationError } from '../errors';
+import {
+  AzureDevOpsAuthenticationError,
+  AzureDevOpsError,
+  AzureDevOpsValidationError,
+} from '../errors';
 import { isAzureDevOpsServicesUrl } from '../azure-devops-url';
 
 /**
@@ -50,11 +54,57 @@ export interface AuthConfig {
 const AZURE_DEVOPS_RESOURCE_ID = '499b84ac-1321-427f-aa17-267ca6975798';
 
 /**
+ * Stdio-safe stderr log (never write to stdout / console.log).
+ */
+function safeLog(message: string): void {
+  process.stderr.write(`${message}\n`);
+}
+
+/**
+ * Format org URL for logs: host + pathname only (no credentials).
+ */
+export function formatOrgUrlForLog(organizationUrl: string): string {
+  try {
+    const url = new URL(organizationUrl);
+    const path = url.pathname.replace(/\/$/, '');
+    return `${url.host}${path}` || url.host;
+  } catch {
+    return organizationUrl ? '(invalid org URL)' : '(not set)';
+  }
+}
+
+/**
+ * Whether an error looks like an Azure DevOps API location lookup failure.
+ */
+export function isLocationLookupFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('Failed to find api location');
+}
+
+/**
+ * Whether an error looks like a credential / HTTP auth failure.
+ */
+function isCredentialAuthFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    /\b401\b/.test(message) ||
+    /\b403\b/.test(message) ||
+    /unauthorized/i.test(message) ||
+    /authentication failed/i.test(message) ||
+    /access denied/i.test(message) ||
+    /TF400813/i.test(message) ||
+    /failed to acquire (token|azure)/i.test(message)
+  );
+}
+
+/**
  * Creates an authenticated client for Azure DevOps API based on the specified authentication method
  *
  * @param config Authentication configuration
  * @returns Authenticated WebApi client
  * @throws {AzureDevOpsAuthenticationError} If authentication fails
+ * @throws {AzureDevOpsValidationError} If API location lookup fails (often bad org URL)
+ * @throws {AzureDevOpsError} If connection fails for other non-auth reasons
  */
 export async function createAuthClient(config: AuthConfig): Promise<WebApi> {
   if (!config.organizationUrl) {
@@ -69,6 +119,9 @@ export async function createAuthClient(config: AuthConfig): Promise<WebApi> {
       'Azure DevOps Server requires Personal Access Token authentication',
     );
   }
+
+  const orgDisplay = formatOrgUrlForLog(config.organizationUrl);
+  safeLog(`Azure DevOps auth: method=${config.method}, org=${orgDisplay}`);
 
   try {
     let client: WebApi;
@@ -95,11 +148,32 @@ export async function createAuthClient(config: AuthConfig): Promise<WebApi> {
 
     return client;
   } catch (error) {
-    if (error instanceof AzureDevOpsAuthenticationError) {
+    if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    throw new AzureDevOpsAuthenticationError(
-      `Failed to authenticate with Azure DevOps: ${error instanceof Error ? error.message : String(error)}`,
+
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (isLocationLookupFailure(error)) {
+      throw new AzureDevOpsValidationError(
+        `Failed to resolve Azure DevOps API location for org ${orgDisplay}: ${message}. ` +
+          'This is usually a wrong or unreachable AZURE_DEVOPS_ORG_URL ' +
+          '(expected https://dev.azure.com/<org>), not a credential failure.',
+        undefined,
+        { cause: error },
+      );
+    }
+
+    if (isCredentialAuthFailure(error)) {
+      throw new AzureDevOpsAuthenticationError(
+        `Failed to authenticate with Azure DevOps: ${message}`,
+        { cause: error },
+      );
+    }
+
+    throw new AzureDevOpsError(
+      `Failed to connect to Azure DevOps: ${message}`,
+      { cause: error },
     );
   }
 }
@@ -154,6 +228,7 @@ async function createAzureIdentityClient(config: AuthConfig): Promise<WebApi> {
   } catch (error) {
     throw new AzureDevOpsAuthenticationError(
       `Failed to acquire Azure Identity token: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }
@@ -187,6 +262,7 @@ async function createAzureCliClient(config: AuthConfig): Promise<WebApi> {
   } catch (error) {
     throw new AzureDevOpsAuthenticationError(
       `Failed to acquire Azure CLI token: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

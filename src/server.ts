@@ -10,7 +10,6 @@ import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { VERSION } from './shared/config';
 import { AzureDevOpsConfig } from './shared/types';
 import {
-  AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
@@ -464,6 +463,7 @@ function validateConfig(config: AzureDevOpsConfig): void {
 export async function getConnection(
   config: AzureDevOpsConfig,
 ): Promise<WebApi> {
+  safeLog('Azure DevOps: connecting...');
   try {
     // Create a client with the appropriate authentication method
     const client = new AzureDevOpsClient({
@@ -476,10 +476,21 @@ export async function getConnection(
     await client.getCoreApi();
 
     // Return the underlying WebApi client
-    return await client.getWebApiClient();
+    const webApi = await client.getWebApiClient();
+    safeLog('Azure DevOps: connection ok');
+    return webApi;
   } catch (error) {
-    throw new AzureDevOpsAuthenticationError(
-      `Failed to connect to Azure DevOps: ${error instanceof Error ? error.message : String(error)}`,
+    const message = error instanceof Error ? error.message : String(error);
+    safeLog(`Azure DevOps: connection failed: ${message}`);
+
+    // Preserve typed Azure DevOps errors (incl. location-id ValidationError)
+    if (error instanceof AzureDevOpsError) {
+      throw error;
+    }
+
+    throw new AzureDevOpsError(
+      `Failed to connect to Azure DevOps: ${message}`,
+      { cause: error },
     );
   }
 }

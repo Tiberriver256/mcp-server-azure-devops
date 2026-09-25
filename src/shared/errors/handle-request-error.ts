@@ -106,23 +106,57 @@ export function handleRequestError(error: unknown, context: string): never {
   );
 }
 
+const LOCATION_HINT =
+  'Hint: Check AZURE_DEVOPS_ORG_URL shape (e.g. https://dev.azure.com/<org>) and that the organization is reachable.';
+
+function looksLikeLocationLookupFailure(text: string): boolean {
+  return (
+    text.includes('Failed to find api location') ||
+    text.includes('Failed to resolve Azure DevOps API location')
+  );
+}
+
 /**
  * Handles errors from feature request handlers and returns a formatted response
  * instead of throwing an error. This is used in the server's request handlers.
  *
  * @param error The error to handle
- * @returns A formatted error response
+ * @returns A formatted error response with isError: true
  */
 export function handleResponseError(error: unknown): {
   content: Array<{ type: string; text: string }>;
+  isError: true;
 } {
-  safeLog(`Error handling request: ${error}`);
+  const message = error instanceof Error ? error.message : String(error);
+  const cause =
+    error instanceof Error && 'cause' in error && error.cause !== undefined
+      ? error.cause instanceof Error
+        ? error.cause.message
+        : String(error.cause)
+      : undefined;
+  const stack = error instanceof Error ? error.stack : undefined;
 
-  const errorMessage = isAzureDevOpsError(error)
+  safeLog(`Error handling request: ${message}`);
+  if (cause) {
+    safeLog(`Cause: ${cause}`);
+  }
+  if (stack) {
+    safeLog(stack);
+  }
+
+  let errorMessage = isAzureDevOpsError(error)
     ? formatAzureDevOpsError(error)
-    : `Error: ${error instanceof Error ? error.message : String(error)}`;
+    : `Error: ${message}`;
+
+  if (
+    looksLikeLocationLookupFailure(message) ||
+    looksLikeLocationLookupFailure(errorMessage)
+  ) {
+    errorMessage = `${errorMessage}\n${LOCATION_HINT}`;
+  }
 
   return {
     content: [{ type: 'text', text: errorMessage }],
+    isError: true,
   };
 }
