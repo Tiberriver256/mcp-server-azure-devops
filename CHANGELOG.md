@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.48](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.47...mcp-server-azure-devops-v0.1.48) (2026-09-25)
+
+
+### Features
+
+* **list-work-items:** add fields option for additional field selection ([#290](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/290)) ([6905ad3](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/6905ad392fdd756bf20fd55bb1bfeb70d27ae106))
+* **work-items:** add create/get/delete attachment tools ([#349](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/349)) ([abf7eb8](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/abf7eb8d7deff8b30560e53d9fcc602e2e9478a7))
+
+
+### Bug Fixes
+
+* align createWikiPage unit API version with default 7.1 ([#328](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/328)) ([bbbec77](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/bbbec77863edeea82cbed5107dd12017ab074eb2))
+* improve connection logging and error classification for [#250](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/250) ([#350](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/350)) ([4889032](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/48890328513efbfed3df0f0cd7110926a1b60015))
+
 ## [0.1.47](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.46...mcp-server-azure-devops-v0.1.47) (2026-09-09)
 
 
