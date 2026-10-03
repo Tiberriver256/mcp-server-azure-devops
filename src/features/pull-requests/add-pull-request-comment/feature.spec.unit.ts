@@ -5,6 +5,7 @@ import {
   CommentThreadStatus,
   CommentType,
   GitPullRequestCommentThread,
+  GitVersionType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 describe('addPullRequestComment', () => {
@@ -249,6 +250,97 @@ describe('addPullRequestComment', () => {
       projectId,
     );
     expect(mockGitApi.createComment).not.toHaveBeenCalled();
+  });
+
+  describe('file comment anchor', () => {
+    const fileContent = 'line one\r\nsecond line\r\nthe third line\r\n';
+
+    const createMockGitApi = () => ({
+      createComment: jest.fn(),
+      createThread: jest.fn().mockResolvedValue({
+        id: 789,
+        status: CommentThreadStatus.Active,
+        comments: [{ id: 100, content: 'c', commentType: CommentType.Text }],
+      }),
+      getPullRequestById: jest.fn().mockResolvedValue({
+        lastMergeSourceCommit: { commitId: 'abc123' },
+      }),
+      getItem: jest.fn().mockResolvedValue({ content: fileContent }),
+    });
+
+    const addComment = (mockGitApi: any, lineOptions: object) =>
+      addPullRequestComment(
+        { getGitApi: jest.fn().mockResolvedValue(mockGitApi) } as any,
+        'test-project',
+        'test-repo',
+        123,
+        {
+          projectId: 'test-project',
+          repositoryId: 'test-repo',
+          pullRequestId: 123,
+          content: 'c',
+          filePath: '/src/app.ts',
+          ...lineOptions,
+        },
+      );
+
+    test('should cover the whole line so that a suggestion replaces it', async () => {
+      const mockGitApi = createMockGitApi();
+
+      await addComment(mockGitApi, { lineNumber: 2 });
+
+      expect(mockGitApi.getItem).toHaveBeenCalledWith(
+        'test-repo',
+        '/src/app.ts',
+        'test-project',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { version: 'abc123', versionType: GitVersionType.Commit },
+        true,
+      );
+      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
+        filePath: '/src/app.ts',
+        rightFileStart: { line: 2, offset: 1 },
+        rightFileEnd: { line: 2, offset: 12 },
+      });
+    });
+
+    test('should cover a range of lines up to the end of endLineNumber', async () => {
+      const mockGitApi = createMockGitApi();
+
+      await addComment(mockGitApi, { lineNumber: 1, endLineNumber: 3 });
+
+      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
+        filePath: '/src/app.ts',
+        rightFileStart: { line: 1, offset: 1 },
+        rightFileEnd: { line: 3, offset: 15 },
+      });
+    });
+
+    test('should fall back to the start of the line when the file cannot be read', async () => {
+      const mockGitApi = createMockGitApi();
+      mockGitApi.getItem.mockRejectedValue(new Error('not found'));
+
+      await addComment(mockGitApi, { lineNumber: 2 });
+
+      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
+        filePath: '/src/app.ts',
+        rightFileStart: { line: 2, offset: 1 },
+        rightFileEnd: { line: 2, offset: 1 },
+      });
+    });
+
+    test('should reject an endLineNumber before lineNumber', async () => {
+      const mockGitApi = createMockGitApi();
+
+      await expect(
+        addComment(mockGitApi, { lineNumber: 3, endLineNumber: 2 }),
+      ).rejects.toThrow('endLineNumber must not be less than lineNumber');
+      expect(mockGitApi.createThread).not.toHaveBeenCalled();
+    });
   });
 
   test('should handle error when API call fails', async () => {

@@ -163,6 +163,12 @@ export const AddPullRequestCommentSchema = z
       .number()
       .optional()
       .describe('The line number to comment on (for new thread on file)'),
+    endLineNumber: z
+      .number()
+      .optional()
+      .describe(
+        'The last line of the commented range (default: lineNumber). The thread covers the lines in full, so a suggestion replaces exactly these lines',
+      ),
     status: z
       .enum([
         'active',
