@@ -163,7 +163,7 @@ To simplify the process of creating correctly formatted commit messages, we've s
 npm run commit
 ```
 
-This will start an interactive prompt that will help you generate a properly formatted commit message.
+This starts the interactive [`@commitlint/prompt-cli`](https://commitlint.js.org/reference/prompt.html) prompt, driven by the repo's `commitlint.config.js`, and then runs `git commit` with the generated message (stage your changes first). The `commit-msg` hook also validates every commit with commitlint.
 
 ## Release Process
 
