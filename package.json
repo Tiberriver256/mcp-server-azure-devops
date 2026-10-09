@@ -106,7 +106,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "@typescript/native": "npm:typescript@^7.0.2",
-    "husky": "^8.0.3",
+    "husky": "^9.1.7",
     "jest": "^30.5.1",
     "lint-staged": "^17.6.0",
     "oxfmt": "^0.68.0",
