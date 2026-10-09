@@ -20,11 +20,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "config": {
-    "commitizen": {
-      "path": "./node_modules/cz-conventional-changelog"
-    }
-  },
   "lint-staged": {
     "*.ts": [
       "oxfmt",
@@ -69,7 +64,7 @@
   "scripts": {
     "build": "tsc",
     "prepack": "npm run build && chmod +x dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "inspector": "npm run build && npx @modelcontextprotocol/inspector@0.9.0 node dist/index.js",
     "test": "npm run test:unit && npm run test:int && npm run test:e2e",
@@ -82,7 +77,7 @@
     "format": "oxfmt \"src/**/*.ts\" \"tests/**/*.ts\"",
     "format:check": "oxfmt --check \"src/**/*.ts\" \"tests/**/*.ts\"",
     "prepare": "husky install",
-    "commit": "cz"
+    "commit": "commit"
   },
   "keywords": [
     "azure-devops",
@@ -106,19 +101,18 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",
     "@commitlint/config-conventional": "^21.2.2",
+    "@commitlint/prompt-cli": "^19.8.1",
     "@types/diff": "^7.0.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "@typescript/native": "npm:typescript@^7.0.2",
-    "commitizen": "^4.3.1",
-    "cz-conventional-changelog": "^3.3.0",
     "husky": "^8.0.3",
     "jest": "^30.5.1",
-    "lint-staged": "^15.5.0",
+    "lint-staged": "^17.6.0",
     "oxfmt": "^0.68.0",
     "oxlint": "^1.81.0",
     "ts-jest": "^29.4.12",
-    "ts-node-dev": "^2.0.0",
+    "tsx": "^4.23.15",
     "typescript": "npm:@typescript/typescript6@^6.0.2"
   }
 }
