@@ -71,7 +71,7 @@ npm start              # runs: node dist/index.js
 For iterative development (auto-reload):
 
 ```bash
-npm run dev            # runs src/index.ts via ts-node-dev
+npm run dev            # runs src/index.ts via tsx watch
 ```
 
 ### Usage with Claude Desktop/Cursor AI

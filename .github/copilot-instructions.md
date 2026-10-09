@@ -45,7 +45,7 @@ npm run format:check  # Checks formatting with oxfmt.
 ```bash
 # IMPORTANT: Always configure environment first using `.env` file (copy from `.env.example`)
 
-npm run dev        # Development mode with auto-restart using ts-node-dev
+npm run dev        # Development mode with auto-restart using tsx watch
 npm run start      # Production mode - runs compiled version from `dist/index.js`
 npm run inspector  # Debug mode with MCP Inspector tool
 ```
@@ -106,7 +106,7 @@ Before submitting a PR, ensure:
 
 6. **Conventional commits:**
    ```bash
-   npm run commit  # Use this for guided commit message creation
+   npm run commit  # Guided commit message creation (@commitlint/prompt-cli)
    ```
 
 **Note:** Unit tests must pass even without Azure DevOps credentials - they use mocks for all external dependencies.
@@ -178,7 +178,7 @@ When updating existing features:
 
 **Development tools:**
 - `jest` - Testing framework (with separate configs for unit/int/e2e tests)
-- `ts-node-dev` - Development server with auto-restart
+- `tsx` - Development server with auto-restart (`tsx watch`)
 - `oxlint` + `oxfmt` - Code quality and formatting
 - `husky` - Git hooks for commit validation
 

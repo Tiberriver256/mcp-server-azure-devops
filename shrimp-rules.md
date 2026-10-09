@@ -188,19 +188,19 @@
     - RUN `npm run format`.
 5.  **Commit**:
     - USE Conventional Commits specification (e.g., `feat: ...`, `fix: ...`).
-    - RECOMMENDED: Use `npm run commit` (uses `cz-conventional-changelog`) for guided commit messages.
+    - RECOMMENDED: Use `npm run commit` (uses `@commitlint/prompt-cli`) for guided commit messages.
 6.  **Pull Request**: PUSH branch and CREATE Pull Request against `main` (or relevant development branch).
 
 ### NPM Scripts (from [`package.json`](package.json:1))
 - `build`: `tsc` (Compiles TypeScript to `dist/`).
-- `dev`: `ts-node-dev --respawn --transpile-only src/index.ts` (Runs server in development with auto-restart).
+- `dev`: `tsx watch src/index.ts` (Runs server in development with auto-restart).
 - `start`: `node dist/index.js` (Runs compiled server).
 - `inspector`: `npm run build && npx @modelcontextprotocol/inspector node dist/index.js` (Runs server with MCP Inspector).
 - `test:unit`, `test:int`, `test:e2e`, `test`: Run respective test suites.
 - `lint`, `lint:fix`: Run Oxlint (`lint:fix` applies lint fixes only; run `format` separately).
 - `format`, `format:check`: Run oxfmt.
 - `prepare`: `husky install` (Sets up Git hooks).
-- `commit`: `cz` (Interactive commitizen).
+- `commit`: `commit` (Interactive commit prompt via `@commitlint/prompt-cli`, using the repo commitlint config).
 
 ### CI/CD
 - No explicit CI/CD pipeline configuration files (e.g., `azure-pipelines.yml`, `.github/workflows/`) were found in the file listing. If added, **REFER** to them.
