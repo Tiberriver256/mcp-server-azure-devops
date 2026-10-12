@@ -104,7 +104,7 @@
     "@commitlint/prompt-cli": "^19.8.1",
     "@types/diff": "^7.0.2",
     "@types/jest": "^30.0.0",
-    "@types/node": "^20.0.0",
+    "@types/node": "^26.6.4",
     "@typescript/native": "npm:typescript@^7.0.2",
     "husky": "^8.0.3",
     "jest": "^30.5.1",
