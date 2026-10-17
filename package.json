@@ -101,7 +101,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",
     "@commitlint/config-conventional": "^21.2.2",
-    "@commitlint/prompt-cli": "^19.8.1",
+    "@commitlint/prompt-cli": "^21.2.3",
     "@types/diff": "^7.0.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
