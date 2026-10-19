@@ -23,31 +23,35 @@ jobs:
 
       - name: Update skill-creator skill
         run: |
-          # Remove old skill-creator
+          # anthropics/skills moved example skills under skills/ (PR #129, Dec 2025).
+          SRC=/tmp/skills/skills/skill-creator
+          if [ ! -d "$SRC" ]; then
+            echo "Expected skill-creator at $SRC; repo layout:"
+            find /tmp/skills -maxdepth 3 -type d -print
+            exit 1
+          fi
+
           rm -rf .github/skills/skill-creator
-          
-          # Copy new skill-creator
           mkdir -p .github/skills
-          cp -r /tmp/skills/skill-creator .github/skills/
+          cp -r "$SRC" .github/skills/
 
       - name: Update copilot-instructions.md
         run: |
           # Extract description from SKILL.md frontmatter
           DESCRIPTION=$(sed -n '/^description:/,/^[a-z-]*:/p' .github/skills/skill-creator/SKILL.md | grep '^description:' | sed 's/^description: //' | sed 's/^"//' | sed 's/"$//')
-          
+
           # If description spans multiple lines, get the full description
           if [ -z "$DESCRIPTION" ]; then
             DESCRIPTION=$(awk '/^description:/{flag=1; sub(/^description: /, ""); print; next} flag{if(/^[a-z-]*:/){exit}; print}' .github/skills/skill-creator/SKILL.md | tr '\n' ' ' | sed 's/  */ /g')
           fi
-          
-          # Update the table in copilot-instructions.md
-          # This preserves the header and updates the skill-creator row
-          sed -i "/^| skill-creator |/c\| skill-creator | ${DESCRIPTION} | [.github/skills/skill-creator/SKILL.md](.github/skills/skill-creator/SKILL.md) |" copilot-instructions.md
+
+          # Update the table in .github/copilot-instructions.md (not the repo root)
+          sed -i "/^| skill-creator |/c\| skill-creator | ${DESCRIPTION} | [.github/skills/skill-creator/SKILL.md](.github/skills/skill-creator/SKILL.md) |" .github/copilot-instructions.md
 
       - name: Check for changes
         id: check_changes
         run: |
-          git diff --quiet .github/skills copilot-instructions.md || echo "changes=true" >> $GITHUB_OUTPUT
+          git diff --quiet .github/skills .github/copilot-instructions.md || echo "changes=true" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
         if: steps.check_changes.outputs.changes == 'true'
@@ -58,11 +62,11 @@ jobs:
           title: 'Update skill-creator skill'
           body: |
             This PR updates the skill-creator skill from the [anthropics/skills](https://github.com/anthropics/skills) repository.
-            
+
             **Changes:**
             - Updated skill-creator skill files
-            - Updated copilot-instructions.md metadata table
-            
+            - Updated .github/copilot-instructions.md metadata table
+
             This is an automated update triggered by the update-skills workflow.
           branch: update-skills
           delete-branch: true

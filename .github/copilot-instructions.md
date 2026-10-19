@@ -254,5 +254,5 @@ Skills are modular, self-contained packages that extend capabilities with specia
 
 | Skill Name | Use When... | Path |
 |------------|-------------|------|
-| skill-creator | Creating a new skill or updating an existing skill that extends capabilities with specialized knowledge, workflows, or tool integrations | [.github/skills/skill-creator/SKILL.md](.github/skills/skill-creator/SKILL.md) |
+| skill-creator | Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy. | [.github/skills/skill-creator/SKILL.md](.github/skills/skill-creator/SKILL.md) |
 | azure-devops-rest-api | Implementing new Azure DevOps API integrations, exploring API capabilities, understanding request/response formats, or referencing the official OpenAPI specifications from the vsts-rest-api-specs repository | [.github/skills/azure-devops-rest-api/SKILL.md](.github/skills/azure-devops-rest-api/SKILL.md) |
