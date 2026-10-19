@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.51](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.50...mcp-server-azure-devops-v0.1.51) (2026-10-19)
+
+
+### Bug Fixes
+
+* **ci:** restore Update Skills after anthropics/skills layout change ([#370](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/370)) ([6969c18](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/6969c185bb8d49ad54834dbf27b74da5a5eadf1d))
+
 ## [0.1.50](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.49...mcp-server-azure-devops-v0.1.50) (2026-10-19)
 
 
