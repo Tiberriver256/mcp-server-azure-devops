@@ -199,7 +199,7 @@
 - `test:unit`, `test:int`, `test:e2e`, `test`: Run respective test suites.
 - `lint`, `lint:fix`: Run Oxlint (`lint:fix` applies lint fixes only; run `format` separately).
 - `format`, `format:check`: Run oxfmt.
-- `prepare`: `husky install` (Sets up Git hooks).
+- `prepare`: `husky` (Sets up Git hooks; husky v9).
 - `commit`: `commit` (Interactive commit prompt via `@commitlint/prompt-cli`, using the repo commitlint config).
 
 ### CI/CD
