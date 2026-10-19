@@ -76,7 +76,7 @@
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt \"src/**/*.ts\" \"tests/**/*.ts\"",
     "format:check": "oxfmt --check \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "prepare": "husky install",
+    "prepare": "husky",
     "commit": "commit"
   },
   "keywords": [
