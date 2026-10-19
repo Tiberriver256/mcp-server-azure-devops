@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.50](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.49...mcp-server-azure-devops-v0.1.50) (2026-10-19)
+
+
+### Bug Fixes
+
+* **deps:** drop vulnerable sprintf-js via js-yaml override ([#368](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/368)) ([6450664](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/645066446545931e3554ec1d15451caf0d535e24))
+
 ## [0.1.49](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.48...mcp-server-azure-devops-v0.1.49) (2026-10-12)
 
 
