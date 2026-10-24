@@ -102,7 +102,6 @@
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@commitlint/prompt-cli": "^21.2.3",
-    "@types/diff": "^7.0.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.6.5",
     "@typescript/native": "npm:typescript@^7.0.2",
