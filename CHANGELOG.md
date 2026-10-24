@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.53](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.52...mcp-server-azure-devops-v0.1.53) (2026-10-24)
+
+
+### Bug Fixes
+
+* **deps:** clear npm audit highs (zod, body-parser, msal-node) ([#380](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/380)) ([9770d20](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/9770d20b415bcfbf2eb3b6e61ad8aa1606c23250))
+
 ## [0.1.52](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.51...mcp-server-azure-devops-v0.1.52) (2026-10-21)
 
 
