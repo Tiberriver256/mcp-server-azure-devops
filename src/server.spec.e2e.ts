@@ -8,7 +8,7 @@ import { getTextContent } from '@/shared/test/text-content';
 import fs from 'fs';
 
 // Load environment variables from .env file
-dotenv.config();
+dotenv.config({ quiet: true });
 
 describe('Azure DevOps MCP Server E2E Tests', () => {
   let client: Client;
