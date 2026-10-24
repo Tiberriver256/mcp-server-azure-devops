@@ -93,7 +93,7 @@
     "axios": "^1.20.0",
     "azure-devops-node-api": "^17.0.0",
     "diff": "^9.0.0",
-    "dotenv": "^17.4.2",
+    "dotenv": "^18.0.8",
     "jszip": "^3.10.1",
     "minimatch": "^10.2.6",
     "zod": "^4.5.4"
