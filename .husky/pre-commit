@@ -1,5 +1,2 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Run lint-staged to run formatters and linters only on staged files
-npx lint-staged 
+npx lint-staged

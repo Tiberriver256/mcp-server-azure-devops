@@ -45,7 +45,7 @@ npm run format:check  # Checks formatting with oxfmt.
 ```bash
 # IMPORTANT: Always configure environment first using `.env` file (copy from `.env.example`)
 
-npm run dev        # Development mode with auto-restart using ts-node-dev
+npm run dev        # Development mode with auto-restart using tsx watch
 npm run start      # Production mode - runs compiled version from `dist/index.js`
 npm run inspector  # Debug mode with MCP Inspector tool
 ```
@@ -106,7 +106,7 @@ Before submitting a PR, ensure:
 
 6. **Conventional commits:**
    ```bash
-   npm run commit  # Use this for guided commit message creation
+   npm run commit  # Guided commit message creation (@commitlint/prompt-cli)
    ```
 
 **Note:** Unit tests must pass even without Azure DevOps credentials - they use mocks for all external dependencies.
@@ -178,7 +178,7 @@ When updating existing features:
 
 **Development tools:**
 - `jest` - Testing framework (with separate configs for unit/int/e2e tests)
-- `ts-node-dev` - Development server with auto-restart
+- `tsx` - Development server with auto-restart (`tsx watch`)
 - `oxlint` + `oxfmt` - Code quality and formatting
 - `husky` - Git hooks for commit validation
 
@@ -254,5 +254,5 @@ Skills are modular, self-contained packages that extend capabilities with specia
 
 | Skill Name | Use When... | Path |
 |------------|-------------|------|
-| skill-creator | Creating a new skill or updating an existing skill that extends capabilities with specialized knowledge, workflows, or tool integrations | [.github/skills/skill-creator/SKILL.md](.github/skills/skill-creator/SKILL.md) |
+| skill-creator | Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy. | [.github/skills/skill-creator/SKILL.md](.github/skills/skill-creator/SKILL.md) |
 | azure-devops-rest-api | Implementing new Azure DevOps API integrations, exploring API capabilities, understanding request/response formats, or referencing the official OpenAPI specifications from the vsts-rest-api-specs repository | [.github/skills/azure-devops-rest-api/SKILL.md](.github/skills/azure-devops-rest-api/SKILL.md) |

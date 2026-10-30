@@ -1,6 +1,6 @@
 {
   "name": "@tiberriver256/mcp-server-azure-devops",
-  "version": "0.1.48",
+  "version": "0.1.53",
   "description": "Azure DevOps reference server for the Model Context Protocol (MCP)",
   "repository": {
     "type": "git",
@@ -19,11 +19,6 @@
   ],
   "publishConfig": {
     "access": "public"
-  },
-  "config": {
-    "commitizen": {
-      "path": "./node_modules/cz-conventional-changelog"
-    }
   },
   "lint-staged": {
     "*.ts": [
@@ -69,7 +64,7 @@
   "scripts": {
     "build": "tsc",
     "prepack": "npm run build && chmod +x dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "inspector": "npm run build && npx @modelcontextprotocol/inspector@0.9.0 node dist/index.js",
     "test": "npm run test:unit && npm run test:int && npm run test:e2e",
@@ -81,8 +76,8 @@
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt \"src/**/*.ts\" \"tests/**/*.ts\"",
     "format:check": "oxfmt --check \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "prepare": "husky install",
-    "commit": "cz"
+    "prepare": "husky",
+    "commit": "commit"
   },
   "keywords": [
     "azure-devops",
@@ -98,27 +93,33 @@
     "axios": "^1.20.0",
     "azure-devops-node-api": "^17.0.0",
     "diff": "^9.0.0",
-    "dotenv": "^17.4.2",
+    "dotenv": "^18.0.8",
     "jszip": "^3.10.1",
     "minimatch": "^10.2.6",
     "zod": "^4.5.4"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.8.0",
-    "@commitlint/config-conventional": "^21.2.2",
-    "@types/diff": "^7.0.2",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@commitlint/prompt-cli": "^21.2.3",
     "@types/jest": "^30.0.0",
-    "@types/node": "^20.0.0",
+    "@types/node": "^26.6.5",
     "@typescript/native": "npm:typescript@^7.0.2",
-    "commitizen": "^4.3.1",
-    "cz-conventional-changelog": "^3.3.0",
-    "husky": "^8.0.3",
+    "husky": "^9.1.7",
     "jest": "^30.5.1",
-    "lint-staged": "^15.5.0",
-    "oxfmt": "^0.68.0",
+    "lint-staged": "^17.6.0",
+    "oxfmt": "^0.74.0",
     "oxlint": "^1.81.0",
     "ts-jest": "^29.4.12",
-    "ts-node-dev": "^2.0.0",
+    "tsx": "^4.23.15",
     "typescript": "npm:@typescript/typescript6@^6.0.2"
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.1.0"
+    },
+    "@azure/identity": {
+      "@azure/msal-node": "^7.1.1"
+    }
   }
 }

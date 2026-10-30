@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.53](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.52...mcp-server-azure-devops-v0.1.53) (2026-10-24)
+
+
+### Bug Fixes
+
+* **deps:** clear npm audit highs (zod, body-parser, msal-node) ([#380](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/380)) ([9770d20](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/9770d20b415bcfbf2eb3b6e61ad8aa1606c23250))
+
+## [0.1.52](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.51...mcp-server-azure-devops-v0.1.52) (2026-10-21)
+
+
+### Bug Fixes
+
+* **deps:** bump follow-redirects for GHSA-q3jh-wrc6-jgq8 ([#373](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/373)) ([2deaab9](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/2deaab98d6374c7b230ef1f2798b01f7971cd05d))
+
+## [0.1.51](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.50...mcp-server-azure-devops-v0.1.51) (2026-10-19)
+
+
+### Bug Fixes
+
+* **ci:** restore Update Skills after anthropics/skills layout change ([#370](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/370)) ([6969c18](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/6969c185bb8d49ad54834dbf27b74da5a5eadf1d))
+
+## [0.1.50](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.49...mcp-server-azure-devops-v0.1.50) (2026-10-19)
+
+
+### Bug Fixes
+
+* **deps:** drop vulnerable sprintf-js via js-yaml override ([#368](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/368)) ([6450664](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/645066446545931e3554ec1d15451caf0d535e24))
+
+## [0.1.49](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.48...mcp-server-azure-devops-v0.1.49) (2026-10-12)
+
+
+### Bug Fixes
+
+* **deps:** clear npm audit highs (audit fix + lint-staged 17, replace commitizen/ts-node-dev) ([#359](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/359)) ([f476dc2](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/f476dc2893a8417c252564ca4477ef2860be430e))
+
 ## [0.1.48](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.47...mcp-server-azure-devops-v0.1.48) (2026-09-25)
 
 

@@ -1,6 +1,6 @@
 // Load environment variables
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ quiet: true });
 
 /**
  * Utility functions and constants related to environment variables.

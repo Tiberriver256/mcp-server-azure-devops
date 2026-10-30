@@ -47,7 +47,7 @@ export function normalizeAuthMethod(
 }
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ quiet: true });
 
 /**
  * Format org URL for logs: host + pathname only (no secrets).
