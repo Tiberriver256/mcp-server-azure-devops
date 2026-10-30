@@ -645,6 +645,7 @@ This tool is useful for providing feedback on pull requests, engaging in code re
   "parentCommentId": 456, // Optional: The ID of the parent comment (for threaded replies)
   "filePath": "/src/app.ts", // Optional: The path of the file to comment on (for file comments)
   "lineNumber": 42, // Optional: The line number to comment on (for file comments)
+  "endLineNumber": 44, // Optional: The last line of the commented range (default: lineNumber)
   "status": "active" // Optional: The status to set for a new thread (active, fixed, wontFix, closed, pending)
 }
 ```
@@ -659,6 +660,7 @@ This tool is useful for providing feedback on pull requests, engaging in code re
 | `parentCommentId` | number | No       | ID of the parent comment when replying to a specific comment in a thread                         |
 | `filePath`        | string | No       | The path of the file to comment on (for creating a new thread on a file)                         |
 | `lineNumber`      | number | No       | The line number to comment on (for creating a new thread on a file)                              |
+| `endLineNumber`   | number | No       | The last line of the commented range (default: `lineNumber`); a suggestion replaces these lines  |
 | `status`          | string | No       | The status to set for a new thread: "active", "fixed", "wontFix", "closed", or "pending"         |
 
 ### Response

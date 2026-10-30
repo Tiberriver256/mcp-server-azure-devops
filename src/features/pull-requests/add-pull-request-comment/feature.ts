@@ -4,13 +4,59 @@ import {
   CommentThreadStatus,
   CommentType,
   GitPullRequestCommentThread,
+  GitVersionType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { IGitApi } from 'azure-devops-node-api/GitApi';
 import { AzureDevOpsError } from '../../../shared/errors';
 import { AddPullRequestCommentOptions, AddCommentResponse } from '../types';
 import {
   transformCommentThreadStatus,
   transformCommentType,
 } from '../../../shared/enums';
+
+/**
+ * Get the length of a line of a file at the source commit of a pull request.
+ *
+ * A thread anchors on a character range. Ending it at the end of the line, as the web UI does
+ * when a line is selected, lets the "Apply change" button of a suggestion replace the line
+ * instead of inserting the suggestion in front of it.
+ *
+ * @returns The length of the line, or undefined if the file or line cannot be read
+ */
+async function getLineLength(
+  gitApi: IGitApi,
+  repositoryId: string,
+  pullRequestId: number,
+  project: string | undefined,
+  filePath: string,
+  lineNumber: number,
+): Promise<number | undefined> {
+  try {
+    const pr = await gitApi.getPullRequestById(pullRequestId, project);
+    const commitId = pr?.lastMergeSourceCommit?.commitId;
+    if (!commitId) {
+      return undefined;
+    }
+
+    const item = await gitApi.getItem(
+      repositoryId,
+      filePath,
+      project,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { version: commitId, versionType: GitVersionType.Commit },
+      true,
+    );
+
+    const line = item?.content?.split(/\r?\n/)[lineNumber - 1];
+    return line === undefined ? undefined : line.length;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Add a comment to a pull request
@@ -111,22 +157,34 @@ export async function addPullRequestComment(
 
       // Add file context if specified (file comment)
       if (options.filePath) {
-        thread.threadContext = {
-          filePath: options.filePath,
-          // Only add line information if provided
-          rightFileStart: options.lineNumber
-            ? {
-                line: options.lineNumber,
-                offset: 1, // Default to start of line
-              }
-            : undefined,
-          rightFileEnd: options.lineNumber
-            ? {
-                line: options.lineNumber,
-                offset: 1, // Default to start of line
-              }
-            : undefined,
-        };
+        thread.threadContext = { filePath: options.filePath };
+
+        // Only add line information if provided
+        if (options.lineNumber) {
+          const endLineNumber = options.endLineNumber ?? options.lineNumber;
+          if (endLineNumber < options.lineNumber) {
+            throw new Error('endLineNumber must not be less than lineNumber');
+          }
+
+          // Fall back to the start of the end line if its length cannot be determined
+          const endLineLength = await getLineLength(
+            gitApi,
+            resolvedRepositoryId,
+            pullRequestId,
+            project,
+            options.filePath,
+            endLineNumber,
+          );
+
+          thread.threadContext.rightFileStart = {
+            line: options.lineNumber,
+            offset: 1,
+          };
+          thread.threadContext.rightFileEnd = {
+            line: endLineNumber,
+            offset: (endLineLength ?? 0) + 1,
+          };
+        }
       }
 
       const createdThread = await gitApi.createThread(

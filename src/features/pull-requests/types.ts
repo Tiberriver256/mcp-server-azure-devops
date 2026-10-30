@@ -95,6 +95,7 @@ export interface AddPullRequestCommentOptions {
   // For file comments (new threads)
   filePath?: string;
   lineNumber?: number;
+  endLineNumber?: number;
   // Additional options
   status?:
     | 'active'
