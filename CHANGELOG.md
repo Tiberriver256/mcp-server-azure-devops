@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.54](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.53...mcp-server-azure-devops-v0.1.54) (2026-11-02)
+
+
+### Bug Fixes
+
+* **deps:** bump follow-redirects to patch GHSA-mrwp-f3q8-3g9p ([#389](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/389)) ([baa3018](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/baa3018cc45233202bd51170c218054baba04779))
+
 ## [0.1.53](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.52...mcp-server-azure-devops-v0.1.53) (2026-10-24)
 
 
