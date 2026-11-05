@@ -154,6 +154,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
           parentCommentId: params.parentCommentId,
           filePath: params.filePath,
           lineNumber: params.lineNumber,
+          endLineNumber: params.endLineNumber,
           status: params.status,
         },
       );

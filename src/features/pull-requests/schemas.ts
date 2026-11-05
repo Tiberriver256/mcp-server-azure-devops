@@ -161,8 +161,18 @@ export const AddPullRequestCommentSchema = z
       .describe('The path of the file to comment on (for new thread on file)'),
     lineNumber: z
       .number()
+      .int()
+      .positive()
       .optional()
       .describe('The line number to comment on (for new thread on file)'),
+    endLineNumber: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe(
+        'The last line of the commented range (default: lineNumber; requires filePath and lineNumber). The thread covers the lines in full, so a suggestion replaces exactly these lines',
+      ),
     status: z
       .enum([
         'active',
@@ -184,6 +194,22 @@ export const AddPullRequestCommentSchema = z
         message: 'Status is required when creating a new thread',
         path: ['status'],
       });
+    }
+
+    if (data.endLineNumber !== undefined) {
+      if (!data.filePath || data.lineNumber === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'endLineNumber requires filePath and lineNumber',
+          path: ['endLineNumber'],
+        });
+      } else if (data.endLineNumber < data.lineNumber) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'endLineNumber must not be less than lineNumber',
+          path: ['endLineNumber'],
+        });
+      }
     }
   });
 

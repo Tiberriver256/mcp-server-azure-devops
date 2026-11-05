@@ -3,14 +3,68 @@ import {
   Comment,
   CommentThreadStatus,
   CommentType,
+  GitPullRequest,
   GitPullRequestCommentThread,
+  GitVersionType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { IGitApi } from 'azure-devops-node-api/GitApi';
 import { AzureDevOpsError } from '../../../shared/errors';
 import { AddPullRequestCommentOptions, AddCommentResponse } from '../types';
 import {
   transformCommentThreadStatus,
   transformCommentType,
 } from '../../../shared/enums';
+
+/**
+ * Get the length of a line of a file at the source commit of a pull request.
+ *
+ * A thread anchors on a character range. Ending it at the end of the line, as the web UI does
+ * when a line is selected, lets the "Apply change" button of a suggestion replace the line
+ * instead of inserting the suggestion in front of it.
+ *
+ * @param pullRequest The pull request if it was already fetched, to avoid fetching it again
+ * @returns The length of the line, or undefined if the file or line cannot be read
+ */
+async function getLineLength(
+  gitApi: IGitApi,
+  repositoryId: string,
+  pullRequestId: number,
+  project: string | undefined,
+  filePath: string,
+  lineNumber: number,
+  pullRequest?: GitPullRequest,
+): Promise<number | undefined> {
+  try {
+    const pr =
+      pullRequest ?? (await gitApi.getPullRequestById(pullRequestId, project));
+    const commitId = pr?.lastMergeSourceCommit?.commitId;
+    if (!commitId) {
+      return undefined;
+    }
+
+    const item = await gitApi.getItem(
+      repositoryId,
+      filePath,
+      project,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { version: commitId, versionType: GitVersionType.Commit },
+      true, // includeContent
+      true, // resolveLfs: measure the real content, not the pointer of a file in Git LFS
+    );
+
+    // A byte order mark is not part of the first line
+    const content = item?.content?.replace(/^\uFEFF/, '');
+    // Split on the same line breaks as the diff view, which also counts a lone CR
+    const line = content?.split(/\r\n|\r|\n/)[lineNumber - 1];
+    return line === undefined ? undefined : line.length;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Add a comment to a pull request
@@ -33,10 +87,11 @@ export async function addPullRequestComment(
     const gitApi = await connection.getGitApi();
     const project = projectId || undefined;
 
+    let pullRequest: GitPullRequest | undefined;
     let resolvedRepositoryId = repositoryId;
     if (!resolvedRepositoryId) {
-      const pr = await gitApi.getPullRequestById(pullRequestId, project);
-      resolvedRepositoryId = pr?.repository?.id;
+      pullRequest = await gitApi.getPullRequestById(pullRequestId, project);
+      resolvedRepositoryId = pullRequest?.repository?.id;
     }
 
     if (!resolvedRepositoryId) {
@@ -111,22 +166,33 @@ export async function addPullRequestComment(
 
       // Add file context if specified (file comment)
       if (options.filePath) {
-        thread.threadContext = {
-          filePath: options.filePath,
-          // Only add line information if provided
-          rightFileStart: options.lineNumber
-            ? {
-                line: options.lineNumber,
-                offset: 1, // Default to start of line
-              }
-            : undefined,
-          rightFileEnd: options.lineNumber
-            ? {
-                line: options.lineNumber,
-                offset: 1, // Default to start of line
-              }
-            : undefined,
-        };
+        thread.threadContext = { filePath: options.filePath };
+
+        // Only add line information if provided
+        if (options.lineNumber) {
+          const endLineNumber = options.endLineNumber ?? options.lineNumber;
+          const endLineLength = await getLineLength(
+            gitApi,
+            resolvedRepositoryId,
+            pullRequestId,
+            project,
+            options.filePath,
+            endLineNumber,
+            pullRequest,
+          );
+
+          thread.threadContext.rightFileStart = {
+            line: options.lineNumber,
+            offset: 1,
+          };
+          // If the length of the end line cannot be determined, fall back to a single-line anchor
+          // at the start of lineNumber. Ending the range at the start of endLineNumber instead
+          // would make "Apply change" keep that line in place.
+          thread.threadContext.rightFileEnd =
+            endLineLength === undefined
+              ? { line: options.lineNumber, offset: 1 }
+              : { line: endLineNumber, offset: endLineLength + 1 };
+        }
       }
 
       const createdThread = await gitApi.createThread(
