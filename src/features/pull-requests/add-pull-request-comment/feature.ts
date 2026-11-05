@@ -3,6 +3,7 @@ import {
   Comment,
   CommentThreadStatus,
   CommentType,
+  GitPullRequest,
   GitPullRequestCommentThread,
   GitVersionType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
@@ -21,6 +22,7 @@ import {
  * when a line is selected, lets the "Apply change" button of a suggestion replace the line
  * instead of inserting the suggestion in front of it.
  *
+ * @param pullRequest The pull request if it was already fetched, to avoid fetching it again
  * @returns The length of the line, or undefined if the file or line cannot be read
  */
 async function getLineLength(
@@ -30,9 +32,11 @@ async function getLineLength(
   project: string | undefined,
   filePath: string,
   lineNumber: number,
+  pullRequest?: GitPullRequest,
 ): Promise<number | undefined> {
   try {
-    const pr = await gitApi.getPullRequestById(pullRequestId, project);
+    const pr =
+      pullRequest ?? (await gitApi.getPullRequestById(pullRequestId, project));
     const commitId = pr?.lastMergeSourceCommit?.commitId;
     if (!commitId) {
       return undefined;
@@ -51,7 +55,9 @@ async function getLineLength(
       true,
     );
 
-    const line = item?.content?.split(/\r?\n/)[lineNumber - 1];
+    // A byte order mark is not part of the first line
+    const content = item?.content?.replace(/^\uFEFF/, '');
+    const line = content?.split(/\r?\n/)[lineNumber - 1];
     return line === undefined ? undefined : line.length;
   } catch {
     return undefined;
@@ -79,10 +85,11 @@ export async function addPullRequestComment(
     const gitApi = await connection.getGitApi();
     const project = projectId || undefined;
 
+    let pullRequest: GitPullRequest | undefined;
     let resolvedRepositoryId = repositoryId;
     if (!resolvedRepositoryId) {
-      const pr = await gitApi.getPullRequestById(pullRequestId, project);
-      resolvedRepositoryId = pr?.repository?.id;
+      pullRequest = await gitApi.getPullRequestById(pullRequestId, project);
+      resolvedRepositoryId = pullRequest?.repository?.id;
     }
 
     if (!resolvedRepositoryId) {
@@ -162,11 +169,6 @@ export async function addPullRequestComment(
         // Only add line information if provided
         if (options.lineNumber) {
           const endLineNumber = options.endLineNumber ?? options.lineNumber;
-          if (endLineNumber < options.lineNumber) {
-            throw new Error('endLineNumber must not be less than lineNumber');
-          }
-
-          // Fall back to the start of the end line if its length cannot be determined
           const endLineLength = await getLineLength(
             gitApi,
             resolvedRepositoryId,
@@ -174,16 +176,20 @@ export async function addPullRequestComment(
             project,
             options.filePath,
             endLineNumber,
+            pullRequest,
           );
 
           thread.threadContext.rightFileStart = {
             line: options.lineNumber,
             offset: 1,
           };
-          thread.threadContext.rightFileEnd = {
-            line: endLineNumber,
-            offset: (endLineLength ?? 0) + 1,
-          };
+          // If the length of the end line cannot be determined, fall back to a single-line anchor
+          // at the start of lineNumber. Ending the range at the start of endLineNumber instead
+          // would make "Apply change" keep that line in place.
+          thread.threadContext.rightFileEnd =
+            endLineLength === undefined
+              ? { line: options.lineNumber, offset: 1 }
+              : { line: endLineNumber, offset: endLineLength + 1 };
         }
       }
 

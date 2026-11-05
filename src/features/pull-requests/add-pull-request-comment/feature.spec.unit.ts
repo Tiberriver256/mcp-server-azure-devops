@@ -181,15 +181,25 @@ describe('addPullRequestComment', () => {
         },
         rightFileEnd: {
           line: 42,
-          offset: 1,
+          offset: 8,
         },
       },
     };
+
+    // Lines "line 1" to "line 42", so that line 42 is 7 characters long
+    const fileContent = Array.from(
+      { length: 42 },
+      (_, index) => `line ${index + 1}`,
+    ).join('\n');
 
     // Setup mock connection
     const mockGitApi = {
       createComment: jest.fn(),
       createThread: jest.fn().mockResolvedValue(mockThread),
+      getPullRequestById: jest.fn().mockResolvedValue({
+        lastMergeSourceCommit: { commitId: 'abc123' },
+      }),
+      getItem: jest.fn().mockResolvedValue({ content: fileContent }),
     };
 
     const mockConnection: any = {
@@ -239,13 +249,17 @@ describe('addPullRequestComment', () => {
         comments: [
           expect.objectContaining({ content: 'This code needs improvement' }),
         ],
-        threadContext: expect.objectContaining({
+        threadContext: {
           filePath: '/src/app.ts',
-          rightFileStart: expect.objectContaining({ line: 42 }),
-          rightFileEnd: expect.objectContaining({ line: 42 }),
-        }),
+          rightFileStart: { line: 42, offset: 1 },
+          rightFileEnd: { line: 42, offset: 8 },
+        },
       }),
       repositoryId,
+      pullRequestId,
+      projectId,
+    );
+    expect(mockGitApi.getPullRequestById).toHaveBeenCalledWith(
       pullRequestId,
       projectId,
     );
@@ -320,6 +334,19 @@ describe('addPullRequestComment', () => {
       });
     });
 
+    test('should not count a byte order mark as part of the first line', async () => {
+      const mockGitApi = createMockGitApi();
+      mockGitApi.getItem.mockResolvedValue({ content: `\uFEFF${fileContent}` });
+
+      await addComment(mockGitApi, { lineNumber: 1 });
+
+      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
+        filePath: '/src/app.ts',
+        rightFileStart: { line: 1, offset: 1 },
+        rightFileEnd: { line: 1, offset: 9 },
+      });
+    });
+
     test('should fall back to the start of the line when the file cannot be read', async () => {
       const mockGitApi = createMockGitApi();
       mockGitApi.getItem.mockRejectedValue(new Error('not found'));
@@ -333,13 +360,96 @@ describe('addPullRequestComment', () => {
       });
     });
 
-    test('should reject an endLineNumber before lineNumber', async () => {
+    test('should fall back to a single-line anchor at lineNumber when the file of a range cannot be read', async () => {
+      const mockGitApi = createMockGitApi();
+      mockGitApi.getItem.mockRejectedValue(new Error('not found'));
+
+      await addComment(mockGitApi, { lineNumber: 1, endLineNumber: 3 });
+
+      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
+        filePath: '/src/app.ts',
+        rightFileStart: { line: 1, offset: 1 },
+        rightFileEnd: { line: 1, offset: 1 },
+      });
+    });
+
+    test('should fall back to the start of the line when the pull request has no source commit', async () => {
+      const mockGitApi = createMockGitApi();
+      mockGitApi.getPullRequestById.mockResolvedValue({});
+
+      await addComment(mockGitApi, { lineNumber: 2 });
+
+      expect(mockGitApi.getItem).not.toHaveBeenCalled();
+      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
+        filePath: '/src/app.ts',
+        rightFileStart: { line: 2, offset: 1 },
+        rightFileEnd: { line: 2, offset: 1 },
+      });
+    });
+
+    test('should fall back to a single-line anchor at lineNumber when endLineNumber is beyond the end of the file', async () => {
       const mockGitApi = createMockGitApi();
 
-      await expect(
-        addComment(mockGitApi, { lineNumber: 3, endLineNumber: 2 }),
-      ).rejects.toThrow('endLineNumber must not be less than lineNumber');
-      expect(mockGitApi.createThread).not.toHaveBeenCalled();
+      await addComment(mockGitApi, { lineNumber: 2, endLineNumber: 10 });
+
+      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
+        filePath: '/src/app.ts',
+        rightFileStart: { line: 2, offset: 1 },
+        rightFileEnd: { line: 2, offset: 1 },
+      });
+    });
+
+    test('should comment on the whole file without looking it up when lineNumber is omitted', async () => {
+      const mockGitApi = createMockGitApi();
+
+      await addComment(mockGitApi, {});
+
+      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
+        filePath: '/src/app.ts',
+      });
+      expect(mockGitApi.getPullRequestById).not.toHaveBeenCalled();
+      expect(mockGitApi.getItem).not.toHaveBeenCalled();
+    });
+
+    test('should reuse the pull request fetched to derive repositoryId', async () => {
+      const mockGitApi = createMockGitApi();
+      mockGitApi.getPullRequestById.mockResolvedValue({
+        repository: { id: 'derived-repo' },
+        lastMergeSourceCommit: { commitId: 'abc123' },
+      });
+
+      await addPullRequestComment(
+        { getGitApi: jest.fn().mockResolvedValue(mockGitApi) } as any,
+        'test-project',
+        undefined,
+        123,
+        {
+          projectId: 'test-project',
+          pullRequestId: 123,
+          content: 'c',
+          filePath: '/src/app.ts',
+          lineNumber: 2,
+        },
+      );
+
+      expect(mockGitApi.getPullRequestById).toHaveBeenCalledTimes(1);
+      expect(mockGitApi.getItem).toHaveBeenCalledWith(
+        'derived-repo',
+        '/src/app.ts',
+        'test-project',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { version: 'abc123', versionType: GitVersionType.Commit },
+        true,
+      );
+      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
+        filePath: '/src/app.ts',
+        rightFileStart: { line: 2, offset: 1 },
+        rightFileEnd: { line: 2, offset: 12 },
+      });
     });
   });
 
