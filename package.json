@@ -1,6 +1,6 @@
 {
   "name": "@tiberriver256/mcp-server-azure-devops",
-  "version": "0.1.53",
+  "version": "0.1.54",
   "description": "Azure DevOps reference server for the Model Context Protocol (MCP)",
   "repository": {
     "type": "git",
@@ -95,7 +95,7 @@
     "diff": "^9.0.0",
     "dotenv": "^18.0.8",
     "jszip": "^3.10.1",
-    "minimatch": "^10.2.6",
+    "minimatch": "^11.0.3",
     "zod": "^4.5.4"
   },
   "devDependencies": {
@@ -108,7 +108,7 @@
     "husky": "^9.1.7",
     "jest": "^30.5.1",
     "lint-staged": "^17.6.0",
-    "oxfmt": "^0.74.0",
+    "oxfmt": "^0.75.0",
     "oxlint": "^1.81.0",
     "ts-jest": "^29.4.12",
     "tsx": "^4.23.15",
