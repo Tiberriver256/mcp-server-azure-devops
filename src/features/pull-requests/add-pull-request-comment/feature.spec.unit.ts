@@ -313,7 +313,8 @@ describe('addPullRequestComment', () => {
         undefined,
         undefined,
         { version: 'abc123', versionType: GitVersionType.Commit },
-        true,
+        true, // includeContent
+        true, // resolveLfs
       );
       expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
         filePath: '/src/app.ts',
@@ -330,6 +331,23 @@ describe('addPullRequestComment', () => {
       expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
         filePath: '/src/app.ts',
         rightFileStart: { line: 1, offset: 1 },
+        rightFileEnd: { line: 3, offset: 15 },
+      });
+    });
+
+    test.each([
+      ['LF', 'line one\nsecond line\nthe third line'],
+      ['CR', 'line one\rsecond line\rthe third line'],
+      ['mixed', 'line one\rsecond line\nthe third line'],
+    ])('should count %s line breaks like the diff view', async (_, content) => {
+      const mockGitApi = createMockGitApi();
+      mockGitApi.getItem.mockResolvedValue({ content });
+
+      await addComment(mockGitApi, { lineNumber: 2, endLineNumber: 3 });
+
+      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
+        filePath: '/src/app.ts',
+        rightFileStart: { line: 2, offset: 1 },
         rightFileEnd: { line: 3, offset: 15 },
       });
     });
@@ -443,6 +461,7 @@ describe('addPullRequestComment', () => {
         undefined,
         undefined,
         { version: 'abc123', versionType: GitVersionType.Commit },
+        true,
         true,
       );
       expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({

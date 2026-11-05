@@ -52,12 +52,14 @@ async function getLineLength(
       undefined,
       undefined,
       { version: commitId, versionType: GitVersionType.Commit },
-      true,
+      true, // includeContent
+      true, // resolveLfs: measure the real content, not the pointer of a file in Git LFS
     );
 
     // A byte order mark is not part of the first line
     const content = item?.content?.replace(/^\uFEFF/, '');
-    const line = content?.split(/\r?\n/)[lineNumber - 1];
+    // Split on the same line breaks as the diff view, which also counts a lone CR
+    const line = content?.split(/\r\n|\r|\n/)[lineNumber - 1];
     return line === undefined ? undefined : line.length;
   } catch {
     return undefined;
