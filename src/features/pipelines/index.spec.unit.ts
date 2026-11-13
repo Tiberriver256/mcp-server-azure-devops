@@ -190,6 +190,69 @@ describe('Pipelines Request Handlers', () => {
       );
     });
 
+    it('should resolve pipelineName and buildNumber for get_pipeline_run', async () => {
+      const getDefinitions = jest
+        .fn()
+        .mockResolvedValue([{ id: 7, name: 'CI Build', path: '\\' }]);
+      const getBuilds = jest
+        .fn()
+        .mockResolvedValue([
+          { id: 4711, buildNumber: '20240115.3', definition: { id: 7 } },
+        ]);
+      const connection = {
+        getBuildApi: jest.fn().mockResolvedValue({ getDefinitions, getBuilds }),
+      } as unknown as WebApi;
+      (getPipelineRun as jest.Mock).mockResolvedValue({ id: 4711 });
+
+      const request = {
+        params: {
+          name: 'get_pipeline_run',
+          arguments: {
+            projectId: 'test-project',
+            pipelineName: 'CI Build',
+            buildNumber: '20240115.3',
+          },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      await handlePipelinesRequest(connection, request);
+
+      expect(getDefinitions).toHaveBeenCalledWith('test-project', 'CI Build');
+      const options = (getPipelineRun as jest.Mock).mock.calls.at(-1)[1];
+      expect(options).toEqual({
+        projectId: 'test-project',
+        runId: 4711,
+        pipelineId: 7,
+      });
+    });
+
+    it('should resolve pipelineName for list_pipeline_runs', async () => {
+      const getDefinitions = jest
+        .fn()
+        .mockResolvedValue([{ id: 7, name: 'CI Build', path: '\\' }]);
+      const connection = {
+        getBuildApi: jest.fn().mockResolvedValue({ getDefinitions }),
+      } as unknown as WebApi;
+      (listPipelineRuns as jest.Mock).mockResolvedValue({ runs: [] });
+
+      const request = {
+        params: {
+          name: 'list_pipeline_runs',
+          arguments: { projectId: 'test-project', pipelineName: 'CI Build' },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      await handlePipelinesRequest(connection, request);
+
+      const options = (listPipelineRuns as jest.Mock).mock.calls.at(-1)[1];
+      expect(options).toEqual(
+        expect.objectContaining({ projectId: 'test-project', pipelineId: 7 }),
+      );
+      expect(options).not.toHaveProperty('pipelineName');
+    });
+
     it('should handle pipeline_timeline request', async () => {
       const mockTimeline = { records: [{ name: 'Stage 1' }] };
       (getPipelineTimeline as jest.Mock).mockResolvedValue(mockTimeline);
