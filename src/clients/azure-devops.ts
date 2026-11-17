@@ -333,15 +333,13 @@ export class WikiClient {
     // Use the default project if not provided
     const project = projectId || defaultProject;
 
-    // Encode the page path, handling forward slashes properly
-    const encodedPagePath = encodeURIComponent(pagePath).replace(/%2F/g, '/');
-
     // Construct the URL to create the wiki page
     const url = `${this.baseUrl}/${project}/_apis/wiki/wikis/${wikiId}/pages`;
 
+    // Raw path: axios encodes params itself, pre-encoding would double-encode
     const params: Record<string, string> = {
       'api-version': apiVersion,
-      path: encodedPagePath,
+      path: pagePath,
     };
 
     // Prepare the request payload
@@ -463,14 +461,12 @@ export class WikiClient {
       }
     }
 
-    // Encode the page path, handling forward slashes properly
-    const encodedPagePath = encodeURIComponent(pagePath).replace(/%2F/g, '/');
-
     // Construct the URL to update the wiki page
     const url = `${this.baseUrl}/${project}/_apis/wiki/wikis/${wikiId}/pages`;
+    // Raw path: axios encodes params itself, pre-encoding would double-encode
     const params: Record<string, string> = {
       'api-version': apiVersion,
-      path: encodedPagePath,
+      path: pagePath,
     };
 
     // Add optional comment parameter if provided
