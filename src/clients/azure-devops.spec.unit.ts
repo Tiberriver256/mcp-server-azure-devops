@@ -45,4 +45,36 @@ describe('WikiClient base urls', () => {
       }),
     );
   });
+
+  describe('page path encoding (#262)', () => {
+    const pagePath = '/My Wiki/Onboarding für Entwickler';
+
+    it('passes the raw path to axios in createPage', async () => {
+      mockedAxios.put.mockResolvedValue({ data: {}, headers: {} });
+      const client = await getWikiClient({ organizationId: 'org' });
+
+      await client.createPage('x', 'ProjectX', 'wiki1', pagePath);
+
+      const { params } = mockedAxios.put.mock.calls[0][2] as {
+        params: Record<string, string>;
+      };
+      expect(params.path).toBe(pagePath);
+    });
+
+    it('passes the raw path to axios in updatePage', async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: 'old',
+        headers: { etag: '"1"' },
+      });
+      mockedAxios.put.mockResolvedValue({ data: {}, headers: {} });
+      const client = await getWikiClient({ organizationId: 'org' });
+
+      await client.updatePage({ content: 'x' }, 'ProjectX', 'wiki1', pagePath);
+
+      const { params } = mockedAxios.put.mock.calls[0][2] as {
+        params: Record<string, string>;
+      };
+      expect(params.path).toBe(pagePath);
+    });
+  });
 });
