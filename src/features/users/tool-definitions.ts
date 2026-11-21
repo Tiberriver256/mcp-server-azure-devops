@@ -11,5 +11,6 @@ export const usersTools: ToolDefinition[] = [
     description:
       'Get details of the authenticated user (id, displayName, email)',
     inputSchema: toJsonSchema(GetMeSchema),
+    readOnly: true,
   },
 ];

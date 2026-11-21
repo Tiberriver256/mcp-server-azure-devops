@@ -11,5 +11,6 @@ export const organizationsTools: ToolDefinition[] = [
     description:
       'List all Azure DevOps organizations accessible to the current authentication',
     inputSchema: toJsonSchema(ListOrganizationsSchema),
+    readOnly: true,
   },
 ];

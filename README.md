@@ -168,7 +168,28 @@ Key environment variables include:
 | `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                                        | Only with service principals | -                |
 | `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                                   | Only with service principals | -                |
 | `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                                    | Only with service principals | -                |
+| `AZURE_DEVOPS_TOOLSETS`        | Comma-separated toolsets to enable (`all`, `users`, `organizations`, `projects`, `repositories`, `work-items`, `search`, `pull-requests`, `pipelines`, `wikis`) | No                           | `all`            |
+| `AZURE_DEVOPS_ENABLED_TOOLS`   | Comma-separated allowlist of specific tool names to expose                         | No                           | all              |
+| `AZURE_DEVOPS_DISABLED_TOOLS`  | Comma-separated denylist of specific tool names to hide/block                      | No                           | -                |
+| `AZURE_DEVOPS_READ_ONLY`       | Set to `true` to expose only read-only tools and block all write operations        | No                           | `false`          |
 | `LOG_LEVEL`                    | Logging level (debug, info, warn, error)                                           | No                           | info             |
+
+### Tool Filtering & Read-Only Mode
+
+To reduce tool count (e.g., for clients with tool limits) or prevent mutations, you can filter registered tools using environment variables or CLI flags (CLI flags take precedence over environment variables):
+
+```bash
+# Only expose work-items and pull-requests toolsets, in read-only mode
+npx -y @tiberriver256/mcp-server-azure-devops --toolsets work-items,pull-requests --read-only
+
+# Or pick specific tools / exclude specific tools
+npx -y @tiberriver256/mcp-server-azure-devops --enabled-tools get_work_item,list_work_items
+npx -y @tiberriver256/mcp-server-azure-devops --disabled-tools create_commit,delete_work_item_attachment
+```
+
+- **Evaluation order:** `toolsets` → `enabled-tools` (intersection) → `disabled-tools` → `read-only` (fail-closed: write tools cannot be re-enabled when `--read-only` / `AZURE_DEVOPS_READ_ONLY=true` is set).
+- **Read-only scope:** `--read-only` / `AZURE_DEVOPS_READ_ONLY=true` prevents all Azure DevOps state mutations (note: `get_work_item_attachment` is considered read-only with respect to Azure DevOps, though it saves downloaded attachments to a local path; use `--disabled-tools get_work_item_attachment` if you also want to disallow local file downloads).
+- Disabled tools are both omitted from `tools/list` and rejected if invoked via `tools/call`.
 
 ## Troubleshooting Authentication
 
