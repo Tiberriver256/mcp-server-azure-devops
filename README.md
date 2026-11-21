@@ -235,7 +235,7 @@ The Azure DevOps MCP server provides a variety of tools for interacting with Azu
 - `list_pipelines`: List pipelines in a project
 - `get_pipeline`: Get details of a specific pipeline
 - `list_pipeline_runs`: List recent runs for a pipeline with optional filters
-- `get_pipeline_run`: Get detailed run information and artifact summaries
+- `get_pipeline_run`: Get detailed run information and artifact summaries (runs can be referenced by pipeline name and build number)
 - `download_pipeline_artifact`: Download a single artifact file as text
 - `pipeline_timeline`: Retrieve the stage and job timeline for a run
 - `get_pipeline_log`: Retrieve raw or JSON-formatted log content

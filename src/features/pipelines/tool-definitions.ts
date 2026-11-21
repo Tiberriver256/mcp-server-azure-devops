@@ -27,34 +27,36 @@ export const pipelinesTools: ToolDefinition[] = [
   },
   {
     name: 'list_pipeline_runs',
-    description: 'List recent runs for a pipeline',
+    description:
+      'List recent runs for a pipeline, identified by pipelineId or pipelineName',
     inputSchema: toJsonSchema(ListPipelineRunsSchema),
     mcp_enabled: true,
   },
   {
     name: 'get_pipeline_run',
-    description: 'Get details for a specific pipeline run',
+    description:
+      'Get details for a specific pipeline run. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
     inputSchema: toJsonSchema(GetPipelineRunSchema),
     mcp_enabled: true,
   },
   {
     name: 'download_pipeline_artifact',
     description:
-      'Download a file from a pipeline run artifact and return its textual content',
+      'Download a file from a pipeline run artifact and return its textual content. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
     inputSchema: toJsonSchema(DownloadPipelineArtifactSchema),
     mcp_enabled: true,
   },
   {
     name: 'pipeline_timeline',
     description:
-      'Retrieve the timeline of stages and jobs for a pipeline run, to reduce the amount of data returned, you can filter by state and result',
+      'Retrieve the timeline of stages and jobs for a pipeline run, to reduce the amount of data returned, you can filter by state and result. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
     inputSchema: toJsonSchema(GetPipelineTimelineSchema),
     mcp_enabled: true,
   },
   {
     name: 'get_pipeline_log',
     description:
-      'Retrieve a specific pipeline log using the timeline log identifier',
+      'Retrieve a specific pipeline log using the timeline log identifier. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
     inputSchema: toJsonSchema(GetPipelineLogSchema),
     mcp_enabled: true,
   },
