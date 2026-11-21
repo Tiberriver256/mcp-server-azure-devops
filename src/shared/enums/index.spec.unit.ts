@@ -1,12 +1,14 @@
 import {
   CommentThreadStatus,
   CommentType,
+  GitPullRequestMergeStrategy,
   GitVersionType,
   PullRequestStatus,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import {
   commentThreadStatusMapper,
   commentTypeMapper,
+  pullRequestMergeStrategyMapper,
   pullRequestStatusMapper,
   gitVersionTypeMapper,
 } from './index';
@@ -140,6 +142,79 @@ describe('Enum Mappers', () => {
         'commit',
       );
       expect(gitVersionTypeMapper.toString(GitVersionType.Tag)).toBe('tag');
+    });
+  });
+
+  describe('pullRequestMergeStrategyMapper', () => {
+    it('should map string values to enum values correctly', () => {
+      expect(pullRequestMergeStrategyMapper.toEnum('noFastForward')).toBe(
+        GitPullRequestMergeStrategy.NoFastForward,
+      );
+      expect(pullRequestMergeStrategyMapper.toEnum('squash')).toBe(
+        GitPullRequestMergeStrategy.Squash,
+      );
+      expect(pullRequestMergeStrategyMapper.toEnum('rebase')).toBe(
+        GitPullRequestMergeStrategy.Rebase,
+      );
+      expect(pullRequestMergeStrategyMapper.toEnum('rebaseMerge')).toBe(
+        GitPullRequestMergeStrategy.RebaseMerge,
+      );
+    });
+
+    it('should handle case insensitive string input', () => {
+      expect(pullRequestMergeStrategyMapper.toEnum('nofastforward')).toBe(
+        GitPullRequestMergeStrategy.NoFastForward,
+      );
+      expect(pullRequestMergeStrategyMapper.toEnum('NOFASTFORWARD')).toBe(
+        GitPullRequestMergeStrategy.NoFastForward,
+      );
+      expect(pullRequestMergeStrategyMapper.toEnum('SQUASH')).toBe(
+        GitPullRequestMergeStrategy.Squash,
+      );
+      expect(pullRequestMergeStrategyMapper.toEnum('Rebase')).toBe(
+        GitPullRequestMergeStrategy.Rebase,
+      );
+      expect(pullRequestMergeStrategyMapper.toEnum('rebasemerge')).toBe(
+        GitPullRequestMergeStrategy.RebaseMerge,
+      );
+      expect(pullRequestMergeStrategyMapper.toEnum('REBASEMERGE')).toBe(
+        GitPullRequestMergeStrategy.RebaseMerge,
+      );
+    });
+
+    it('should map enum values to string values correctly', () => {
+      expect(
+        pullRequestMergeStrategyMapper.toString(
+          GitPullRequestMergeStrategy.NoFastForward,
+        ),
+      ).toBe('noFastForward');
+      expect(
+        pullRequestMergeStrategyMapper.toString(
+          GitPullRequestMergeStrategy.Squash,
+        ),
+      ).toBe('squash');
+      expect(
+        pullRequestMergeStrategyMapper.toString(
+          GitPullRequestMergeStrategy.Rebase,
+        ),
+      ).toBe('rebase');
+      expect(
+        pullRequestMergeStrategyMapper.toString(
+          GitPullRequestMergeStrategy.RebaseMerge,
+        ),
+      ).toBe('rebaseMerge');
+    });
+
+    it('should return undefined for invalid string values', () => {
+      expect(
+        pullRequestMergeStrategyMapper.toEnum('fastForward'),
+      ).toBeUndefined();
+      expect(pullRequestMergeStrategyMapper.toEnum('')).toBeUndefined();
+    });
+
+    it('should return default value for invalid enum values', () => {
+      expect(pullRequestMergeStrategyMapper.toString(0)).toBe('unknown');
+      expect(pullRequestMergeStrategyMapper.toString(999)).toBe('unknown');
     });
   });
 });
