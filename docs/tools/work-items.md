@@ -70,13 +70,14 @@ Creates a new work item in a specified project.
 | ------------------ | ------ | -------- | ------------------------------------------------------------------- |
 | `projectId`        | string | Yes      | The ID or name of the project where the work item will be created   |
 | `workItemType`     | string | Yes      | The type of work item to create (e.g., "Task", "Bug", "User Story") |
-| `title`            | string | Yes      | The title of the work item                                          |
-| `description`      | string | No       | The description of the work item                                    |
-| `assignedTo`       | string | No       | The email or name of the user to assign the work item to            |
-| `areaPath`         | string | No       | The area path for the work item                                     |
-| `iterationPath`    | string | No       | The iteration path for the work item                                |
-| `priority`         | number | No       | The priority of the work item                                       |
-| `additionalFields` | object | No       | Additional fields to set on the work item (key-value pairs)         |
+| `title`             | string | Yes      | The title of the work item                                                                                   |
+| `description`       | string | No       | The description of the work item (HTML by default; set `descriptionFormat` to `"markdown"` for Markdown)    |
+| `descriptionFormat` | string | No       | Format for `description`: `"html"` (default) or `"markdown"` (irreversible once saved as Markdown in ADO)   |
+| `assignedTo`        | string | No       | The email or name of the user to assign the work item to                                                     |
+| `areaPath`          | string | No       | The area path for the work item                                                                              |
+| `iterationPath`     | string | No       | The iteration path for the work item                                                                         |
+| `priority`          | number | No       | The priority of the work item                                                                                |
+| `additionalFields`  | object | No       | Additional fields to set on the work item (key-value pairs)                                                  |
 
 ### Response
 

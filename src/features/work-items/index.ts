@@ -113,6 +113,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         {
           title: args.title,
           description: args.description,
+          descriptionFormat: args.descriptionFormat,
           assignedTo: args.assignedTo,
           areaPath: args.areaPath,
           iterationPath: args.iterationPath,
@@ -131,6 +132,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
       const result = await updateWorkItem(connection, args.workItemId, {
         title: args.title,
         description: args.description,
+        descriptionFormat: args.descriptionFormat,
         assignedTo: args.assignedTo,
         areaPath: args.areaPath,
         iterationPath: args.iterationPath,
