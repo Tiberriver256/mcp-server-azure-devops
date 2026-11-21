@@ -247,11 +247,101 @@ export async function fetchPagedTestPlanCollection<T>(params: {
   };
 }
 
+const ISO_DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
+const ISO_DATETIME_REGEX =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|([+-])(\d{2}):(\d{2}))$/;
+
+/**
+ * Strictly parse an ISO 8601 date (`YYYY-MM-DD`) or date-time with explicit
+ * timezone offset (`YYYY-MM-DDTHH:mm:ss(.sss)?(Z|[+-]HH:mm)`).
+ * Rejects non-ISO formats and impossible calendar dates (e.g. `2026-02-30`).
+ */
+export function parseStrictIsoDate(value: string): Date | null {
+  const dateOnlyMatch = ISO_DATE_ONLY_REGEX.exec(value);
+  if (dateOnlyMatch) {
+    const year = Number(dateOnlyMatch[1]);
+    const month = Number(dateOnlyMatch[2]);
+    const day = Number(dateOnlyMatch[3]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) {
+      return null;
+    }
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    if (
+      parsed.getUTCFullYear() !== year ||
+      parsed.getUTCMonth() !== month - 1 ||
+      parsed.getUTCDate() !== day
+    ) {
+      return null;
+    }
+    return parsed;
+  }
+
+  const dateTimeMatch = ISO_DATETIME_REGEX.exec(value);
+  if (dateTimeMatch) {
+    const year = Number(dateTimeMatch[1]);
+    const month = Number(dateTimeMatch[2]);
+    const day = Number(dateTimeMatch[3]);
+    const hour = Number(dateTimeMatch[4]);
+    const minute = Number(dateTimeMatch[5]);
+    const second = Number(dateTimeMatch[6]);
+
+    if (
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > 31 ||
+      hour > 23 ||
+      minute > 59 ||
+      second > 59
+    ) {
+      return null;
+    }
+
+    const calendarCheck = new Date(Date.UTC(year, month - 1, day));
+    if (
+      calendarCheck.getUTCFullYear() !== year ||
+      calendarCheck.getUTCMonth() !== month - 1 ||
+      calendarCheck.getUTCDate() !== day
+    ) {
+      return null;
+    }
+
+    if (dateTimeMatch[8] !== 'Z') {
+      const offsetHour = Number(dateTimeMatch[10]);
+      const offsetMinute = Number(dateTimeMatch[11]);
+      if (offsetHour > 23 || offsetMinute > 59) {
+        return null;
+      }
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  return null;
+}
+
+/**
+ * Returns true if the input is a valid strict ISO 8601 date or date-time string.
+ */
+export function isValidIsoDateString(value: string): boolean {
+  return parseStrictIsoDate(value) !== null;
+}
+
+export type TestPlanPermissionScope =
+  | 'test-read'
+  | 'test-write'
+  | 'work-item-write';
+
 /**
  * Map Azure DevOps Test Plan API errors to typed AzureDevOpsError subclasses
  * without exposing credentials or raw request headers.
  */
-export function mapTestPlanError(error: unknown, context: string): never {
+export function mapTestPlanError(
+  error: unknown,
+  context: string,
+  permissionScope: TestPlanPermissionScope = 'test-read',
+): never {
   if (error instanceof AzureDevOpsError) {
     throw error;
   }
@@ -271,9 +361,23 @@ export function mapTestPlanError(error: unknown, context: string): never {
     throw new AzureDevOpsAuthenticationError(`${context}: ${message}`);
   }
   if (statusCode === 403) {
-    throw new AzureDevOpsPermissionError(
-      `${context}: ${message}. Verify your PAT has Test Management permissions (vso.test / vso.test_write) and your user has a Basic + Test Plans (or Visual Studio Enterprise) license for write operations.`,
-    );
+    let guidance: string;
+    switch (permissionScope) {
+      case 'work-item-write':
+        guidance =
+          'Verify your PAT has Work Items Read & Write permissions (vso.work_write).';
+        break;
+      case 'test-write':
+        guidance =
+          'Verify your PAT has Test Management Read & Write permissions (vso.test_write) and your user has a Basic + Test Plans (or Visual Studio Enterprise) license.';
+        break;
+      case 'test-read':
+      default:
+        guidance =
+          'Verify your PAT has Test Management Read permissions (vso.test).';
+        break;
+    }
+    throw new AzureDevOpsPermissionError(`${context}: ${message}. ${guidance}`);
   }
   if (statusCode === 404) {
     throw new AzureDevOpsResourceNotFoundError(`${context}: ${message}`);

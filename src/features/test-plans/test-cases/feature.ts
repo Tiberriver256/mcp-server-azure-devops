@@ -142,6 +142,7 @@ export async function addTestCasesToSuite(
     mapTestPlanError(
       error,
       `Failed to add test cases to plan ${options.planId}, suite ${options.suiteId}`,
+      'test-write',
     );
   }
 }
@@ -179,6 +180,7 @@ export async function removeTestCasesFromSuite(
     mapTestPlanError(
       error,
       `Failed to remove test cases from plan ${options.planId}, suite ${options.suiteId}`,
+      'test-write',
     );
   }
 }
@@ -330,6 +332,10 @@ export async function createTestCase(
 
     return { workItem };
   } catch (error) {
-    mapTestPlanError(error, `Failed to create test case '${options.title}'`);
+    mapTestPlanError(
+      error,
+      `Failed to create test case '${options.title}'`,
+      'work-item-write',
+    );
   }
 }

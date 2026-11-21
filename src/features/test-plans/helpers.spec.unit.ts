@@ -14,9 +14,11 @@ import {
   extractContinuationToken,
   fetchPagedTestPlanCollection,
   formatTestStepsXml,
+  isValidIsoDateString,
   mapSuiteExpand,
   mapSuiteType,
   mapTestPlanError,
+  parseStrictIsoDate,
   resolveProjectId,
   TEST_PLANS_LOCATION_ID,
 } from './helpers';
@@ -209,6 +211,47 @@ describe('test-plans helpers', () => {
     });
   });
 
+  describe('parseStrictIsoDate & isValidIsoDateString', () => {
+    it('accepts valid ISO 8601 dates and date-times with timezone offsets', () => {
+      const d1 = parseStrictIsoDate('2026-06-01');
+      expect(d1?.toISOString()).toBe('2026-06-01T00:00:00.000Z');
+
+      const leapDay = parseStrictIsoDate('2024-02-29');
+      expect(leapDay?.toISOString()).toBe('2024-02-29T00:00:00.000Z');
+
+      const utcDateTime = parseStrictIsoDate('2026-06-01T12:30:45.123Z');
+      expect(utcDateTime?.toISOString()).toBe('2026-06-01T12:30:45.123Z');
+
+      const offsetDateTime = parseStrictIsoDate('2026-06-01T14:30:00+02:00');
+      expect(offsetDateTime?.toISOString()).toBe('2026-06-01T12:30:00.000Z');
+
+      expect(isValidIsoDateString('2026-06-01')).toBe(true);
+      expect(isValidIsoDateString('2026-06-01T00:00:00Z')).toBe(true);
+    });
+
+    it('rejects impossible calendar dates and non-ISO strings', () => {
+      const invalidInputs = [
+        '2026-02-30',
+        '2025-02-29',
+        '2026-04-31',
+        '2026-13-01',
+        '2026-00-10',
+        '2026-02-30T12:00:00Z',
+        '2026-06-01T25:00:00Z',
+        '2026-06-01T12:00:00+25:00',
+        '2026-06-01T12:00:00',
+        'March 1, 2026',
+        '06/01/2026',
+        '2026-6-1',
+        '',
+      ];
+      for (const input of invalidInputs) {
+        expect(parseStrictIsoDate(input)).toBeNull();
+        expect(isValidIsoDateString(input)).toBe(false);
+      }
+    });
+  });
+
   describe('mapTestPlanError', () => {
     it('maps HTTP status codes to typed AzureDevOpsError subclasses', () => {
       expect(() =>
@@ -238,6 +281,28 @@ describe('test-plans helpers', () => {
       expect(() => mapTestPlanError(new Error('boom'), 'ctx')).toThrow(
         AzureDevOpsError,
       );
+    });
+
+    it('tailors 403 permission guidance to test-read, test-write, and work-item-write scopes', () => {
+      const err403 = Object.assign(new Error('Forbidden'), { statusCode: 403 });
+
+      expect(() => mapTestPlanError(err403, 'read', 'test-read')).toThrow(
+        /vso\.test\)/,
+      );
+      expect(() => mapTestPlanError(err403, 'read', 'test-read')).not.toThrow(
+        /Basic \+ Test Plans/,
+      );
+
+      expect(() => mapTestPlanError(err403, 'write', 'test-write')).toThrow(
+        /vso\.test_write.*Basic \+ Test Plans/,
+      );
+
+      expect(() => mapTestPlanError(err403, 'wit', 'work-item-write')).toThrow(
+        /vso\.work_write/,
+      );
+      expect(() =>
+        mapTestPlanError(err403, 'wit', 'work-item-write'),
+      ).not.toThrow(/Basic \+ Test Plans/);
     });
 
     it('rethrows existing AzureDevOpsError instances unchanged', () => {

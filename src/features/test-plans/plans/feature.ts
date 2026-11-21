@@ -11,6 +11,7 @@ import {
 import {
   fetchPagedTestPlanCollection,
   mapTestPlanError,
+  parseStrictIsoDate,
   resolveProjectId,
   TEST_PLANS_LOCATION_ID,
 } from '../helpers';
@@ -60,7 +61,7 @@ export async function listTestPlans(
       ...(continuationToken ? { continuationToken } : {}),
     };
   } catch (error) {
-    mapTestPlanError(error, 'Failed to list test plans');
+    mapTestPlanError(error, 'Failed to list test plans', 'test-read');
   }
 }
 
@@ -83,7 +84,11 @@ export async function getTestPlan(
     }
     return plan;
   } catch (error) {
-    mapTestPlanError(error, `Failed to get test plan ${options.planId}`);
+    mapTestPlanError(
+      error,
+      `Failed to get test plan ${options.planId}`,
+      'test-read',
+    );
   }
 }
 
@@ -101,10 +106,32 @@ export async function createTestPlan(
       throw new AzureDevOpsValidationError('Test plan name is required');
     }
 
+    let parsedStartDate: Date | undefined;
+    if (options.startDate !== undefined) {
+      const parsed = parseStrictIsoDate(options.startDate);
+      if (!parsed) {
+        throw new AzureDevOpsValidationError(
+          'startDate must be a valid ISO 8601 date or date-time string (e.g., "2026-06-01")',
+        );
+      }
+      parsedStartDate = parsed;
+    }
+
+    let parsedEndDate: Date | undefined;
+    if (options.endDate !== undefined) {
+      const parsed = parseStrictIsoDate(options.endDate);
+      if (!parsed) {
+        throw new AzureDevOpsValidationError(
+          'endDate must be a valid ISO 8601 date or date-time string (e.g., "2026-06-30")',
+        );
+      }
+      parsedEndDate = parsed;
+    }
+
     if (
-      options.startDate &&
-      options.endDate &&
-      Date.parse(options.endDate) < Date.parse(options.startDate)
+      parsedStartDate &&
+      parsedEndDate &&
+      parsedEndDate.getTime() < parsedStartDate.getTime()
     ) {
       throw new AzureDevOpsValidationError(
         'endDate must be on or after startDate',
@@ -119,8 +146,8 @@ export async function createTestPlan(
       ...(options.description !== undefined
         ? { description: options.description }
         : {}),
-      ...(options.startDate ? { startDate: new Date(options.startDate) } : {}),
-      ...(options.endDate ? { endDate: new Date(options.endDate) } : {}),
+      ...(parsedStartDate ? { startDate: parsedStartDate } : {}),
+      ...(parsedEndDate ? { endDate: parsedEndDate } : {}),
       ...(options.state ? { state: options.state } : {}),
       ...(options.ownerId ? { owner: { id: options.ownerId } } : {}),
       ...(options.buildId !== undefined ? { buildId: options.buildId } : {}),
@@ -132,6 +159,10 @@ export async function createTestPlan(
     }
     return created;
   } catch (error) {
-    mapTestPlanError(error, `Failed to create test plan '${options.name}'`);
+    mapTestPlanError(
+      error,
+      `Failed to create test plan '${options.name}'`,
+      'test-write',
+    );
   }
 }

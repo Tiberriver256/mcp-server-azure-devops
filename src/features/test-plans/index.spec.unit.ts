@@ -145,5 +145,35 @@ describe('Test Plans Request Handlers', () => {
         } as CallToolRequest),
       ).rejects.toThrow('Unknown test plans tool: unknown_test_plan_tool');
     });
+
+    it('rejects impossible calendar dates and non-ISO dates in create_test_plan schema', async () => {
+      await expect(
+        handleTestPlansRequest(mockConnection, {
+          method: 'tools/call',
+          params: {
+            name: 'create_test_plan',
+            arguments: {
+              projectId: 'P',
+              name: 'Bad Date Plan',
+              startDate: '2026-02-30',
+            },
+          },
+        } as CallToolRequest),
+      ).rejects.toThrow();
+
+      await expect(
+        handleTestPlansRequest(mockConnection, {
+          method: 'tools/call',
+          params: {
+            name: 'create_test_plan',
+            arguments: {
+              projectId: 'P',
+              name: 'Non-ISO Plan',
+              endDate: 'March 1, 2026',
+            },
+          },
+        } as CallToolRequest),
+      ).rejects.toThrow();
+    });
   });
 });

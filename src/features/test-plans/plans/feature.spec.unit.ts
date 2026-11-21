@@ -101,4 +101,23 @@ describe('test-plans/plans feature unit', () => {
       }),
     ).rejects.toThrow(AzureDevOpsValidationError);
   });
+
+  it('rejects impossible calendar dates and non-ISO date strings in createTestPlan', async () => {
+    await expect(
+      createTestPlan(connection, {
+        projectId: 'MyProject',
+        name: 'Invalid Calendar Date',
+        startDate: '2026-02-30',
+      }),
+    ).rejects.toThrow(AzureDevOpsValidationError);
+
+    await expect(
+      createTestPlan(connection, {
+        projectId: 'MyProject',
+        name: 'Non-ISO End Date',
+        endDate: 'March 1, 2026',
+      }),
+    ).rejects.toThrow(AzureDevOpsValidationError);
+    expect(createTestPlanApi).not.toHaveBeenCalled();
+  });
 });

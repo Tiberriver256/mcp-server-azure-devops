@@ -176,6 +176,7 @@ export async function createTestSuite(
     mapTestPlanError(
       error,
       `Failed to create test suite '${options.name}' in plan ${options.planId}`,
+      'test-write',
     );
   }
 }

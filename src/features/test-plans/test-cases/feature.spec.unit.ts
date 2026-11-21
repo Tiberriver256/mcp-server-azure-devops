@@ -211,4 +211,33 @@ describe('test-plans/test-cases feature unit', () => {
     );
     await expect(promise).rejects.toThrow(/add_test_cases_to_suite/);
   });
+
+  it('recommends vso.work_write when createWorkItem fails with 403 and vso.test_write when suite attachment fails with 403', async () => {
+    createWorkItemApi.mockRejectedValueOnce(
+      Object.assign(new Error('Forbidden'), { statusCode: 403 }),
+    );
+    const witPromise = createTestCase(connection, {
+      projectId: 'MyProject',
+      title: 'No WIT Write Scope',
+    });
+    await expect(witPromise).rejects.toThrow(/vso\.work_write/);
+    await expect(witPromise).rejects.not.toThrow(/Basic \+ Test Plans/);
+
+    createWorkItemApi.mockResolvedValueOnce({
+      id: 999,
+      fields: { 'System.Title': 'Created Without Test Write' },
+    });
+    addTestCasesToSuiteApi.mockRejectedValueOnce(
+      Object.assign(new Error('Forbidden'), { statusCode: 403 }),
+    );
+    const suitePromise = createTestCase(connection, {
+      projectId: 'MyProject',
+      title: 'Created Without Test Write',
+      planId: 5,
+      suiteId: 10,
+    });
+    await expect(suitePromise).rejects.toThrow(
+      /Test Case work item 999 was created.*vso\.test_write.*Basic \+ Test Plans/,
+    );
+  });
 });

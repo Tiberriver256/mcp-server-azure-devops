@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { defaultProject } from '../../utils/environment';
+import { isValidIsoDateString, parseStrictIsoDate } from './helpers';
 
 const projectIdField = z
   .string()
@@ -10,11 +11,10 @@ const projectIdField = z
 
 const positiveIntId = z.number().int().positive();
 
-const isoDateString = z
-  .string()
-  .refine((val) => !Number.isNaN(Date.parse(val)), {
-    message: 'Must be a valid ISO 8601 date string (e.g., "2026-06-01")',
-  });
+const isoDateString = z.string().refine(isValidIsoDateString, {
+  message:
+    'Must be a valid ISO 8601 date or date-time string (e.g., "2026-06-01" or "2026-06-01T00:00:00Z")',
+});
 
 const suiteExpandField = z
   .enum(['none', 'children', 'defaultTesters'])
@@ -92,16 +92,16 @@ export const CreateTestPlanSchema = z
       .describe('Optional build ID associated with the test plan'),
   })
   .superRefine((data, ctx) => {
-    if (
-      data.startDate &&
-      data.endDate &&
-      Date.parse(data.endDate) < Date.parse(data.startDate)
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['endDate'],
-        message: 'endDate must be on or after startDate',
-      });
+    if (data.startDate && data.endDate) {
+      const start = parseStrictIsoDate(data.startDate);
+      const end = parseStrictIsoDate(data.endDate);
+      if (start && end && end.getTime() < start.getTime()) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['endDate'],
+          message: 'endDate must be on or after startDate',
+        });
+      }
     }
   });
 
