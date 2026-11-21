@@ -107,8 +107,12 @@ export async function listOrganizations(
   } catch (error) {
     // Handle profile API errors as authentication errors
     if (axios.isAxiosError(error) && error.config?.url?.includes('profile')) {
+      const details =
+        typeof error.toJSON === 'function'
+          ? JSON.stringify(error.toJSON())
+          : error.message;
       throw new AzureDevOpsAuthenticationError(
-        `Authentication failed: ${error.toJSON()}`,
+        `Authentication failed: ${details}`,
       );
     } else if (
       error instanceof Error &&

@@ -87,6 +87,29 @@ describe('listOrganizations unit', () => {
     );
   });
 
+  test('should serialize axios profile errors instead of [object Object]', async () => {
+    const config = {
+      organizationUrl: 'https://dev.azure.com/test-org',
+      authMethod: AuthenticationMethod.PersonalAccessToken,
+      personalAccessToken: 'test-pat',
+    };
+
+    const axiosError = Object.assign(new Error('Request failed with 401'), {
+      isAxiosError: true,
+      config: {
+        url: 'https://app.vssps.visualstudio.com/_apis/profile/profiles/me',
+      },
+      toJSON: () => ({ status: 401, message: 'Request failed with 401' }),
+    });
+
+    mockedAxios.isAxiosError.mockReturnValueOnce(true);
+    mockedAxios.get.mockRejectedValueOnce(axiosError);
+
+    await expect(listOrganizations(config)).rejects.toThrow(
+      'Authentication failed: {"status":401,"message":"Request failed with 401"}',
+    );
+  });
+
   test('should transform organization response correctly', async () => {
     // Arrange
     const config = {
