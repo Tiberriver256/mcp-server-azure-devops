@@ -47,6 +47,31 @@ async function waitForPullRequestMergeCalculation(
   return await gitApi.getPullRequest(repositoryId, pullRequestId, projectName);
 }
 
+async function waitForPullRequestCompletion(
+  connection: WebApi,
+  repositoryId: string,
+  pullRequestId: number,
+  projectName: string,
+  timeoutMs = 15000,
+) {
+  const gitApi = await connection.getGitApi();
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const pr = await gitApi.getPullRequest(
+      repositoryId,
+      pullRequestId,
+      projectName,
+    );
+    if (pr && pr.status === PullRequestStatus.Completed) {
+      return pr;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  return await gitApi.getPullRequest(repositoryId, pullRequestId, projectName);
+}
+
 describeOrSkip('mergePullRequest integration', () => {
   let connection: WebApi;
   let projectName: string;
@@ -380,6 +405,16 @@ describeOrSkip('mergePullRequest integration', () => {
       mergeCommitMessage: `test: squash merge ${suffix}`,
     });
 
-    expect(completedPr.status).toBe(PullRequestStatus.Completed);
+    const finalPr =
+      completedPr.status === PullRequestStatus.Completed
+        ? completedPr
+        : await waitForPullRequestCompletion(
+            connection,
+            repositoryId,
+            mergePr.pullRequestId!,
+            projectName,
+          );
+
+    expect(finalPr.status).toBe(PullRequestStatus.Completed);
   }, 60000);
 });
