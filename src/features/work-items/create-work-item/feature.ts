@@ -43,6 +43,14 @@ export async function createWorkItem(
       });
     }
 
+    if (options.descriptionFormat === 'markdown') {
+      document.push({
+        op: 'add',
+        path: '/multilineFieldsFormat/System.Description',
+        value: 'Markdown',
+      });
+    }
+
     if (options.assignedTo) {
       document.push({
         op: 'add',

@@ -64,7 +64,13 @@ export const CreateWorkItemSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Work item description in HTML format. Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
+      'Work item description. Defaults to HTML format; set descriptionFormat to "markdown" to store and render as Markdown. Other multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) use HTML format by default. Do not use CDATA tags.',
+    ),
+  descriptionFormat: z
+    .enum(['html', 'markdown'])
+    .optional()
+    .describe(
+      'Format for the description field: "html" (default) or "markdown". Setting "markdown" instructs Azure DevOps to store and render System.Description as Markdown (cannot be reverted back to HTML once saved).',
     ),
   assignedTo: z
     .string()
@@ -99,7 +105,13 @@ export const UpdateWorkItemSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Work item description in HTML format. Multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) must use HTML format. Do not use CDATA tags.',
+      'Work item description. Defaults to HTML format; set descriptionFormat to "markdown" to store and render as Markdown. Other multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) use HTML format by default. Do not use CDATA tags.',
+    ),
+  descriptionFormat: z
+    .enum(['html', 'markdown'])
+    .optional()
+    .describe(
+      'Format for the description field: "html" (default) or "markdown". Setting "markdown" instructs Azure DevOps to store and render System.Description as Markdown (cannot be reverted back to HTML once saved).',
     ),
   assignedTo: z
     .string()

@@ -107,4 +107,66 @@ describe('createWorkItem unit', () => {
     );
     expect(tagsPatch).toBeUndefined();
   });
+
+  test('should include multilineFieldsFormat patch entry when descriptionFormat is markdown', async () => {
+    const mockCreateWorkItem = jest.fn().mockResolvedValue({ id: 1 });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        createWorkItem: mockCreateWorkItem,
+      }),
+    };
+
+    await createWorkItem(mockConnection, 'TestProject', 'Task', {
+      title: 'Markdown Task',
+      description: '## Heading\n- item 1',
+      descriptionFormat: 'markdown',
+    });
+
+    expect(mockCreateWorkItem).toHaveBeenCalledWith(
+      null,
+      expect.arrayContaining([
+        {
+          op: 'add',
+          path: '/fields/System.Description',
+          value: '## Heading\n- item 1',
+        },
+        {
+          op: 'add',
+          path: '/multilineFieldsFormat/System.Description',
+          value: 'Markdown',
+        },
+      ]),
+      'TestProject',
+      'Task',
+    );
+  });
+
+  test('should not include multilineFieldsFormat patch entry when descriptionFormat is omitted or html', async () => {
+    const mockCreateWorkItem = jest.fn().mockResolvedValue({ id: 1 });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        createWorkItem: mockCreateWorkItem,
+      }),
+    };
+
+    await createWorkItem(mockConnection, 'TestProject', 'Task', {
+      title: 'Default HTML Task',
+      description: '<p>Hello</p>',
+    });
+
+    await createWorkItem(mockConnection, 'TestProject', 'Task', {
+      title: 'Explicit HTML Task',
+      description: '<p>Hello</p>',
+      descriptionFormat: 'html',
+    });
+
+    for (const call of mockCreateWorkItem.mock.calls) {
+      const document = call[1];
+      const formatPatch = document.find(
+        (entry: any) =>
+          entry.path === '/multilineFieldsFormat/System.Description',
+      );
+      expect(formatPatch).toBeUndefined();
+    }
+  });
 });

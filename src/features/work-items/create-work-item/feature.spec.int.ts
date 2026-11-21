@@ -155,4 +155,32 @@ describeOrSkip('createWorkItem integration', () => {
     );
     expect(parentRelation).toBeDefined();
   });
+
+  test('should create a work item with markdown description format', async () => {
+    const uniqueTitle = `Markdown Work Item ${new Date().toISOString()}`;
+    const projectName =
+      process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
+    const markdownDescription = '## Heading\n\n- item 1\n- item 2';
+
+    const result = await createWorkItem(connection, projectName, 'Task', {
+      title: uniqueTitle,
+      description: markdownDescription,
+      descriptionFormat: 'markdown',
+    });
+
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    expect(result.fields?.['System.Description']).toBe(markdownDescription);
+
+    const multilineFieldsFormat = (
+      result as typeof result & {
+        multilineFieldsFormat?: Record<string, string>;
+      }
+    ).multilineFieldsFormat;
+    if (multilineFieldsFormat?.['System.Description']) {
+      expect(multilineFieldsFormat['System.Description'].toLowerCase()).toBe(
+        'markdown',
+      );
+    }
+  });
 });
