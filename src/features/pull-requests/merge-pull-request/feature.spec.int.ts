@@ -93,11 +93,12 @@ describeOrSkip('mergePullRequest integration', () => {
       `heads/${defaultBranchName}`,
     );
 
-    if (!refs || refs.length === 0 || !refs[0].objectId) {
+    const defaultBranchRefObj = refs?.find((r) => r.name === defaultBranchRef);
+    if (!defaultBranchRefObj?.objectId) {
       throw new Error(`Could not find default branch ${defaultBranchRef}`);
     }
 
-    defaultBranchObjectId = refs[0].objectId;
+    defaultBranchObjectId = defaultBranchRefObj.objectId;
   });
 
   afterAll(async () => {
@@ -130,7 +131,9 @@ describeOrSkip('mergePullRequest integration', () => {
           projectName,
           `heads/${branchName}`,
         );
-        const branchObjectId = refs?.[0]?.objectId;
+        const branchObjectId = refs?.find(
+          (r) => r.name === `refs/heads/${branchName}`,
+        )?.objectId;
         if (branchObjectId) {
           await gitApi.updateRefs(
             [

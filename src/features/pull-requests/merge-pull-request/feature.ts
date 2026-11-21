@@ -152,6 +152,7 @@ export async function mergePullRequest(
     }
 
     const resolvedRepositoryId = options.repositoryId || pr.repository?.id;
+    const resolvedProject = project || pr.repository?.project?.id;
     if (!resolvedRepositoryId) {
       throw new AzureDevOpsValidationError(
         `Unable to determine repositoryId for pull request ${options.pullRequestId}`,
@@ -243,7 +244,7 @@ export async function mergePullRequest(
       patch,
       resolvedRepositoryId,
       options.pullRequestId,
-      project,
+      resolvedProject,
     );
 
     if (!updatedPr) {
