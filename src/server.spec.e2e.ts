@@ -153,7 +153,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
 
       // Parse the result content
       const resultText = getTextContent(result.content);
-      if (resultText.startsWith('Authentication failed:')) {
+      if (result.isError && /^Authentication Failed:/i.test(resultText)) {
         console.warn(
           `WARNING: Skipping list_organizations E2E assertions (${resultText}). ` +
             'The VSSPS profile/accounts endpoint requires an "All accessible organizations" PAT, which is intentionally not required in CI.',
@@ -191,7 +191,7 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
 
       // Verify we got a valid JSON response
       const resultText = getTextContent(result.content);
-      if (resultText.startsWith('Authentication failed:')) {
+      if (result.isError && /^Authentication Failed:/i.test(resultText)) {
         console.warn(
           `WARNING: Skipping parameterless list_organizations E2E assertions (${resultText}). ` +
             'The VSSPS profile/accounts endpoint requires an "All accessible organizations" PAT, which is intentionally not required in CI.',
