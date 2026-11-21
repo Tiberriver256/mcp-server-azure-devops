@@ -87,27 +87,44 @@ describe('listOrganizations unit', () => {
     );
   });
 
-  test('should serialize axios profile errors instead of [object Object]', async () => {
+  test('should include status and never leak Authorization headers on profile errors', async () => {
     const config = {
       organizationUrl: 'https://dev.azure.com/test-org',
       authMethod: AuthenticationMethod.PersonalAccessToken,
-      personalAccessToken: 'test-pat',
+      personalAccessToken: 'super-secret-pat',
     };
 
     const axiosError = Object.assign(new Error('Request failed with 401'), {
       isAxiosError: true,
+      response: { status: 401 },
       config: {
         url: 'https://app.vssps.visualstudio.com/_apis/profile/profiles/me',
+        headers: { Authorization: 'Basic c3VwZXItc2VjcmV0LXBhdA==' },
       },
-      toJSON: () => ({ status: 401, message: 'Request failed with 401' }),
+      toJSON: () => ({
+        status: 401,
+        config: {
+          headers: { Authorization: 'Basic c3VwZXItc2VjcmV0LXBhdA==' },
+        },
+      }),
     });
 
     mockedAxios.isAxiosError.mockReturnValueOnce(true);
     mockedAxios.get.mockRejectedValueOnce(axiosError);
 
-    await expect(listOrganizations(config)).rejects.toThrow(
-      'Authentication failed: {"status":401,"message":"Request failed with 401"}',
-    );
+    try {
+      await listOrganizations(config);
+      fail('Expected AzureDevOpsAuthenticationError');
+    } catch (error) {
+      expect(error).toBeInstanceOf(AzureDevOpsAuthenticationError);
+      const message = (error as Error).message;
+      expect(message).toBe(
+        'Authentication failed: Request failed with 401 (status 401)',
+      );
+      expect(message).not.toContain('Authorization');
+      expect(message).not.toContain('c3VwZXItc2VjcmV0LXBhdA==');
+      expect(message).not.toContain('super-secret-pat');
+    }
   });
 
   test('should transform organization response correctly', async () => {
