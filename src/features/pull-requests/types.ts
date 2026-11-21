@@ -167,7 +167,6 @@ export type PullRequestMergeStrategyName =
  */
 export interface MergePullRequestOptions {
   projectId?: string;
-  organizationId?: string;
   repositoryId?: string;
   pullRequestId: number;
   mergeStrategy?: PullRequestMergeStrategyName;

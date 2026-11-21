@@ -339,10 +339,47 @@ describe('Pull Requests Request Handlers', () => {
           pullRequestId: 99,
           mergeStrategy: 'squash',
           deleteSourceBranch: true,
-          projectId: expect.any(String),
-          organizationId: expect.any(String),
         }),
       );
+      const calledOptions = (mergePullRequest as jest.Mock).mock.calls[0][1];
+      expect(calledOptions).not.toHaveProperty('organizationId');
+      expect(calledOptions.projectId).not.toBe('no default project');
+    });
+
+    it('should pass projectId as undefined for merge_pull_request when AZURE_DEVOPS_DEFAULT_PROJECT is unset', async () => {
+      const originalDefaultProject = process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
+      delete process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
+
+      try {
+        jest.resetModules();
+        const isolatedFeature = await import('./merge-pull-request');
+        const isolatedModule = await import('./index');
+        (isolatedFeature.mergePullRequest as jest.Mock).mockResolvedValue({
+          pullRequestId: 42,
+          status: 3,
+        });
+
+        await isolatedModule.handlePullRequestsRequest(mockConnection, {
+          params: {
+            name: 'merge_pull_request',
+            arguments: { pullRequestId: 42 },
+          },
+          method: 'tools/call',
+        } as CallToolRequest);
+
+        expect(isolatedFeature.mergePullRequest).toHaveBeenCalledWith(
+          mockConnection,
+          {
+            pullRequestId: 42,
+            projectId: undefined,
+          },
+        );
+      } finally {
+        if (originalDefaultProject !== undefined) {
+          process.env.AZURE_DEVOPS_DEFAULT_PROJECT = originalDefaultProject;
+        }
+        jest.resetModules();
+      }
     });
 
     it('should expose merge_pull_request with valid JSON schema in pullRequestsTools', () => {
@@ -359,7 +396,6 @@ describe('Pull Requests Request Handlers', () => {
       ).toEqual(
         expect.arrayContaining([
           'projectId',
-          'organizationId',
           'repositoryId',
           'pullRequestId',
           'mergeStrategy',
@@ -373,6 +409,9 @@ describe('Pull Requests Request Handlers', () => {
           'lastMergeSourceCommitId',
         ]),
       );
+      expect(
+        mergeTool?.inputSchema.properties as Record<string, unknown>,
+      ).not.toHaveProperty('organizationId');
     });
 
     it('should throw error for unknown tool', async () => {

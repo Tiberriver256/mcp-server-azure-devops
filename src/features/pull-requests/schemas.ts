@@ -361,11 +361,9 @@ export const MergePullRequestSchema = z
     projectId: z
       .string()
       .optional()
-      .describe(`The ID or name of the project (Default: ${defaultProject})`),
-    organizationId: z
-      .string()
-      .optional()
-      .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+      .describe(
+        `The ID or name of the project (Default: ${defaultProject}; derived from pullRequestId when omitted and no default project is configured)`,
+      ),
     repositoryId: z
       .string()
       .optional()

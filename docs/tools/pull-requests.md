@@ -1117,7 +1117,7 @@ Completes (merges) an active pull request immediately, or enables/cancels auto-c
 
 The `merge_pull_request` tool completes an active pull request with full control over completion options (`mergeStrategy`, `deleteSourceBranch`, `transitionWorkItems`, `mergeCommitMessage`, `bypassPolicy`, and `bypassReason`) or manages auto-complete (`autoComplete: true` / `false` and `autoCompleteIgnoreConfigIds`).
 
-When `repositoryId` is omitted, the repository is automatically derived from `pullRequestId` via `getPullRequestById`, which is especially convenient on Azure DevOps Server where pull request IDs are project-scoped. For immediate completion, `lastMergeSourceCommit` is automatically fetched from the pull request unless you pass `lastMergeSourceCommitId` explicitly as an optimistic concurrency check.
+When `repositoryId` is omitted, the repository is automatically derived from `pullRequestId` via `getPullRequestById`, which is especially convenient on Azure DevOps Server where pull request IDs are project-scoped. The target organization/collection is fixed by `AZURE_DEVOPS_ORG_URL`. For immediate completion, `lastMergeSourceCommit` is automatically fetched from the pull request unless you pass `lastMergeSourceCommitId` explicitly as an optimistic concurrency check.
 
 ### Modes
 
@@ -1129,8 +1129,7 @@ When `repositoryId` is omitted, the repository is automatically derived from `pu
 
 ```json
 {
-  "projectId": "MyProject", // Optional: The ID or name of the project (uses default project if omitted)
-  "organizationId": "MyOrg", // Optional: The ID or name of the organization (uses default org if omitted)
+  "projectId": "MyProject", // Optional: The ID or name of the project (uses default project or derives from PR if omitted)
   "repositoryId": "MyRepo", // Optional: Derived from pullRequestId when omitted
   "pullRequestId": 42, // Required: Positive integer ID of the pull request
   "mergeStrategy": "squash", // Optional: "noFastForward", "squash", "rebase", or "rebaseMerge" (respects repo policy when omitted)
@@ -1147,8 +1146,7 @@ When `repositoryId` is omitted, the repository is automatically derived from `pu
 
 | Parameter                     | Type       | Required | Description                                                                                                       |
 | ----------------------------- | ---------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
-| `projectId`                   | string     | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)                                        |
-| `organizationId`              | string     | No       | The ID or name of the organization (defaults to configured org)                                                   |
+| `projectId`                   | string     | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`, or derived from the PR when unset)     |
 | `repositoryId`                | string     | No       | The ID or name of the repository (derived from `pullRequestId` when omitted)                                      |
 | `pullRequestId`               | number     | Yes      | Positive integer ID of the pull request to merge or update auto-complete on                                       |
 | `mergeStrategy`               | string     | No       | Merge strategy: `"noFastForward"`, `"squash"`, `"rebase"`, or `"rebaseMerge"` (no forced default)                 |

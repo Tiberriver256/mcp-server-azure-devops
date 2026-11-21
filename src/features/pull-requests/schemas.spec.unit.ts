@@ -240,7 +240,6 @@ describe('pull request schemas', () => {
       expect(Object.keys(properties)).toEqual(
         expect.arrayContaining([
           'projectId',
-          'organizationId',
           'repositoryId',
           'pullRequestId',
           'mergeStrategy',

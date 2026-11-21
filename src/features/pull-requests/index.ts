@@ -21,7 +21,7 @@ import {
   RequestIdentifier,
   RequestHandler,
 } from '../../shared/types/request-handler';
-import { defaultProject, defaultOrg } from '../../utils/environment';
+import { defaultProject } from '../../utils/environment';
 import {
   CreatePullRequestSchema,
   GetPullRequestSchema,
@@ -219,10 +219,11 @@ export const handlePullRequestsRequest: RequestHandler = async (
     }
     case 'merge_pull_request': {
       const params = MergePullRequestSchema.parse(request.params.arguments);
+      const configuredDefaultProject =
+        defaultProject !== 'no default project' ? defaultProject : undefined;
       const result = await mergePullRequest(connection, {
         ...params,
-        projectId: params.projectId ?? defaultProject,
-        organizationId: params.organizationId ?? defaultOrg,
+        projectId: params.projectId ?? configuredDefaultProject,
       });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
