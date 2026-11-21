@@ -166,6 +166,11 @@ export function parseCliToolFilterArgs(argv: string[]): ToolFilterOptions {
         } else {
           const next = argv[i + 1];
           if (next !== undefined && !next.startsWith('-')) {
+            if (next.trim() === '') {
+              throw new AzureDevOpsValidationError(
+                `Flag '--read-only' requires a non-empty boolean value`,
+              );
+            }
             options.readOnly = parseBooleanOption(next, '--read-only');
             i += 1;
           } else {
