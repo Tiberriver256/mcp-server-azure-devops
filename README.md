@@ -257,6 +257,19 @@ The Azure DevOps MCP server provides a variety of tools for interacting with Azu
 - [`get_pull_request_changes`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#get_pull_request_changes) - List changes in a pull request and policy evaluation status
 - [`get_pull_request_checks`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#get_pull_request_checks) - Summarize status checks, policy evaluations, and their related pipelines
 
+### Test Plans Tools
+
+- `list_test_plans`: List test plans in a project
+- `get_test_plan`: Get details of a specific test plan by ID
+- `create_test_plan`: Create a new test plan in a project
+- `list_test_suites`: List test suites in a test plan (flat or tree)
+- `get_test_suite`: Get details of a specific test suite
+- `create_test_suite`: Create a static, requirement-based, or query-based test suite
+- `list_suite_test_cases`: List test cases linked to a test suite
+- `add_test_cases_to_suite`: Attach existing Test Case work items to a suite
+- `remove_test_cases_from_suite`: Remove test cases from a static suite
+- `create_test_case`: Create a Test Case work item with structured steps XML, optional requirement link, and optional suite attachment
+
 For comprehensive documentation on all tools, see the [Tools Documentation](https://github.com/tiberriver256/mcp-server-azure-devops/tree/main/docs/tools).
 
 ## Contributing
