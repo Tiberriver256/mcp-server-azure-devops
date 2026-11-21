@@ -172,15 +172,20 @@ describeOrSkip('createWorkItem integration', () => {
     expect(result.id).toBeDefined();
     expect(result.fields?.['System.Description']).toBe(markdownDescription);
 
-    const multilineFieldsFormat = (
-      result as typeof result & {
-        multilineFieldsFormat?: Record<string, string>;
-      }
-    ).multilineFieldsFormat;
-    if (multilineFieldsFormat?.['System.Description']) {
-      expect(multilineFieldsFormat['System.Description'].toLowerCase()).toBe(
-        'markdown',
-      );
+    type WorkItemWithMultilineFormat = typeof result & {
+      multilineFieldsFormat?: Record<string, string>;
+    };
+
+    let format = (result as WorkItemWithMultilineFormat)
+      .multilineFieldsFormat?.['System.Description'];
+    if (!format && result.id) {
+      const witApi = await connection.getWorkItemTrackingApi();
+      const fetched = (await witApi.getWorkItem(
+        result.id,
+      )) as WorkItemWithMultilineFormat;
+      format = fetched.multilineFieldsFormat?.['System.Description'];
     }
+
+    expect(format?.toLowerCase()).toBe('markdown');
   });
 });

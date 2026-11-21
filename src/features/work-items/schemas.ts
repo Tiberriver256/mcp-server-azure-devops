@@ -105,13 +105,13 @@ export const UpdateWorkItemSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Work item description. Defaults to HTML format; set descriptionFormat to "markdown" to store and render as Markdown. Other multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) use HTML format by default. Do not use CDATA tags.',
+      'Updated work item description. When descriptionFormat is omitted or "html", the field preserves its existing format (HTML or Markdown); set descriptionFormat to "markdown" to store or switch System.Description to Markdown. Other multi-line text fields (i.e., System.History, AcceptanceCriteria, etc.) use HTML format by default. Do not use CDATA tags.',
     ),
   descriptionFormat: z
     .enum(['html', 'markdown'])
     .optional()
     .describe(
-      'Format for the description field: "html" (default) or "markdown". Setting "markdown" instructs Azure DevOps to store and render System.Description as Markdown (cannot be reverted back to HTML once saved).',
+      'Format for the description field: omit or pass "html" to preserve the field\'s existing format (cannot revert a Markdown field back to HTML), or pass "markdown" to store/switch System.Description as Markdown (irreversible once saved).',
     ),
   assignedTo: z
     .string()
