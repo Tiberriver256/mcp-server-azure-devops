@@ -92,12 +92,18 @@ export async function getWorkItemComments(
       }
     }
 
+    if (!resolvedProjectId) {
+      throw new AzureDevOpsResourceNotFoundError(
+        `Project for work item '${workItemId}' could not be resolved`,
+      );
+    }
+
     const expandVal =
       expandMap[expand.toLowerCase()] ?? CommentExpandOptions.All;
     const orderVal = orderMap[order.toLowerCase()] ?? CommentSortOrder.Asc;
 
     const commentList = await witApi.getComments(
-      resolvedProjectId!,
+      resolvedProjectId,
       workItemId,
       top,
       continuationToken,

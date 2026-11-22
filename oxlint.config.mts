@@ -64,7 +64,6 @@ export default defineConfig({
     'preserve-caught-error': 'off',
     'typescript/consistent-type-imports': 'off',
     'typescript/no-misused-spread': 'off',
-    'typescript/no-non-null-assertion': 'off',
     'unicorn/prefer-set-has': 'off',
   },
   overrides: [

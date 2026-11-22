@@ -104,12 +104,12 @@ export function formatTestStepsXml(steps: TestCaseStepInput[]): string {
   const stepElements = steps
     .map((step, index) => {
       const stepId = index + 2;
-      const hasExpected =
-        step.expectedResult !== undefined && step.expectedResult.trim() !== '';
+      const trimmedExpected = step.expectedResult?.trim() ?? '';
+      const hasExpected = trimmedExpected !== '';
       const stepType = hasExpected ? 'ValidateStep' : 'ActionStep';
       const actionXml = escapeXml(`<P>${escapeXml(step.action)}</P>`);
       const expectedXml = hasExpected
-        ? escapeXml(`<P>${escapeXml(step.expectedResult!.trim())}</P>`)
+        ? escapeXml(`<P>${escapeXml(trimmedExpected)}</P>`)
         : '';
 
       return (

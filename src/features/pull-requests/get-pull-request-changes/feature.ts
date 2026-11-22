@@ -46,10 +46,15 @@ export async function getPullRequestChanges(
       throw new AzureDevOpsError('No iterations found for pull request');
     }
     const latest = iterations[iterations.length - 1];
+    if (latest.id === undefined) {
+      throw new AzureDevOpsError(
+        'Latest pull request iteration is missing an ID',
+      );
+    }
     const changes = await gitApi.getPullRequestIterationChanges(
       options.repositoryId,
       options.pullRequestId,
-      latest.id!,
+      latest.id,
       options.projectId,
     );
 
