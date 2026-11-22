@@ -99,6 +99,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@cloudflare/oxlint-config": "^0.1.0",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@commitlint/prompt-cli": "^21.2.3",
@@ -109,8 +110,9 @@
     "jest": "^30.5.1",
     "lint-staged": "^17.6.0",
     "oxfmt": "^0.79.0",
-    "oxlint": "^1.81.0",
+    "oxlint": "^1.94.0",
     "ts-jest": "^29.4.12",
+    "tsrs": "^0.25.0-ts7.1.0-beta",
     "tsx": "^4.23.15",
     "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
