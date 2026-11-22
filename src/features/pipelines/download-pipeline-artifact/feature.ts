@@ -81,7 +81,7 @@ function buildContainerPathCandidates(
 function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    stream.on('data', (chunk) => {
+    stream.on('data', (chunk: Buffer | Uint8Array | string) => {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     });
     stream.on('error', reject);
@@ -172,14 +172,8 @@ function selectZipEntry(
 
   for (const candidate of candidates) {
     const match = zip.file(candidate);
-    if (!match) {
-      continue;
-    }
-
-    const files = Array.isArray(match) ? match : [match];
-    const file = files.find((entry) => !entry.dir);
-    if (file) {
-      return file;
+    if (match && !match.dir) {
+      return match;
     }
   }
 

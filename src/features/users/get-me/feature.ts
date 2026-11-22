@@ -43,7 +43,11 @@ export async function getMe(connection: WebApi): Promise<UserProfile> {
 
     // Make direct call to the Profile API endpoint
     // Note: This API is in the vssps.dev.azure.com domain, not dev.azure.com
-    const response = await axios.get(
+    const response = await axios.get<{
+      id: string;
+      displayName?: string;
+      emailAddress?: string;
+    }>(
       `https://vssps.dev.azure.com/${organization}/_apis/profile/profiles/me?api-version=7.1`,
       {
         headers: {

@@ -50,15 +50,6 @@ export default defineConfig({
     'quality/no-unsafe-dictionary-type': 'off',
     'quality/no-widen-then-assert': 'off',
 
-    // Deferred type-safety rules (tracked for incremental hardening; azure-devops-node-api exposes `any` in several places)
-    'typescript/no-unsafe-argument': 'off',
-    'typescript/no-unsafe-assignment': 'off',
-    'typescript/no-unsafe-call': 'off',
-    'typescript/no-unsafe-member-access': 'off',
-    'typescript/no-unsafe-return': 'off',
-    'typescript/no-unsafe-type-assertion': 'off',
-    'typescript/no-unnecessary-type-assertion': 'off',
-
     // Security: avoid attaching raw HTTP/SDK errors to Error.cause where Authorization headers could be logged
     'preserve-caught-error': 'off',
   },
@@ -80,6 +71,7 @@ export default defineConfig({
         'typescript/no-unsafe-call': 'off',
         'typescript/no-unsafe-member-access': 'off',
         'typescript/no-unsafe-return': 'off',
+        'typescript/no-unsafe-type-assertion': 'off',
         'typescript/only-throw-error': 'off',
         'typescript/unbound-method': 'off',
       },

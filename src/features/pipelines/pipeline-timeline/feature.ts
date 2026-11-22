@@ -69,7 +69,7 @@ export async function getPipelineTimeline(
       return {
         ...timeline,
         records: filteredRecords,
-      } as PipelineTimeline;
+      };
     }
 
     return timeline;

@@ -127,11 +127,31 @@ const resolveProjectId = async (
   return project.id;
 };
 
-const gitStatusStateMap = GitStatusState as unknown as Record<number, string>;
-const policyStatusMap = PolicyEvaluationStatus as unknown as Record<
-  number,
-  string
->;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const getRecordProperty = (
+  record: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> | undefined => {
+  const val = record[key];
+  return isRecord(val) ? val : undefined;
+};
+
+const toEnumMap = (
+  enumObj: Record<string, string | number>,
+): Record<number, string> => {
+  const map: Record<number, string> = {};
+  for (const [key, val] of Object.entries(enumObj)) {
+    if (typeof val === 'number') {
+      map[val] = key;
+    }
+  }
+  return map;
+};
+
+const gitStatusStateMap = toEnumMap(GitStatusState);
+const policyStatusMap = toEnumMap(PolicyEvaluationStatus);
 
 const mapStatusRecord = (
   status: GitPullRequestStatus,
@@ -160,10 +180,14 @@ const mapStatusRecord = (
 const mapEvaluationRecord = (
   evaluation: PolicyEvaluationRecord,
 ): PullRequestPolicyCheck => {
-  const settings =
-    (evaluation.configuration?.settings as Record<string, unknown>) || {};
-  const context =
-    (evaluation.context as Record<string, unknown> | undefined) ?? {};
+  const rawSettings: unknown = evaluation.configuration?.settings;
+  const settings: Record<string, unknown> = isRecord(rawSettings)
+    ? rawSettings
+    : {};
+  const rawContext: unknown = evaluation.context;
+  const context: Record<string, unknown> = isRecord(rawContext)
+    ? rawContext
+    : {};
 
   const pipeline = mergePipelineReferences(
     extractPipelineReferenceFromObject(settings),
@@ -326,16 +350,15 @@ const parsePipelineReferenceFromUrl = (
 const extractPipelineReferenceFromObject = (
   value: unknown,
 ): PipelineReference | undefined => {
-  if (!value || typeof value !== 'object') {
+  if (!isRecord(value)) {
     return undefined;
   }
 
-  const object = value as Record<string, unknown>;
+  const object = value;
   const candidate: PipelineReference = {};
 
   const pipelineId = parseNumeric(
-    object.pipelineId ??
-      (object.pipeline as Record<string, unknown> | undefined)?.id,
+    object.pipelineId ?? getRecordProperty(object, 'pipeline')?.id,
   );
   if (pipelineId !== undefined) {
     candidate.pipelineId = pipelineId;
@@ -345,7 +368,7 @@ const extractPipelineReferenceFromObject = (
     object.definitionId ??
       object.buildDefinitionId ??
       object.pipelineDefinitionId ??
-      (object.definition as Record<string, unknown> | undefined)?.id,
+      getRecordProperty(object, 'definition')?.id,
   );
   if (definitionId !== undefined) {
     candidate.definitionId = definitionId;
@@ -364,7 +387,7 @@ const extractPipelineReferenceFromObject = (
 
   const buildId = parseNumeric(
     object.buildId ??
-      (object.build as Record<string, unknown> | undefined)?.id ??
+      getRecordProperty(object, 'build')?.id ??
       parseIdFromUri(extractString(object.buildUri)) ??
       parseIdFromUri(extractString(object.uri)),
   );

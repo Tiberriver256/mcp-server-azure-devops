@@ -8,10 +8,15 @@
  * casts at every call site.
  */
 export function getTextContent(content: unknown, index = 0): string {
-  const block = (Array.isArray(content) ? content[index] : undefined) as
-    | { type?: unknown; text?: unknown }
-    | undefined;
-  if (!block || block.type !== 'text' || typeof block.text !== 'string') {
+  const block: unknown = Array.isArray(content) ? content[index] : undefined;
+  if (
+    typeof block !== 'object' ||
+    block === null ||
+    !('type' in block) ||
+    !('text' in block) ||
+    block.type !== 'text' ||
+    typeof block.text !== 'string'
+  ) {
     throw new Error(`Expected text content block at index ${index}`);
   }
   return block.text;

@@ -234,7 +234,7 @@ export function resolveEnabledTools(
   if (options.toolsets && options.toolsets.length > 0) {
     const normalized = options.toolsets.map(normalizeToolsetName);
     if (!normalized.includes('all')) {
-      const selectedSet = new Set(normalized as ToolsetName[]);
+      const selectedSet = new Set<string>(normalized);
       selectedToolsets = TOOLSET_NAMES.filter((name) => selectedSet.has(name));
     }
   }

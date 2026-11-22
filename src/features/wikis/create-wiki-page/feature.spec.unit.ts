@@ -56,7 +56,7 @@ describe('createWikiPage Feature', () => {
 
   it('should call client.put with correct URL and data for default org and project', async () => {
     mockPut.mockResolvedValue({ data: { some: 'response' } });
-    await createWikiPage(defaultParams, client as any);
+    await createWikiPage(defaultParams, client);
 
     expect(mockPut).toHaveBeenCalledTimes(1);
     expect(mockPut).toHaveBeenCalledWith(
@@ -71,7 +71,7 @@ describe('createWikiPage Feature', () => {
       ...defaultParams,
       projectId: 'customProject',
     };
-    await createWikiPage(paramsWithProject, client as any);
+    await createWikiPage(paramsWithProject, client);
 
     expect(mockPut).toHaveBeenCalledWith(
       'defaultOrg/customProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1',
@@ -85,7 +85,7 @@ describe('createWikiPage Feature', () => {
       ...defaultParams,
       organizationId: 'customOrg',
     };
-    await createWikiPage(paramsWithOrg, client as any);
+    await createWikiPage(paramsWithOrg, client);
 
     expect(mockPut).toHaveBeenCalledWith(
       'customOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1',
@@ -109,7 +109,7 @@ describe('createWikiPage Feature', () => {
       },
     };
 
-    await createWikiPage(paramsWithNullProject, clientWithoutProject as any);
+    await createWikiPage(paramsWithNullProject, clientWithoutProject);
 
     expect(mockPut).toHaveBeenCalledWith(
       'defaultOrg/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1',
@@ -123,7 +123,7 @@ describe('createWikiPage Feature', () => {
       ...defaultParams,
       pagePath: '/My Test Page/Sub Page',
     };
-    await createWikiPage(paramsWithPath, client as any);
+    await createWikiPage(paramsWithPath, client);
 
     expect(mockPut).toHaveBeenCalledWith(
       'defaultOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2FMy%20Test%20Page%2FSub%20Page&api-version=7.1',
@@ -137,7 +137,7 @@ describe('createWikiPage Feature', () => {
       ...defaultParams,
       pagePath: null, // Explicitly null
     };
-    await createWikiPage(paramsWithPath, client as any);
+    await createWikiPage(paramsWithPath, client);
 
     expect(mockPut).toHaveBeenCalledWith(
       'defaultOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1',
@@ -151,7 +151,7 @@ describe('createWikiPage Feature', () => {
       ...defaultParams,
       comment: 'Initial page creation',
     };
-    await createWikiPage(paramsWithComment, client as any);
+    await createWikiPage(paramsWithComment, client);
 
     expect(mockPut).toHaveBeenCalledWith(
       'defaultOrg/defaultProject/_apis/wiki/wikis/test-wiki/pages?path=%2F&api-version=7.1',
@@ -162,7 +162,7 @@ describe('createWikiPage Feature', () => {
   it('should return the data from the response on success', async () => {
     const expectedResponse = { id: '123', path: '/', content: 'Hello world' };
     mockPut.mockResolvedValue({ data: expectedResponse });
-    const result = await createWikiPage(defaultParams, client as any);
+    const result = await createWikiPage(defaultParams, client);
 
     expect(result).toEqual(expectedResponse);
   });
@@ -183,9 +183,9 @@ describe('createWikiPage Feature', () => {
 
     // This test is skipped because it requires complex mocking of environment variables
     // which is difficult to do in the current test setup
-    await expect(
-      createWikiPage(paramsNoOrg, clientWithoutOrg as any),
-    ).rejects.toThrow('Organization ID is not defined');
+    await expect(createWikiPage(paramsNoOrg, clientWithoutOrg)).rejects.toThrow(
+      'Organization ID is not defined',
+    );
     expect(mockPut).not.toHaveBeenCalled();
   });
 
@@ -196,7 +196,7 @@ describe('createWikiPage Feature', () => {
       throw new Error('Handled Error');
     });
 
-    await expect(createWikiPage(defaultParams, client as any)).rejects.toThrow(
+    await expect(createWikiPage(defaultParams, client)).rejects.toThrow(
       'Handled Error',
     );
     expect(mockHandleRequestError).toHaveBeenCalledTimes(1);

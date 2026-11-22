@@ -1,4 +1,3 @@
-import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import type { WebApi } from 'azure-devops-node-api';
 import {
   handleTestPlansRequest,
@@ -28,14 +27,14 @@ describe('Test Plans Request Handlers', () => {
           isTestPlansRequest({
             method: 'tools/call',
             params: { name: tool.name, arguments: {} },
-          } as CallToolRequest),
+          }),
         ).toBe(true);
       }
       expect(
         isTestPlansRequest({
           method: 'tools/call',
           params: { name: 'get_work_item', arguments: {} },
-        } as CallToolRequest),
+        }),
       ).toBe(false);
 
       const createSuiteTool = testPlansTools.find(
@@ -131,7 +130,7 @@ describe('Test Plans Request Handlers', () => {
         const res = await handleTestPlansRequest(mockConnection, {
           method: 'tools/call',
           params: { name, arguments: args },
-        } as CallToolRequest);
+        });
         expect(fn).toHaveBeenCalledTimes(1);
         expect(res.content).toHaveLength(1);
       }
@@ -142,7 +141,7 @@ describe('Test Plans Request Handlers', () => {
         handleTestPlansRequest(mockConnection, {
           method: 'tools/call',
           params: { name: 'unknown_test_plan_tool', arguments: {} },
-        } as CallToolRequest),
+        }),
       ).rejects.toThrow('Unknown test plans tool: unknown_test_plan_tool');
     });
 
@@ -158,7 +157,7 @@ describe('Test Plans Request Handlers', () => {
               startDate: '2026-02-30',
             },
           },
-        } as CallToolRequest),
+        }),
       ).rejects.toThrow();
 
       await expect(
@@ -172,7 +171,7 @@ describe('Test Plans Request Handlers', () => {
               endDate: 'March 1, 2026',
             },
           },
-        } as CallToolRequest),
+        }),
       ).rejects.toThrow();
     });
   });

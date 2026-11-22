@@ -173,6 +173,14 @@ interface TestPlanRestClientLike {
   ) => unknown;
 }
 
+function isTestPlanRestClient(value: unknown): value is TestPlanRestClientLike {
+  return typeof value === 'object' && value !== null;
+}
+
+function isArrayOf<T>(value: unknown): value is T[] {
+  return Array.isArray(value);
+}
+
 /**
  * Fetch a paginated TestPlanApi collection while preserving the
  * `x-ms-continuationtoken` header (which azure-devops-node-api's generated
@@ -186,12 +194,14 @@ export async function fetchPagedTestPlanCollection<T>(params: {
   routeValues: Record<string, unknown>;
   queryParams: Record<string, unknown>;
   typeInfo: unknown;
-  fallback: () => Promise<T[] | undefined>;
+  fallback: () => Promise<(T[] & { continuationToken?: string }) | undefined>;
 }): Promise<{ items: T[]; continuationToken?: string }> {
-  const api = params.testPlanApi as TestPlanRestClientLike;
+  const api = isTestPlanRestClient(params.testPlanApi)
+    ? params.testPlanApi
+    : undefined;
 
   if (
-    api.vsoClient?.getVersioningData &&
+    api?.vsoClient?.getVersioningData &&
     api.rest?.get &&
     api.createRequestOptions
   ) {
@@ -224,22 +234,20 @@ export async function fetchPagedTestPlanCollection<T>(params: {
       );
     }
 
-    const formatted = api.formatResponse
-      ? (api.formatResponse(res.result, params.typeInfo, true) as T[])
+    const formatted: unknown = api.formatResponse
+      ? api.formatResponse(res.result, params.typeInfo, true)
       : Array.isArray(res.result)
         ? res.result
         : (res.result?.value ?? []);
 
     return {
-      items: Array.isArray(formatted) ? formatted : [],
+      items: isArrayOf<T>(formatted) ? formatted : [],
       continuationToken: extractContinuationToken(res.headers),
     };
   }
 
   const fallbackResult = await params.fallback();
-  const continuationToken = (
-    fallbackResult as (T[] & { continuationToken?: string }) | undefined
-  )?.continuationToken;
+  const continuationToken = fallbackResult?.continuationToken;
 
   return {
     items: Array.isArray(fallbackResult) ? [...fallbackResult] : [],

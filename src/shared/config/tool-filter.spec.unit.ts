@@ -209,8 +209,7 @@ describe('tool-filter', () => {
     it('removes disabledTools and warns on unknown disabled tool names', () => {
       const originalStderr = process.stderr.write;
       const stderrMock = jest.fn();
-      process.stderr.write =
-        stderrMock as unknown as typeof process.stderr.write;
+      process.stderr.write = stderrMock;
 
       try {
         const result = resolveEnabledTools(makeRegistry(), {

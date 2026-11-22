@@ -5,7 +5,10 @@ import type {
 } from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
 import { TypeInfo } from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
 import {
+  AzureDevOpsAuthenticationError,
   AzureDevOpsError,
+  AzureDevOpsPermissionError,
+  AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
 } from '../../../shared/errors';
 import {
@@ -320,11 +323,17 @@ export async function createTestCase(
           `Test Case work item ${workItem.id} was created, but attaching it to plan ${options.planId}, suite ${options.suiteId} failed: ${attachMsg}. ` +
           'You can attach it using add_test_cases_to_suite.';
 
-        if (attachError instanceof AzureDevOpsError) {
-          const ErrorCtor = attachError.constructor as new (
-            msg: string,
-          ) => AzureDevOpsError;
-          throw new ErrorCtor(partialMessage);
+        if (attachError instanceof AzureDevOpsValidationError) {
+          throw new AzureDevOpsValidationError(partialMessage);
+        }
+        if (attachError instanceof AzureDevOpsAuthenticationError) {
+          throw new AzureDevOpsAuthenticationError(partialMessage);
+        }
+        if (attachError instanceof AzureDevOpsPermissionError) {
+          throw new AzureDevOpsPermissionError(partialMessage);
+        }
+        if (attachError instanceof AzureDevOpsResourceNotFoundError) {
+          throw new AzureDevOpsResourceNotFoundError(partialMessage);
         }
         throw new AzureDevOpsError(partialMessage);
       }

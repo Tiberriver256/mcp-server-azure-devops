@@ -99,7 +99,7 @@ export async function searchWiki(
     }
 
     // Handle axios errors
-    if (axios.isAxiosError(error)) {
+    if (axios.isAxiosError<{ message?: string }>(error)) {
       const status = error.response?.status;
       const message = error.response?.data?.message || error.message;
 
@@ -118,9 +118,6 @@ export async function searchWiki(
         // For other axios errors, wrap in a generic AzureDevOpsError
         throw new AzureDevOpsError(`Azure DevOps API error: ${message}`);
       }
-
-      // This return is never reached but helps TypeScript understand the control flow
-      return null as never;
     }
 
     // Otherwise, wrap it in a generic error

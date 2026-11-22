@@ -7,8 +7,7 @@ describe('index', () => {
 
     beforeEach(() => {
       originalStderrWrite = process.stderr.write;
-      process.stderr.write =
-        jest.fn() as unknown as typeof process.stderr.write;
+      process.stderr.write = jest.fn();
     });
 
     afterEach(() => {

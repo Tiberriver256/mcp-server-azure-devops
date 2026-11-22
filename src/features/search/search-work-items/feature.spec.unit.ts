@@ -408,7 +408,7 @@ describe('searchWorkItems', () => {
   it('should build server search URL when using Azure DevOps Server', async () => {
     const serverConnection = Object.assign({}, connection, {
       serverUrl: 'https://ado.local/tfs/DefaultCollection',
-    }) as WebApi;
+    });
 
     mockedAxios.post.mockResolvedValueOnce({
       data: {
@@ -432,7 +432,7 @@ describe('searchWorkItems', () => {
   it('should require projectId for server work item search', async () => {
     const serverConnection = Object.assign({}, connection, {
       serverUrl: 'https://ado.local/tfs/DefaultCollection',
-    }) as WebApi;
+    });
 
     await expect(
       searchWorkItems(serverConnection, {
