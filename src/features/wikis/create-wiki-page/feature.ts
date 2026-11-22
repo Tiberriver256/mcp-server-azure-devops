@@ -90,9 +90,6 @@ export const createWikiPage = async (
       );
     }
   } catch (error: unknown) {
-    throw await handleRequestError(
-      error,
-      'Failed to create or update wiki page',
-    );
+    handleRequestError(error, 'Failed to create or update wiki page');
   }
 };

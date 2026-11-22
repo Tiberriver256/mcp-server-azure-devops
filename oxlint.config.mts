@@ -64,11 +64,9 @@ export default defineConfig({
     'import/no-self-import': 'off',
     'no-promise-executor-return': 'off',
     'preserve-caught-error': 'off',
-    'typescript/await-thenable': 'off',
     'typescript/consistent-type-imports': 'off',
     'typescript/no-misused-spread': 'off',
     'typescript/no-non-null-assertion': 'off',
-    'typescript/use-unknown-in-catch-callback-variable': 'off',
     'unicorn/prefer-set-has': 'off',
   },
   overrides: [
@@ -91,13 +89,6 @@ export default defineConfig({
         'typescript/no-unsafe-return': 'off',
         'typescript/only-throw-error': 'off',
         'typescript/unbound-method': 'off',
-      },
-    },
-    {
-      // Temporary during migration (overridden by cloudflare's typeScriptFiles override)
-      files: ['**/*.{ts,tsx,mts,cts}'],
-      rules: {
-        'typescript/only-throw-error': 'off',
       },
     },
   ],
