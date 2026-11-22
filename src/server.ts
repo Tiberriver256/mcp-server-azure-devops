@@ -7,8 +7,9 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { WebApi } from 'azure-devops-node-api';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { VERSION } from './shared/config';
+import { VERSION, resolveEnabledTools, ToolsetName } from './shared/config';
 import { AzureDevOpsConfig } from './shared/types';
+import { ToolDefinition } from './shared/types/tool-definition';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
@@ -84,6 +85,23 @@ function safeLog(message: string) {
 export type AzureDevOpsServer = Server;
 
 /**
+ * Returns the full tool registry grouped by toolset name.
+ */
+export function getToolRegistry(): Record<ToolsetName, ToolDefinition[]> {
+  return {
+    users: usersTools,
+    organizations: organizationsTools,
+    projects: projectsTools,
+    repositories: repositoriesTools,
+    'work-items': workItemsTools,
+    search: searchTools,
+    'pull-requests': pullRequestsTools,
+    pipelines: pipelinesTools,
+    wikis: wikisTools,
+  };
+}
+
+/**
  * Create an Azure DevOps MCP Server
  *
  * @param config The Azure DevOps configuration
@@ -92,6 +110,14 @@ export type AzureDevOpsServer = Server;
 export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
   // Validate the configuration
   validateConfig(config);
+
+  // Resolve active tools upfront so invalid toolsets/filters fail fast
+  const toolCatalog = resolveEnabledTools(getToolRegistry(), {
+    toolsets: config.toolsets,
+    enabledTools: config.enabledTools,
+    disabledTools: config.disabledTools,
+    readOnly: config.readOnly,
+  });
 
   // Initialize the MCP server
   const server = new Server(
@@ -107,22 +133,20 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
     },
   );
 
+  const mcpTools = toolCatalog.tools.map(
+    ({ name, description, inputSchema, readOnly }) => ({
+      name,
+      description,
+      inputSchema,
+      annotations: {
+        readOnlyHint: readOnly === true,
+      },
+    }),
+  );
+
   // Register the ListTools request handler
   server.setRequestHandler(ListToolsRequestSchema, () => {
-    // Combine tools from all features
-    const tools = [
-      ...usersTools,
-      ...organizationsTools,
-      ...projectsTools,
-      ...repositoriesTools,
-      ...workItemsTools,
-      ...searchTools,
-      ...pullRequestsTools,
-      ...pipelinesTools,
-      ...wikisTools,
-    ];
-
-    return { tools };
+    return { tools: mcpTools };
   });
 
   // Register the resource handlers
@@ -284,6 +308,21 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
   // Register the CallTool request handler
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     try {
+      const toolName = request.params.name;
+      if (!toolCatalog.enabledToolNames.has(toolName)) {
+        if (toolCatalog.readOnlyBlockedNames.has(toolName)) {
+          throw new AzureDevOpsValidationError(
+            `Tool '${toolName}' is disabled in read-only mode`,
+          );
+        }
+        if (toolCatalog.allToolNames.has(toolName)) {
+          throw new AzureDevOpsValidationError(
+            `Tool '${toolName}' is disabled by server configuration`,
+          );
+        }
+        throw new Error(`Unknown tool: ${toolName}`);
+      }
+
       // Note: We don't need to validate the presence of arguments here because:
       // 1. The schema validations (via zod.parse) will check for required parameters
       // 2. Default values from environment.ts are applied for optional parameters (projectId, organizationId)

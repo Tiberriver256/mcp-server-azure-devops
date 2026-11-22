@@ -8,6 +8,11 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import dotenv from 'dotenv';
 import { AzureDevOpsConfig } from './shared/types';
 import { AuthenticationMethod } from './shared/auth/auth-factory';
+import {
+  parseBooleanOption,
+  parseCliToolFilterArgs,
+  parseCsvList,
+} from './shared/config/tool-filter';
 
 /**
  * Normalize auth method string to a valid AuthenticationMethod enum value
@@ -75,21 +80,35 @@ function describeDefaultProject(envValue: string | undefined): string {
   return `set (${envValue})`;
 }
 
-function isDebugLoggingEnabled(): boolean {
+function isDebugLoggingEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   const level = (
-    process.env.AZURE_DEVOPS_LOG_LEVEL ||
-    process.env.LOG_LEVEL ||
+    env.AZURE_DEVOPS_LOG_LEVEL ||
+    env.LOG_LEVEL ||
     ''
   ).toLowerCase();
   return level === 'debug';
 }
 
-function getConfig(): AzureDevOpsConfig {
-  const organizationUrl = process.env.AZURE_DEVOPS_ORG_URL || '';
+export function getConfig(
+  argv: string[] = process.argv.slice(2),
+  env: NodeJS.ProcessEnv = process.env,
+): AzureDevOpsConfig {
+  const organizationUrl = env.AZURE_DEVOPS_ORG_URL || '';
   const orgDisplay = formatOrgUrlForLog(organizationUrl);
-  const authMethod = normalizeAuthMethod(process.env.AZURE_DEVOPS_AUTH_METHOD);
-  const apiVersionEnv = process.env.AZURE_DEVOPS_API_VERSION;
-  const patPresent = Boolean(process.env.AZURE_DEVOPS_PAT);
+  const authMethod = normalizeAuthMethod(env.AZURE_DEVOPS_AUTH_METHOD);
+  const apiVersionEnv = env.AZURE_DEVOPS_API_VERSION;
+  const patPresent = Boolean(env.AZURE_DEVOPS_PAT);
+
+  const cliFilters = parseCliToolFilterArgs(argv);
+  const toolsets =
+    cliFilters.toolsets ?? parseCsvList(env.AZURE_DEVOPS_TOOLSETS);
+  const enabledTools =
+    cliFilters.enabledTools ?? parseCsvList(env.AZURE_DEVOPS_ENABLED_TOOLS);
+  const disabledTools =
+    cliFilters.disabledTools ?? parseCsvList(env.AZURE_DEVOPS_DISABLED_TOOLS);
+  const readOnly =
+    cliFilters.readOnly ??
+    parseBooleanOption(env.AZURE_DEVOPS_READ_ONLY, 'AZURE_DEVOPS_READ_ONLY');
 
   // Always-on one-liner (stdio-safe)
   process.stderr.write(
@@ -97,22 +116,30 @@ function getConfig(): AzureDevOpsConfig {
   );
 
   // Verbose dump only when debug logging is enabled
-  if (isDebugLoggingEnabled()) {
+  if (isDebugLoggingEnabled(env)) {
     process.stderr.write(`DEBUG - Config:
   org: ${orgDisplay}
   authMethod: ${authMethod}
   patPresent: ${patPresent}
-  defaultProject: ${describeDefaultProject(process.env.AZURE_DEVOPS_DEFAULT_PROJECT)}
+  defaultProject: ${describeDefaultProject(env.AZURE_DEVOPS_DEFAULT_PROJECT)}
   apiVersion: ${apiVersionEnv ? `set (${apiVersionEnv})` : 'default'}
+  toolsets: ${toolsets ? toolsets.join(', ') : 'all'}
+  enabledTools: ${enabledTools ? enabledTools.join(', ') : 'all'}
+  disabledTools: ${disabledTools ? disabledTools.join(', ') : 'none'}
+  readOnly: ${Boolean(readOnly)}
 \n`);
   }
 
   return {
     organizationUrl,
     authMethod,
-    personalAccessToken: process.env.AZURE_DEVOPS_PAT,
-    defaultProject: process.env.AZURE_DEVOPS_DEFAULT_PROJECT,
-    apiVersion: process.env.AZURE_DEVOPS_API_VERSION,
+    personalAccessToken: env.AZURE_DEVOPS_PAT,
+    defaultProject: env.AZURE_DEVOPS_DEFAULT_PROJECT,
+    apiVersion: env.AZURE_DEVOPS_API_VERSION,
+    toolsets,
+    enabledTools,
+    disabledTools,
+    readOnly,
   };
 }
 
