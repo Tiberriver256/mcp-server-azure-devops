@@ -159,8 +159,15 @@ export function formatAzureDevOpsError(error: unknown): string {
   }
 
   // Handle error-like objects
-  const errorObj = error as Record<string, unknown>;
-  let message = `${errorObj.name || 'Unknown'}: ${errorObj.message || 'Unknown error'}`;
+  const errorName =
+    typeof error === 'object' && 'name' in error && error.name
+      ? String(error.name)
+      : 'Unknown';
+  const errorMessage =
+    typeof error === 'object' && 'message' in error && error.message
+      ? String(error.message)
+      : 'Unknown error';
+  let message = `${errorName}: ${errorMessage}`;
 
   if (error instanceof AzureDevOpsValidationError) {
     if (error.response) {

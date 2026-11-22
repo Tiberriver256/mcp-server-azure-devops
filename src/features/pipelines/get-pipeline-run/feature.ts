@@ -12,6 +12,10 @@ import type { GetPipelineRunOptions, PipelineRunDetails } from '../types';
 
 const API_VERSION = apiVersion;
 
+function isPipelineRunDetails(value: unknown): value is PipelineRunDetails {
+  return typeof value === 'object' && value !== null;
+}
+
 export async function getPipelineRun(
   connection: WebApi,
   options: GetPipelineRunOptions,
@@ -74,17 +78,18 @@ export async function getPipelineRun(
       );
     }
 
-    const run = pipelinesApi.formatResponse(
+    const formatted: unknown = pipelinesApi.formatResponse(
       response.result,
       TypeInfo.Run,
       false,
-    ) as PipelineRunDetails;
+    );
 
-    if (!run) {
+    if (!isPipelineRunDetails(formatted)) {
       throw new AzureDevOpsResourceNotFoundError(
         `Pipeline run ${runId} not found in project ${projectId}`,
       );
     }
+    const run = formatted;
 
     const artifacts = await fetchRunArtifacts(
       connection,

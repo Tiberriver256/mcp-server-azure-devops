@@ -105,8 +105,8 @@ export async function updateWorkItem(
           `Work item '${workItemId}' not found`,
         );
       }
-      const currentTagsStr =
-        (currentWorkItem.fields?.['System.Tags'] as string) || '';
+      const rawTags: unknown = currentWorkItem.fields?.['System.Tags'];
+      const currentTagsStr = typeof rawTags === 'string' ? rawTags : '';
       document.push({
         op: currentTagsStr ? 'replace' : 'add',
         path: '/fields/System.Tags',
@@ -125,8 +125,8 @@ export async function updateWorkItem(
         );
       }
 
-      const currentTagsStr =
-        (currentWorkItem.fields?.['System.Tags'] as string) || '';
+      const rawTags: unknown = currentWorkItem.fields?.['System.Tags'];
+      const currentTagsStr = typeof rawTags === 'string' ? rawTags : '';
       let tagsList = currentTagsStr
         .split(';')
         .map((t) => t.trim())
