@@ -17,10 +17,10 @@ export * from './list-commits';
 export * from './tool-definitions';
 
 // New exports for request handling
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import {
+import type {
   RequestIdentifier,
   RequestHandler,
 } from '../../shared/types/request-handler';
@@ -35,17 +35,19 @@ import {
   CreateBranchSchema,
   CreateCommitSchema,
   ListCommitsSchema,
-  getRepository,
-  getRepositoryDetails,
-  listRepositories,
-  getFileContent,
+} from './schemas';
+import { getRepository } from './get-repository';
+import { getRepositoryDetails } from './get-repository-details';
+import { listRepositories } from './list-repositories';
+import { getFileContent } from './get-file-content';
+import {
   getAllRepositoriesTree,
-  getRepositoryTree,
-  createBranch,
-  createCommit,
-  listCommits,
   formatRepositoryTree,
-} from './';
+} from './get-all-repositories-tree';
+import { getRepositoryTree } from './get-repository-tree';
+import { createBranch } from './create-branch';
+import { createCommit } from './create-commit';
+import { listCommits } from './list-commits';
 
 /**
  * Checks if the request is for the repositories feature

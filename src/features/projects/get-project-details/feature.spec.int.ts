@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { getProjectDetails } from './feature';
 import {
   getTestConnection,

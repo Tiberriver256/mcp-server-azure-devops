@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   CommentExpandOptions,
   CommentSortOrder,
@@ -7,7 +7,7 @@ import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
 } from '../../../shared/errors';
-import { GetWorkItemCommentsOptions, CommentList } from '../types';
+import type { GetWorkItemCommentsOptions, CommentList } from '../types';
 
 /**
  * Maps string-based expansion options to the CommentExpandOptions enum
@@ -92,12 +92,18 @@ export async function getWorkItemComments(
       }
     }
 
+    if (!resolvedProjectId) {
+      throw new AzureDevOpsResourceNotFoundError(
+        `Project for work item '${workItemId}' could not be resolved`,
+      );
+    }
+
     const expandVal =
       expandMap[expand.toLowerCase()] ?? CommentExpandOptions.All;
     const orderVal = orderMap[order.toLowerCase()] ?? CommentSortOrder.Asc;
 
     const commentList = await witApi.getComments(
-      resolvedProjectId!,
+      resolvedProjectId,
       workItemId,
       top,
       continuationToken,

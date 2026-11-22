@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { getWikiPage } from './feature';
 import { getWikis } from '../get-wikis/feature';
 import {

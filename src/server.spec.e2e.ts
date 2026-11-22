@@ -3,7 +3,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { spawn } from 'child_process';
 import { join } from 'path';
 import dotenv from 'dotenv';
-import { Organization } from './features/organizations/types';
+import type { Organization } from './features/organizations/types';
 import { getTextContent } from '@/shared/test/text-content';
 import fs from 'fs';
 
@@ -77,7 +77,9 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
     }
 
     // Give the server a moment to start
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1000);
+    });
 
     // Connect the MCP client to the server
     transport = new StdioClientTransport({

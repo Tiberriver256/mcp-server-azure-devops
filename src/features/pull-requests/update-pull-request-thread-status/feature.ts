@@ -1,7 +1,7 @@
-import { WebApi } from 'azure-devops-node-api';
-import { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { WebApi } from 'azure-devops-node-api';
+import type { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { AzureDevOpsError } from '../../../shared/errors';
-import {
+import type {
   UpdatePullRequestThreadStatusOptions,
   UpdatePullRequestThreadStatusResponse,
 } from '../types';

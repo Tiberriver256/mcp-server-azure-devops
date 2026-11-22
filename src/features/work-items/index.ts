@@ -17,9 +17,9 @@ export * from './delete-work-item-attachment';
 export * from './tool-definitions';
 
 // New exports for request handling
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   RequestIdentifier,
   RequestHandler,
 } from '../../shared/types/request-handler';
@@ -34,16 +34,16 @@ import {
   CreateWorkItemAttachmentSchema,
   GetWorkItemAttachmentSchema,
   DeleteWorkItemAttachmentSchema,
-  listWorkItems,
-  getWorkItem,
-  createWorkItem,
-  updateWorkItem,
-  manageWorkItemLink,
-  getWorkItemComments,
-  createWorkItemAttachment,
-  getWorkItemAttachment,
-  deleteWorkItemAttachment,
-} from './';
+} from './schemas';
+import { listWorkItems } from './list-work-items';
+import { getWorkItem } from './get-work-item';
+import { createWorkItem } from './create-work-item';
+import { updateWorkItem } from './update-work-item';
+import { manageWorkItemLink } from './manage-work-item-link';
+import { getWorkItemComments } from './get-work-item-comments';
+import { createWorkItemAttachment } from './create-work-item-attachment';
+import { getWorkItemAttachment } from './get-work-item-attachment';
+import { deleteWorkItemAttachment } from './delete-work-item-attachment';
 
 // Define the response type based on observed usage
 interface CallToolResponse {

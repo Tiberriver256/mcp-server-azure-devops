@@ -1,9 +1,9 @@
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   TestSuite,
   TestSuiteCreateParams,
-  TypeInfo,
 } from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
+import { TypeInfo } from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
@@ -16,7 +16,7 @@ import {
   resolveProjectId,
   TEST_SUITES_LOCATION_ID,
 } from '../helpers';
-import {
+import type {
   CreateTestSuiteOptions,
   GetTestSuiteOptions,
   ListTestSuitesOptions,

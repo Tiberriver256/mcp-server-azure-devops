@@ -1,9 +1,9 @@
-import {
+import type {
   TestCase,
   TestPlan,
   TestSuite,
 } from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
-import { WorkItem } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+import type { WorkItem } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 
 export type SuiteExpandOption = 'none' | 'children' | 'defaultTesters';
 

@@ -1,10 +1,10 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
 } from '../../../shared/errors';
-import { GetRepositoryDetailsOptions, RepositoryDetails } from '../types';
+import type { GetRepositoryDetailsOptions, RepositoryDetails } from '../types';
 
 /**
  * Get detailed information about a repository

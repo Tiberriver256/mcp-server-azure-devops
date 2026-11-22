@@ -1,7 +1,7 @@
 import axios from 'axios';
 import JSZip from 'jszip';
-import { WebApi } from 'azure-devops-node-api';
-import { BuildArtifact } from 'azure-devops-node-api/interfaces/BuildInterfaces';
+import type { WebApi } from 'azure-devops-node-api';
+import type { BuildArtifact } from 'azure-devops-node-api/interfaces/BuildInterfaces';
 import { GetArtifactExpandOptions } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
 import {
   AzureDevOpsAuthenticationError,
@@ -11,7 +11,7 @@ import {
 import { defaultProject } from '../../../utils/environment';
 import { parseArtifactContainer } from '../artifacts';
 import { resolvePipelineId } from '../helpers';
-import {
+import type {
   DownloadPipelineArtifactOptions,
   PipelineArtifactContent,
 } from '../types';

@@ -1,10 +1,10 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { listRepositories } from './feature';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
-import { ListRepositoriesOptions } from '../types';
+import type { ListRepositoriesOptions } from '../types';
 
 const shouldSkip = shouldSkipIntegrationTest();
 const describeOrSkip = shouldSkip ? describe.skip : describe;

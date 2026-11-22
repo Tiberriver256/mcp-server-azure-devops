@@ -1,15 +1,16 @@
-import { WebApi } from 'azure-devops-node-api';
-import { ICoreApi } from 'azure-devops-node-api/CoreApi';
-import { IGitApi } from 'azure-devops-node-api/GitApi';
-import { IWorkItemTrackingApi } from 'azure-devops-node-api/WorkItemTrackingApi';
-import { IBuildApi } from 'azure-devops-node-api/BuildApi';
-import { ITestApi } from 'azure-devops-node-api/TestApi';
-import { IReleaseApi } from 'azure-devops-node-api/ReleaseApi';
-import { ITaskAgentApi } from 'azure-devops-node-api/TaskAgentApi';
-import { ITaskApi } from 'azure-devops-node-api/TaskApi';
-import { IProfileApi } from 'azure-devops-node-api/ProfileApi';
+import type { WebApi } from 'azure-devops-node-api';
+import type { ICoreApi } from 'azure-devops-node-api/CoreApi';
+import type { IGitApi } from 'azure-devops-node-api/GitApi';
+import type { IWorkItemTrackingApi } from 'azure-devops-node-api/WorkItemTrackingApi';
+import type { IBuildApi } from 'azure-devops-node-api/BuildApi';
+import type { ITestApi } from 'azure-devops-node-api/TestApi';
+import type { IReleaseApi } from 'azure-devops-node-api/ReleaseApi';
+import type { ITaskAgentApi } from 'azure-devops-node-api/TaskAgentApi';
+import type { ITaskApi } from 'azure-devops-node-api/TaskApi';
+import type { IProfileApi } from 'azure-devops-node-api/ProfileApi';
 import { AzureDevOpsError, AzureDevOpsAuthenticationError } from '../errors';
-import { AuthConfig, createAuthClient } from './auth-factory';
+import type { AuthConfig } from './auth-factory';
+import { createAuthClient } from './auth-factory';
 
 /**
  * Azure DevOps Client

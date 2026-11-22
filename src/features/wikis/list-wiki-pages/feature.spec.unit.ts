@@ -1,4 +1,5 @@
-import { listWikiPages, WikiPageSummary } from './feature';
+import type { WikiPageSummary } from './feature';
+import { listWikiPages } from './feature';
 import * as azureDevOpsClient from '../../../clients/azure-devops';
 import {
   AzureDevOpsError,

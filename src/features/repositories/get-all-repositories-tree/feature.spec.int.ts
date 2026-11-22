@@ -1,8 +1,8 @@
 import { getConnection } from '../../../server';
 import { shouldSkipIntegrationTest } from '../../../shared/test/test-helpers';
 import { getAllRepositoriesTree } from './feature';
-import { AzureDevOpsConfig } from '../../../shared/types';
-import { WebApi } from 'azure-devops-node-api';
+import type { AzureDevOpsConfig } from '../../../shared/types';
+import type { WebApi } from 'azure-devops-node-api';
 import { AuthenticationMethod } from '../../../shared/auth';
 
 const shouldSkip = shouldSkipIntegrationTest();

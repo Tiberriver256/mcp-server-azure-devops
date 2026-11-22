@@ -1,5 +1,5 @@
-import { WebApi } from 'azure-devops-node-api';
-import { Build } from 'azure-devops-node-api/interfaces/BuildInterfaces';
+import type { WebApi } from 'azure-devops-node-api';
+import type { Build } from 'azure-devops-node-api/interfaces/BuildInterfaces';
 
 export function coercePipelineId(id: unknown): number | undefined {
   if (typeof id === 'number') {

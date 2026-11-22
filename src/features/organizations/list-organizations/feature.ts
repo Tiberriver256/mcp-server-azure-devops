@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AzureDevOpsConfig } from '../../../shared/types';
+import type { AzureDevOpsConfig } from '../../../shared/types';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
@@ -7,7 +7,8 @@ import {
 } from '../../../shared/errors';
 import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
 import { AuthenticationMethod } from '../../../shared/auth';
-import { Organization, AZURE_DEVOPS_RESOURCE_ID } from '../types';
+import type { Organization } from '../types';
+import { AZURE_DEVOPS_RESOURCE_ID } from '../types';
 import { isAzureDevOpsServicesUrl } from '../../../shared/azure-devops-url';
 
 /**

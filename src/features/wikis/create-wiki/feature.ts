@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsError,
   AzureDevOpsValidationError,
@@ -78,6 +78,10 @@ export async function createWiki(
       );
     }
 
+    if (!projectId) {
+      throw new AzureDevOpsValidationError('Project ID is required');
+    }
+
     // Get the Wiki client
     const wikiClient = await getWikiClient({
       organizationId: options.organizationId,
@@ -87,7 +91,7 @@ export async function createWiki(
     // Prepare the wiki creation parameters
     const wikiCreateParams = {
       name,
-      projectId: projectId!,
+      projectId,
       type,
       ...(type === WikiType.CodeWiki && {
         repositoryId,
@@ -100,7 +104,7 @@ export async function createWiki(
     };
 
     // Create the wiki
-    return await wikiClient.createWiki(projectId!, wikiCreateParams);
+    return await wikiClient.createWiki(projectId, wikiCreateParams);
   } catch (error) {
     // Just rethrow if it's already one of our error types
     if (error instanceof AzureDevOpsError) {

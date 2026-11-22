@@ -1,10 +1,12 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { addPullRequestComment } from './feature';
-import {
+import type {
   Comment,
+  GitPullRequestCommentThread,
+} from 'azure-devops-node-api/interfaces/GitInterfaces';
+import {
   CommentThreadStatus,
   CommentType,
-  GitPullRequestCommentThread,
   GitVersionType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 

@@ -1,13 +1,14 @@
+import type { ApiErrorResponse } from './azure-devops-errors';
 import {
   AzureDevOpsError,
   AzureDevOpsValidationError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsAuthenticationError,
   AzureDevOpsPermissionError,
-  ApiErrorResponse,
   isAzureDevOpsError,
 } from './azure-devops-errors';
-import axios, { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
+import axios from 'axios';
 
 // Create a safe console logging function that won't interfere with MCP protocol
 function safeLog(message: string) {

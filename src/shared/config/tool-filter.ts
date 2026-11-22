@@ -1,4 +1,4 @@
-import { ToolDefinition } from '../types/tool-definition';
+import type { ToolDefinition } from '../types/tool-definition';
 import { AzureDevOpsValidationError } from '../errors';
 
 export const TOOLSET_NAMES = [

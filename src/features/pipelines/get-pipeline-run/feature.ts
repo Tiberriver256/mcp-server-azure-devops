@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { TypeInfo } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
 import {
   AzureDevOpsAuthenticationError,
@@ -8,7 +8,7 @@ import {
 import { apiVersion, defaultProject } from '../../../utils/environment';
 import { fetchRunArtifacts } from '../artifacts';
 import { coercePipelineId, resolvePipelineId } from '../helpers';
-import { GetPipelineRunOptions, PipelineRunDetails } from '../types';
+import type { GetPipelineRunOptions, PipelineRunDetails } from '../types';
 
 const API_VERSION = apiVersion;
 

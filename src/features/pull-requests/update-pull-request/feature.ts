@@ -1,13 +1,11 @@
-import { GitPullRequest } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { WebApi } from 'azure-devops-node-api';
-import {
-  WorkItemRelation,
-  WorkItemExpand,
-} from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+import type { GitPullRequest } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { WebApi } from 'azure-devops-node-api';
+import type { WorkItemRelation } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import { AzureDevOpsClient } from '../../../shared/auth/client-factory';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { UpdatePullRequestOptions } from '../types';
-import { AuthenticationMethod } from '../../../shared/auth/auth-factory';
+import type { UpdatePullRequestOptions } from '../types';
+import type { AuthenticationMethod } from '../../../shared/auth/auth-factory';
 import { pullRequestStatusMapper } from '../../../shared/enums';
 
 function normalizeTags(tags?: string[]): string[] {

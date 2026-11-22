@@ -1,5 +1,5 @@
 import { toJsonSchema } from '../../shared/utils/to-json-schema';
-import { ToolDefinition } from '../../shared/types/tool-definition';
+import type { ToolDefinition } from '../../shared/types/tool-definition';
 import { ListOrganizationsSchema } from './schemas';
 
 /**

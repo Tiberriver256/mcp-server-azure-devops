@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import axios from 'axios';
 import { searchWiki } from './feature';
 import { AzureDevOpsValidationError } from '../../../shared/errors';
@@ -22,7 +22,7 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('searchWiki unit', () => {
   // Mock WebApi connection
-  const mockConnection = {
+  const baseMockConnection = {
     _getHttpClient: jest.fn().mockReturnValue({
       getAuthorizationHeader: jest.fn().mockReturnValue('Bearer mock-token'),
     }),
@@ -32,7 +32,8 @@ describe('searchWiki unit', () => {
         .mockResolvedValue([{ name: 'TestProject', id: 'project-id' }]),
     })),
     serverUrl: 'https://dev.azure.com/testorg',
-  } as unknown as WebApi;
+  };
+  const mockConnection = baseMockConnection as unknown as WebApi;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -169,7 +170,7 @@ describe('searchWiki unit', () => {
 
   test('should build server search URL when using Azure DevOps Server', async () => {
     const serverConnection = {
-      ...mockConnection,
+      ...baseMockConnection,
       serverUrl: 'https://ado.local/tfs/DefaultCollection',
     } as unknown as WebApi;
 
@@ -194,7 +195,7 @@ describe('searchWiki unit', () => {
 
   test('should require projectId for server wiki search', async () => {
     const serverConnection = {
-      ...mockConnection,
+      ...baseMockConnection,
       serverUrl: 'https://ado.local/tfs/DefaultCollection',
     } as unknown as WebApi;
 

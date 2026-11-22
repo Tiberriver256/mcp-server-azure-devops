@@ -1,10 +1,10 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   GitObjectType,
   VersionControlRecursionType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { getAllRepositoriesTree, formatRepositoryTree } from './feature';
-import { RepositoryTreeItem } from '../types';
+import type { RepositoryTreeItem } from '../types';
 
 // Mock the Azure DevOps API
 jest.mock('azure-devops-node-api');

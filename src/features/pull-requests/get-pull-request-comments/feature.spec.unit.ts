@@ -1,6 +1,6 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { getPullRequestComments } from './feature';
-import { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 describe('getPullRequestComments', () => {
   afterEach(() => {

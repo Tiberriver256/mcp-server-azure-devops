@@ -1,3 +1,4 @@
+import type { ToolsetName } from './tool-filter';
 import {
   normalizeToolsetName,
   parseBooleanOption,
@@ -5,9 +6,8 @@ import {
   parseCsvList,
   resolveEnabledTools,
   TOOLSET_NAMES,
-  ToolsetName,
 } from './tool-filter';
-import { ToolDefinition } from '../types/tool-definition';
+import type { ToolDefinition } from '../types/tool-definition';
 import { AzureDevOpsValidationError } from '../errors';
 
 function makeTool(name: string, readOnly?: boolean): ToolDefinition {

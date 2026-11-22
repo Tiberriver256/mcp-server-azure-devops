@@ -1,6 +1,6 @@
 import { WebApi } from 'azure-devops-node-api';
 import { getPersonalAccessTokenHandler } from 'azure-devops-node-api';
-import { AzureDevOpsConfig } from '../types';
+import type { AzureDevOpsConfig } from '../types';
 import { AuthenticationMethod } from '../auth';
 
 /**

@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   ItemContentType,
   PullRequestAsyncStatus,
@@ -41,7 +41,9 @@ async function waitForPullRequestMergeCalculation(
     ) {
       return pr;
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1000);
+    });
   }
 
   return await gitApi.getPullRequest(repositoryId, pullRequestId, projectName);
@@ -66,7 +68,9 @@ async function waitForPullRequestCompletion(
     if (pr && pr.status === PullRequestStatus.Completed) {
       return pr;
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1000);
+    });
   }
 
   return await gitApi.getPullRequest(repositoryId, pullRequestId, projectName);

@@ -6,7 +6,7 @@
 import { createAzureDevOpsServer } from './server';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import dotenv from 'dotenv';
-import { AzureDevOpsConfig } from './shared/types';
+import type { AzureDevOpsConfig } from './shared/types';
 import { AuthenticationMethod } from './shared/auth/auth-factory';
 import {
   parseBooleanOption,
@@ -161,7 +161,7 @@ async function main() {
 
 // Start the server when this script is run directly
 if (require.main === module) {
-  main().catch((error) => {
+  main().catch((error: unknown) => {
     process.stderr.write(`Fatal error in main(): ${error}\n`);
     process.exit(1);
   });

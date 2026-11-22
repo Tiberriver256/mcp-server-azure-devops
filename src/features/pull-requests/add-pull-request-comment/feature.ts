@@ -1,15 +1,20 @@
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   Comment,
-  CommentThreadStatus,
-  CommentType,
   GitPullRequest,
   GitPullRequestCommentThread,
+} from 'azure-devops-node-api/interfaces/GitInterfaces';
+import {
+  CommentThreadStatus,
+  CommentType,
   GitVersionType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { IGitApi } from 'azure-devops-node-api/GitApi';
+import type { IGitApi } from 'azure-devops-node-api/GitApi';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { AddPullRequestCommentOptions, AddCommentResponse } from '../types';
+import type {
+  AddPullRequestCommentOptions,
+  AddCommentResponse,
+} from '../types';
 import {
   transformCommentThreadStatus,
   transformCommentType,

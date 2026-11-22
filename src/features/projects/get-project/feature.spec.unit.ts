@@ -3,8 +3,8 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { TeamProject } from 'azure-devops-node-api/interfaces/CoreInterfaces';
-import { WebApi } from 'azure-devops-node-api';
+import type { TeamProject } from 'azure-devops-node-api/interfaces/CoreInterfaces';
+import type { WebApi } from 'azure-devops-node-api';
 
 // Create a partial mock interface for ICoreApi
 interface MockCoreApi {

@@ -9,27 +9,19 @@ export { createWikiPage, CreateWikiPageSchema } from './create-wiki-page';
 export * from './tool-definitions';
 
 // New exports for request handling
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   RequestIdentifier,
   RequestHandler,
 } from '../../shared/types/request-handler';
 import { defaultProject, defaultOrg } from '../../utils/environment';
-import {
-  GetWikisSchema,
-  GetWikiPageSchema,
-  CreateWikiSchema,
-  UpdateWikiPageSchema,
-  ListWikiPagesSchema,
-  CreateWikiPageSchema,
-  getWikis,
-  getWikiPage,
-  createWiki,
-  updateWikiPage,
-  listWikiPages,
-  createWikiPage,
-} from './';
+import { getWikis, GetWikisSchema } from './get-wikis';
+import { getWikiPage, GetWikiPageSchema } from './get-wiki-page';
+import { createWiki, CreateWikiSchema } from './create-wiki';
+import { updateWikiPage, UpdateWikiPageSchema } from './update-wiki-page';
+import { listWikiPages, ListWikiPagesSchema } from './list-wiki-pages';
+import { createWikiPage, CreateWikiPageSchema } from './create-wiki-page';
 
 /**
  * Checks if the request is for the wikis feature

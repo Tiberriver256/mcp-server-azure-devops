@@ -1,9 +1,9 @@
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   SuiteTestCaseCreateUpdateParameters,
   TestCase,
-  TypeInfo,
 } from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
+import { TypeInfo } from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
 import {
   AzureDevOpsError,
   AzureDevOpsValidationError,
@@ -16,7 +16,7 @@ import {
   resolveProjectId,
   SUITE_TEST_CASES_LOCATION_ID,
 } from '../helpers';
-import {
+import type {
   AddTestCasesToSuiteOptions,
   CreateTestCaseOptions,
   CreateTestCaseResponse,

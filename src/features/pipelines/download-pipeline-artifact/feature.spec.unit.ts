@@ -1,6 +1,6 @@
 import { Readable } from 'stream';
-import { WebApi } from 'azure-devops-node-api';
-import { BuildArtifact } from 'azure-devops-node-api/interfaces/BuildInterfaces';
+import type { WebApi } from 'azure-devops-node-api';
+import type { BuildArtifact } from 'azure-devops-node-api/interfaces/BuildInterfaces';
 import { downloadPipelineArtifact } from './feature';
 import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
 

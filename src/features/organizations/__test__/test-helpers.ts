@@ -1,4 +1,4 @@
-import { AzureDevOpsConfig } from '../../../shared/types';
+import type { AzureDevOpsConfig } from '../../../shared/types';
 import { AuthenticationMethod } from '../../../shared/auth';
 
 /**

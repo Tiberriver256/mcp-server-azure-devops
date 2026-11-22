@@ -1,5 +1,6 @@
-import { WebApi } from 'azure-devops-node-api';
-import axios, { AxiosError } from 'axios';
+import type { WebApi } from 'azure-devops-node-api';
+import type { AxiosError } from 'axios';
+import axios from 'axios';
 import { getMe } from './feature';
 import {
   AzureDevOpsError,

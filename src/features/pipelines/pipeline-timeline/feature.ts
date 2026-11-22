@@ -1,6 +1,6 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
+import type { TimelineRecord } from 'azure-devops-node-api/interfaces/BuildInterfaces';
 import {
-  TimelineRecord,
   TimelineRecordState,
   TaskResult,
 } from 'azure-devops-node-api/interfaces/BuildInterfaces';
@@ -10,7 +10,7 @@ import {
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
 import { apiVersion, defaultProject } from '../../../utils/environment';
-import { GetPipelineTimelineOptions, PipelineTimeline } from '../types';
+import type { GetPipelineTimelineOptions, PipelineTimeline } from '../types';
 
 const API_VERSION = apiVersion;
 

@@ -1,12 +1,8 @@
-import { WebApi } from 'azure-devops-node-api';
-import {
-  GitPullRequestStatus,
-  GitStatusState,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
-import {
-  PolicyEvaluationRecord,
-  PolicyEvaluationStatus,
-} from 'azure-devops-node-api/interfaces/PolicyInterfaces';
+import type { WebApi } from 'azure-devops-node-api';
+import type { GitPullRequestStatus } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { GitStatusState } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { PolicyEvaluationRecord } from 'azure-devops-node-api/interfaces/PolicyInterfaces';
+import { PolicyEvaluationStatus } from 'azure-devops-node-api/interfaces/PolicyInterfaces';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,

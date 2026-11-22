@@ -1,9 +1,9 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
 } from '../../../shared/errors';
-import { GitRepository } from '../types';
+import type { GitRepository } from '../types';
 
 /**
  * Get a repository by ID or name

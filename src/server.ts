@@ -5,11 +5,12 @@ import {
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { VERSION, resolveEnabledTools, ToolsetName } from './shared/config';
-import { AzureDevOpsConfig } from './shared/types';
-import { ToolDefinition } from './shared/types/tool-definition';
+import type { ToolsetName } from './shared/config';
+import { VERSION, resolveEnabledTools } from './shared/config';
+import type { AzureDevOpsConfig } from './shared/types';
+import type { ToolDefinition } from './shared/types/tool-definition';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,

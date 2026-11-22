@@ -1,11 +1,9 @@
-import { WebApi } from 'azure-devops-node-api';
-import {
-  GitChange,
-  GitVersionType,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { WebApi } from 'azure-devops-node-api';
+import type { GitChange } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { createTwoFilesPatch } from 'diff';
 import { AzureDevOpsError } from '../../../shared/errors';
-import {
+import type {
   CommitWithContent,
   ListCommitsOptions,
   ListCommitsResponse,

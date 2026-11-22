@@ -1,5 +1,5 @@
-import { WebApi } from 'azure-devops-node-api';
-import { WikiV2 } from 'azure-devops-node-api/interfaces/WikiInterfaces';
+import type { WebApi } from 'azure-devops-node-api';
+import type { WikiV2 } from 'azure-devops-node-api/interfaces/WikiInterfaces';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,

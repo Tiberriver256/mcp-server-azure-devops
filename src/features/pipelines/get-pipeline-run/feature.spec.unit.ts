@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   RunResult,
   RunState,
@@ -9,7 +9,7 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { Run } from '../types';
+import type { Run } from '../types';
 
 describe('getPipelineRun unit', () => {
   let mockConnection: WebApi;

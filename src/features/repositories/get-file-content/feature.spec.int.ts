@@ -2,8 +2,8 @@ import { getConnection } from '../../../server';
 import { shouldSkipIntegrationTest } from '../../../shared/test/test-helpers';
 import { getFileContent } from './feature';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { AzureDevOpsConfig } from '../../../shared/types';
-import { WebApi } from 'azure-devops-node-api';
+import type { AzureDevOpsConfig } from '../../../shared/types';
+import type { WebApi } from 'azure-devops-node-api';
 import { AuthenticationMethod } from '../../../shared/auth';
 import type { GitItem } from 'azure-devops-node-api/interfaces/GitInterfaces';
 

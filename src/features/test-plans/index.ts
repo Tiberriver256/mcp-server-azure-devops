@@ -6,9 +6,9 @@ export * from './suites/feature';
 export * from './test-cases/feature';
 export * from './tool-definitions';
 
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   RequestHandler,
   RequestIdentifier,
 } from '../../shared/types/request-handler';
@@ -37,7 +37,7 @@ import {
   removeTestCasesFromSuite,
 } from './test-cases/feature';
 
-const TEST_PLAN_TOOL_NAMES = [
+const TEST_PLAN_TOOL_NAMES = new Set([
   'list_test_plans',
   'get_test_plan',
   'create_test_plan',
@@ -48,7 +48,7 @@ const TEST_PLAN_TOOL_NAMES = [
   'add_test_cases_to_suite',
   'remove_test_cases_from_suite',
   'create_test_case',
-];
+]);
 
 /**
  * Checks if the request is for the test-plans feature
@@ -56,7 +56,7 @@ const TEST_PLAN_TOOL_NAMES = [
 export const isTestPlansRequest: RequestIdentifier = (
   request: CallToolRequest,
 ): boolean => {
-  return TEST_PLAN_TOOL_NAMES.includes(request.params.name);
+  return TEST_PLAN_TOOL_NAMES.has(request.params.name);
 };
 
 /**
