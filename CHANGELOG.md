@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.55](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.54...mcp-server-azure-devops-v0.1.55) (2026-11-22)
+
+
+### Features
+
+* add toolset filtering, tool allow/deny lists, and read-only mode ([#417](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/417)) ([4047ca3](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/4047ca30fa6b1b9c74ca5eff196e302e28c3a053))
+* **pull-requests:** add merge_pull_request tool ([#416](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/416)) ([50b2487](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/50b2487448dc06788bb8c9f9570c42c3ef08d664))
+* **test-plans:** add Test Plans, Test Suites, and Test Case authoring tools ([#418](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/418)) ([22e0c1f](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/22e0c1f2b09995f55bb9e3eb66b00af200b20dbd))
+* **work-items:** add optional descriptionFormat markdown support ([#414](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/414)) ([d66195e](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/d66195e1610835c3e8048bf4324e8ece687ba222))
+
+
+### Bug Fixes
+
+* address PR [#414](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/414) review feedback and fix E2E auth warning check ([#415](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/415)) ([cd87616](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/cd87616859b2b9ed865c3f31a17da012022182a4))
+* **organizations:** redact auth headers in errors and warn on single-org PAT in int test ([#413](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/413)) ([5205213](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/52052132cbfae3716ba8a32d3cab715a976a4743))
+* serialize CI integration runs and format org auth errors ([#412](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/412)) ([0b740c3](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/0b740c3575fa5e6c17d173ff55460242cc15611f))
+* **wiki:** do not pre-encode page path in createPage/updatePage ([#404](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/404)) ([812fc63](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/812fc631f64a0eb6e16fe00d49eb225e4ba44931))
+
 ## [0.1.54](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.53...mcp-server-azure-devops-v0.1.54) (2026-11-02)
 
 
