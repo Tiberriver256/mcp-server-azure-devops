@@ -86,5 +86,6 @@ export const pullRequestsTools: ToolDefinition[] = [
     description:
       'Complete (merge) an active pull request immediately or enable/cancel auto-complete with merge strategy, source branch deletion, work item transitions, and policy bypass options (repositoryId optional; derived from pullRequestId when omitted; works on both Azure DevOps Services and Azure DevOps Server)',
     inputSchema: toJsonSchema(MergePullRequestSchema),
+    readOnly: false,
   },
 ];
