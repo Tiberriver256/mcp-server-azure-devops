@@ -11,6 +11,7 @@ export const TOOLSET_NAMES = [
   'pull-requests',
   'pipelines',
   'wikis',
+  'test-plans',
 ] as const;
 
 export type ToolsetName = (typeof TOOLSET_NAMES)[number];
@@ -45,6 +46,9 @@ const TOOLSET_ALIASES: Record<string, ToolsetName> = {
   prs: 'pull-requests',
   pipelines: 'pipelines',
   wikis: 'wikis',
+  'test-plans': 'test-plans',
+  test_plans: 'test-plans',
+  testplans: 'test-plans',
 };
 
 /**

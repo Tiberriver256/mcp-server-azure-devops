@@ -43,6 +43,10 @@ function makeRegistry(): Record<ToolsetName, ToolDefinition[]> {
       makeTool('trigger_pipeline', false),
     ],
     wikis: [makeTool('get_wikis', true), makeTool('create_wiki_page', false)],
+    'test-plans': [
+      makeTool('list_test_plans', true),
+      makeTool('create_test_plan', false),
+    ],
   };
 }
 
@@ -144,6 +148,8 @@ describe('tool-filter', () => {
       expect(normalizeToolsetName('pull_requests')).toBe('pull-requests');
       expect(normalizeToolsetName('prs')).toBe('pull-requests');
       expect(normalizeToolsetName('repos')).toBe('repositories');
+      expect(normalizeToolsetName('test_plans')).toBe('test-plans');
+      expect(normalizeToolsetName('testplans')).toBe('test-plans');
       for (const name of TOOLSET_NAMES) {
         expect(normalizeToolsetName(name)).toBe(name);
       }
