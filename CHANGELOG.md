@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.56](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.55...mcp-server-azure-devops-v0.1.56) (2026-11-22)
+
+
+### Features
+
+* **pipelines:** reference pipelines and runs by name and build number ([#422](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/422)) ([907f6e5](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/907f6e5d18317c7362e2f02a592477b6143b62fb)), closes [#398](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/398)
+
+
+### Bug Fixes
+
+* **lint:** enable all remaining Cloudflare TypeScript safety rules ([#420](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/420)) ([30d60fc](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/30d60fc323adbe2fc0cd6eaaeae19d60cd20d946))
+
 ## [0.1.55](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.54...mcp-server-azure-devops-v0.1.55) (2026-11-22)
 
 
