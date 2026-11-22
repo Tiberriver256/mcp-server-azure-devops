@@ -1,13 +1,14 @@
 import { createWikiPage } from './feature';
 import { handleRequestError } from '../../../shared/errors/handle-request-error';
+import type * as HandleRequestErrorModule from '../../../shared/errors/handle-request-error';
 
 // Mock the AzureDevOpsClient
 jest.mock('../../../shared/api/client');
 // Mock the error handler (default: call through to the real implementation)
 jest.mock('../../../shared/errors/handle-request-error', () => {
-  const actual = jest.requireActual(
+  const actual = jest.requireActual<typeof HandleRequestErrorModule>(
     '../../../shared/errors/handle-request-error',
-  ) as typeof import('../../../shared/errors/handle-request-error');
+  );
 
   return {
     ...actual,
@@ -36,9 +37,9 @@ describe('createWikiPage Feature', () => {
 
     // Restore the default (call-through) mock implementation for each test.
     mockHandleRequestError.mockReset();
-    const actual = jest.requireActual(
+    const actual = jest.requireActual<typeof HandleRequestErrorModule>(
       '../../../shared/errors/handle-request-error',
-    ) as typeof import('../../../shared/errors/handle-request-error');
+    );
     mockHandleRequestError.mockImplementation(
       (error: unknown, context: string) =>
         actual.handleRequestError(error, context),

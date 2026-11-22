@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   CommentExpandOptions,
   CommentSortOrder,
@@ -7,7 +7,7 @@ import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
 } from '../../../shared/errors';
-import { GetWorkItemCommentsOptions, CommentList } from '../types';
+import type { GetWorkItemCommentsOptions, CommentList } from '../types';
 
 /**
  * Maps string-based expansion options to the CommentExpandOptions enum

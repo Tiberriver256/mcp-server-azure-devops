@@ -1,6 +1,6 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { CreateWorkItemOptions, WorkItem } from '../types';
+import type { CreateWorkItemOptions, WorkItem } from '../types';
 
 /**
  * Create a work item

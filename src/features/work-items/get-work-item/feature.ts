@@ -1,14 +1,14 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
+import type { WorkItemTypeFieldWithReferences } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import {
   WorkItemExpand,
   WorkItemTypeFieldsExpandLevel,
-  WorkItemTypeFieldWithReferences,
 } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
 } from '../../../shared/errors';
-import { WorkItem } from '../types';
+import type { WorkItem } from '../types';
 
 const workItemTypeFieldsCache: Record<
   string,

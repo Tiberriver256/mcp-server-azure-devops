@@ -4,7 +4,7 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { GitRepository, GitBranchStats, GitRef } from '../types';
+import type { GitRepository, GitBranchStats, GitRef } from '../types';
 
 // Unit tests should only focus on isolated logic
 // No real connections, HTTP requests, or dependencies

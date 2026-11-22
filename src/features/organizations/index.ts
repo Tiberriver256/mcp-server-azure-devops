@@ -8,14 +8,14 @@ export * from './list-organizations';
 // Export tool definitions
 export * from './tool-definitions';
 
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   RequestIdentifier,
   RequestHandler,
 } from '../../shared/types/request-handler';
 import { listOrganizations } from './list-organizations';
-import { AzureDevOpsConfig } from '../../shared/types';
+import type { AzureDevOpsConfig } from '../../shared/types';
 import { AuthenticationMethod } from '../../shared/auth';
 
 /**

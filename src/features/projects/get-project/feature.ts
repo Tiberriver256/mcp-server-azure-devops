@@ -1,9 +1,9 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
 } from '../../../shared/errors';
-import { TeamProject } from '../types';
+import type { TeamProject } from '../types';
 
 /**
  * Get a project by ID or name

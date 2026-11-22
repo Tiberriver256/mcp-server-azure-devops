@@ -1,9 +1,9 @@
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   GitPullRequestIterationChanges,
   GitChange,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { PolicyEvaluationRecord } from 'azure-devops-node-api/interfaces/PolicyInterfaces';
+import type { PolicyEvaluationRecord } from 'azure-devops-node-api/interfaces/PolicyInterfaces';
 import { AzureDevOpsError } from '../../../shared/errors';
 import { createTwoFilesPatch } from 'diff';
 

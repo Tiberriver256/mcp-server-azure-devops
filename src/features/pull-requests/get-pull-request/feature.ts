@@ -1,9 +1,9 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { PullRequest } from '../types';
+import type { PullRequest } from '../types';
 
 export async function getPullRequest(
   connection: WebApi,

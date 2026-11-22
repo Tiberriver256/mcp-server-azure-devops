@@ -1,6 +1,6 @@
-import { WebApi } from 'azure-devops-node-api';
-import { TeamContext } from 'azure-devops-node-api/interfaces/CoreInterfaces';
-import {
+import type { WebApi } from 'azure-devops-node-api';
+import type { TeamContext } from 'azure-devops-node-api/interfaces/CoreInterfaces';
+import type {
   WorkItem,
   WorkItemReference,
 } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
@@ -9,7 +9,7 @@ import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { ListWorkItemsOptions, WorkItem as WorkItemType } from '../types';
+import type { ListWorkItemsOptions, WorkItem as WorkItemType } from '../types';
 
 /**
  * Constructs the default WIQL query for listing work items

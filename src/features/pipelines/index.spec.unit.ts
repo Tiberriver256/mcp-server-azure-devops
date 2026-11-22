@@ -1,5 +1,5 @@
-import { WebApi } from 'azure-devops-node-api';
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { getTextContent } from '@/shared/test/text-content';
 import { isPipelinesRequest, handlePipelinesRequest } from './index';
 import { listPipelines } from './list-pipelines/feature';

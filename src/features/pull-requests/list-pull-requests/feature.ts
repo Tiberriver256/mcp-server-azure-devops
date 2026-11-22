@@ -1,10 +1,8 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { ListPullRequestsOptions, PullRequest } from '../types';
-import {
-  GitPullRequestSearchCriteria,
-  PullRequestStatus,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { ListPullRequestsOptions, PullRequest } from '../types';
+import type { GitPullRequestSearchCriteria } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { PullRequestStatus } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 /**
  * List pull requests for a repository

@@ -1,6 +1,6 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
+import type { GitPullRequest } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import {
-  GitPullRequest,
   GitPullRequestMergeStrategy,
   PullRequestAsyncStatus,
   PullRequestStatus,

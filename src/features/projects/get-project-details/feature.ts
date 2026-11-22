@@ -1,13 +1,13 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
 } from '../../../shared/errors';
-import {
+import type {
   TeamProject,
   WebApiTeam,
 } from 'azure-devops-node-api/interfaces/CoreInterfaces';
-import { WorkItemField } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+import type { WorkItemField } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 
 // Type for work item type field with additional properties
 interface WorkItemTypeField extends WorkItemField {

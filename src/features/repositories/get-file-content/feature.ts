@@ -1,10 +1,10 @@
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   GitVersionDescriptor,
   GitItem,
   GitVersionType,
-  VersionControlRecursionType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { VersionControlRecursionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
 
 /**

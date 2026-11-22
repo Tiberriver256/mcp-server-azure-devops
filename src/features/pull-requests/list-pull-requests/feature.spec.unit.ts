@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { listPullRequests } from './feature';
 import { PullRequestStatus } from 'azure-devops-node-api/interfaces/GitInterfaces';
 

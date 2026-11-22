@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { searchCode } from './feature';
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsError } from '../../../shared/errors';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 

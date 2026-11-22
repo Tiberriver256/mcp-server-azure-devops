@@ -1,10 +1,10 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsError } from '../../../shared/errors';
-import {
+import type {
   GetPullRequestCommentsOptions,
   CommentThreadWithStringEnums,
 } from '../types';
-import { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import {
   transformCommentThreadStatus,
   transformCommentType,

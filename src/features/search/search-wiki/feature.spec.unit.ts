@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import axios from 'axios';
 import { searchWiki } from './feature';
 import { AzureDevOpsValidationError } from '../../../shared/errors';

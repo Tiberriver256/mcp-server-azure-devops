@@ -1,5 +1,5 @@
-import { WebApi } from 'azure-devops-node-api';
-import { IGitApi } from 'azure-devops-node-api/GitApi';
+import type { WebApi } from 'azure-devops-node-api';
+import type { IGitApi } from 'azure-devops-node-api/GitApi';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
 import { getFileContent } from './feature';

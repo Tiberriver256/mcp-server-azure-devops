@@ -1,10 +1,10 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Readable } from 'stream';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { CreateWorkItemAttachmentOptions, WorkItem } from '../types';
+import type { CreateWorkItemAttachmentOptions, WorkItem } from '../types';
 
 /**
  * Create an attachment on a work item

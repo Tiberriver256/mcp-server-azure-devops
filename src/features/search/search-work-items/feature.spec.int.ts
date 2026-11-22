@@ -1,7 +1,7 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { searchWorkItems } from './feature';
 import { getConnection } from '../../../server';
-import { AzureDevOpsConfig } from '../../../shared/types';
+import type { AzureDevOpsConfig } from '../../../shared/types';
 import { AuthenticationMethod } from '../../../shared/auth';
 
 // Skip tests if no PAT or default project is available

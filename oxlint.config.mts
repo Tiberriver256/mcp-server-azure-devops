@@ -59,9 +59,8 @@ export default defineConfig({
     'typescript/no-unsafe-type-assertion': 'off',
     'typescript/no-unnecessary-type-assertion': 'off',
 
-    // Temporary during migration (fixed in subsequent commits in this PR)
+    // Security: avoid attaching raw HTTP/SDK errors to Error.cause where Authorization headers could be logged
     'preserve-caught-error': 'off',
-    'typescript/consistent-type-imports': 'off',
   },
   overrides: [
     ...(cloudflare.overrides ?? []),

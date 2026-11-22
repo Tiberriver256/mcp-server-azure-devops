@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   ItemContentType,
   PullRequestAsyncStatus,

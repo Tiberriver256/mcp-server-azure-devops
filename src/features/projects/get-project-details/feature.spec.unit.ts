@@ -3,12 +3,12 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import {
+import type {
   TeamProject,
   WebApiTeam,
 } from 'azure-devops-node-api/interfaces/CoreInterfaces';
-import { WebApi } from 'azure-devops-node-api';
-import { WorkItemType } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+import type { WebApi } from 'azure-devops-node-api';
+import type { WorkItemType } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 
 // Create mock interfaces for the APIs we'll use
 interface MockCoreApi {

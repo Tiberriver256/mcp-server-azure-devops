@@ -1,11 +1,11 @@
 import axios from 'axios';
 import JSZip from 'jszip';
-import { WebApi } from 'azure-devops-node-api';
-import { BuildArtifact } from 'azure-devops-node-api/interfaces/BuildInterfaces';
+import type { WebApi } from 'azure-devops-node-api';
+import type { BuildArtifact } from 'azure-devops-node-api/interfaces/BuildInterfaces';
+import type { FileContainerItem } from 'azure-devops-node-api/interfaces/FileContainerInterfaces';
 import {
   ContainerItemStatus,
   ContainerItemType,
-  FileContainerItem,
 } from 'azure-devops-node-api/interfaces/FileContainerInterfaces';
 import { fetchRunArtifacts } from './artifacts';
 

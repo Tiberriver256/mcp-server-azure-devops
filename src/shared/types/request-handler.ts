@@ -1,8 +1,8 @@
-import {
+import type {
   CallToolRequest,
   CallToolResult,
 } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 
 /**
  * Function type for identifying if a request belongs to a specific feature.

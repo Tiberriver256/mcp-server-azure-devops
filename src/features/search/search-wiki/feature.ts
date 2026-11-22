@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import axios from 'axios';
 import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
 import {
@@ -9,7 +9,7 @@ import {
 } from '../../../shared/errors';
 import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url';
 import { apiVersion } from '../../../utils/environment';
-import {
+import type {
   SearchWikiOptions,
   WikiSearchRequest,
   WikiSearchResponse,

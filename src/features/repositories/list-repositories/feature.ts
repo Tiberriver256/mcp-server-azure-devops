@@ -1,6 +1,6 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { ListRepositoriesOptions, GitRepository } from '../types';
+import type { ListRepositoriesOptions, GitRepository } from '../types';
 
 /**
  * List repositories in a project

@@ -6,7 +6,7 @@
 import { createAzureDevOpsServer } from './server';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import dotenv from 'dotenv';
-import { AzureDevOpsConfig } from './shared/types';
+import type { AzureDevOpsConfig } from './shared/types';
 import { AuthenticationMethod } from './shared/auth/auth-factory';
 import {
   parseBooleanOption,

@@ -7,7 +7,7 @@ import {
   AzureDevOpsValidationError,
   AzureDevOpsPermissionError,
 } from '../../../shared/errors';
-import { SearchWorkItemsOptions, WorkItemSearchResponse } from '../types';
+import type { SearchWorkItemsOptions, WorkItemSearchResponse } from '../types';
 
 // Mock axios
 jest.mock('axios');

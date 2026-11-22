@@ -10,7 +10,7 @@ import {
   AzureDevOpsValidationError,
 } from '../../shared/errors';
 import { defaultProject } from '../../utils/environment';
-import {
+import type {
   SuiteExpandOption,
   TestCaseStepInput,
   TestSuiteTypeOption,

@@ -6,9 +6,9 @@ export * from './suites/feature';
 export * from './test-cases/feature';
 export * from './tool-definitions';
 
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   RequestHandler,
   RequestIdentifier,
 } from '../../shared/types/request-handler';

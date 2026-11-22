@@ -1,5 +1,5 @@
-import { WebApi } from 'azure-devops-node-api';
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { getTextContent } from '@/shared/test/text-content';
 import { isWikisRequest, handleWikisRequest } from './index';
 import { getWikis, GetWikisSchema } from './get-wikis';

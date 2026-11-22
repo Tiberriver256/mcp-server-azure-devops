@@ -1,14 +1,14 @@
-import { WebApi } from 'azure-devops-node-api';
-import { IGitApi } from 'azure-devops-node-api/GitApi';
+import type { WebApi } from 'azure-devops-node-api';
+import type { IGitApi } from 'azure-devops-node-api/GitApi';
+import type { GitItem } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import {
   GitVersionType,
   VersionControlRecursionType,
-  GitItem,
   GitObjectType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { minimatch } from 'minimatch';
 import { AzureDevOpsError } from '../../../shared/errors';
-import {
+import type {
   GetAllRepositoriesTreeOptions,
   AllRepositoriesTreeResponse,
   RepositoryTreeResponse,

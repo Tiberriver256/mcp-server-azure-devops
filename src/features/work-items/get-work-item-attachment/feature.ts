@@ -1,8 +1,8 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import * as fs from 'fs';
 import * as path from 'path';
 import { AzureDevOpsError } from '../../../shared/errors';
-import {
+import type {
   GetWorkItemAttachmentOptions,
   GetWorkItemAttachmentResult,
 } from '../types';

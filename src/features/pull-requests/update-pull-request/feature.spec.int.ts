@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { updatePullRequest } from './feature';
 import { createPullRequest } from '../create-pull-request/feature';
 import { listWorkItems } from '../../work-items/list-work-items/feature';

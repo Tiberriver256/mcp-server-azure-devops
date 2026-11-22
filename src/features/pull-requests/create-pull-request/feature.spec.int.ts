@@ -1,10 +1,10 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { createPullRequest } from './feature';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
-import { GitRefUpdate } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { GitRefUpdate } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 const shouldSkip = shouldSkipIntegrationTest();
 const describeOrSkip = shouldSkip ? describe.skip : describe;

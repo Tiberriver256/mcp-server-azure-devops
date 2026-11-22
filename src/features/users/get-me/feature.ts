@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import axios from 'axios';
 import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
 import {
@@ -10,7 +10,7 @@ import {
   isAzureDevOpsServicesUrl,
   resolveAzureDevOpsBaseUrls,
 } from '../../../shared/azure-devops-url';
-import { UserProfile } from '../types';
+import type { UserProfile } from '../types';
 
 /**
  * Get details of the currently authenticated user

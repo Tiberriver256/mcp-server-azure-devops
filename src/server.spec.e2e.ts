@@ -3,7 +3,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { spawn } from 'child_process';
 import { join } from 'path';
 import dotenv from 'dotenv';
-import { Organization } from './features/organizations/types';
+import type { Organization } from './features/organizations/types';
 import { getTextContent } from '@/shared/test/text-content';
 import fs from 'fs';
 

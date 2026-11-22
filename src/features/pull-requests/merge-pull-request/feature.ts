@@ -1,8 +1,10 @@
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   GitPullRequest,
   GitPullRequestCompletionOptions,
   GitPullRequestMergeStrategy,
+} from 'azure-devops-node-api/interfaces/GitInterfaces';
+import {
   PullRequestAsyncStatus,
   PullRequestStatus,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
@@ -17,7 +19,7 @@ import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
 } from '../../../shared/errors';
-import { MergePullRequestOptions, PullRequest } from '../types';
+import type { MergePullRequestOptions, PullRequest } from '../types';
 
 const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
 

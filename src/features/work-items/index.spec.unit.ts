@@ -1,6 +1,6 @@
 import { isWorkItemsRequest, handleWorkItemsRequest } from './';
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
 import * as workItemModule from './';
 
 jest.mock('./get-work-item', () => ({ getWorkItem: jest.fn() }));

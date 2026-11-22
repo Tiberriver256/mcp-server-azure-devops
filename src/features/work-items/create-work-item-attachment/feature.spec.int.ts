@@ -1,11 +1,11 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { createWorkItemAttachment } from './feature';
 import { createWorkItem } from '../create-work-item/feature';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,
 } from '../__test__/test-helpers';
-import {
+import type {
   CreateWorkItemOptions,
   CreateWorkItemAttachmentOptions,
 } from '../types';
