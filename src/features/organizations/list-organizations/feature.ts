@@ -63,7 +63,7 @@ export async function listOrganizations(
     }
 
     // Step 1: Get the user profile to get the publicAlias
-    const profileResponse = await axios.get(
+    const profileResponse = await axios.get<{ publicAlias?: string }>(
       'https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=6.0',
       {
         headers: {
@@ -81,8 +81,15 @@ export async function listOrganizations(
       );
     }
 
+    // Define the shape of the API response
+    interface AzureDevOpsOrganization {
+      accountId: string;
+      accountName: string;
+      accountUri: string;
+    }
+
     // Step 2: Get organizations using the publicAlias
-    const orgsResponse = await axios.get(
+    const orgsResponse = await axios.get<{ value: AzureDevOpsOrganization[] }>(
       `https://app.vssps.visualstudio.com/_apis/accounts?memberId=${publicAlias}&api-version=6.0`,
       {
         headers: {
@@ -92,15 +99,8 @@ export async function listOrganizations(
       },
     );
 
-    // Define the shape of the API response
-    interface AzureDevOpsOrganization {
-      accountId: string;
-      accountName: string;
-      accountUri: string;
-    }
-
     // Transform the response
-    return orgsResponse.data.value.map((org: AzureDevOpsOrganization) => ({
+    return orgsResponse.data.value.map((org) => ({
       id: org.accountId,
       name: org.accountName,
       url: org.accountUri,

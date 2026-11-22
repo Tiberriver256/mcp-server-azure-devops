@@ -15,7 +15,9 @@ import type { CreateCommitOptions } from '../types';
 async function streamToString(stream: NodeJS.ReadableStream): Promise<string> {
   const chunks: Buffer[] = [];
   return await new Promise<string>((resolve, reject) => {
-    stream.on('data', (c) => chunks.push(Buffer.from(c)));
+    stream.on('data', (c: Buffer | Uint8Array | string) =>
+      chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)),
+    );
     stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
     stream.on('error', (err) => reject(err));
   });

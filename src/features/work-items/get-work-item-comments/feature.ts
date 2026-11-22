@@ -69,16 +69,13 @@ export async function getWorkItemComments(
         const workItem = await witApi.getWorkItem(workItemId, [
           'System.TeamProject',
         ]);
-        if (
-          !workItem ||
-          !workItem.fields ||
-          !workItem.fields['System.TeamProject']
-        ) {
+        const teamProject: unknown = workItem?.fields?.['System.TeamProject'];
+        if (typeof teamProject !== 'string' || !teamProject) {
           throw new AzureDevOpsResourceNotFoundError(
             `Work item '${workItemId}' not found`,
           );
         }
-        resolvedProjectId = workItem.fields['System.TeamProject'];
+        resolvedProjectId = teamProject;
       } catch (error) {
         if (error instanceof AzureDevOpsError) {
           throw error;

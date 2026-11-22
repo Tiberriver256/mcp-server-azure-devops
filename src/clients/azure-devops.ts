@@ -63,6 +63,11 @@ interface PageUpdateOptions {
   };
 }
 
+function extractETag(headers?: Record<string, unknown>): string | undefined {
+  const raw = headers?.etag;
+  return typeof raw === 'string' ? raw.replace(/"/g, '') : undefined;
+}
+
 export class WikiClient {
   private baseUrl: string;
 
@@ -96,7 +101,7 @@ export class WikiClient {
       const url = `${this.baseUrl}/_apis/projects/${projectNameOrId}`;
       const authHeader = await getAuthorizationHeader();
 
-      const response = await axios.get(url, {
+      const response = await axios.get<{ id: string }>(url, {
         params: {
           'api-version': apiVersion,
         },
@@ -164,7 +169,7 @@ export class WikiClient {
       const authHeader = await getAuthorizationHeader();
 
       // Make the API request
-      const response = await axios.post(
+      const response = await axios.post<Record<string, unknown>>(
         url,
         {
           name: params.name,
@@ -260,7 +265,7 @@ export class WikiClient {
       const authHeader = await getAuthorizationHeader();
 
       // Make the API request for plain text content
-      const response = await axios.get(url, {
+      const response = await axios.get<string>(url, {
         params,
         headers: {
           Authorization: authHeader,
@@ -273,7 +278,7 @@ export class WikiClient {
       // Return both the content and the ETag
       return {
         content: response.data,
-        eTag: response.headers.etag?.replace(/"/g, ''), // Remove quotes from ETag
+        eTag: extractETag(response.headers), // Remove quotes from ETag
       };
     } catch (error) {
       const axiosError = error as AxiosError;
@@ -358,7 +363,7 @@ export class WikiClient {
       const authHeader = await getAuthorizationHeader();
 
       // Make the API request
-      const response = await axios.put(url, payload, {
+      const response = await axios.put<Record<string, unknown>>(url, payload, {
         params,
         headers: {
           Authorization: authHeader,
@@ -367,13 +372,10 @@ export class WikiClient {
         },
       });
 
-      // The ETag header contains the version
-      const eTag = response.headers.etag;
-
       // Return the page content along with metadata
       return {
         ...response.data,
-        version: eTag ? eTag.replace(/"/g, '') : undefined, // Remove quotes from ETag
+        version: extractETag(response.headers), // Remove quotes from ETag
       };
     } catch (error) {
       const axiosError = error as AxiosError;
@@ -496,18 +498,15 @@ export class WikiClient {
       };
 
       // Make the API request
-      const response = await axios.put(url, payload, {
+      const response = await axios.put<Record<string, unknown>>(url, payload, {
         params,
         headers,
       });
 
-      // The ETag header contains the version
-      const eTag = response.headers.etag;
-
       // Return the page content along with metadata
       return {
         ...response.data,
-        version: eTag ? eTag.replace(/"/g, '') : undefined, // Remove quotes from ETag
+        version: extractETag(response.headers), // Remove quotes from ETag
         message:
           response.status === 201
             ? 'Page created successfully'

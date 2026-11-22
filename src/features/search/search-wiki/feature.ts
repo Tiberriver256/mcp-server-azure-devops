@@ -99,7 +99,7 @@ export async function searchWiki(
     }
 
     // Handle axios errors
-    if (axios.isAxiosError(error)) {
+    if (axios.isAxiosError<{ message?: string }>(error)) {
       const status = error.response?.status;
       const message = error.response?.data?.message || error.message;
 

@@ -34,7 +34,8 @@ function extractContinuationToken(
   for (const [key, value] of Object.entries(headers ?? {})) {
     if (key.toLowerCase() === 'x-ms-continuationtoken') {
       if (Array.isArray(value)) {
-        return value[0];
+        const first: unknown = value[0];
+        return typeof first === 'string' ? first : undefined;
       }
       if (typeof value === 'string') {
         return value;
