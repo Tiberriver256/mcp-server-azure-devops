@@ -392,7 +392,9 @@ function createTreeStructure(items: RepositoryTreeItem[]): TreeNode {
 
   // Then build the hierarchy
   for (const item of items) {
-    if (item.path === '/') continue;
+    if (item.path === '/') {
+      continue;
+    }
 
     const node = nodeMap[item.path];
     const lastSlashIndex = item.path.lastIndexOf('/');
@@ -415,7 +417,9 @@ function createTreeStructure(items: RepositoryTreeItem[]): TreeNode {
  * Format a tree structure into an ASCII tree representation
  */
 function formatTree(node: TreeNode, indent: string): string {
-  if (!node.children.length) return '';
+  if (!node.children.length) {
+    return '';
+  }
 
   let output = '';
 

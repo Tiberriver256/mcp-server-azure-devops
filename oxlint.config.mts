@@ -60,11 +60,9 @@ export default defineConfig({
     'typescript/no-unnecessary-type-assertion': 'off',
 
     // Temporary during migration (fixed in subsequent commits in this PR)
-    curly: 'off',
     'preserve-caught-error': 'off',
     'typescript/consistent-type-imports': 'off',
     'typescript/no-misused-spread': 'off',
-    'unicorn/prefer-set-has': 'off',
   },
   overrides: [
     ...(cloudflare.overrides ?? []),

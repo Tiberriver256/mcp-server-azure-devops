@@ -68,7 +68,9 @@ export async function getPullRequestChanges(
     const changeEntries = changes.changeEntries ?? [];
 
     const getBlobText = async (objId?: string): Promise<string> => {
-      if (!objId) return '';
+      if (!objId) {
+        return '';
+      }
       const stream = await gitApi.getBlobContent(
         options.repositoryId,
         objId,

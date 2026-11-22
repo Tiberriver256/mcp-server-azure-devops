@@ -177,11 +177,13 @@ describeOrSkip('searchCode integration', () => {
         secondPageResult.results.length > 0
       ) {
         const firstPagePaths = firstPageResult.results.map((r) => r.path);
-        const secondPagePaths = secondPageResult.results.map((r) => r.path);
+        const secondPagePaths = new Set(
+          secondPageResult.results.map((r) => r.path),
+        );
 
         // Check if there's any overlap between pages
         const hasOverlap = firstPagePaths.some((path) =>
-          secondPagePaths.includes(path),
+          secondPagePaths.has(path),
         );
         expect(hasOverlap).toBe(false);
       }

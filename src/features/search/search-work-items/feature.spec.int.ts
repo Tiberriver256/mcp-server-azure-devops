@@ -106,8 +106,8 @@ describeOrSkip('searchWorkItems (Integration)', () => {
 
       // Verify the pages have different items
       if (firstPage.results.length > 0 && secondPage.results.length > 0) {
-        const firstPageIds = firstPage.results.map(
-          (r) => r.fields['system.id'],
+        const firstPageIds = new Set(
+          firstPage.results.map((r) => r.fields['system.id']),
         );
         const secondPageIds = secondPage.results.map(
           (r) => r.fields['system.id'],
@@ -115,9 +115,7 @@ describeOrSkip('searchWorkItems (Integration)', () => {
 
         // Search pagination ordering can shift slightly between calls (index updates).
         // Assert at least one new item appears on the next page.
-        const hasNewItem = secondPageIds.some(
-          (id) => !firstPageIds.includes(id),
-        );
+        const hasNewItem = secondPageIds.some((id) => !firstPageIds.has(id));
         expect(hasNewItem).toBe(true);
       }
     }

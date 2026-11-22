@@ -76,8 +76,11 @@ export async function getRepositoryTree(
         isFolder,
         level,
       });
-      if (isFolder) stats.directories++;
-      else stats.files++;
+      if (isFolder) {
+        stats.directories++;
+      } else {
+        stats.files++;
+      }
     }
 
     return {
