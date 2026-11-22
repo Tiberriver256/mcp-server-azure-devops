@@ -61,7 +61,6 @@ export default defineConfig({
 
     // Temporary during migration (fixed in subsequent commits in this PR)
     curly: 'off',
-    'import/no-self-import': 'off',
     'preserve-caught-error': 'off',
     'typescript/consistent-type-imports': 'off',
     'typescript/no-misused-spread': 'off',

@@ -35,17 +35,19 @@ import {
   CreateBranchSchema,
   CreateCommitSchema,
   ListCommitsSchema,
-  getRepository,
-  getRepositoryDetails,
-  listRepositories,
-  getFileContent,
+} from './schemas';
+import { getRepository } from './get-repository';
+import { getRepositoryDetails } from './get-repository-details';
+import { listRepositories } from './list-repositories';
+import { getFileContent } from './get-file-content';
+import {
   getAllRepositoriesTree,
-  getRepositoryTree,
-  createBranch,
-  createCommit,
-  listCommits,
   formatRepositoryTree,
-} from './';
+} from './get-all-repositories-tree';
+import { getRepositoryTree } from './get-repository-tree';
+import { createBranch } from './create-branch';
+import { createCommit } from './create-commit';
+import { listCommits } from './list-commits';
 
 /**
  * Checks if the request is for the repositories feature

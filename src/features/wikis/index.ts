@@ -16,20 +16,12 @@ import {
   RequestHandler,
 } from '../../shared/types/request-handler';
 import { defaultProject, defaultOrg } from '../../utils/environment';
-import {
-  GetWikisSchema,
-  GetWikiPageSchema,
-  CreateWikiSchema,
-  UpdateWikiPageSchema,
-  ListWikiPagesSchema,
-  CreateWikiPageSchema,
-  getWikis,
-  getWikiPage,
-  createWiki,
-  updateWikiPage,
-  listWikiPages,
-  createWikiPage,
-} from './';
+import { getWikis, GetWikisSchema } from './get-wikis';
+import { getWikiPage, GetWikiPageSchema } from './get-wiki-page';
+import { createWiki, CreateWikiSchema } from './create-wiki';
+import { updateWikiPage, UpdateWikiPageSchema } from './update-wiki-page';
+import { listWikiPages, ListWikiPagesSchema } from './list-wiki-pages';
+import { createWikiPage, CreateWikiPageSchema } from './create-wiki-page';
 
 /**
  * Checks if the request is for the wikis feature

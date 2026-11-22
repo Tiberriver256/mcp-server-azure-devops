@@ -22,10 +22,10 @@ import {
   GetProjectSchema,
   GetProjectDetailsSchema,
   ListProjectsSchema,
-  getProject,
-  getProjectDetails,
-  listProjects,
-} from './';
+} from './schemas';
+import { getProject } from './get-project';
+import { getProjectDetails } from './get-project-details';
+import { listProjects } from './list-projects';
 
 /**
  * Checks if the request is for the projects feature

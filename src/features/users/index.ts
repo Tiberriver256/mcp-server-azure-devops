@@ -17,7 +17,7 @@ import {
   RequestIdentifier,
   RequestHandler,
 } from '../../shared/types/request-handler';
-import { getMe } from './';
+import { getMe } from './get-me';
 
 /**
  * Checks if the request is for the users feature

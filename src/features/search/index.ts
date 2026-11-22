@@ -18,10 +18,10 @@ import {
   SearchCodeSchema,
   SearchWikiSchema,
   SearchWorkItemsSchema,
-  searchCode,
-  searchWiki,
-  searchWorkItems,
-} from './';
+} from './schemas';
+import { searchCode } from './search-code';
+import { searchWiki } from './search-wiki';
+import { searchWorkItems } from './search-work-items';
 
 /**
  * Checks if the request is for the search feature
