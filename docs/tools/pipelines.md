@@ -27,7 +27,7 @@ All run-scoped tools (`get_pipeline_run`, `download_pipeline_artifact`, `pipelin
 - Pipeline names are only unique per folder. If a name is ambiguous, the tool returns the candidates; prefix the name with its folder (`"Backend/Deploy"`, or `"/Deploy"` for the root folder) or use `pipelineId`.
 - `buildNumber` is matched exactly; `*` is not treated as a wildcard.
 - If no pipeline matches, similar names are suggested. If several runs share a build number, the matching run IDs are listed.
-- `list_pipeline_runs` accepts `pipelineName` instead of `pipelineId`.
+- The pipeline-scoped tools `get_pipeline`, `list_pipeline_runs` and `trigger_pipeline` accept `pipelineName` instead of `pipelineId` (exactly one of them is required).
 
 ```javascript
 // "Check pipeline CI Build, build 20240115.3"
@@ -110,8 +110,11 @@ Gets details of a specific pipeline.
 | Parameter         | Type   | Required | Description                                                       |
 | ----------------- | ------ | -------- | ----------------------------------------------------------------- |
 | `projectId`       | string | No       | The ID or name of the project (Default: from environment)         |
-| `pipelineId`      | number | Yes      | The numeric ID of the pipeline to retrieve                        |
+| `pipelineId`      | number | Yes*     | The numeric ID of the pipeline to retrieve                        |
+| `pipelineName`    | string | Yes*     | Pipeline name (optionally `Folder/Name`) instead of `pipelineId`  |
 | `pipelineVersion` | number | No       | The version of the pipeline to retrieve (latest if not specified) |
+
+\* Provide exactly one of `pipelineId` or `pipelineName`. See [Referencing pipelines and runs by name](#referencing-pipelines-and-runs-by-name).
 
 ### Response
 
@@ -146,6 +149,8 @@ Returns a pipeline object with the following structure:
 ### Error Handling
 
 - Returns `AzureDevOpsResourceNotFoundError` if the pipeline or project does not exist
+- Returns `AzureDevOpsResourceNotFoundError` if `pipelineName` cannot be found (similar names are suggested)
+- Returns `AzureDevOpsValidationError` if `pipelineName` is ambiguous (candidates are listed)
 - Returns `AzureDevOpsAuthenticationError` if authentication fails
 - Returns generic error messages for other failures
 
@@ -155,6 +160,11 @@ Returns a pipeline object with the following structure:
 // Get latest version of a pipeline
 const result = await callTool('get_pipeline', {
   pipelineId: 4,
+});
+
+// Get a pipeline by name
+const byName = await callTool('get_pipeline', {
+  pipelineName: 'Backend/Deploy',
 });
 
 // Get specific version of a pipeline
@@ -510,11 +520,14 @@ Triggers a run of a specific pipeline. Allows specifying the branch to run on an
 | Parameter            | Type   | Required | Description                                                           |
 | -------------------- | ------ | -------- | --------------------------------------------------------------------- |
 | `projectId`          | string | No       | The ID or name of the project (Default: from environment)             |
-| `pipelineId`         | number | Yes      | The numeric ID of the pipeline to trigger                             |
+| `pipelineId`         | number | Yes*     | The numeric ID of the pipeline to trigger                             |
+| `pipelineName`       | string | Yes*     | Pipeline name (optionally `Folder/Name`) instead of `pipelineId`      |
 | `branch`             | string | No       | The branch to run the pipeline on (e.g., "main", "feature/my-branch") |
 | `variables`          | object | No       | Variables to pass to the pipeline run                                 |
 | `templateParameters` | object | No       | Parameters for template-based pipelines                               |
 | `stagesToSkip`       | array  | No       | Stages to skip in the pipeline run                                    |
+
+\* Provide exactly one of `pipelineId` or `pipelineName`. See [Referencing pipelines and runs by name](#referencing-pipelines-and-runs-by-name).
 
 #### Variables Format
 
@@ -562,6 +575,8 @@ Returns a run object with details about the triggered pipeline run:
 ### Error Handling
 
 - Returns `AzureDevOpsResourceNotFoundError` if the pipeline or project does not exist
+- Returns `AzureDevOpsResourceNotFoundError` if `pipelineName` cannot be found (similar names are suggested)
+- Returns `AzureDevOpsValidationError` if `pipelineName` is ambiguous (candidates are listed)
 - Returns `AzureDevOpsAuthenticationError` if authentication fails
 - Returns generic error messages for other failures
 
@@ -585,5 +600,11 @@ const runWithOptions = await callTool('trigger_pipeline', {
       isSecret: false,
     },
   },
+});
+
+// Trigger a pipeline by name
+const runByName = await callTool('trigger_pipeline', {
+  pipelineName: 'CI Build',
+  branch: 'main',
 });
 ```

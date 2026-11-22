@@ -73,6 +73,33 @@ async function withResolvedRun<
 }
 
 /**
+ * Replaces a pipelineName in tool arguments with the numeric pipelineId that
+ * the features expect.
+ */
+async function withResolvedPipeline<
+  T extends Pick<RunReferenceInput, 'pipelineId' | 'pipelineName'> & {
+    projectId?: string;
+  },
+>(
+  connection: WebApi,
+  args: T,
+): Promise<
+  Omit<T, 'pipelineName'> & { projectId: string; pipelineId: number }
+> {
+  const { pipelineName: _pipelineName, ...rest } = args;
+  const projectId = args.projectId ?? defaultProject;
+  const pipelineId = await resolvePipelineReference(
+    connection,
+    projectId,
+    args,
+  );
+  if (typeof pipelineId !== 'number') {
+    throw new Error('Either pipelineId or pipelineName is required');
+  }
+  return { ...rest, projectId, pipelineId };
+}
+
+/**
  * Checks if the request is for the pipelines feature
  */
 export const isPipelinesRequest: RequestIdentifier = (
@@ -111,31 +138,20 @@ export const handlePipelinesRequest: RequestHandler = async (
     }
     case 'get_pipeline': {
       const args = GetPipelineSchema.parse(request.params.arguments);
-      const result = await getPipeline(connection, {
-        ...args,
-        projectId: args.projectId ?? defaultProject,
-      });
+      const result = await getPipeline(
+        connection,
+        await withResolvedPipeline(connection, args),
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
     }
     case 'list_pipeline_runs': {
-      const { pipelineName, ...args } = ListPipelineRunsSchema.parse(
-        request.params.arguments,
+      const args = ListPipelineRunsSchema.parse(request.params.arguments);
+      const result = await listPipelineRuns(
+        connection,
+        await withResolvedPipeline(connection, args),
       );
-      const projectId = args.projectId ?? defaultProject;
-      const pipelineId = await resolvePipelineReference(connection, projectId, {
-        pipelineId: args.pipelineId,
-        pipelineName,
-      });
-      if (typeof pipelineId !== 'number') {
-        throw new Error('Either pipelineId or pipelineName is required');
-      }
-      const result = await listPipelineRuns(connection, {
-        ...args,
-        projectId,
-        pipelineId,
-      });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
@@ -186,10 +202,10 @@ export const handlePipelinesRequest: RequestHandler = async (
     }
     case 'trigger_pipeline': {
       const args = TriggerPipelineSchema.parse(request.params.arguments);
-      const result = await triggerPipeline(connection, {
-        ...args,
-        projectId: args.projectId ?? defaultProject,
-      });
+      const result = await triggerPipeline(
+        connection,
+        await withResolvedPipeline(connection, args),
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };

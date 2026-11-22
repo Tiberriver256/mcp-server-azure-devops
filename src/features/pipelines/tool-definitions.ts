@@ -22,7 +22,8 @@ export const pipelinesTools: ToolDefinition[] = [
   },
   {
     name: 'get_pipeline',
-    description: 'Get details of a specific pipeline',
+    description:
+      'Get details of a specific pipeline, identified by pipelineId or pipelineName',
     inputSchema: toJsonSchema(GetPipelineSchema),
     mcp_enabled: true,
     readOnly: true,
@@ -69,7 +70,8 @@ export const pipelinesTools: ToolDefinition[] = [
   },
   {
     name: 'trigger_pipeline',
-    description: 'Trigger a pipeline run',
+    description:
+      'Trigger a pipeline run. The pipeline can be identified by pipelineId or pipelineName.',
     inputSchema: toJsonSchema(TriggerPipelineSchema),
     mcp_enabled: true,
     readOnly: false,
