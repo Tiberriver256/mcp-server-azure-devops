@@ -10,6 +10,7 @@ import {
   GetPullRequestChangesSchema,
   GetPullRequestChecksSchema,
   UpdatePullRequestThreadStatusSchema,
+  MergePullRequestSchema,
 } from './schemas';
 
 /**
@@ -79,5 +80,11 @@ export const pullRequestsTools: ToolDefinition[] = [
       'Update the status of a comment thread in a pull request (repositoryId optional; derived from pullRequestId when omitted)',
     inputSchema: toJsonSchema(UpdatePullRequestThreadStatusSchema),
     readOnly: false,
+  },
+  {
+    name: 'merge_pull_request',
+    description:
+      'Complete (merge) an active pull request immediately or enable/cancel auto-complete with merge strategy, source branch deletion, work item transitions, and policy bypass options (repositoryId optional; derived from pullRequestId when omitted; works on both Azure DevOps Services and Azure DevOps Server)',
+    inputSchema: toJsonSchema(MergePullRequestSchema),
   },
 ];
