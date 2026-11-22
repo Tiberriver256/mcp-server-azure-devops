@@ -167,7 +167,7 @@ describe('getAllRepositoriesTree', () => {
     // Create mock connection
     mockConnection = {
       getGitApi: jest.fn().mockResolvedValue(mockGitApi),
-    } as unknown as jest.Mocked<WebApi>;
+    };
   });
 
   it('should return tree structures for multiple repositories with limited depth', async () => {

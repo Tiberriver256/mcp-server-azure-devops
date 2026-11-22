@@ -43,7 +43,7 @@ export async function createWorkItemAttachment(
     // Signature: createAttachment(customHeaders, contentStream, fileName, uploadType, project, areaPath)
     const attachmentResult = await witApi.createAttachment(
       {},
-      fileStream as unknown as NodeJS.ReadableStream,
+      fileStream,
       fileName,
       undefined, // uploadType (defaults to Simple)
       undefined, // project

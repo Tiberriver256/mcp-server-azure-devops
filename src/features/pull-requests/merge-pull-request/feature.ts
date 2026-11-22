@@ -2,7 +2,6 @@ import type { WebApi } from 'azure-devops-node-api';
 import type {
   GitPullRequest,
   GitPullRequestCompletionOptions,
-  GitPullRequestMergeStrategy,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import {
   PullRequestAsyncStatus,
@@ -72,8 +71,7 @@ function buildCompletionOptions(
         `Invalid merge strategy: ${options.mergeStrategy}`,
       );
     }
-    completionOptions.mergeStrategy =
-      mappedStrategy as GitPullRequestMergeStrategy;
+    completionOptions.mergeStrategy = mappedStrategy;
   }
 
   if (options.deleteSourceBranch !== undefined) {

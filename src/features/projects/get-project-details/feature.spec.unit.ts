@@ -64,14 +64,14 @@ const mockTeams: WebApiTeam[] = [
     description: 'First team',
     url: 'https://dev.azure.com/org/_apis/projects/project-guid/teams/team-guid-1',
     identityUrl: 'https://vssps.dev.azure.com/org/_apis/Identities/team-guid-1',
-  } as WebApiTeam,
+  },
   {
     id: 'team-guid-2',
     name: 'Team 2',
     description: 'Second team',
     url: 'https://dev.azure.com/org/_apis/projects/project-guid/teams/team-guid-2',
     identityUrl: 'https://vssps.dev.azure.com/org/_apis/Identities/team-guid-2',
-  } as WebApiTeam,
+  },
 ];
 
 const mockWorkItemTypes: WorkItemType[] = [

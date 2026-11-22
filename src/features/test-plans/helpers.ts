@@ -186,7 +186,7 @@ export async function fetchPagedTestPlanCollection<T>(params: {
   routeValues: Record<string, unknown>;
   queryParams: Record<string, unknown>;
   typeInfo: unknown;
-  fallback: () => Promise<T[] | undefined>;
+  fallback: () => Promise<(T[] & { continuationToken?: string }) | undefined>;
 }): Promise<{ items: T[]; continuationToken?: string }> {
   const api = params.testPlanApi as TestPlanRestClientLike;
 
@@ -237,9 +237,7 @@ export async function fetchPagedTestPlanCollection<T>(params: {
   }
 
   const fallbackResult = await params.fallback();
-  const continuationToken = (
-    fallbackResult as (T[] & { continuationToken?: string }) | undefined
-  )?.continuationToken;
+  const continuationToken = fallbackResult?.continuationToken;
 
   return {
     items: Array.isArray(fallbackResult) ? [...fallbackResult] : [],

@@ -19,7 +19,7 @@ export const createWorkItemFixture = (
       ...(assignedTo ? { 'System.AssignedTo': assignedTo } : {}),
     },
     url: `https://dev.azure.com/test-org/test-project/_apis/wit/workItems/${id}`,
-  } as WorkItem;
+  };
 };
 
 /**

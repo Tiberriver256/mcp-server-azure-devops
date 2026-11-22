@@ -365,7 +365,7 @@ describe('Pull Requests Request Handlers', () => {
             arguments: { pullRequestId: 42 },
           },
           method: 'tools/call',
-        } as CallToolRequest);
+        });
 
         expect(isolatedFeature.mergePullRequest).toHaveBeenCalledWith(
           mockConnection,
@@ -409,9 +409,9 @@ describe('Pull Requests Request Handlers', () => {
           'lastMergeSourceCommitId',
         ]),
       );
-      expect(
-        mergeTool?.inputSchema.properties as Record<string, unknown>,
-      ).not.toHaveProperty('organizationId');
+      expect(mergeTool?.inputSchema.properties).not.toHaveProperty(
+        'organizationId',
+      );
     });
 
     it('should throw error for unknown tool', async () => {
