@@ -13,6 +13,36 @@ This document describes the tools available for working with Azure DevOps pipeli
 - [`get_pipeline_log`](#get_pipeline_log) - Retrieve raw or JSON-formatted log content
 - [`trigger_pipeline`](#trigger_pipeline) - Trigger a pipeline run
 
+## Referencing pipelines and runs by name
+
+All run-scoped tools (`get_pipeline_run`, `download_pipeline_artifact`, `pipeline_timeline`, `get_pipeline_log`) accept the identifiers shown in the Azure DevOps UI as an alternative to numeric IDs:
+
+| Instead of   | Use            | Example                            |
+| ------------ | -------------- | ---------------------------------- |
+| `pipelineId` | `pipelineName` | `"CI Build"` or `"Backend/Deploy"` |
+| `runId`      | `buildNumber`  | `"20240115.3"`                     |
+
+- Provide either `runId` or `buildNumber`, and at most one of `pipelineId` / `pipelineName`.
+- `buildNumber` is the run name (`Build.BuildNumber`). Combine it with `pipelineName` or `pipelineId`; without one the whole project is searched, which only works if the build number is unique.
+- Pipeline names are only unique per folder. If a name is ambiguous, the tool returns the candidates; prefix the name with its folder (`"Backend/Deploy"`, or `"/Deploy"` for the root folder) or use `pipelineId`.
+- `buildNumber` is matched exactly; `*` is not treated as a wildcard.
+- If no pipeline matches, similar names are suggested. If several runs share a build number, the matching run IDs are listed.
+- The pipeline-scoped tools `get_pipeline`, `list_pipeline_runs` and `trigger_pipeline` accept `pipelineName` instead of `pipelineId` (exactly one of them is required).
+
+```javascript
+// "Check pipeline CI Build, build 20240115.3"
+const run = await callTool('get_pipeline_run', {
+  pipelineName: 'CI Build',
+  buildNumber: '20240115.3',
+});
+
+const failures = await callTool('pipeline_timeline', {
+  pipelineName: 'CI Build',
+  buildNumber: '20240115.3',
+  result: 'failed',
+});
+```
+
 ## list_pipelines
 
 Lists pipelines in a project.
@@ -80,8 +110,11 @@ Gets details of a specific pipeline.
 | Parameter         | Type   | Required | Description                                                       |
 | ----------------- | ------ | -------- | ----------------------------------------------------------------- |
 | `projectId`       | string | No       | The ID or name of the project (Default: from environment)         |
-| `pipelineId`      | number | Yes      | The numeric ID of the pipeline to retrieve                        |
+| `pipelineId`      | number | Yes*     | The numeric ID of the pipeline to retrieve                        |
+| `pipelineName`    | string | Yes*     | Pipeline name (optionally `Folder/Name`) instead of `pipelineId`  |
 | `pipelineVersion` | number | No       | The version of the pipeline to retrieve (latest if not specified) |
+
+\* Provide exactly one of `pipelineId` or `pipelineName`. See [Referencing pipelines and runs by name](#referencing-pipelines-and-runs-by-name).
 
 ### Response
 
@@ -116,6 +149,8 @@ Returns a pipeline object with the following structure:
 ### Error Handling
 
 - Returns `AzureDevOpsResourceNotFoundError` if the pipeline or project does not exist
+- Returns `AzureDevOpsResourceNotFoundError` if `pipelineName` cannot be found (similar names are suggested)
+- Returns `AzureDevOpsValidationError` if `pipelineName` is ambiguous (candidates are listed)
 - Returns `AzureDevOpsAuthenticationError` if authentication fails
 - Returns generic error messages for other failures
 
@@ -125,6 +160,11 @@ Returns a pipeline object with the following structure:
 // Get latest version of a pipeline
 const result = await callTool('get_pipeline', {
   pipelineId: 4,
+});
+
+// Get a pipeline by name
+const byName = await callTool('get_pipeline', {
+  pipelineName: 'Backend/Deploy',
 });
 
 // Get specific version of a pipeline
@@ -144,15 +184,18 @@ Lists recent runs for a given pipeline with optional filtering by branch, state,
 | Parameter           | Type         | Required | Description                                                                 |
 | ------------------- | ------------ | -------- | --------------------------------------------------------------------------- |
 | `projectId`         | string       | No       | The ID or name of the project (Default: from environment)                   |
-| `pipelineId`        | number       | Yes      | Numeric ID of the pipeline whose runs should be returned                    |
+| `pipelineId`        | number       | Yes*     | Numeric ID of the pipeline whose runs should be returned                    |
+| `pipelineName`      | string       | Yes*     | Pipeline name (optionally `Folder/Name`) instead of `pipelineId`            |
 | `top`               | number       | No       | Maximum rows to return (1-100, default 50)                                  |
-| `continuationToken` | string       | No       | Continuation token for paging through long histories                         |
+| `continuationToken` | string       | No       | Continuation token for paging through long histories                        |
 | `branch`            | string       | No       | Filter runs by branch (accepts `main` or full ref like `refs/heads/main`)   |
 | `state`             | string       | No       | Filter by current run state (`notStarted`, `inProgress`, `completed`, etc.) |
 | `result`            | string       | No       | Filter by final run result (`succeeded`, `failed`, `canceled`, etc.)        |
 | `createdFrom`       | string (ISO) | No       | Restrict runs created on or after this timestamp                            |
 | `createdTo`         | string (ISO) | No       | Restrict runs created on or before this timestamp                           |
 | `orderBy`           | string       | No       | Sort order for creation date (`createdDate desc` by default)                |
+
+\* Provide exactly one of `pipelineId` or `pipelineName`.
 
 ### Response
 
@@ -208,11 +251,15 @@ Gets detailed information about a single pipeline run, including artifact listin
 
 ### Parameters
 
-| Parameter    | Type   | Required | Description                                                                 |
-| ------------ | ------ | -------- | --------------------------------------------------------------------------- |
-| `projectId`  | string | No       | The ID or name of the project (Default: from environment)                   |
-| `runId`      | number | Yes      | Numeric ID of the pipeline run                                              |
-| `pipelineId` | number | No       | Optional guard to validate the run belongs to the specified pipeline        |
+| Parameter      | Type   | Required | Description                                                         |
+| -------------- | ------ | -------- | ------------------------------------------------------------------- |
+| `projectId`    | string | No       | The ID or name of the project (Default: from environment)           |
+| `runId`        | number | Yes*     | Numeric ID of the pipeline run                                      |
+| `buildNumber`  | string | Yes*     | Build number / run name (e.g. `20240115.3`) instead of `runId`      |
+| `pipelineId`   | number | No       | Validates the run belongs to this pipeline and scopes `buildNumber` |
+| `pipelineName` | string | No       | Pipeline name (optionally `Folder/Name`) instead of `pipelineId`    |
+
+\* Provide exactly one of `runId` or `buildNumber`. See [Referencing pipelines and runs by name](#referencing-pipelines-and-runs-by-name).
 
 ### Response
 
@@ -254,6 +301,8 @@ Returns the pipeline run enriched with artifact metadata:
 
 - Returns `AzureDevOpsResourceNotFoundError` if the run or project does not exist
 - Returns `AzureDevOpsResourceNotFoundError` if `pipelineId` is provided and does not match the run
+- Returns `AzureDevOpsResourceNotFoundError` if `pipelineName` or `buildNumber` cannot be found
+- Returns `AzureDevOpsValidationError` if `pipelineName` or `buildNumber` is ambiguous (candidates are listed)
 - Returns `AzureDevOpsAuthenticationError` if authentication fails
 - Returns generic error messages for other failures
 
@@ -270,6 +319,12 @@ await callTool('get_pipeline_run', {
   pipelineId: 69847,
   runId: 13590799,
 });
+
+// Use the names shown in the UI instead of IDs
+await callTool('get_pipeline_run', {
+  pipelineName: 'CI Build',
+  buildNumber: '20240115.3',
+});
 ```
 
 ## download_pipeline_artifact
@@ -278,12 +333,16 @@ Downloads a single file from a pipeline run artifact (container or pipeline arti
 
 ### Parameters
 
-| Parameter      | Type   | Required | Description                                                                 |
-| -------------- | ------ | -------- | --------------------------------------------------------------------------- |
-| `projectId`    | string | No       | The ID or name of the project (Default: from environment)                   |
-| `runId`        | number | Yes      | Numeric ID of the pipeline run                                              |
-| `artifactPath` | string | Yes      | Artifact name and file path (e.g., `artifact-name/path/to/file.json`)       |
-| `pipelineId`   | number | No       | Optional guard to disambiguate runs triggered by different pipelines        |
+| Parameter      | Type   | Required | Description                                                           |
+| -------------- | ------ | -------- | --------------------------------------------------------------------- |
+| `projectId`    | string | No       | The ID or name of the project (Default: from environment)             |
+| `runId`        | number | Yes*     | Numeric ID of the pipeline run                                        |
+| `buildNumber`  | string | Yes*     | Build number / run name (e.g. `20240115.3`) instead of `runId`        |
+| `artifactPath` | string | Yes      | Artifact name and file path (e.g., `artifact-name/path/to/file.json`) |
+| `pipelineId`   | number | No       | Optional guard to disambiguate runs triggered by different pipelines  |
+| `pipelineName` | string | No       | Pipeline name (optionally `Folder/Name`) instead of `pipelineId`      |
+
+\* Provide exactly one of `runId` or `buildNumber`. See [Referencing pipelines and runs by name](#referencing-pipelines-and-runs-by-name).
 
 ### Response
 
@@ -320,14 +379,18 @@ Retrieves the timeline of stages, jobs, and tasks for a pipeline run with option
 
 ### Parameters
 
-| Parameter    | Type                   | Required | Description                                                                     |
-| ------------ | ---------------------- | -------- | ------------------------------------------------------------------------------- |
-| `projectId`  | string                 | No       | The ID or name of the project (Default: from environment)                       |
-| `runId`      | number                 | Yes      | Numeric ID of the pipeline run                                                  |
-| `timelineId` | string                 | No       | Fetch a specific timeline record (otherwise returns the default timeline)       |
-| `pipelineId` | number                 | No       | Optional reference to the pipeline for documentation purposes                   |
-| `state`      | string or string array | No       | Filter returned records by state (`pending`, `inProgress`, `completed`)         |
-| `result`     | string or string array | No       | Filter returned records by result (`succeeded`, `failed`, `canceled`, etc.)     |
+| Parameter      | Type                   | Required | Description                                                                 |
+| -------------- | ---------------------- | -------- | --------------------------------------------------------------------------- |
+| `projectId`    | string                 | No       | The ID or name of the project (Default: from environment)                   |
+| `runId`        | number                 | Yes*     | Numeric ID of the pipeline run                                              |
+| `buildNumber`  | string                 | Yes*     | Build number / run name (e.g. `20240115.3`) instead of `runId`              |
+| `timelineId`   | string                 | No       | Fetch a specific timeline record (otherwise returns the default timeline)   |
+| `pipelineId`   | number                 | No       | Optional pipeline ID; scopes `buildNumber` lookups                          |
+| `pipelineName` | string                 | No       | Pipeline name (optionally `Folder/Name`) instead of `pipelineId`            |
+| `state`        | string or string array | No       | Filter returned records by state (`pending`, `inProgress`, `completed`)     |
+| `result`       | string or string array | No       | Filter returned records by result (`succeeded`, `failed`, `canceled`, etc.) |
+
+\* Provide exactly one of `runId` or `buildNumber`. See [Referencing pipelines and runs by name](#referencing-pipelines-and-runs-by-name).
 
 ### Response
 
@@ -385,15 +448,19 @@ Retrieves log content for a specific timeline log. Supports plain text or JSON (
 
 ### Parameters
 
-| Parameter    | Type   | Required | Description                                                                  |
-| ------------ | ------ | -------- | ---------------------------------------------------------------------------- |
-| `projectId`  | string | No       | The ID or name of the project (Default: from environment)                    |
-| `runId`      | number | Yes      | Numeric ID of the pipeline run                                               |
-| `logId`      | number | Yes      | Log identifier from the timeline records                                    |
-| `format`     | string | No       | `plain` (default) or `json`                                                  |
-| `startLine`  | number | No       | First line to include (useful for large logs)                                |
-| `endLine`    | number | No       | Last line to include (exclusive, when paired with `startLine`)               |
-| `pipelineId` | number | No       | Optional reference to help locate the log when working across many pipelines |
+| Parameter      | Type   | Required | Description                                                      |
+| -------------- | ------ | -------- | ---------------------------------------------------------------- |
+| `projectId`    | string | No       | The ID or name of the project (Default: from environment)        |
+| `runId`        | number | Yes*     | Numeric ID of the pipeline run                                   |
+| `buildNumber`  | string | Yes*     | Build number / run name (e.g. `20240115.3`) instead of `runId`   |
+| `logId`        | number | Yes      | Log identifier from the timeline records                         |
+| `format`       | string | No       | `plain` (default) or `json`                                      |
+| `startLine`    | number | No       | First line to include (useful for large logs)                    |
+| `endLine`      | number | No       | Last line to include (exclusive, when paired with `startLine`)   |
+| `pipelineId`   | number | No       | Optional pipeline ID; scopes `buildNumber` lookups               |
+| `pipelineName` | string | No       | Pipeline name (optionally `Folder/Name`) instead of `pipelineId` |
+
+\* Provide exactly one of `runId` or `buildNumber`. See [Referencing pipelines and runs by name](#referencing-pipelines-and-runs-by-name).
 
 ### Response
 
@@ -453,11 +520,14 @@ Triggers a run of a specific pipeline. Allows specifying the branch to run on an
 | Parameter            | Type   | Required | Description                                                           |
 | -------------------- | ------ | -------- | --------------------------------------------------------------------- |
 | `projectId`          | string | No       | The ID or name of the project (Default: from environment)             |
-| `pipelineId`         | number | Yes      | The numeric ID of the pipeline to trigger                             |
+| `pipelineId`         | number | Yes*     | The numeric ID of the pipeline to trigger                             |
+| `pipelineName`       | string | Yes*     | Pipeline name (optionally `Folder/Name`) instead of `pipelineId`      |
 | `branch`             | string | No       | The branch to run the pipeline on (e.g., "main", "feature/my-branch") |
 | `variables`          | object | No       | Variables to pass to the pipeline run                                 |
 | `templateParameters` | object | No       | Parameters for template-based pipelines                               |
 | `stagesToSkip`       | array  | No       | Stages to skip in the pipeline run                                    |
+
+\* Provide exactly one of `pipelineId` or `pipelineName`. See [Referencing pipelines and runs by name](#referencing-pipelines-and-runs-by-name).
 
 #### Variables Format
 
@@ -505,6 +575,8 @@ Returns a run object with details about the triggered pipeline run:
 ### Error Handling
 
 - Returns `AzureDevOpsResourceNotFoundError` if the pipeline or project does not exist
+- Returns `AzureDevOpsResourceNotFoundError` if `pipelineName` cannot be found (similar names are suggested)
+- Returns `AzureDevOpsValidationError` if `pipelineName` is ambiguous (candidates are listed)
 - Returns `AzureDevOpsAuthenticationError` if authentication fails
 - Returns generic error messages for other failures
 
@@ -528,5 +600,11 @@ const runWithOptions = await callTool('trigger_pipeline', {
       isSecret: false,
     },
   },
+});
+
+// Trigger a pipeline by name
+const runByName = await callTool('trigger_pipeline', {
+  pipelineName: 'CI Build',
+  branch: 'main',
 });
 ```

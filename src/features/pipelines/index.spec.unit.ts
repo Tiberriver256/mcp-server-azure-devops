@@ -190,6 +190,171 @@ describe('Pipelines Request Handlers', () => {
       );
     });
 
+    it('should resolve pipelineName and buildNumber for get_pipeline_run', async () => {
+      const getDefinitions = jest
+        .fn()
+        .mockResolvedValue([{ id: 7, name: 'CI Build', path: '\\' }]);
+      const getBuilds = jest
+        .fn()
+        .mockResolvedValue([
+          { id: 4711, buildNumber: '20240115.3', definition: { id: 7 } },
+        ]);
+      const connection = {
+        getBuildApi: jest.fn().mockResolvedValue({ getDefinitions, getBuilds }),
+      } as unknown as WebApi;
+      (getPipelineRun as jest.Mock).mockResolvedValue({ id: 4711 });
+
+      const request = {
+        params: {
+          name: 'get_pipeline_run',
+          arguments: {
+            projectId: 'test-project',
+            pipelineName: 'CI Build',
+            buildNumber: '20240115.3',
+          },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      await handlePipelinesRequest(connection, request);
+
+      expect(getDefinitions).toHaveBeenCalledWith('test-project', 'CI Build');
+      const options = (getPipelineRun as jest.Mock).mock.calls.at(-1)[1];
+      expect(options).toEqual({
+        projectId: 'test-project',
+        runId: 4711,
+        pipelineId: 7,
+      });
+    });
+
+    it('should resolve pipelineName for list_pipeline_runs', async () => {
+      const getDefinitions = jest
+        .fn()
+        .mockResolvedValue([{ id: 7, name: 'CI Build', path: '\\' }]);
+      const connection = {
+        getBuildApi: jest.fn().mockResolvedValue({ getDefinitions }),
+      } as unknown as WebApi;
+      (listPipelineRuns as jest.Mock).mockResolvedValue({ runs: [] });
+
+      const request = {
+        params: {
+          name: 'list_pipeline_runs',
+          arguments: { projectId: 'test-project', pipelineName: 'CI Build' },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      await handlePipelinesRequest(connection, request);
+
+      const options = (listPipelineRuns as jest.Mock).mock.calls.at(-1)[1];
+      expect(options).toEqual(
+        expect.objectContaining({ projectId: 'test-project', pipelineId: 7 }),
+      );
+      expect(options).not.toHaveProperty('pipelineName');
+    });
+
+    it('should resolve pipelineName for get_pipeline', async () => {
+      const getDefinitions = jest
+        .fn()
+        .mockResolvedValue([{ id: 7, name: 'CI Build', path: '\\' }]);
+      const connection = {
+        getBuildApi: jest.fn().mockResolvedValue({ getDefinitions }),
+      } as unknown as WebApi;
+      (getPipeline as jest.Mock).mockResolvedValue({ id: 7 });
+
+      const request = {
+        params: {
+          name: 'get_pipeline',
+          arguments: {
+            projectId: 'test-project',
+            pipelineName: 'CI Build',
+            pipelineVersion: 2,
+          },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      await handlePipelinesRequest(connection, request);
+
+      expect(getDefinitions).toHaveBeenCalledWith('test-project', 'CI Build');
+      const options = (getPipeline as jest.Mock).mock.calls.at(-1)[1];
+      expect(options).toEqual({
+        projectId: 'test-project',
+        pipelineId: 7,
+        pipelineVersion: 2,
+      });
+    });
+
+    it('should resolve pipelineName for trigger_pipeline', async () => {
+      const getDefinitions = jest.fn().mockResolvedValue([
+        { id: 7, name: 'Deploy', path: '\\Frontend' },
+        { id: 8, name: 'Deploy', path: '\\Backend' },
+      ]);
+      const connection = {
+        getBuildApi: jest.fn().mockResolvedValue({ getDefinitions }),
+      } as unknown as WebApi;
+      (triggerPipeline as jest.Mock).mockResolvedValue({ id: 1 });
+
+      const request = {
+        params: {
+          name: 'trigger_pipeline',
+          arguments: {
+            projectId: 'test-project',
+            pipelineName: 'Backend/Deploy',
+            branch: 'main',
+          },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      await handlePipelinesRequest(connection, request);
+
+      expect(getDefinitions).toHaveBeenCalledWith('test-project', 'Deploy');
+      const options = (triggerPipeline as jest.Mock).mock.calls.at(-1)[1];
+      expect(options).toEqual({
+        projectId: 'test-project',
+        pipelineId: 8,
+        branch: 'main',
+      });
+    });
+
+    it.each(['get_pipeline', 'trigger_pipeline'])(
+      'should reject %s without pipelineId or pipelineName',
+      async (name) => {
+        const request = {
+          params: { name, arguments: { projectId: 'test-project' } },
+          method: 'tools/call',
+        } as CallToolRequest;
+
+        await expect(
+          handlePipelinesRequest(mockConnection, request),
+        ).rejects.toThrow('Either pipelineId or pipelineName is required');
+      },
+    );
+
+    it.each(['get_pipeline', 'trigger_pipeline'])(
+      'should reject %s with both pipelineId and pipelineName',
+      async (name) => {
+        const request = {
+          params: {
+            name,
+            arguments: {
+              projectId: 'test-project',
+              pipelineId: 7,
+              pipelineName: 'CI Build',
+            },
+          },
+          method: 'tools/call',
+        } as CallToolRequest;
+
+        await expect(
+          handlePipelinesRequest(mockConnection, request),
+        ).rejects.toThrow(
+          'Provide either pipelineId or pipelineName, not both',
+        );
+      },
+    );
+
     it('should handle pipeline_timeline request', async () => {
       const mockTimeline = { records: [{ name: 'Stage 1' }] };
       (getPipelineTimeline as jest.Mock).mockResolvedValue(mockTimeline);
