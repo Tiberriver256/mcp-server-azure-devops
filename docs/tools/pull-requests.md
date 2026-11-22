@@ -1108,3 +1108,98 @@ Example response (trimmed):
 ```
 
 Use the surfaced `pipelineId` and `runId` values with the pipeline tools (`get_pipeline_run`, `pipeline_timeline`, `get_pipeline_log`, etc.) to drill into the specific validation that is blocking the pull request.
+
+## merge_pull_request
+
+Completes (merges) an active pull request immediately, or enables/cancels auto-complete on both Azure DevOps Services (cloud) and Azure DevOps Server (on-prem).
+
+### Description
+
+The `merge_pull_request` tool completes an active pull request with full control over completion options (`mergeStrategy`, `deleteSourceBranch`, `transitionWorkItems`, `mergeCommitMessage`, `bypassPolicy`, and `bypassReason`) or manages auto-complete (`autoComplete: true` / `false` and `autoCompleteIgnoreConfigIds`).
+
+When `repositoryId` is omitted, the repository is automatically derived from `pullRequestId` via `getPullRequestById`, which is especially convenient on Azure DevOps Server where pull request IDs are project-scoped. The target organization/collection is fixed by `AZURE_DEVOPS_ORG_URL`. For immediate completion, `lastMergeSourceCommit` is automatically fetched from the pull request unless you pass `lastMergeSourceCommitId` explicitly as an optimistic concurrency check.
+
+### Modes
+
+- **Immediate completion (`autoComplete` omitted):** Validates that the pull request is active, not a draft, and free of merge conflicts, then sets `status: Completed` along with `lastMergeSourceCommit` and any explicitly supplied `completionOptions`.
+- **Enable auto-complete (`autoComplete: true`):** Resolves the authenticated user ID via `/_apis/connectionData` (`connection.connect()` — compatible with both Cloud and Azure DevOps Server) and sets `autoCompleteSetBy` along with any supplied `completionOptions`.
+- **Cancel auto-complete (`autoComplete: false`):** Clears auto-complete by sending `autoCompleteSetBy: { id: "00000000-0000-0000-0000-000000000000" }`.
+
+### Parameters
+
+```json
+{
+  "projectId": "MyProject", // Optional: The ID or name of the project (uses default project or derives from PR if omitted)
+  "repositoryId": "MyRepo", // Optional: Derived from pullRequestId when omitted
+  "pullRequestId": 42, // Required: Positive integer ID of the pull request
+  "mergeStrategy": "squash", // Optional: "noFastForward", "squash", "rebase", or "rebaseMerge" (respects repo policy when omitted)
+  "deleteSourceBranch": true, // Optional: Delete the source branch after completion
+  "transitionWorkItems": true, // Optional: Transition linked work items upon completion
+  "mergeCommitMessage": "feat: add new capability (#42)", // Optional: Custom merge/squash commit message
+  "bypassPolicy": false, // Optional: Bypass branch policies (requires Bypass Policies permission)
+  "bypassReason": "Emergency hotfix", // Optional: Reason when bypassPolicy is true
+  "autoComplete": true, // Optional: true = enable auto-complete, false = cancel auto-complete, omitted = merge immediately
+  "autoCompleteIgnoreConfigIds": [10, 12], // Optional: Optional policy config IDs to ignore (requires autoComplete: true)
+  "lastMergeSourceCommitId": "0123456789abcdef..." // Optional: Expected source HEAD commit SHA for optimistic concurrency
+}
+```
+
+| Parameter                     | Type       | Required | Description                                                                                                       |
+| ----------------------------- | ---------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
+| `projectId`                   | string     | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`, or derived from the PR when unset)     |
+| `repositoryId`                | string     | No       | The ID or name of the repository (derived from `pullRequestId` when omitted)                                      |
+| `pullRequestId`               | number     | Yes      | Positive integer ID of the pull request to merge or update auto-complete on                                       |
+| `mergeStrategy`               | string     | No       | Merge strategy: `"noFastForward"`, `"squash"`, `"rebase"`, or `"rebaseMerge"` (no forced default)                 |
+| `deleteSourceBranch`          | boolean    | No       | Delete the source branch after the pull request completes                                                         |
+| `transitionWorkItems`         | boolean    | No       | Transition linked work items to the next logical state upon completion                                            |
+| `mergeCommitMessage`          | string     | No       | Custom commit message for the merge or squash commit                                                              |
+| `bypassPolicy`                | boolean    | No       | Explicitly bypass branch policies when completing (requires Bypass Policies permission; invalid with `autoComplete: false`) |
+| `bypassReason`                | string     | No       | Non-empty reason recorded when `bypassPolicy` is `true` (requires `bypassPolicy: true`)                           |
+| `autoComplete`                | boolean    | No       | `true` to enable auto-complete, `false` to cancel auto-complete, or omitted to complete immediately               |
+| `autoCompleteIgnoreConfigIds` | number[]   | No       | Optional policy configuration IDs for auto-complete to ignore (requires `autoComplete: true`)                     |
+| `lastMergeSourceCommitId`     | string     | No       | Expected source head commit SHA for optimistic concurrency during immediate completion                            |
+
+### Response
+
+Returns the updated `PullRequest` (`GitPullRequest`) object from Azure DevOps, including `status`, `mergeStatus`, `lastMergeCommit`, `autoCompleteSetBy`, and `completionOptions`.
+
+### Error Handling
+
+- `AzureDevOpsValidationError`: Pull request is not active, is still a draft (during immediate completion), has merge conflicts, has no `lastMergeSourceCommit`, has a stale `lastMergeSourceCommitId`, has invalid option combinations, or is rejected by branch policies (`400`/`409`).
+- `AzureDevOpsResourceNotFoundError`: Pull request or repository does not exist (`404`).
+- `AzureDevOpsAuthenticationError`: Authentication failed (`401`) or authenticated user ID could not be resolved for auto-complete.
+- `AzureDevOpsPermissionError`: Caller lacks Contribute or Bypass Policies permission (`403`).
+- `AzureDevOpsError`: Unexpected API or transport failures.
+
+### Example Usage
+
+```typescript
+// Immediately squash-merge a pull request and delete its source branch
+const merged = await mcpClient.callTool('merge_pull_request', {
+  projectId: 'MyProject',
+  pullRequestId: 42,
+  mergeStrategy: 'squash',
+  deleteSourceBranch: true,
+  transitionWorkItems: true,
+  mergeCommitMessage: 'feat: implement feature X (#42)',
+});
+console.log(`Merged PR #${merged.pullRequestId}, status=${merged.status}`);
+
+// Enable auto-complete (works on both Azure DevOps Services and Azure DevOps Server)
+const armed = await mcpClient.callTool('merge_pull_request', {
+  projectId: 'MyProject',
+  pullRequestId: 42,
+  autoComplete: true,
+  mergeStrategy: 'rebaseMerge',
+  deleteSourceBranch: true,
+});
+console.log(`Auto-complete set by: ${armed.autoCompleteSetBy?.id}`);
+
+// Cancel auto-complete
+const canceled = await mcpClient.callTool('merge_pull_request', {
+  projectId: 'MyProject',
+  pullRequestId: 42,
+  autoComplete: false,
+});
+console.log(`Auto-complete cleared: ${!canceled.autoCompleteSetBy?.id}`);
+```

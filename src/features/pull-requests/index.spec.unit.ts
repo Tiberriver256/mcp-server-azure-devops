@@ -1,7 +1,11 @@
 import { WebApi } from 'azure-devops-node-api';
 import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { getTextContent } from '@/shared/test/text-content';
-import { isPullRequestsRequest, handlePullRequestsRequest } from './index';
+import {
+  isPullRequestsRequest,
+  handlePullRequestsRequest,
+  pullRequestsTools,
+} from './index';
 import { createPullRequest } from './create-pull-request';
 import { getPullRequest } from './get-pull-request';
 import { listPullRequests } from './list-pull-requests';
@@ -10,6 +14,7 @@ import { addPullRequestComment } from './add-pull-request-comment';
 import { AddPullRequestCommentSchema } from './schemas';
 import { getPullRequestChanges } from './get-pull-request-changes';
 import { getPullRequestChecks } from './get-pull-request-checks';
+import { mergePullRequest } from './merge-pull-request';
 
 // Mock the imported modules
 jest.mock('./create-pull-request', () => ({
@@ -40,6 +45,10 @@ jest.mock('./get-pull-request-checks', () => ({
   getPullRequestChecks: jest.fn(),
 }));
 
+jest.mock('./merge-pull-request', () => ({
+  mergePullRequest: jest.fn(),
+}));
+
 describe('Pull Requests Request Handlers', () => {
   const mockConnection = {} as WebApi;
 
@@ -51,8 +60,11 @@ describe('Pull Requests Request Handlers', () => {
         'list_pull_requests',
         'get_pull_request_comments',
         'add_pull_request_comment',
+        'update_pull_request',
         'get_pull_request_changes',
         'get_pull_request_checks',
+        'update_pull_request_thread_status',
+        'merge_pull_request',
       ];
       validTools.forEach((tool) => {
         const request = {
@@ -300,6 +312,106 @@ describe('Pull Requests Request Handlers', () => {
           pullRequestId: 7,
         }),
       );
+    });
+
+    it('should handle merge_pull_request request', async () => {
+      const mockResult = { pullRequestId: 99, status: 3 };
+      (mergePullRequest as jest.Mock).mockResolvedValue(mockResult);
+
+      const request = {
+        params: {
+          name: 'merge_pull_request',
+          arguments: {
+            pullRequestId: 99,
+            mergeStrategy: 'squash',
+            deleteSourceBranch: true,
+          },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      const response = await handlePullRequestsRequest(mockConnection, request);
+
+      expect(JSON.parse(getTextContent(response.content))).toEqual(mockResult);
+      expect(mergePullRequest).toHaveBeenCalledWith(
+        mockConnection,
+        expect.objectContaining({
+          pullRequestId: 99,
+          mergeStrategy: 'squash',
+          deleteSourceBranch: true,
+        }),
+      );
+      const calledOptions = (mergePullRequest as jest.Mock).mock.calls[0][1];
+      expect(calledOptions).not.toHaveProperty('organizationId');
+      expect(calledOptions.projectId).not.toBe('no default project');
+    });
+
+    it('should pass projectId as undefined for merge_pull_request when AZURE_DEVOPS_DEFAULT_PROJECT is unset', async () => {
+      const originalDefaultProject = process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
+      delete process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
+
+      try {
+        jest.resetModules();
+        const isolatedFeature = await import('./merge-pull-request');
+        const isolatedModule = await import('./index');
+        (isolatedFeature.mergePullRequest as jest.Mock).mockResolvedValue({
+          pullRequestId: 42,
+          status: 3,
+        });
+
+        await isolatedModule.handlePullRequestsRequest(mockConnection, {
+          params: {
+            name: 'merge_pull_request',
+            arguments: { pullRequestId: 42 },
+          },
+          method: 'tools/call',
+        } as CallToolRequest);
+
+        expect(isolatedFeature.mergePullRequest).toHaveBeenCalledWith(
+          mockConnection,
+          {
+            pullRequestId: 42,
+            projectId: undefined,
+          },
+        );
+      } finally {
+        if (originalDefaultProject !== undefined) {
+          process.env.AZURE_DEVOPS_DEFAULT_PROJECT = originalDefaultProject;
+        }
+        jest.resetModules();
+      }
+    });
+
+    it('should expose merge_pull_request with valid JSON schema in pullRequestsTools', () => {
+      const mergeTool = pullRequestsTools.find(
+        (tool) => tool.name === 'merge_pull_request',
+      );
+      expect(mergeTool).toBeDefined();
+      expect(mergeTool?.inputSchema.type).toBe('object');
+      expect(mergeTool?.inputSchema.required).toEqual(['pullRequestId']);
+      expect(
+        Object.keys(
+          mergeTool?.inputSchema.properties as Record<string, unknown>,
+        ),
+      ).toEqual(
+        expect.arrayContaining([
+          'projectId',
+          'repositoryId',
+          'pullRequestId',
+          'mergeStrategy',
+          'deleteSourceBranch',
+          'transitionWorkItems',
+          'mergeCommitMessage',
+          'bypassPolicy',
+          'bypassReason',
+          'autoComplete',
+          'autoCompleteIgnoreConfigIds',
+          'lastMergeSourceCommitId',
+        ]),
+      );
+      expect(
+        mergeTool?.inputSchema.properties as Record<string, unknown>,
+      ).not.toHaveProperty('organizationId');
     });
 
     it('should throw error for unknown tool', async () => {

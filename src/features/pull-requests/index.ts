@@ -9,6 +9,7 @@ export * from './update-pull-request';
 export * from './get-pull-request-changes';
 export * from './get-pull-request-checks';
 export * from './update-pull-request-thread-status';
+export * from './merge-pull-request';
 
 // Export tool definitions
 export * from './tool-definitions';
@@ -30,6 +31,7 @@ import {
   UpdatePullRequestSchema,
   GetPullRequestChangesSchema,
   GetPullRequestChecksSchema,
+  MergePullRequestSchema,
   getPullRequest,
   createPullRequest,
   listPullRequests,
@@ -40,6 +42,7 @@ import {
   getPullRequestChecks,
   UpdatePullRequestThreadStatusSchema,
   updatePullRequestThreadStatus,
+  mergePullRequest,
 } from './';
 
 /**
@@ -59,6 +62,7 @@ export const isPullRequestsRequest: RequestIdentifier = (
     'get_pull_request_changes',
     'get_pull_request_checks',
     'update_pull_request_thread_status',
+    'merge_pull_request',
   ].includes(toolName);
 };
 
@@ -209,6 +213,18 @@ export const handlePullRequestsRequest: RequestHandler = async (
         params.threadId,
         params,
       );
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'merge_pull_request': {
+      const params = MergePullRequestSchema.parse(request.params.arguments);
+      const configuredDefaultProject =
+        defaultProject !== 'no default project' ? defaultProject : undefined;
+      const result = await mergePullRequest(connection, {
+        ...params,
+        projectId: params.projectId ?? configuredDefaultProject,
+      });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
