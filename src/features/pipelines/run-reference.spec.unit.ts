@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { BuildQueryOrder } from 'azure-devops-node-api/interfaces/BuildInterfaces';
 import {
   AzureDevOpsResourceNotFoundError,
@@ -40,6 +40,17 @@ describe('run-reference', () => {
         folder: '\\Backend\\Sub',
       });
     });
+
+    it('targets the root folder with a leading separator', () => {
+      expect(parsePipelineName('/Deploy')).toEqual({
+        name: 'Deploy',
+        folder: '\\',
+      });
+      expect(parsePipelineName('\\Deploy')).toEqual({
+        name: 'Deploy',
+        folder: '\\',
+      });
+    });
   });
 
   describe('resolvePipelineIdByName', () => {
@@ -64,6 +75,17 @@ describe('run-reference', () => {
         resolvePipelineIdByName(connection, 'proj', 'backend/Deploy'),
       ).resolves.toBe(2);
       expect(getDefinitions).toHaveBeenCalledWith('proj', 'Deploy');
+    });
+
+    it('resolves the root pipeline when a subfolder has the same name', async () => {
+      getDefinitions.mockResolvedValue([
+        { id: 1, name: 'Deploy', path: '\\Backend' },
+        { id: 2, name: 'Deploy', path: '\\' },
+      ]);
+
+      await expect(
+        resolvePipelineIdByName(connection, 'proj', '/Deploy'),
+      ).resolves.toBe(2);
     });
 
     it('throws a validation error listing candidates when ambiguous', async () => {
@@ -124,6 +146,41 @@ describe('run-reference', () => {
       await expect(
         resolveRunIdByBuildNumber(connection, 'proj', 'missing', 7),
       ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+    });
+
+    it('ignores builds whose number only matches as a wildcard', async () => {
+      getBuilds.mockResolvedValue([
+        { id: 11, buildNumber: '2024.1-hotfix', definition: { id: 7 } },
+        { id: 10, buildNumber: '2024.1', definition: { id: 7 } },
+      ]);
+
+      await expect(
+        resolveRunIdByBuildNumber(connection, 'proj', '2024.1', 7),
+      ).resolves.toEqual({ runId: 10, pipelineId: 7 });
+    });
+
+    it('treats a wildcard input as a literal build number', async () => {
+      getBuilds.mockResolvedValue([
+        { id: 11, buildNumber: '2024.10', definition: { id: 7 } },
+        { id: 10, buildNumber: '2024.1', definition: { id: 7 } },
+      ]);
+
+      await expect(
+        resolveRunIdByBuildNumber(connection, 'proj', '2024.*', 7),
+      ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+    });
+
+    it('formats the ambiguity error even with an invalid queue time', async () => {
+      getBuilds.mockResolvedValue([
+        { id: 2, buildNumber: 'main', queueTime: 'not-a-date' },
+        { id: 1, buildNumber: 'main', queueTime: '2024-01-15T10:00:00Z' },
+      ]);
+
+      const promise = resolveRunIdByBuildNumber(connection, 'proj', 'main');
+      await expect(promise).rejects.toThrow(AzureDevOpsValidationError);
+      await expect(promise).rejects.toThrow(
+        /runId 1, queued 2024-01-15T10:00:00.000Z/,
+      );
     });
 
     it('throws a validation error listing runs when ambiguous', async () => {

@@ -38,11 +38,8 @@ import { getPipelineTimeline } from './pipeline-timeline';
 import { getPipelineLog } from './get-pipeline-log';
 import { triggerPipeline } from './trigger-pipeline';
 import { defaultProject } from '../../utils/environment';
-import {
-  resolvePipelineReference,
-  resolveRunReference,
-  RunReferenceInput,
-} from './run-reference';
+import type { RunReferenceInput } from './run-reference';
+import { resolvePipelineReference, resolveRunReference } from './run-reference';
 
 /**
  * Replaces the human-friendly identifiers (pipelineName, buildNumber) in tool

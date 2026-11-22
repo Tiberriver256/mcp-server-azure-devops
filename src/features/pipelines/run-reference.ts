@@ -1,9 +1,9 @@
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   Build,
   BuildDefinitionReference,
-  BuildQueryOrder,
 } from 'azure-devops-node-api/interfaces/BuildInterfaces';
+import { BuildQueryOrder } from 'azure-devops-node-api/interfaces/BuildInterfaces';
 import { z } from 'zod';
 import {
   AzureDevOpsResourceNotFoundError,
@@ -36,7 +36,7 @@ export const pipelineNameField = z
   .optional()
   .describe(
     'Pipeline (build definition) name, as shown in the Azure DevOps UI. Alternative to pipelineId. ' +
-      'Prefix it with its folder path to disambiguate pipelines that share a name (e.g. "Backend/Deploy").',
+      'Prefix it with its folder path to disambiguate pipelines that share a name (e.g. "Backend/Deploy"; "/Deploy" for the root folder).',
   );
 
 export const buildNumberField = z
@@ -109,19 +109,21 @@ export function refinePipelineReference(
 /**
  * Splits an optional folder prefix from a pipeline name.
  * "\\Backend\\Deploy" or "Backend/Deploy" -> { folder: "\\Backend", name: "Deploy" }
+ * A leading separator without folders ("/Deploy" or "\\Deploy") targets the root folder.
  */
 export function parsePipelineName(input: string): {
   name: string;
   folder?: string;
 } {
-  const segments = input
-    .trim()
+  const trimmed = input.trim();
+  const hasLeadingSeparator = /^[\\/]/.test(trimmed);
+  const segments = trimmed
     .split(/[\\/]+/)
     .filter((segment) => segment.length > 0);
 
-  const name = segments.pop() ?? input.trim();
+  const name = segments.pop() ?? trimmed;
   if (segments.length === 0) {
-    return { name };
+    return hasLeadingSeparator ? { name, folder: '\\' } : { name };
   }
 
   return { name, folder: `\\${segments.join('\\')}` };
@@ -166,7 +168,7 @@ export async function resolvePipelineIdByName(
     []) as BuildDefinitionReference[];
 
   const matches = definitions.filter(
-    (definition) =>
+    (definition): definition is BuildDefinitionReference & { id: number } =>
       typeof definition.id === 'number' &&
       definition.name?.toLowerCase() === name.toLowerCase() &&
       (folder === undefined ||
@@ -174,7 +176,7 @@ export async function resolvePipelineIdByName(
   );
 
   if (matches.length === 1) {
-    return matches[0].id as number;
+    return matches[0].id;
   }
 
   if (matches.length > 1) {
@@ -186,13 +188,10 @@ export async function resolvePipelineIdByName(
   }
 
   // No exact match: look for similar names to give the caller something to work with.
-  let suggestions: BuildDefinitionReference[] = [];
-  try {
-    suggestions = ((await buildApi.getDefinitions(projectId, `*${name}*`)) ??
-      []) as BuildDefinitionReference[];
-  } catch {
-    suggestions = [];
-  }
+  const suggestions =
+    (await buildApi
+      .getDefinitions(projectId, `*${name}*`)
+      .catch((): BuildDefinitionReference[] => [])) ?? [];
 
   const hint =
     suggestions.length > 0
@@ -212,7 +211,10 @@ function describeBuild(build: Build): string {
     );
   }
   if (build.queueTime) {
-    parts.push(`queued ${new Date(build.queueTime).toISOString()}`);
+    const queuedAt = new Date(build.queueTime);
+    if (!Number.isNaN(queuedAt.getTime())) {
+      parts.push(`queued ${queuedAt.toISOString()}`);
+    }
   }
   return parts.join(', ');
 }
@@ -248,7 +250,13 @@ export async function resolveRunIdByBuildNumber(
     BuildQueryOrder.QueueTimeDescending,
   )) ?? []) as Build[];
 
-  const matches = builds.filter((build) => typeof build.id === 'number');
+  // The API treats "*" in buildNumber as a wildcard, so verify exact matches.
+  const matches = builds.filter(
+    (build): build is Build & { id: number } =>
+      typeof build.id === 'number' &&
+      (build.buildNumber === undefined ||
+        build.buildNumber.toLowerCase() === buildNumber.toLowerCase()),
+  );
   const scope =
     typeof pipelineId === 'number'
       ? `pipeline ${pipelineId} in project ${projectId}`
@@ -274,7 +282,7 @@ export async function resolveRunIdByBuildNumber(
 
   const [build] = matches;
   return {
-    runId: build.id as number,
+    runId: build.id,
     pipelineId:
       typeof build.definition?.id === 'number'
         ? build.definition.id

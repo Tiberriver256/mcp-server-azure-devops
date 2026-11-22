@@ -24,7 +24,8 @@ All run-scoped tools (`get_pipeline_run`, `download_pipeline_artifact`, `pipelin
 
 - Provide either `runId` or `buildNumber`, and at most one of `pipelineId` / `pipelineName`.
 - `buildNumber` is the run name (`Build.BuildNumber`). Combine it with `pipelineName` or `pipelineId`; without one the whole project is searched, which only works if the build number is unique.
-- Pipeline names are only unique per folder. If a name is ambiguous, the tool returns the candidates; prefix the name with its folder (`"Backend/Deploy"`) or use `pipelineId`.
+- Pipeline names are only unique per folder. If a name is ambiguous, the tool returns the candidates; prefix the name with its folder (`"Backend/Deploy"`, or `"/Deploy"` for the root folder) or use `pipelineId`.
+- `buildNumber` is matched exactly; `*` is not treated as a wildcard.
 - If no pipeline matches, similar names are suggested. If several runs share a build number, the matching run IDs are listed.
 - `list_pipeline_runs` accepts `pipelineName` instead of `pipelineId`.
 
