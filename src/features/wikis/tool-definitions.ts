@@ -1,5 +1,5 @@
 import { toJsonSchema } from '../../shared/utils/to-json-schema';
-import { ToolDefinition } from '../../shared/types/tool-definition';
+import type { ToolDefinition } from '../../shared/types/tool-definition';
 import { GetWikisSchema } from './get-wikis/schema';
 import { GetWikiPageSchema } from './get-wiki-page/schema';
 import { CreateWikiSchema } from './create-wiki/schema';
@@ -15,31 +15,37 @@ export const wikisTools: ToolDefinition[] = [
     name: 'get_wikis',
     description: 'Get details of wikis in a project',
     inputSchema: toJsonSchema(GetWikisSchema),
+    readOnly: true,
   },
   {
     name: 'get_wiki_page',
     description: 'Get the content of a wiki page',
     inputSchema: toJsonSchema(GetWikiPageSchema),
+    readOnly: true,
   },
   {
     name: 'create_wiki',
     description: 'Create a new wiki in the project',
     inputSchema: toJsonSchema(CreateWikiSchema),
+    readOnly: false,
   },
   {
     name: 'update_wiki_page',
     description: 'Update content of a wiki page',
     inputSchema: toJsonSchema(UpdateWikiPageSchema),
+    readOnly: false,
   },
   {
     name: 'list_wiki_pages',
     description: 'List pages within an Azure DevOps wiki',
     inputSchema: toJsonSchema(ListWikiPagesSchema),
+    readOnly: true,
   },
   {
     name: 'create_wiki_page',
     description:
       'Create a new page in a wiki. If the page already exists at the specified path, it will be updated.',
     inputSchema: toJsonSchema(CreateWikiPageSchema),
+    readOnly: false,
   },
 ];

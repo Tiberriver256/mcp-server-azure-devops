@@ -1,11 +1,11 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
 import { apiVersion, defaultProject } from '../../../utils/environment';
-import { GetPipelineLogOptions, PipelineLogContent } from '../types';
+import type { GetPipelineLogOptions, PipelineLogContent } from '../types';
 
 const API_VERSION = apiVersion;
 

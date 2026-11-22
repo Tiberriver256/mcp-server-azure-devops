@@ -10,7 +10,9 @@ dotenv.config({ quiet: true });
  * Extract organization name from Azure DevOps organization URL
  */
 export function getOrgNameFromUrl(url?: string): string {
-  if (!url) return 'unknown-organization';
+  if (!url) {
+    return 'unknown-organization';
+  }
 
   let parsedUrl: URL;
   try {

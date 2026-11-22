@@ -1,19 +1,23 @@
-import { WebApi } from 'azure-devops-node-api';
-import {
-  GitVersionType,
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   GitRefUpdate,
   GitChange,
+} from 'azure-devops-node-api/interfaces/GitInterfaces';
+import {
+  GitVersionType,
   VersionControlChangeType,
   ItemContentType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { applyPatch, parsePatch, createTwoFilesPatch } from 'diff';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { CreateCommitOptions } from '../types';
+import type { CreateCommitOptions } from '../types';
 
 async function streamToString(stream: NodeJS.ReadableStream): Promise<string> {
   const chunks: Buffer[] = [];
   return await new Promise<string>((resolve, reject) => {
-    stream.on('data', (c) => chunks.push(Buffer.from(c)));
+    stream.on('data', (c: Buffer | Uint8Array | string) =>
+      chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)),
+    );
     stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
     stream.on('error', (err) => reject(err));
   });

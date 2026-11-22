@@ -8,9 +8,9 @@ export * from './search-work-items';
 export * from './tool-definitions';
 
 // New exports for request handling
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   RequestIdentifier,
   RequestHandler,
 } from '../../shared/types/request-handler';
@@ -18,10 +18,10 @@ import {
   SearchCodeSchema,
   SearchWikiSchema,
   SearchWorkItemsSchema,
-  searchCode,
-  searchWiki,
-  searchWorkItems,
-} from './';
+} from './schemas';
+import { searchCode } from './search-code';
+import { searchWiki } from './search-wiki';
+import { searchWorkItems } from './search-work-items';
 
 /**
  * Checks if the request is for the search feature

@@ -1,5 +1,5 @@
 import { toJsonSchema } from '../../shared/utils/to-json-schema';
-import { ToolDefinition } from '../../shared/types/tool-definition';
+import type { ToolDefinition } from '../../shared/types/tool-definition';
 import { ListPipelinesSchema } from './list-pipelines/schema';
 import { GetPipelineSchema } from './get-pipeline/schema';
 import { ListPipelineRunsSchema } from './list-pipeline-runs/schema';
@@ -18,12 +18,14 @@ export const pipelinesTools: ToolDefinition[] = [
     description: 'List pipelines in a project',
     inputSchema: toJsonSchema(ListPipelinesSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'get_pipeline',
     description: 'Get details of a specific pipeline',
     inputSchema: toJsonSchema(GetPipelineSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'list_pipeline_runs',
@@ -31,6 +33,7 @@ export const pipelinesTools: ToolDefinition[] = [
       'List recent runs for a pipeline, identified by pipelineId or pipelineName',
     inputSchema: toJsonSchema(ListPipelineRunsSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'get_pipeline_run',
@@ -38,6 +41,7 @@ export const pipelinesTools: ToolDefinition[] = [
       'Get details for a specific pipeline run. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
     inputSchema: toJsonSchema(GetPipelineRunSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'download_pipeline_artifact',
@@ -45,6 +49,7 @@ export const pipelinesTools: ToolDefinition[] = [
       'Download a file from a pipeline run artifact and return its textual content. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
     inputSchema: toJsonSchema(DownloadPipelineArtifactSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'pipeline_timeline',
@@ -52,6 +57,7 @@ export const pipelinesTools: ToolDefinition[] = [
       'Retrieve the timeline of stages and jobs for a pipeline run, to reduce the amount of data returned, you can filter by state and result. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
     inputSchema: toJsonSchema(GetPipelineTimelineSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'get_pipeline_log',
@@ -59,11 +65,13 @@ export const pipelinesTools: ToolDefinition[] = [
       'Retrieve a specific pipeline log using the timeline log identifier. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
     inputSchema: toJsonSchema(GetPipelineLogSchema),
     mcp_enabled: true,
+    readOnly: true,
   },
   {
     name: 'trigger_pipeline',
     description: 'Trigger a pipeline run',
     inputSchema: toJsonSchema(TriggerPipelineSchema),
     mcp_enabled: true,
+    readOnly: false,
   },
 ];

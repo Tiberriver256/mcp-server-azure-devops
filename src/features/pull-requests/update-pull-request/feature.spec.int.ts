@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { updatePullRequest } from './feature';
 import { createPullRequest } from '../create-pull-request/feature';
 import { listWorkItems } from '../../work-items/list-work-items/feature';
@@ -217,7 +217,9 @@ describeOrSkip('updatePullRequest integration', () => {
 
     const gitApi = await connection.getGitApi();
 
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 5000);
+    });
 
     const workItemRefs = await gitApi.getPullRequestWorkItemRefs(
       repositoryId,

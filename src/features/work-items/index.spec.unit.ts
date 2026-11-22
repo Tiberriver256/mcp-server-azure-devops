@@ -1,6 +1,6 @@
 import { isWorkItemsRequest, handleWorkItemsRequest } from './';
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
 import * as workItemModule from './';
 
 jest.mock('./get-work-item', () => ({ getWorkItem: jest.fn() }));
@@ -233,6 +233,65 @@ describe('Work Items Request Handlers', () => {
           },
         ],
       });
+    });
+
+    it('should forward descriptionFormat for create_work_item and update_work_item', async () => {
+      jest
+        .spyOn(workItemModule.CreateWorkItemSchema, 'parse')
+        .mockReturnValueOnce({
+          projectId: 'myProject',
+          workItemType: 'Task',
+          title: 'Markdown Task',
+          description: '## Title',
+          descriptionFormat: 'markdown',
+        } as any);
+
+      await handleWorkItemsRequest(
+        mockConnection,
+        createCallToolRequest('create_work_item', {
+          projectId: 'myProject',
+          workItemType: 'Task',
+          title: 'Markdown Task',
+          description: '## Title',
+          descriptionFormat: 'markdown',
+        }),
+      );
+
+      expect(workItemModule.createWorkItem).toHaveBeenCalledWith(
+        mockConnection,
+        'myProject',
+        'Task',
+        expect.objectContaining({
+          description: '## Title',
+          descriptionFormat: 'markdown',
+        }),
+      );
+
+      jest
+        .spyOn(workItemModule.UpdateWorkItemSchema, 'parse')
+        .mockReturnValueOnce({
+          workItemId: 123,
+          description: '## Updated',
+          descriptionFormat: 'markdown',
+        } as any);
+
+      await handleWorkItemsRequest(
+        mockConnection,
+        createCallToolRequest('update_work_item', {
+          workItemId: 123,
+          description: '## Updated',
+          descriptionFormat: 'markdown',
+        }),
+      );
+
+      expect(workItemModule.updateWorkItem).toHaveBeenCalledWith(
+        mockConnection,
+        123,
+        expect.objectContaining({
+          description: '## Updated',
+          descriptionFormat: 'markdown',
+        }),
+      );
     });
 
     it('should throw an error for unknown work items tools', async () => {

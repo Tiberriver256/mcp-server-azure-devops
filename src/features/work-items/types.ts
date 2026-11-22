@@ -1,4 +1,4 @@
-import {
+import type {
   WorkItem,
   WorkItemReference,
   CommentList,
@@ -18,12 +18,15 @@ export interface ListWorkItemsOptions {
   fields?: string[];
 }
 
+export type DescriptionFormat = 'html' | 'markdown';
+
 /**
  * Options for creating a work item
  */
 export interface CreateWorkItemOptions {
   title: string;
   description?: string;
+  descriptionFormat?: DescriptionFormat;
   assignedTo?: string;
   areaPath?: string;
   iterationPath?: string;
@@ -39,6 +42,7 @@ export interface CreateWorkItemOptions {
 export interface UpdateWorkItemOptions {
   title?: string;
   description?: string;
+  descriptionFormat?: DescriptionFormat;
   assignedTo?: string;
   areaPath?: string;
   iterationPath?: string;

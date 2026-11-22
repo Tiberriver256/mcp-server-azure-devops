@@ -1,11 +1,11 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsError,
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
 import { defaultProject } from '../../../utils/environment';
-import { Run, TriggerPipelineOptions } from '../types';
+import type { Run, TriggerPipelineOptions } from '../types';
 
 /**
  * Trigger a pipeline run

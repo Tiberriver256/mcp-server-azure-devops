@@ -33,6 +33,9 @@ jobs:
     if: needs.changes.outputs.code == 'true' && !github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     environment: external-pr-check
+    concurrency:
+      group: ado-integration-tests
+      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v7

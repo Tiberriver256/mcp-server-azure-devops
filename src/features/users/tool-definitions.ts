@@ -1,5 +1,5 @@
 import { toJsonSchema } from '../../shared/utils/to-json-schema';
-import { ToolDefinition } from '../../shared/types/tool-definition';
+import type { ToolDefinition } from '../../shared/types/tool-definition';
 import { GetMeSchema } from './schemas';
 
 /**
@@ -11,5 +11,6 @@ export const usersTools: ToolDefinition[] = [
     description:
       'Get details of the authenticated user (id, displayName, email)',
     inputSchema: toJsonSchema(GetMeSchema),
+    readOnly: true,
   },
 ];

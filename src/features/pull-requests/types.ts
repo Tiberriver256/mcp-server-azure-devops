@@ -1,4 +1,4 @@
-import {
+import type {
   GitPullRequest,
   Comment,
   GitPullRequestCommentThread,
@@ -151,4 +151,31 @@ export interface UpdatePullRequestThreadStatusOptions {
  */
 export interface UpdatePullRequestThreadStatusResponse {
   thread: CommentThreadWithStringEnums;
+}
+
+/**
+ * Supported merge strategy string names for completing a pull request
+ */
+export type PullRequestMergeStrategyName =
+  | 'noFastForward'
+  | 'squash'
+  | 'rebase'
+  | 'rebaseMerge';
+
+/**
+ * Options for merging or completing a pull request
+ */
+export interface MergePullRequestOptions {
+  projectId?: string;
+  repositoryId?: string;
+  pullRequestId: number;
+  mergeStrategy?: PullRequestMergeStrategyName;
+  deleteSourceBranch?: boolean;
+  transitionWorkItems?: boolean;
+  mergeCommitMessage?: string;
+  bypassPolicy?: boolean;
+  bypassReason?: string;
+  autoComplete?: boolean;
+  autoCompleteIgnoreConfigIds?: number[];
+  lastMergeSourceCommitId?: string;
 }

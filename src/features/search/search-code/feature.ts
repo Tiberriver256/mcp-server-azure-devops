@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import axios from 'axios';
 import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
 import {
@@ -10,7 +10,7 @@ import {
 } from '../../../shared/errors';
 import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url';
 import { apiVersion } from '../../../utils/environment';
-import {
+import type {
   SearchCodeOptions,
   CodeSearchRequest,
   CodeSearchResponse,
@@ -93,7 +93,7 @@ export async function searchCode(
       throw error;
     }
 
-    if (axios.isAxiosError(error)) {
+    if (axios.isAxiosError<Record<string, unknown>>(error)) {
       const status = error.response?.status;
       if (status === 404) {
         throw new AzureDevOpsResourceNotFoundError(
@@ -212,8 +212,8 @@ async function enrichResultsWithContent(
             const chunks: Buffer[] = [];
 
             // Listen for data events to collect chunks
-            contentStream.on('data', (chunk) => {
-              chunks.push(Buffer.from(chunk));
+            contentStream.on('data', (chunk: Buffer | Uint8Array | string) => {
+              chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
             });
 
             // Use a promise to wait for the stream to finish

@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { getWorkItem } from './feature';
 import {
   getTestConnection,
@@ -8,7 +8,7 @@ import {
 import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
 import { createWorkItem } from '../create-work-item/feature';
 import { manageWorkItemLink } from '../manage-work-item-link/feature';
-import { CreateWorkItemOptions } from '../types';
+import type { CreateWorkItemOptions } from '../types';
 
 const shouldSkip = shouldSkipIntegrationTest();
 const describeOrSkip = shouldSkip ? describe.skip : describe;

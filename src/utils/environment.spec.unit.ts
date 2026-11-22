@@ -77,7 +77,6 @@ describe('environment utilities', () => {
     const loadApiVersion = (): string => {
       let value = '';
       jest.isolateModules(() => {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         value = jest.requireActual('./environment').apiVersion;
       });
       return value;

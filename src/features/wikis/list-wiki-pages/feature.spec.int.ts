@@ -1,5 +1,6 @@
-import { WebApi } from 'azure-devops-node-api';
-import { listWikiPages, WikiPageSummary } from './feature';
+import type { WebApi } from 'azure-devops-node-api';
+import type { WikiPageSummary } from './feature';
+import { listWikiPages } from './feature';
 import { getWikis } from '../get-wikis/feature';
 import {
   getTestConnection,

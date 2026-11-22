@@ -1,11 +1,11 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   GitVersionType,
   VersionControlRecursionType,
   GitObjectType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { AzureDevOpsError } from '../../../shared/errors';
-import {
+import type {
   GetRepositoryTreeOptions,
   RepositoryTreeItem,
   RepositoryTreeResponse,
@@ -76,8 +76,11 @@ export async function getRepositoryTree(
         isFolder,
         level,
       });
-      if (isFolder) stats.directories++;
-      else stats.files++;
+      if (isFolder) {
+        stats.directories++;
+      } else {
+        stats.files++;
+      }
     }
 
     return {

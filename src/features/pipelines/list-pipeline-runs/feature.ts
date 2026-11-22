@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { TypeInfo } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
 import {
   AzureDevOpsAuthenticationError,
@@ -6,7 +6,11 @@ import {
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
 import { apiVersion, defaultProject } from '../../../utils/environment';
-import { ListPipelineRunsOptions, ListPipelineRunsResult, Run } from '../types';
+import type {
+  ListPipelineRunsOptions,
+  ListPipelineRunsResult,
+  Run,
+} from '../types';
 
 const API_VERSION = apiVersion;
 
@@ -23,17 +27,24 @@ function normalizeBranch(branch?: string): string | undefined {
   return `refs/heads/${trimmed}`;
 }
 
+function isRunArray(value: unknown): value is Run[] {
+  return Array.isArray(value);
+}
+
 function extractContinuationToken(
-  headers: Record<string, unknown>,
+  headers: unknown,
   result: unknown,
 ): string | undefined {
-  for (const [key, value] of Object.entries(headers ?? {})) {
-    if (key.toLowerCase() === 'x-ms-continuationtoken') {
-      if (Array.isArray(value)) {
-        return value[0];
-      }
-      if (typeof value === 'string') {
-        return value;
+  if (typeof headers === 'object' && headers !== null) {
+    for (const [key, value] of Object.entries(headers)) {
+      if (key.toLowerCase() === 'x-ms-continuationtoken') {
+        if (Array.isArray(value)) {
+          const first: unknown = value[0];
+          return typeof first === 'string' ? first : undefined;
+        }
+        if (typeof value === 'string') {
+          return value;
+        }
       }
     }
   }
@@ -110,15 +121,15 @@ export async function listPipelineRuns(
       );
     }
 
-    const runs =
-      (pipelinesApi.formatResponse(
-        response.result,
-        TypeInfo.Run,
-        true,
-      ) as Run[]) ?? [];
+    const formatted: unknown = pipelinesApi.formatResponse(
+      response.result,
+      TypeInfo.Run,
+      true,
+    );
+    const runs: Run[] = isRunArray(formatted) ? formatted : [];
 
     const continuationToken = extractContinuationToken(
-      response.headers as Record<string, unknown>,
+      response.headers,
       response.result,
     );
 

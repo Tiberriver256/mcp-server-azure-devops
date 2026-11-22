@@ -1,6 +1,6 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { createWikiPage } from './feature';
-import { CreateWikiPageSchema } from './schema';
+import type { CreateWikiPageSchema } from './schema';
 import { getWikiPage } from '../get-wiki-page/feature';
 import { getWikis } from '../get-wikis/feature';
 import {
@@ -9,7 +9,7 @@ import {
 } from '@/shared/test/test-helpers';
 import { getOrgNameFromUrl } from '@/utils/environment';
 import { AzureDevOpsError } from '@/shared/errors/azure-devops-errors';
-import { z } from 'zod';
+import type { z } from 'zod';
 
 // Ensure environment variables are set for testing
 process.env.AZURE_DEVOPS_DEFAULT_PROJECT =

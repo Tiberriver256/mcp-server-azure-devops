@@ -1,10 +1,10 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { createWorkItem } from './feature';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
-import { CreateWorkItemOptions } from '../types';
+import type { CreateWorkItemOptions } from '../types';
 
 const shouldSkip = shouldSkipIntegrationTest();
 const describeOrSkip = shouldSkip ? describe.skip : describe;
@@ -154,5 +154,38 @@ describeOrSkip('createWorkItem integration', () => {
         relation.url.includes(`/${parentId}`),
     );
     expect(parentRelation).toBeDefined();
+  });
+
+  test('should create a work item with markdown description format', async () => {
+    const uniqueTitle = `Markdown Work Item ${new Date().toISOString()}`;
+    const projectName =
+      process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
+    const markdownDescription = '## Heading\n\n- item 1\n- item 2';
+
+    const result = await createWorkItem(connection, projectName, 'Task', {
+      title: uniqueTitle,
+      description: markdownDescription,
+      descriptionFormat: 'markdown',
+    });
+
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    expect(result.fields?.['System.Description']).toBe(markdownDescription);
+
+    type WorkItemWithMultilineFormat = typeof result & {
+      multilineFieldsFormat?: Record<string, string>;
+    };
+
+    let format = (result as WorkItemWithMultilineFormat)
+      .multilineFieldsFormat?.['System.Description'];
+    if (!format && result.id) {
+      const witApi = await connection.getWorkItemTrackingApi();
+      const fetched = (await witApi.getWorkItem(
+        result.id,
+      )) as WorkItemWithMultilineFormat;
+      format = fetched.multilineFieldsFormat?.['System.Description'];
+    }
+
+    expect(format?.toLowerCase()).toBe('markdown');
   });
 });

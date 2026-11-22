@@ -1,10 +1,10 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsError,
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { GetPipelineOptions, Pipeline } from '../types';
+import type { GetPipelineOptions, Pipeline } from '../types';
 
 /**
  * Get a specific pipeline by ID

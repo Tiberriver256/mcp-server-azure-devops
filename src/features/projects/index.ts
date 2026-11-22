@@ -11,9 +11,9 @@ export * from './list-projects';
 export * from './tool-definitions';
 
 // New exports for request handling
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   RequestIdentifier,
   RequestHandler,
 } from '../../shared/types/request-handler';
@@ -22,10 +22,10 @@ import {
   GetProjectSchema,
   GetProjectDetailsSchema,
   ListProjectsSchema,
-  getProject,
-  getProjectDetails,
-  listProjects,
-} from './';
+} from './schemas';
+import { getProject } from './get-project';
+import { getProjectDetails } from './get-project-details';
+import { listProjects } from './list-projects';
 
 /**
  * Checks if the request is for the projects feature

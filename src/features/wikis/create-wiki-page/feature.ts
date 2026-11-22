@@ -1,7 +1,7 @@
-import { z } from 'zod';
+import type { z } from 'zod';
 import * as azureDevOpsClient from '../../../clients/azure-devops';
 import { handleRequestError } from '../../../shared/errors/handle-request-error';
-import { CreateWikiPageSchema } from './schema';
+import type { CreateWikiPageSchema } from './schema';
 import {
   apiVersion,
   defaultOrg,
@@ -90,9 +90,6 @@ export const createWikiPage = async (
       );
     }
   } catch (error: unknown) {
-    throw await handleRequestError(
-      error,
-      'Failed to create or update wiki page',
-    );
+    handleRequestError(error, 'Failed to create or update wiki page');
   }
 };

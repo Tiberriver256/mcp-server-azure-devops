@@ -1,5 +1,5 @@
 import { toJsonSchema } from '../../shared/utils/to-json-schema';
-import { ToolDefinition } from '../../shared/types/tool-definition';
+import type { ToolDefinition } from '../../shared/types/tool-definition';
 import {
   CreatePullRequestSchema,
   GetPullRequestSchema,
@@ -10,6 +10,7 @@ import {
   GetPullRequestChangesSchema,
   GetPullRequestChecksSchema,
   UpdatePullRequestThreadStatusSchema,
+  MergePullRequestSchema,
 } from './schemas';
 
 /**
@@ -21,40 +22,47 @@ export const pullRequestsTools: ToolDefinition[] = [
     description:
       'Create a new pull request, including reviewers, linked work items, and optional tags',
     inputSchema: toJsonSchema(CreatePullRequestSchema),
+    readOnly: false,
   },
   {
     name: 'get_pull_request',
     description:
       'Get a pull request by ID (no repositoryId required; best for Azure DevOps Server where PR IDs are project-scoped)',
     inputSchema: toJsonSchema(GetPullRequestSchema),
+    readOnly: true,
   },
   {
     name: 'list_pull_requests',
     description: 'List pull requests in a repository',
     inputSchema: toJsonSchema(ListPullRequestsSchema),
+    readOnly: true,
   },
   {
     name: 'get_pull_request_comments',
     description: 'Get comments from a specific pull request',
     inputSchema: toJsonSchema(GetPullRequestCommentsSchema),
+    readOnly: true,
   },
   {
     name: 'add_pull_request_comment',
     description:
       'Add a comment to a pull request (repositoryId optional; derived from pullRequestId when omitted)',
     inputSchema: toJsonSchema(AddPullRequestCommentSchema),
+    readOnly: false,
   },
   {
     name: 'update_pull_request',
     description:
       'Update an existing pull request with new properties, manage reviewers and work items, and add or remove tags',
     inputSchema: toJsonSchema(UpdatePullRequestSchema),
+    readOnly: false,
   },
   {
     name: 'get_pull_request_changes',
     description:
       'Get the files changed in a pull request, their unified diffs, source/target branch names, and the status of policy evaluations',
     inputSchema: toJsonSchema(GetPullRequestChangesSchema),
+    readOnly: true,
   },
   {
     name: 'get_pull_request_checks',
@@ -64,11 +72,20 @@ export const pullRequestsTools: ToolDefinition[] = [
       '- Pair with pipeline tools (e.g., get_pipeline_run, pipeline_timeline) to inspect failures in depth.',
     ].join('\n'),
     inputSchema: toJsonSchema(GetPullRequestChecksSchema),
+    readOnly: true,
   },
   {
     name: 'update_pull_request_thread_status',
     description:
       'Update the status of a comment thread in a pull request (repositoryId optional; derived from pullRequestId when omitted)',
     inputSchema: toJsonSchema(UpdatePullRequestThreadStatusSchema),
+    readOnly: false,
+  },
+  {
+    name: 'merge_pull_request',
+    description:
+      'Complete (merge) an active pull request immediately or enable/cancel auto-complete with merge strategy, source branch deletion, work item transitions, and policy bypass options (repositoryId optional; derived from pullRequestId when omitted; works on both Azure DevOps Services and Azure DevOps Server)',
+    inputSchema: toJsonSchema(MergePullRequestSchema),
+    readOnly: false,
   },
 ];

@@ -1,10 +1,10 @@
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   GitVersionDescriptor,
   GitItem,
   GitVersionType,
-  VersionControlRecursionType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { VersionControlRecursionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
 
 /**
@@ -97,8 +97,8 @@ export async function getFileContent(
           const chunks: Buffer[] = [];
 
           // Listen for data events to collect chunks
-          contentStream.on('data', (chunk) => {
-            chunks.push(Buffer.from(chunk));
+          contentStream.on('data', (chunk: Buffer | Uint8Array | string) => {
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
           });
 
           // Use a promise to wait for the stream to finish

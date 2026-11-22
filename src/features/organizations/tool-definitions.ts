@@ -1,5 +1,5 @@
 import { toJsonSchema } from '../../shared/utils/to-json-schema';
-import { ToolDefinition } from '../../shared/types/tool-definition';
+import type { ToolDefinition } from '../../shared/types/tool-definition';
 import { ListOrganizationsSchema } from './schemas';
 
 /**
@@ -11,5 +11,6 @@ export const organizationsTools: ToolDefinition[] = [
     description:
       'List all Azure DevOps organizations accessible to the current authentication',
     inputSchema: toJsonSchema(ListOrganizationsSchema),
+    readOnly: true,
   },
 ];

@@ -1,4 +1,5 @@
-import { listWikiPages, WikiPageSummary } from './feature';
+import type { WikiPageSummary } from './feature';
+import { listWikiPages } from './feature';
 import * as azureDevOpsClient from '../../../clients/azure-devops';
 import {
   AzureDevOpsError,
@@ -379,7 +380,7 @@ describe('listWikiPages unit', () => {
           path: '/page-1',
           url: 'https://dev.azure.com/org/project/_wiki/wikis/wiki1/1',
           // order field is optional and missing
-        } as WikiPageSummary,
+        },
         {
           id: 2,
           path: '/page-2',
@@ -500,9 +501,7 @@ describe('listWikiPages unit', () => {
         },
       ];
 
-      mockWikiClient.listWikiPages.mockResolvedValue(
-        mixedPages as WikiPageSummary[],
-      );
+      mockWikiClient.listWikiPages.mockResolvedValue(mixedPages);
 
       const result = await listWikiPages({
         organizationId: 'test-org',

@@ -1,14 +1,14 @@
-import { WebApi } from 'azure-devops-node-api';
-import { IGitApi } from 'azure-devops-node-api/GitApi';
+import type { WebApi } from 'azure-devops-node-api';
+import type { IGitApi } from 'azure-devops-node-api/GitApi';
+import type { GitItem } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import {
   GitVersionType,
   VersionControlRecursionType,
-  GitItem,
   GitObjectType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { minimatch } from 'minimatch';
 import { AzureDevOpsError } from '../../../shared/errors';
-import {
+import type {
   GetAllRepositoriesTreeOptions,
   AllRepositoriesTreeResponse,
   RepositoryTreeResponse,
@@ -392,7 +392,9 @@ function createTreeStructure(items: RepositoryTreeItem[]): TreeNode {
 
   // Then build the hierarchy
   for (const item of items) {
-    if (item.path === '/') continue;
+    if (item.path === '/') {
+      continue;
+    }
 
     const node = nodeMap[item.path];
     const lastSlashIndex = item.path.lastIndexOf('/');
@@ -415,7 +417,9 @@ function createTreeStructure(items: RepositoryTreeItem[]): TreeNode {
  * Format a tree structure into an ASCII tree representation
  */
 function formatTree(node: TreeNode, indent: string): string {
-  if (!node.children.length) return '';
+  if (!node.children.length) {
+    return '';
+  }
 
   let output = '';
 

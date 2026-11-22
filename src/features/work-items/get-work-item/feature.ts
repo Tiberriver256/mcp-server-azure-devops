@@ -1,14 +1,14 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
+import type { WorkItemTypeFieldWithReferences } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import {
   WorkItemExpand,
   WorkItemTypeFieldsExpandLevel,
-  WorkItemTypeFieldWithReferences,
 } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
 } from '../../../shared/errors';
-import { WorkItem } from '../types';
+import type { WorkItem } from '../types';
 
 const workItemTypeFieldsCache: Record<
   string,
@@ -57,8 +57,20 @@ export async function getWorkItem(
     }
 
     // Extract project and work item type to get all possible fields
-    const projectName = workItem.fields?.['System.TeamProject'];
-    const workItemType = workItem.fields?.['System.WorkItemType'];
+    const rawProjectName: unknown = workItem.fields?.['System.TeamProject'];
+    const rawWorkItemType: unknown = workItem.fields?.['System.WorkItemType'];
+    const projectName =
+      typeof rawProjectName === 'string'
+        ? rawProjectName
+        : typeof rawProjectName === 'number'
+          ? String(rawProjectName)
+          : '';
+    const workItemType =
+      typeof rawWorkItemType === 'string'
+        ? rawWorkItemType
+        : typeof rawWorkItemType === 'number'
+          ? String(rawWorkItemType)
+          : '';
 
     if (!projectName || !workItemType) {
       // If we can't determine the project or type, return the original work item
@@ -67,18 +79,16 @@ export async function getWorkItem(
 
     // Get all possible fields for this work item type
     const allFields =
-      workItemTypeFieldsCache[projectName.toString()]?.[
-        workItemType.toString()
-      ] ??
+      workItemTypeFieldsCache[projectName]?.[workItemType] ??
       (await witApi.getWorkItemTypeFieldsWithReferences(
-        projectName.toString(),
-        workItemType.toString(),
+        projectName,
+        workItemType,
         WorkItemTypeFieldsExpandLevel.All,
       ));
 
-    workItemTypeFieldsCache[projectName.toString()] = {
-      ...workItemTypeFieldsCache[projectName.toString()],
-      [workItemType.toString()]: allFields,
+    workItemTypeFieldsCache[projectName] = {
+      ...workItemTypeFieldsCache[projectName],
+      [workItemType]: allFields,
     };
 
     // Create a new work item object with all fields
@@ -95,7 +105,8 @@ export async function getWorkItem(
         field.referenceName &&
         !(field.referenceName in enhancedWorkItem.fields)
       ) {
-        enhancedWorkItem.fields[field.referenceName] = field.defaultValue;
+        const defaultValue: unknown = field.defaultValue;
+        enhancedWorkItem.fields[field.referenceName] = defaultValue;
       }
     }
 

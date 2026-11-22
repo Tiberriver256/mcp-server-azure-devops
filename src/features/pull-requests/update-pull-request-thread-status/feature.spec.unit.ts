@@ -1,9 +1,9 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { updatePullRequestThreadStatus } from './feature';
+import type { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import {
   CommentThreadStatus,
   CommentType,
-  GitPullRequestCommentThread,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 describe('updatePullRequestThreadStatus', () => {

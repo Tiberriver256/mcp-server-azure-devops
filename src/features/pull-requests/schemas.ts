@@ -352,3 +352,105 @@ export const UpdatePullRequestThreadStatusSchema = z.object({
     ])
     .describe('The status to set on the thread'),
 });
+
+/**
+ * Schema for merging or completing a pull request (including auto-complete management)
+ */
+export const MergePullRequestSchema = z
+  .object({
+    projectId: z
+      .string()
+      .optional()
+      .describe(
+        `The ID or name of the project (Default: ${defaultProject}; derived from pullRequestId when omitted and no default project is configured)`,
+      ),
+    repositoryId: z
+      .string()
+      .optional()
+      .describe(
+        'The ID or name of the repository (optional; derived from pullRequestId when omitted)',
+      ),
+    pullRequestId: z
+      .number()
+      .int()
+      .positive()
+      .describe('The ID of the pull request to merge or complete'),
+    mergeStrategy: z
+      .enum(['noFastForward', 'squash', 'rebase', 'rebaseMerge'])
+      .optional()
+      .describe(
+        'Merge strategy: noFastForward (standard merge commit), squash, rebase, or rebaseMerge (optional; defaults to repository policy when omitted)',
+      ),
+    deleteSourceBranch: z
+      .boolean()
+      .optional()
+      .describe('Delete the source branch after the pull request completes'),
+    transitionWorkItems: z
+      .boolean()
+      .optional()
+      .describe(
+        'Transition linked work items to the next logical state upon completion',
+      ),
+    mergeCommitMessage: z
+      .string()
+      .optional()
+      .describe('Custom commit message for the merge or squash commit'),
+    bypassPolicy: z
+      .boolean()
+      .optional()
+      .describe(
+        'Explicitly bypass branch policies when completing (requires Bypass Policies permission)',
+      ),
+    bypassReason: z
+      .string()
+      .trim()
+      .min(1)
+      .optional()
+      .describe('Reason recorded when bypassPolicy is true'),
+    autoComplete: z
+      .boolean()
+      .optional()
+      .describe(
+        'Set true to enable auto-complete (merge automatically once policies pass), false to cancel auto-complete, or omit to complete/merge immediately',
+      ),
+    autoCompleteIgnoreConfigIds: z
+      .array(z.number().int().positive())
+      .optional()
+      .describe(
+        'Optional policy configuration IDs that auto-complete should not wait for (requires autoComplete: true; only applies to optional policies)',
+      ),
+    lastMergeSourceCommitId: z
+      .string()
+      .trim()
+      .min(1)
+      .optional()
+      .describe(
+        'Optional expected source head commit SHA for optimistic concurrency; if omitted during immediate completion, fetched automatically from the pull request',
+      ),
+  })
+  .superRefine((data, ctx) => {
+    if (data.bypassReason !== undefined && data.bypassPolicy !== true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'bypassReason requires bypassPolicy to be true',
+        path: ['bypassReason'],
+      });
+    }
+    if (data.autoComplete === false && data.bypassPolicy === true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'bypassPolicy cannot be used when canceling auto-complete',
+        path: ['bypassPolicy'],
+      });
+    }
+    if (
+      data.autoCompleteIgnoreConfigIds !== undefined &&
+      data.autoComplete !== true
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'autoCompleteIgnoreConfigIds requires autoComplete to be true',
+        path: ['autoCompleteIgnoreConfigIds'],
+      });
+    }
+  });

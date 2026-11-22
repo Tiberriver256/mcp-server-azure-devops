@@ -1,5 +1,5 @@
-import { WebApi } from 'azure-devops-node-api';
-import { PullRequest } from '../types';
+import type { WebApi } from 'azure-devops-node-api';
+import type { PullRequest } from '../types';
 import { getPullRequest } from './feature';
 import { createPullRequest } from '../create-pull-request/feature';
 import {

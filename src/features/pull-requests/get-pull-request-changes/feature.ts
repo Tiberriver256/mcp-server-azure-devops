@@ -1,9 +1,9 @@
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   GitPullRequestIterationChanges,
   GitChange,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { PolicyEvaluationRecord } from 'azure-devops-node-api/interfaces/PolicyInterfaces';
+import type { PolicyEvaluationRecord } from 'azure-devops-node-api/interfaces/PolicyInterfaces';
 import { AzureDevOpsError } from '../../../shared/errors';
 import { createTwoFilesPatch } from 'diff';
 
@@ -46,10 +46,15 @@ export async function getPullRequestChanges(
       throw new AzureDevOpsError('No iterations found for pull request');
     }
     const latest = iterations[iterations.length - 1];
+    if (latest.id === undefined) {
+      throw new AzureDevOpsError(
+        'Latest pull request iteration is missing an ID',
+      );
+    }
     const changes = await gitApi.getPullRequestIterationChanges(
       options.repositoryId,
       options.pullRequestId,
-      latest.id!,
+      latest.id,
       options.projectId,
     );
 
@@ -63,7 +68,9 @@ export async function getPullRequestChanges(
     const changeEntries = changes.changeEntries ?? [];
 
     const getBlobText = async (objId?: string): Promise<string> => {
-      if (!objId) return '';
+      if (!objId) {
+        return '';
+      }
       const stream = await gitApi.getBlobContent(
         options.repositoryId,
         objId,

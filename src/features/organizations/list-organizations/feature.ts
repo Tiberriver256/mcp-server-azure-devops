@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AzureDevOpsConfig } from '../../../shared/types';
+import type { AzureDevOpsConfig } from '../../../shared/types';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
@@ -7,7 +7,8 @@ import {
 } from '../../../shared/errors';
 import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
 import { AuthenticationMethod } from '../../../shared/auth';
-import { Organization, AZURE_DEVOPS_RESOURCE_ID } from '../types';
+import type { Organization } from '../types';
+import { AZURE_DEVOPS_RESOURCE_ID } from '../types';
 import { isAzureDevOpsServicesUrl } from '../../../shared/azure-devops-url';
 
 /**
@@ -62,7 +63,7 @@ export async function listOrganizations(
     }
 
     // Step 1: Get the user profile to get the publicAlias
-    const profileResponse = await axios.get(
+    const profileResponse = await axios.get<{ publicAlias?: string }>(
       'https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=6.0',
       {
         headers: {
@@ -80,8 +81,15 @@ export async function listOrganizations(
       );
     }
 
+    // Define the shape of the API response
+    interface AzureDevOpsOrganization {
+      accountId: string;
+      accountName: string;
+      accountUri: string;
+    }
+
     // Step 2: Get organizations using the publicAlias
-    const orgsResponse = await axios.get(
+    const orgsResponse = await axios.get<{ value: AzureDevOpsOrganization[] }>(
       `https://app.vssps.visualstudio.com/_apis/accounts?memberId=${publicAlias}&api-version=6.0`,
       {
         headers: {
@@ -91,15 +99,8 @@ export async function listOrganizations(
       },
     );
 
-    // Define the shape of the API response
-    interface AzureDevOpsOrganization {
-      accountId: string;
-      accountName: string;
-      accountUri: string;
-    }
-
     // Transform the response
-    return orgsResponse.data.value.map((org: AzureDevOpsOrganization) => ({
+    return orgsResponse.data.value.map((org) => ({
       id: org.accountId,
       name: org.accountName,
       url: org.accountUri,
@@ -107,8 +108,12 @@ export async function listOrganizations(
   } catch (error) {
     // Handle profile API errors as authentication errors
     if (axios.isAxiosError(error) && error.config?.url?.includes('profile')) {
+      const status = error.response?.status;
+      const details = status
+        ? `${error.message} (status ${status})`
+        : error.message;
       throw new AzureDevOpsAuthenticationError(
-        `Authentication failed: ${error.toJSON()}`,
+        `Authentication failed: ${details}`,
       );
     } else if (
       error instanceof Error &&

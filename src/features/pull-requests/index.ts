@@ -9,14 +9,15 @@ export * from './update-pull-request';
 export * from './get-pull-request-changes';
 export * from './get-pull-request-checks';
 export * from './update-pull-request-thread-status';
+export * from './merge-pull-request';
 
 // Export tool definitions
 export * from './tool-definitions';
 
 // New exports for request handling
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import { WebApi } from 'azure-devops-node-api';
-import {
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
+import type {
   RequestIdentifier,
   RequestHandler,
 } from '../../shared/types/request-handler';
@@ -30,17 +31,19 @@ import {
   UpdatePullRequestSchema,
   GetPullRequestChangesSchema,
   GetPullRequestChecksSchema,
-  getPullRequest,
-  createPullRequest,
-  listPullRequests,
-  getPullRequestComments,
-  addPullRequestComment,
-  updatePullRequest,
-  getPullRequestChanges,
-  getPullRequestChecks,
   UpdatePullRequestThreadStatusSchema,
-  updatePullRequestThreadStatus,
-} from './';
+  MergePullRequestSchema,
+} from './schemas';
+import { createPullRequest } from './create-pull-request';
+import { getPullRequest } from './get-pull-request';
+import { listPullRequests } from './list-pull-requests';
+import { getPullRequestComments } from './get-pull-request-comments';
+import { addPullRequestComment } from './add-pull-request-comment';
+import { updatePullRequest } from './update-pull-request';
+import { getPullRequestChanges } from './get-pull-request-changes';
+import { getPullRequestChecks } from './get-pull-request-checks';
+import { updatePullRequestThreadStatus } from './update-pull-request-thread-status';
+import { mergePullRequest } from './merge-pull-request';
 
 /**
  * Checks if the request is for the pull requests feature
@@ -59,6 +62,7 @@ export const isPullRequestsRequest: RequestIdentifier = (
     'get_pull_request_changes',
     'get_pull_request_checks',
     'update_pull_request_thread_status',
+    'merge_pull_request',
   ].includes(toolName);
 };
 
@@ -209,6 +213,18 @@ export const handlePullRequestsRequest: RequestHandler = async (
         params.threadId,
         params,
       );
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+    case 'merge_pull_request': {
+      const params = MergePullRequestSchema.parse(request.params.arguments);
+      const configuredDefaultProject =
+        defaultProject !== 'no default project' ? defaultProject : undefined;
+      const result = await mergePullRequest(connection, {
+        ...params,
+        projectId: params.projectId ?? configuredDefaultProject,
+      });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };

@@ -1,11 +1,11 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { updateWorkItem } from './feature';
 import { createWorkItem } from '../create-work-item/feature';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
-import { CreateWorkItemOptions, UpdateWorkItemOptions } from '../types';
+import type { CreateWorkItemOptions, UpdateWorkItemOptions } from '../types';
 
 const shouldSkip = shouldSkipIntegrationTest();
 const describeOrSkip = shouldSkip ? describe.skip : describe;

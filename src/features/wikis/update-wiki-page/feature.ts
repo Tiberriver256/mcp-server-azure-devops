@@ -1,6 +1,6 @@
 import * as azureDevOpsClient from '../../../clients/azure-devops';
 import { UpdateWikiPageSchema } from './schema';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { defaultOrg, defaultProject } from '../../../utils/environment';
 
 /**

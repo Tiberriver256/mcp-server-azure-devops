@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { TypeInfo } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
 import {
   AzureDevOpsAuthenticationError,
@@ -8,9 +8,13 @@ import {
 import { apiVersion, defaultProject } from '../../../utils/environment';
 import { fetchRunArtifacts } from '../artifacts';
 import { coercePipelineId, resolvePipelineId } from '../helpers';
-import { GetPipelineRunOptions, PipelineRunDetails } from '../types';
+import type { GetPipelineRunOptions, PipelineRunDetails } from '../types';
 
 const API_VERSION = apiVersion;
+
+function isPipelineRunDetails(value: unknown): value is PipelineRunDetails {
+  return typeof value === 'object' && value !== null;
+}
 
 export async function getPipelineRun(
   connection: WebApi,
@@ -74,17 +78,18 @@ export async function getPipelineRun(
       );
     }
 
-    const run = pipelinesApi.formatResponse(
+    const formatted: unknown = pipelinesApi.formatResponse(
       response.result,
       TypeInfo.Run,
       false,
-    ) as PipelineRunDetails;
+    );
 
-    if (!run) {
+    if (!isPipelineRunDetails(formatted)) {
       throw new AzureDevOpsResourceNotFoundError(
         `Pipeline run ${runId} not found in project ${projectId}`,
       );
     }
+    const run = formatted;
 
     const artifacts = await fetchRunArtifacts(
       connection,

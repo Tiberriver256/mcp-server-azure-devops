@@ -1,12 +1,10 @@
-import { GitPullRequest } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { WebApi } from 'azure-devops-node-api';
-import {
-  WorkItemRelation,
-  WorkItemExpand,
-} from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+import type { GitPullRequest } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { WebApi } from 'azure-devops-node-api';
+import type { WorkItemRelation } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import { AzureDevOpsClient } from '../../../shared/auth/client-factory';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { UpdatePullRequestOptions } from '../types';
+import type { UpdatePullRequestOptions } from '../types';
 import { AuthenticationMethod } from '../../../shared/auth/auth-factory';
 import { pullRequestStatusMapper } from '../../../shared/enums';
 
@@ -63,10 +61,17 @@ export const updatePullRequest = async (
   } = options;
 
   try {
+    const rawAuthMethod = process.env.AZURE_DEVOPS_AUTH_METHOD;
+    const authMethod =
+      rawAuthMethod === AuthenticationMethod.AzureIdentity
+        ? AuthenticationMethod.AzureIdentity
+        : rawAuthMethod === AuthenticationMethod.AzureCli
+          ? AuthenticationMethod.AzureCli
+          : AuthenticationMethod.PersonalAccessToken;
+
     // Get connection to Azure DevOps
     const client = new AzureDevOpsClient({
-      method:
-        (process.env.AZURE_DEVOPS_AUTH_METHOD as AuthenticationMethod) ?? 'pat',
+      method: authMethod,
       organizationUrl: process.env.AZURE_DEVOPS_ORG_URL ?? '',
       personalAccessToken: process.env.AZURE_DEVOPS_PAT,
     });
@@ -220,7 +225,7 @@ export const updatePullRequest = async (
             error &&
             typeof error === 'object' &&
             'statusCode' in error &&
-            (error as { statusCode?: number }).statusCode === 404
+            error.statusCode === 404
           ) {
             continue;
           }

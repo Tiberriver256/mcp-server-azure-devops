@@ -1,5 +1,5 @@
-import { WebApi } from 'azure-devops-node-api';
-import { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { WebApi } from 'azure-devops-node-api';
+import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { isOrganizationsRequest, handleOrganizationsRequest } from './';
 import { AuthenticationMethod } from '../../shared/auth';
 import * as listOrganizationsFeature from './list-organizations';

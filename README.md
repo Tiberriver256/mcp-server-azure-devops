@@ -168,7 +168,28 @@ Key environment variables include:
 | `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                                        | Only with service principals | -                |
 | `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                                   | Only with service principals | -                |
 | `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                                    | Only with service principals | -                |
+| `AZURE_DEVOPS_TOOLSETS`        | Comma-separated toolsets to enable (`all`, `users`, `organizations`, `projects`, `repositories`, `work-items`, `search`, `pull-requests`, `pipelines`, `wikis`, `test-plans`) | No                           | `all`            |
+| `AZURE_DEVOPS_ENABLED_TOOLS`   | Comma-separated allowlist of specific tool names to expose                         | No                           | all              |
+| `AZURE_DEVOPS_DISABLED_TOOLS`  | Comma-separated denylist of specific tool names to hide/block                      | No                           | -                |
+| `AZURE_DEVOPS_READ_ONLY`       | Set to `true` to expose only read-only tools and block all write operations        | No                           | `false`          |
 | `LOG_LEVEL`                    | Logging level (debug, info, warn, error)                                           | No                           | info             |
+
+### Tool Filtering & Read-Only Mode
+
+To reduce tool count (e.g., for clients with tool limits) or prevent mutations, you can filter registered tools using environment variables or CLI flags (CLI flags take precedence over environment variables):
+
+```bash
+# Only expose work-items and pull-requests toolsets, in read-only mode
+npx -y @tiberriver256/mcp-server-azure-devops --toolsets work-items,pull-requests --read-only
+
+# Or pick specific tools / exclude specific tools
+npx -y @tiberriver256/mcp-server-azure-devops --enabled-tools get_work_item,list_work_items
+npx -y @tiberriver256/mcp-server-azure-devops --disabled-tools create_commit,delete_work_item_attachment
+```
+
+- **Evaluation order:** `toolsets` → `enabled-tools` (intersection) → `disabled-tools` → `read-only` (fail-closed: write tools cannot be re-enabled when `--read-only` / `AZURE_DEVOPS_READ_ONLY=true` is set).
+- **Read-only scope:** `--read-only` / `AZURE_DEVOPS_READ_ONLY=true` prevents all Azure DevOps state mutations (note: `get_work_item_attachment` is considered read-only with respect to Azure DevOps, though it saves downloaded attachments to a local path; use `--disabled-tools get_work_item_attachment` if you also want to disallow local file downloads).
+- Disabled tools are both omitted from `tools/list` and rejected if invoked via `tools/call`.
 
 ## Troubleshooting Authentication
 
@@ -256,6 +277,20 @@ The Azure DevOps MCP server provides a variety of tools for interacting with Azu
 - [`update_pull_request`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#update_pull_request) - Update an existing pull request (title, description, status, draft state, reviewers, work items)
 - [`get_pull_request_changes`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#get_pull_request_changes) - List changes in a pull request and policy evaluation status
 - [`get_pull_request_checks`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#get_pull_request_checks) - Summarize status checks, policy evaluations, and their related pipelines
+- [`merge_pull_request`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#merge_pull_request) - Complete (merge) an active pull request or manage auto-complete (merge strategy, delete source branch, work item transitions, policy bypass)
+
+### Test Plans Tools
+
+- `list_test_plans`: List test plans in a project
+- `get_test_plan`: Get details of a specific test plan by ID
+- `create_test_plan`: Create a new test plan in a project
+- `list_test_suites`: List test suites in a test plan (flat or tree)
+- `get_test_suite`: Get details of a specific test suite
+- `create_test_suite`: Create a static, requirement-based, or query-based test suite
+- `list_suite_test_cases`: List test cases linked to a test suite
+- `add_test_cases_to_suite`: Attach existing Test Case work items to a suite
+- `remove_test_cases_from_suite`: Remove test cases from a static suite
+- `create_test_case`: Create a Test Case work item with structured steps XML, optional requirement link, and optional suite attachment
 
 For comprehensive documentation on all tools, see the [Tools Documentation](https://github.com/tiberriver256/mcp-server-azure-devops/tree/main/docs/tools).
 

@@ -1,4 +1,4 @@
-import { AuthenticationMethod } from '../auth/auth-factory';
+import type { AuthenticationMethod } from '../auth/auth-factory';
 
 /**
  * Azure DevOps configuration type definition
@@ -29,4 +29,24 @@ export interface AzureDevOpsConfig {
    * Optional API version to use (defaults to latest)
    */
   apiVersion?: string;
+
+  /**
+   * Optional list of toolsets to enable (e.g., ['work-items', 'pull-requests'] or ['all'])
+   */
+  toolsets?: string[];
+
+  /**
+   * Optional explicit allowlist of tool names to enable
+   */
+  enabledTools?: string[];
+
+  /**
+   * Optional explicit denylist of tool names to disable
+   */
+  disabledTools?: string[];
+
+  /**
+   * When true, only tools explicitly marked read-only are exposed and callable
+   */
+  readOnly?: boolean;
 }

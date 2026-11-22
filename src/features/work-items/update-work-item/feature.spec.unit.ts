@@ -345,4 +345,101 @@ describe('updateWorkItem unit', () => {
       expect.any(Number),
     );
   });
+
+  test('should include multilineFieldsFormat patch entry when descriptionFormat is markdown', async () => {
+    const mockUpdateWorkItem = jest.fn().mockResolvedValue({ id: 123 });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        updateWorkItem: mockUpdateWorkItem,
+      }),
+    };
+
+    await updateWorkItem(mockConnection, 123, {
+      description: '## Updated\n- item',
+      descriptionFormat: 'markdown',
+    });
+
+    expect(mockUpdateWorkItem).toHaveBeenCalledWith(
+      {},
+      [
+        {
+          op: 'add',
+          path: '/fields/System.Description',
+          value: '## Updated\n- item',
+        },
+        {
+          op: 'add',
+          path: '/multilineFieldsFormat/System.Description',
+          value: 'Markdown',
+        },
+      ],
+      123,
+      undefined,
+      false,
+      false,
+      false,
+      expect.any(Number),
+    );
+  });
+
+  test('should allow setting descriptionFormat to markdown without changing description text', async () => {
+    const mockUpdateWorkItem = jest.fn().mockResolvedValue({ id: 123 });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        updateWorkItem: mockUpdateWorkItem,
+      }),
+    };
+
+    await updateWorkItem(mockConnection, 123, {
+      descriptionFormat: 'markdown',
+    });
+
+    expect(mockUpdateWorkItem).toHaveBeenCalledWith(
+      {},
+      [
+        {
+          op: 'add',
+          path: '/multilineFieldsFormat/System.Description',
+          value: 'Markdown',
+        },
+      ],
+      123,
+      undefined,
+      false,
+      false,
+      false,
+      expect.any(Number),
+    );
+  });
+
+  test('should not include multilineFieldsFormat patch entry when descriptionFormat is omitted or html', async () => {
+    const mockUpdateWorkItem = jest.fn().mockResolvedValue({ id: 123 });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        updateWorkItem: mockUpdateWorkItem,
+      }),
+    };
+
+    await updateWorkItem(mockConnection, 123, {
+      description: '<p>Updated</p>',
+      descriptionFormat: 'html',
+    });
+
+    expect(mockUpdateWorkItem).toHaveBeenCalledWith(
+      {},
+      [
+        {
+          op: 'add',
+          path: '/fields/System.Description',
+          value: '<p>Updated</p>',
+        },
+      ],
+      123,
+      undefined,
+      false,
+      false,
+      false,
+      expect.any(Number),
+    );
+  });
 });

@@ -1,11 +1,11 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { manageWorkItemLink } from './feature';
 import { createWorkItem } from '../create-work-item/feature';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,
 } from '../../../shared/test/test-helpers';
-import { CreateWorkItemOptions } from '../types';
+import type { CreateWorkItemOptions } from '../types';
 
 // Note: These tests will be skipped in CI due to missing credentials
 // They are meant to be run manually in a dev environment with proper Azure DevOps setup

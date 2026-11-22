@@ -1,6 +1,6 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { CreateWorkItemOptions, WorkItem } from '../types';
+import type { CreateWorkItemOptions, WorkItem } from '../types';
 
 /**
  * Create a work item
@@ -40,6 +40,14 @@ export async function createWorkItem(
         op: 'add',
         path: '/fields/System.Description',
         value: options.description,
+      });
+    }
+
+    if (options.descriptionFormat === 'markdown') {
+      document.push({
+        op: 'add',
+        path: '/multilineFieldsFormat/System.Description',
+        value: 'Markdown',
       });
     }
 

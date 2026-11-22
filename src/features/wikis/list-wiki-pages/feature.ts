@@ -1,7 +1,7 @@
 import * as azureDevOpsClient from '../../../clients/azure-devops';
 import { AzureDevOpsError } from '../../../shared/errors/azure-devops-errors';
 import { defaultOrg, defaultProject } from '../../../utils/environment';
-import { ListWikiPagesOptions } from './schema';
+import type { ListWikiPagesOptions } from './schema';
 
 /**
  * Summary information for a wiki page

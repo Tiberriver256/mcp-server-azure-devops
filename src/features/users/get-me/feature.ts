@@ -1,4 +1,4 @@
-import { WebApi } from 'azure-devops-node-api';
+import type { WebApi } from 'azure-devops-node-api';
 import axios from 'axios';
 import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
 import {
@@ -10,7 +10,7 @@ import {
   isAzureDevOpsServicesUrl,
   resolveAzureDevOpsBaseUrls,
 } from '../../../shared/azure-devops-url';
-import { UserProfile } from '../types';
+import type { UserProfile } from '../types';
 
 /**
  * Get details of the currently authenticated user
@@ -43,7 +43,11 @@ export async function getMe(connection: WebApi): Promise<UserProfile> {
 
     // Make direct call to the Profile API endpoint
     // Note: This API is in the vssps.dev.azure.com domain, not dev.azure.com
-    const response = await axios.get(
+    const response = await axios.get<{
+      id: string;
+      displayName?: string;
+      emailAddress?: string;
+    }>(
       `https://vssps.dev.azure.com/${organization}/_apis/profile/profiles/me?api-version=7.1`,
       {
         headers: {

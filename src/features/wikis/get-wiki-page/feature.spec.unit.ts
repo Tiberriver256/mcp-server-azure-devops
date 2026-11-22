@@ -1,4 +1,5 @@
-import { getWikiPage, GetWikiPageOptions } from './feature';
+import type { GetWikiPageOptions } from './feature';
+import { getWikiPage } from './feature';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsPermissionError,

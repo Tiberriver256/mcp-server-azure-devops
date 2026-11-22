@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
 import {
   AzureDevOpsError,
@@ -9,11 +9,45 @@ import {
 import { apiVersion, defaultOrg, defaultProject } from '../utils/environment';
 import { resolveAzureDevOpsBaseUrls } from '../shared/azure-devops-url';
 
-interface AzureDevOpsApiErrorResponse {
-  message?: string;
-  typeKey?: string;
-  errorCode?: number;
-  eventId?: number;
+function parseHttpError(error: unknown): {
+  status?: number;
+  responseData?: unknown;
+  message: string;
+} {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'object' &&
+          error !== null &&
+          'message' in error &&
+          typeof error.message === 'string'
+        ? error.message
+        : String(error);
+
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = error.response;
+    if (typeof response === 'object' && response !== null) {
+      const status =
+        'status' in response && typeof response.status === 'number'
+          ? response.status
+          : undefined;
+      const responseData = 'data' in response ? response.data : undefined;
+      const dataMessage =
+        typeof responseData === 'object' &&
+        responseData !== null &&
+        'message' in responseData &&
+        typeof responseData.message === 'string'
+          ? responseData.message
+          : undefined;
+      return {
+        status,
+        responseData,
+        message: dataMessage || message,
+      };
+    }
+  }
+
+  return { message };
 }
 
 interface ClientOptions {
@@ -62,6 +96,11 @@ interface PageUpdateOptions {
   };
 }
 
+function extractETag(headers?: Record<string, unknown>): string | undefined {
+  const raw = headers?.etag;
+  return typeof raw === 'string' ? raw.replace(/"/g, '') : undefined;
+}
+
 export class WikiClient {
   private baseUrl: string;
 
@@ -95,7 +134,7 @@ export class WikiClient {
       const url = `${this.baseUrl}/_apis/projects/${projectNameOrId}`;
       const authHeader = await getAuthorizationHeader();
 
-      const response = await axios.get(url, {
+      const response = await axios.get<{ id: string }>(url, {
         params: {
           'api-version': apiVersion,
         },
@@ -108,17 +147,9 @@ export class WikiClient {
       // Return the project ID from the response
       return response.data.id;
     } catch (error) {
-      const axiosError = error as AxiosError;
+      const { status, message: errorMessage } = parseHttpError(error);
 
-      if (axiosError.response) {
-        const status = axiosError.response.status;
-        const errorMessage =
-          typeof axiosError.response.data === 'object' &&
-          axiosError.response.data
-            ? (axiosError.response.data as AzureDevOpsApiErrorResponse)
-                .message || axiosError.message
-            : axiosError.message;
-
+      if (status !== undefined) {
         if (status === 404) {
           throw new AzureDevOpsResourceNotFoundError(
             `Project not found: ${projectNameOrId}`,
@@ -137,7 +168,7 @@ export class WikiClient {
       }
 
       throw new AzureDevOpsError(
-        `Network error when getting project details: ${axiosError.message}`,
+        `Network error when getting project details: ${errorMessage}`,
       );
     }
   }
@@ -163,7 +194,7 @@ export class WikiClient {
       const authHeader = await getAuthorizationHeader();
 
       // Make the API request
-      const response = await axios.post(
+      const response = await axios.post<Record<string, unknown>>(
         url,
         {
           name: params.name,
@@ -188,18 +219,10 @@ export class WikiClient {
 
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError;
+      const { status, message: errorMessage } = parseHttpError(error);
 
       // Handle specific error cases
-      if (axiosError.response) {
-        const status = axiosError.response.status;
-        const errorMessage =
-          typeof axiosError.response.data === 'object' &&
-          axiosError.response.data
-            ? (axiosError.response.data as AzureDevOpsApiErrorResponse)
-                .message || axiosError.message
-            : axiosError.message;
-
+      if (status !== undefined) {
         // Handle 404 Not Found
         if (status === 404) {
           throw new AzureDevOpsResourceNotFoundError(
@@ -227,7 +250,7 @@ export class WikiClient {
 
       // Handle network errors
       throw new AzureDevOpsError(
-        `Network error when creating wiki: ${axiosError.message}`,
+        `Network error when creating wiki: ${errorMessage}`,
       );
     }
   }
@@ -259,7 +282,7 @@ export class WikiClient {
       const authHeader = await getAuthorizationHeader();
 
       // Make the API request for plain text content
-      const response = await axios.get(url, {
+      const response = await axios.get<string>(url, {
         params,
         headers: {
           Authorization: authHeader,
@@ -272,21 +295,17 @@ export class WikiClient {
       // Return both the content and the ETag
       return {
         content: response.data,
-        eTag: response.headers.etag?.replace(/"/g, ''), // Remove quotes from ETag
+        eTag: extractETag(response.headers), // Remove quotes from ETag
       };
     } catch (error) {
-      const axiosError = error as AxiosError;
+      const {
+        status,
+        responseData,
+        message: errorMessage,
+      } = parseHttpError(error);
 
       // Handle specific error cases
-      if (axiosError.response) {
-        const status = axiosError.response.status;
-        const errorMessage =
-          typeof axiosError.response.data === 'object' &&
-          axiosError.response.data
-            ? (axiosError.response.data as AzureDevOpsApiErrorResponse)
-                .message || axiosError.message
-            : axiosError.message;
-
+      if (status !== undefined) {
         // Handle 404 Not Found
         if (status === 404) {
           throw new AzureDevOpsResourceNotFoundError(
@@ -303,13 +322,13 @@ export class WikiClient {
 
         // Handle other error statuses
         throw new AzureDevOpsError(
-          `Failed to get wiki page: ${errorMessage} ${axiosError.response?.data}`,
+          `Failed to get wiki page: ${errorMessage} ${String(responseData)}`,
         );
       }
 
       // Handle network errors
       throw new AzureDevOpsError(
-        `Network error when getting wiki page: ${axiosError.message}`,
+        `Network error when getting wiki page: ${errorMessage}`,
       );
     }
   }
@@ -333,15 +352,13 @@ export class WikiClient {
     // Use the default project if not provided
     const project = projectId || defaultProject;
 
-    // Encode the page path, handling forward slashes properly
-    const encodedPagePath = encodeURIComponent(pagePath).replace(/%2F/g, '/');
-
     // Construct the URL to create the wiki page
     const url = `${this.baseUrl}/${project}/_apis/wiki/wikis/${wikiId}/pages`;
 
+    // Raw path: axios encodes params itself, pre-encoding would double-encode
     const params: Record<string, string> = {
       'api-version': apiVersion,
-      path: encodedPagePath,
+      path: pagePath,
     };
 
     // Prepare the request payload
@@ -359,7 +376,7 @@ export class WikiClient {
       const authHeader = await getAuthorizationHeader();
 
       // Make the API request
-      const response = await axios.put(url, payload, {
+      const response = await axios.put<Record<string, unknown>>(url, payload, {
         params,
         headers: {
           Authorization: authHeader,
@@ -368,27 +385,16 @@ export class WikiClient {
         },
       });
 
-      // The ETag header contains the version
-      const eTag = response.headers.etag;
-
       // Return the page content along with metadata
       return {
         ...response.data,
-        version: eTag ? eTag.replace(/"/g, '') : undefined, // Remove quotes from ETag
+        version: extractETag(response.headers), // Remove quotes from ETag
       };
     } catch (error) {
-      const axiosError = error as AxiosError;
+      const { status, message: errorMessage } = parseHttpError(error);
 
       // Handle specific error cases
-      if (axiosError.response) {
-        const status = axiosError.response.status;
-        const errorMessage =
-          typeof axiosError.response.data === 'object' &&
-          axiosError.response.data
-            ? (axiosError.response.data as AzureDevOpsApiErrorResponse)
-                .message || axiosError.message
-            : axiosError.message;
-
+      if (status !== undefined) {
         // Handle 404 Not Found - usually means the parent path doesn't exist
         if (status === 404) {
           throw new AzureDevOpsResourceNotFoundError(
@@ -425,7 +431,7 @@ export class WikiClient {
 
       // Handle network errors
       throw new AzureDevOpsError(
-        `Network error when creating wiki page: ${axiosError.message}`,
+        `Network error when creating wiki page: ${errorMessage}`,
       );
     }
   }
@@ -463,14 +469,12 @@ export class WikiClient {
       }
     }
 
-    // Encode the page path, handling forward slashes properly
-    const encodedPagePath = encodeURIComponent(pagePath).replace(/%2F/g, '/');
-
     // Construct the URL to update the wiki page
     const url = `${this.baseUrl}/${project}/_apis/wiki/wikis/${wikiId}/pages`;
+    // Raw path: axios encodes params itself, pre-encoding would double-encode
     const params: Record<string, string> = {
       'api-version': apiVersion,
-      path: encodedPagePath,
+      path: pagePath,
     };
 
     // Add optional comment parameter if provided
@@ -499,36 +503,25 @@ export class WikiClient {
       };
 
       // Make the API request
-      const response = await axios.put(url, payload, {
+      const response = await axios.put<Record<string, unknown>>(url, payload, {
         params,
         headers,
       });
 
-      // The ETag header contains the version
-      const eTag = response.headers.etag;
-
       // Return the page content along with metadata
       return {
         ...response.data,
-        version: eTag ? eTag.replace(/"/g, '') : undefined, // Remove quotes from ETag
+        version: extractETag(response.headers), // Remove quotes from ETag
         message:
           response.status === 201
             ? 'Page created successfully'
             : 'Page updated successfully',
       };
     } catch (error) {
-      const axiosError = error as AxiosError;
+      const { status, message: errorMessage } = parseHttpError(error);
 
       // Handle specific error cases
-      if (axiosError.response) {
-        const status = axiosError.response.status;
-        const errorMessage =
-          typeof axiosError.response.data === 'object' &&
-          axiosError.response.data
-            ? (axiosError.response.data as AzureDevOpsApiErrorResponse)
-                .message || axiosError.message
-            : axiosError.message;
-
+      if (status !== undefined) {
         // Handle 404 Not Found
         if (status === 404) {
           throw new AzureDevOpsResourceNotFoundError(
@@ -558,7 +551,7 @@ export class WikiClient {
 
       // Handle network errors
       throw new AzureDevOpsError(
-        `Network error when updating wiki page: ${axiosError.message}`,
+        `Network error when updating wiki page: ${errorMessage}`,
       );
     }
   }
@@ -629,18 +622,10 @@ export class WikiClient {
         return a.path.localeCompare(b.path);
       });
     } catch (error) {
-      const axiosError = error as AxiosError;
+      const { status, message: errorMessage } = parseHttpError(error);
 
       // Handle specific error cases
-      if (axiosError.response) {
-        const status = axiosError.response.status;
-        const errorMessage =
-          typeof axiosError.response.data === 'object' &&
-          axiosError.response.data
-            ? (axiosError.response.data as AzureDevOpsApiErrorResponse)
-                .message || axiosError.message
-            : axiosError.message;
-
+      if (status !== undefined) {
         // Handle 404 Not Found
         if (status === 404) {
           throw new AzureDevOpsResourceNotFoundError(
@@ -663,7 +648,7 @@ export class WikiClient {
 
       // Handle network errors
       throw new AzureDevOpsError(
-        `Network error when listing wiki pages: ${axiosError.message}`,
+        `Network error when listing wiki pages: ${errorMessage}`,
       );
     }
   }
