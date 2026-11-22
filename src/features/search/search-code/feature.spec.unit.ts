@@ -23,7 +23,7 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('searchCode unit', () => {
   // Mock WebApi connection
-  const mockConnection = {
+  const baseMockConnection = {
     getGitApi: jest.fn().mockImplementation(() => ({
       getItemContent: jest.fn().mockImplementation((_repoId, path) => {
         // Return different content based on the path to simulate different files
@@ -42,7 +42,8 @@ describe('searchCode unit', () => {
         .mockResolvedValue([{ name: 'TestProject', id: 'project-id' }]),
     })),
     serverUrl: 'https://dev.azure.com/testorg',
-  } as unknown as WebApi;
+  };
+  const mockConnection = baseMockConnection as unknown as WebApi;
 
   // Store original console.error
   const originalConsoleError = console.error;
@@ -122,7 +123,7 @@ describe('searchCode unit', () => {
     };
 
     const mockConnectionWithContent = {
-      ...mockConnection,
+      ...baseMockConnection,
       getGitApi: jest.fn().mockResolvedValue(mockGitApi),
       serverUrl: 'https://dev.azure.com/testorg',
     } as unknown as WebApi;
@@ -184,7 +185,7 @@ describe('searchCode unit', () => {
 
   test('should build server search URL when using Azure DevOps Server', async () => {
     const serverConnection = {
-      ...mockConnection,
+      ...baseMockConnection,
       serverUrl: 'https://ado.local/tfs/DefaultCollection',
     } as unknown as WebApi;
 
@@ -525,7 +526,7 @@ describe('searchCode unit', () => {
         .mockRejectedValue(new Error('Failed to fetch content')),
     };
     const mockConnectionWithError = {
-      ...mockConnection,
+      ...baseMockConnection,
       getGitApi: jest.fn().mockResolvedValue(mockGitApi),
     } as unknown as WebApi;
 
@@ -845,7 +846,7 @@ describe('searchCode unit', () => {
     };
 
     const mockConnectionWithStreams = {
-      ...mockConnection,
+      ...baseMockConnection,
       getGitApi: jest.fn().mockResolvedValue(mockGitApi),
       serverUrl: 'https://dev.azure.com/testorg',
     } as unknown as WebApi;
@@ -961,7 +962,7 @@ describe('searchCode unit', () => {
     };
 
     const mockConnectionWithStream = {
-      ...mockConnection,
+      ...baseMockConnection,
       getGitApi: jest.fn().mockResolvedValue(mockGitApi),
       serverUrl: 'https://dev.azure.com/testorg',
     } as unknown as WebApi;
@@ -1050,7 +1051,7 @@ describe('searchCode unit', () => {
     // For this test, we don't need to mock the Git API since we're only testing the top parameter
     // We'll create a connection that doesn't have includeContent functionality
     const mockConnectionWithoutContent = {
-      ...mockConnection,
+      ...baseMockConnection,
       getGitApi: jest.fn().mockImplementation(() => {
         throw new Error('Git API not available');
       }),

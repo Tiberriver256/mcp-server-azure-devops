@@ -62,7 +62,6 @@ export default defineConfig({
     // Temporary during migration (fixed in subsequent commits in this PR)
     'preserve-caught-error': 'off',
     'typescript/consistent-type-imports': 'off',
-    'typescript/no-misused-spread': 'off',
   },
   overrides: [
     ...(cloudflare.overrides ?? []),
