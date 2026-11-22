@@ -41,7 +41,9 @@ async function waitForPullRequestMergeCalculation(
     ) {
       return pr;
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1000);
+    });
   }
 
   return await gitApi.getPullRequest(repositoryId, pullRequestId, projectName);
@@ -66,7 +68,9 @@ async function waitForPullRequestCompletion(
     if (pr && pr.status === PullRequestStatus.Completed) {
       return pr;
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1000);
+    });
   }
 
   return await gitApi.getPullRequest(repositoryId, pullRequestId, projectName);

@@ -217,7 +217,9 @@ describeOrSkip('updatePullRequest integration', () => {
 
     const gitApi = await connection.getGitApi();
 
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 5000);
+    });
 
     const workItemRefs = await gitApi.getPullRequestWorkItemRefs(
       repositoryId,

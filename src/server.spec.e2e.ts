@@ -77,7 +77,9 @@ AZURE_DEVOPS_AUTH_METHOD=${authMethod}
     }
 
     // Give the server a moment to start
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1000);
+    });
 
     // Connect the MCP client to the server
     transport = new StdioClientTransport({
