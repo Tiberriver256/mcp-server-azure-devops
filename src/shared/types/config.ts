@@ -56,4 +56,16 @@ export interface AzureDevOpsConfig {
    * @default true
    */
   spotlighting?: boolean;
+
+  /**
+   * Minimum polling interval in milliseconds for opt-in event resource watchers.
+   * @default 30000
+   */
+  eventPollIntervalMs?: number;
+
+  /**
+   * Maximum bounded ring-buffer capacity for MCP events.
+   * @default 1000
+   */
+  eventBufferSize?: number;
 }

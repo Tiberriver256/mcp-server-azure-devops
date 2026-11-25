@@ -47,6 +47,7 @@ const registry: Record<ToolsetName, readonly ToolLike[]> = {
   ],
   work: [{ name: 'list_iterations', readOnly: true }],
   analytics: [{ name: 'query_analytics', readOnly: true }],
+  events: [{ name: 'list_event_types', readOnly: true }],
 };
 
 const ALL_NAMES = TOOLSET_NAMES.flatMap((ts) =>

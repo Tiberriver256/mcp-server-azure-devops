@@ -52,6 +52,7 @@ function makeRegistry(): Record<ToolsetName, ToolLike[]> {
     ],
     work: [makeTool('list_iterations', true)],
     analytics: [makeTool('query_analytics', true)],
+    events: [makeTool('list_event_types', true), makeTool('poll_events', true)],
   };
 }
 

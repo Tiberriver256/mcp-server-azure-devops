@@ -14,6 +14,7 @@ export const TOOLSET_NAMES = [
   'test-plans',
   'work',
   'analytics',
+  'events',
 ] as const;
 
 export type ToolsetName = (typeof TOOLSET_NAMES)[number];
@@ -88,6 +89,7 @@ const TOOLSET_ALIASES = new Map<string, ToolsetName>([
   ['iterations', 'work'],
   ['analytics', 'analytics'],
   ['odata', 'analytics'],
+  ['events', 'events'],
 ]);
 
 const TOOLSET_PRESET_ALIASES = new Map<string, ToolsetPresetName>([

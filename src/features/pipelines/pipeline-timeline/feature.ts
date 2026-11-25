@@ -11,6 +11,11 @@ import {
 } from '../../../shared/errors/index.ts';
 import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
 import {
+  BUILD_AREA,
+  BUILD_TIMELINE_LOCATION_ID,
+  negotiatePipelineApiVersion,
+} from '../api-version.ts';
+import {
   resolvePipelineApiVersion,
   resolvePipelineProjectId,
 } from '../helpers.ts';
@@ -26,11 +31,18 @@ export async function getPipelineTimeline(
     const projectId = ctx
       ? ctx.resolveProjectId(options.projectId)
       : resolvePipelineProjectId(options.projectId);
-    const apiVersion = resolvePipelineApiVersion(ctx?.config.apiVersion);
+    const baseUrl = connection.serverUrl.replace(/\/+$/, '');
+    const apiVersion = await negotiatePipelineApiVersion({
+      apiClient: buildApi,
+      baseUrl,
+      area: BUILD_AREA,
+      locationId: BUILD_TIMELINE_LOCATION_ID,
+      resourceName: 'timeline',
+      fallbackApiVersion: resolvePipelineApiVersion(ctx?.config.apiVersion),
+    });
     const { runId, timelineId, state, result } = options;
 
     const route = `${encodeURIComponent(projectId)}/_apis/build/builds/${runId}/timeline`;
-    const baseUrl = connection.serverUrl.replace(/\/+$/, '');
     const url = new URL(`${route}`, `${baseUrl}/`);
     url.searchParams.set('api-version', apiVersion);
     if (timelineId) {

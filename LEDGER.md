@@ -347,4 +347,28 @@ Every figure below was directly measured before M1 changes began:
   - **M4 (`F20`–`F21`, 3 new tools, zero new runtime deps):** `analyticsBaseUrl` routing (`analytics.dev.azure.com/{org}` on Services, `coreBaseUrl` on Server) + shared `isSameOrigin` (rejecting embedded userinfo credentials) + new read-only `analytics` toolset (`analytics`/`odata`): `get_analytics_schema` (zero-dep EDMX XML parser), `query_analytics` (all 7 `[BLOCKED]` Poka-yoke guardrails, transparent single-op `$batch` for >2,800-char GET URLs, scoped same-origin `@odata.nextLink` ingress & egress enforcement, `$top <= 1000`, `404`/`403` Analytics-disabled guidance), `get_analytics_metrics` (6 curated `$apply` DORA/CI/Boards presets).
 - **Verified Metrics:** `75` registered tools across `12` toolsets (`5` runtime deps unchanged); `600/600` offline unit/prop/diff tests passing; `116/116` M1–M4 black-box E2E tests passing on first pass; single diff review caught and closed 4 real production bugs (`typed-rest-client` silent 404 in `retry_pipeline_stage` & `manage_pull_request_reviewers`, `nextLink` scope escape + `$batch` relative URI, and on-prem `organizationId` override precedence).
 
+---
+
+## Milestones M5, M6 & M7 — Streamable HTTP, Docker, MCP Events, On-Prem Matrix & Security Hardening (`COMPLETE`)
+
+- **Features Delivered:**
+  - **M5 (`F22`–`F25`, zero new runtime deps):**
+    - Zero-Express `node:http` + MCP SDK `StreamableHTTPServerTransport` (`src/transport/http.ts`, `src/transport/http-security.ts`, `src/transport/bounded-event-store.ts`) supporting stateful (`Mcp-Session-Id`, `GET /mcp` SSE + `Last-Event-ID` resumability, session cap, idle reaper) and stateless (`--enable-json-response`) modes, `/healthz`, `/readyz` (`503` drain), port-agnostic `Host` + `Origin` DNS-rebinding guard (`403` pre-body), fail-closed non-loopback auth, opt-in per-request PAT (`--allow-per-request-pat`), HTTP filesystem tool lockout (`create_work_item_attachment`, `get_work_item_attachment`), and graceful `SIGTERM`/`SIGINT` drain.
+    - Official multi-stage non-root `Dockerfile` (`node:24-slim`, `USER node`, read-only `root:root` app layers, OCI labels, `/healthz` `HEALTHCHECK`) and `.dockerignore`.
+    - Core `EventEngine` (`src/shared/events/`): O(1) `BoundedRingBuffer` (`v1:<epoch>:<seq>`), 5 canonical SEP-3415 event types (`ado.pull_request.updated`, `ado.pull_request.checks_changed`, `ado.pipeline.run_state_changed`, `ado.work_item.updated`, `ado.git.pushed`), fail-closed `POST /webhooks/ado` (raw-`Buffer` constant-time Secret/Basic/HMAC-SHA256 verified before JSON parse, `draining` `503` guard, `256 KiB` cap, `200`-char untrusted title truncation), bounded per-session `ResourcePollingWatcher` with on-prem `OPTIONS` `api-version` negotiation, SEP-3415 (`events/list`, `events/poll`, `events/stream`, `-32026` on `events/subscribe`/`events/unsubscribe`), 2025-11-25 Resource Subscriptions (`ado://{org}/{project}/events/...`), and opt-in read-only `events` toolset (`list_event_types`, `poll_events`).
+  - **M6 (`F26`):**
+    - Checked-in 4-profile server fixtures (`tests/fixtures/ado-server-profiles/{server-2019-rtm,server-2020,server-2022,services-cloud}.json`), parameterized compatibility matrix suite (`tests/matrix/onprem-compat.spec.ts`, `50/50` tests), per-area direct-HTTP `OPTIONS` `api-version` auto-negotiation & resilience across `pipelines`, `search`, and `wikis`, and updated `docs/important-knowledge/azure-devops-rest-api-research.md`.
+  - **M7 (`F27` — Full 4-Tier E2E + White-Box Security Hardening):**
+    - Closed all 5 security & architecture blockers from the M5+M6 review: per-request PAT forced `AuthenticationMethod.PersonalAccessToken` + PAT-only startup support, stateful PAT SHA-256 session binding + per-session `EventEngine` & watcher credential isolation, `events/stream` caps (`-32025`) + session cleanup + zero-drop replay ordering, `ResourcePollingWatcher` cached on-prem `OPTIONS` negotiation, and webhook `draining` `503` + pre-auth raw-Buffer HMAC verification.
+- **Final Verified Scorecard (Node `v24.22.3` + Node `v26.13.1`):**
+  - **Catalog:** `77` tools across `13` toolsets (`+17` net new tools, `0` non-goal `advsec_*` tools), `9` `ado://` resource templates (`5` repo + `4` event), **strictly `5` runtime dependencies** (unchanged from `v0.1.56`), `0` `npm audit --audit-level=moderate` vulnerabilities.
+  - **Automated Tests (`966 / 966` PASS, `0` failures):**
+    - Offline unit/prop/diff (`npm run test:coverage`): **`690 / 690` PASS** — **`86.86%` lines** (`>=70%`), **`76.41%` branches** (`>=50%`), **`81.99%` functions** (`>=60%`).
+    - On-Prem 4-profile matrix (`tests/matrix/*.spec.ts`): **`50 / 50` PASS**.
+    - 4-Tier opaque-box E2E suite (`tests/e2e-suite/**/*.test.mjs`): **`226 / 226` PASS** (`86` Tier 1 + `84` Tier 2 + `20` Tier 3 + `8` Tier 4 + `28` harness self-tests).
+    - Node `v26.13.1` Active LTS spot suite (`events` + `transport` + `matrix`): **`116 / 116` PASS**.
+  - **Packaging (`npm pack --dry-run`):** `529` files (`405.6 kB` packed, `2.1 MB` unpacked; internal docs & tests strictly excluded).
+  - **Process Optimization Velocity (`改善`):** After retiring the nested `teamwork` ceremony (`M1`: ~7.5h, 221 runs, 89% overhead), **all of M2–M7 (6 full milestones, 17 tools, Streamable HTTP, Docker, MCP Events, On-Prem Matrix, 226/226 E2E, and 2 full security diff reviews)** shipped and passed cleanly in **~1.4 hours total** (~10× speedup).
+
+
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 import { AuthenticationMethod } from '../../../shared/auth/index.ts';
 import {
   AzureDevOpsAuthenticationError,
@@ -10,6 +10,7 @@ import {
 import { HttpError } from '../../../shared/http/http-client.ts';
 import type { HttpRequestOptions } from '../../../shared/http/http-client.ts';
 import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session.ts';
+import { clearSearchApiVersionCache } from '../api-version.ts';
 import { searchWiki } from './feature.ts';
 
 function makeContext(
@@ -52,6 +53,18 @@ function makeContext(
 }
 
 void describe('searchWiki', () => {
+  beforeEach(() => {
+    clearSearchApiVersionCache();
+    mock.method(globalThis, 'fetch', () =>
+      Promise.reject(new Error('offline unit test')),
+    );
+  });
+
+  afterEach(() => {
+    mock.restoreAll();
+    clearSearchApiVersionCache();
+  });
+
   void it('supports org-wide search on Services and merges project filters', async () => {
     let captured: HttpRequestOptions | undefined;
     const ctx = makeContext(async (req) => {

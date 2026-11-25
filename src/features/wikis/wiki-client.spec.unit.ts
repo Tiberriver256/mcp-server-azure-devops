@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 import { AuthenticationMethod } from '../../shared/auth/index.ts';
 import {
   AzureDevOpsError,
@@ -11,6 +11,7 @@ import { HttpError } from '../../shared/http/http-client.ts';
 import type { HttpRequestOptions } from '../../shared/http/http-client.ts';
 import { createAzureDevOpsSession } from '../../shared/session/azure-devops-session.ts';
 import type { ToolContext } from '../../shared/session/azure-devops-session.ts';
+import { clearWikiApiVersionCache } from './api-version.ts';
 import { createWiki } from './create-wiki/feature.ts';
 import { createWikiPage } from './create-wiki-page/feature.ts';
 import { WikiType } from './schemas.ts';
@@ -65,6 +66,18 @@ function createFakeContext(
 }
 
 void describe('WikiClient & Wiki feature operations', () => {
+  beforeEach(() => {
+    clearWikiApiVersionCache();
+    mock.method(globalThis, 'fetch', () =>
+      Promise.reject(new Error('offline unit test')),
+    );
+  });
+
+  afterEach(() => {
+    mock.restoreAll();
+    clearWikiApiVersionCache();
+  });
+
   void it('passes raw Unicode pagePath to query params so paths are never double-encoded', async () => {
     const captured: HttpRequestOptions[] = [];
     const ctx = createFakeContext(async (req) => {

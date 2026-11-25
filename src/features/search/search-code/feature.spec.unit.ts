@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it, mock } from 'node:test';
+import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 import { Readable } from 'stream';
 import type { WebApi } from 'azure-devops-node-api';
 import { AuthenticationMethod } from '../../../shared/auth/index.ts';
@@ -12,6 +12,7 @@ import {
 import { HttpError } from '../../../shared/http/http-client.ts';
 import type { HttpRequestOptions } from '../../../shared/http/http-client.ts';
 import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session.ts';
+import { clearSearchApiVersionCache } from '../api-version.ts';
 import { searchCode } from './feature.ts';
 
 function makeSearchContext(
@@ -54,6 +55,18 @@ function makeSearchContext(
 }
 
 void describe('searchCode', () => {
+  beforeEach(() => {
+    clearSearchApiVersionCache();
+    mock.method(globalThis, 'fetch', () =>
+      Promise.reject(new Error('offline unit test')),
+    );
+  });
+
+  afterEach(() => {
+    mock.restoreAll();
+    clearSearchApiVersionCache();
+  });
+
   void it('posts to almsearch.dev.azure.com, caps top to 10 when includeContent=true, and enriches file streams', async () => {
     let capturedReq: HttpRequestOptions | undefined;
     const ctx = makeSearchContext(async (req) => {

@@ -22,6 +22,7 @@ import type {
   HttpResponse,
 } from '../http/http-client.ts';
 import { AzureDevOpsValidationError } from '../errors/index.ts';
+import type { EventEngine } from '../events/event-engine.ts';
 import { logInfo } from '../logging.ts';
 
 export const DEFAULT_API_VERSION = '7.1';
@@ -41,6 +42,8 @@ export interface ResolvedAzureDevOpsConfig {
   readonly disabledTools?: readonly string[];
   readonly readOnly: boolean;
   readonly spotlighting: boolean;
+  readonly eventPollIntervalMs?: number;
+  readonly eventBufferSize?: number;
 }
 
 /**
@@ -56,6 +59,7 @@ export interface ToolContext {
   readonly config: ResolvedAzureDevOpsConfig;
   readonly baseUrls: AzureDevOpsBaseUrls;
   readonly http: HttpClient;
+  readonly eventEngine?: EventEngine;
 
   /**
    * Return a cached, authenticated `WebApi` instance for the configured org
@@ -139,12 +143,20 @@ export function resolveAzureDevOpsConfig(
     disabledTools: config.disabledTools ? [...config.disabledTools] : undefined,
     readOnly: config.readOnly === true,
     spotlighting: config.spotlighting !== false,
+    ...(config.eventPollIntervalMs !== undefined
+      ? { eventPollIntervalMs: config.eventPollIntervalMs }
+      : {}),
+    ...(config.eventBufferSize !== undefined
+      ? { eventBufferSize: config.eventBufferSize }
+      : {}),
   };
 }
 
 export interface CreateSessionOptions {
   httpClient?: HttpClient;
   authProvider?: AuthProvider;
+  eventEngine?: EventEngine;
+  sessionId?: string;
   webApiFactory?: (
     organizationUrl: string,
     provider: AuthProvider,
@@ -305,6 +317,7 @@ export function createAzureDevOpsSession(
     config,
     baseUrls,
     http,
+    ...(deps.eventEngine ? { eventEngine: deps.eventEngine } : {}),
     getWebApi,
     getAuthHeader,
     requestAzureDevOps,

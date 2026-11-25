@@ -6,6 +6,11 @@ import {
 } from '../../../shared/errors/index.ts';
 import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
 import {
+  BUILD_AREA,
+  BUILD_LOGS_LOCATION_ID,
+  negotiatePipelineApiVersion,
+} from '../api-version.ts';
+import {
   resolvePipelineApiVersion,
   resolvePipelineProjectId,
 } from '../helpers.ts';
@@ -21,12 +26,19 @@ export async function getPipelineLog(
     const projectId = ctx
       ? ctx.resolveProjectId(options.projectId)
       : resolvePipelineProjectId(options.projectId);
-    const apiVersion = resolvePipelineApiVersion(ctx?.config.apiVersion);
     const { runId, logId, format, startLine, endLine } = options;
 
     if (format === 'json') {
-      const route = `${encodeURIComponent(projectId)}/_apis/build/builds/${runId}/logs/${logId}`;
       const baseUrl = connection.serverUrl.replace(/\/+$/, '');
+      const apiVersion = await negotiatePipelineApiVersion({
+        apiClient: buildApi,
+        baseUrl,
+        area: BUILD_AREA,
+        locationId: BUILD_LOGS_LOCATION_ID,
+        resourceName: 'logs',
+        fallbackApiVersion: resolvePipelineApiVersion(ctx?.config.apiVersion),
+      });
+      const route = `${encodeURIComponent(projectId)}/_apis/build/builds/${runId}/logs/${logId}`;
       const url = new URL(`${route}`, `${baseUrl}/`);
       url.searchParams.set('api-version', apiVersion);
       url.searchParams.set('format', 'json');

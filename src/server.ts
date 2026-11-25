@@ -1,11 +1,16 @@
+import { randomUUID } from 'node:crypto';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   CallToolRequestSchema,
   ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
   ListToolsRequestSchema,
+  McpError,
   ReadResourceRequestSchema,
+  SubscribeRequestSchema,
+  UnsubscribeRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 import type { WebApi } from 'azure-devops-node-api';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import type { ToolsetName } from './shared/config/index.ts';
@@ -36,8 +41,10 @@ import type {
 import {
   ADO_RESOURCE_TEMPLATES,
   getMimeType,
+  isAdoEventResourceUri,
   parseAdoResourceUri,
 } from './shared/resources/ado-resource-uri.ts';
+import { EventEngine, isEventsProtocolError } from './shared/events/index.ts';
 
 import { usersFeature } from './features/users/index.ts';
 import { organizationsFeature } from './features/organizations/index.ts';
@@ -54,6 +61,7 @@ import { wikisFeature } from './features/wikis/index.ts';
 import { testPlansFeature } from './features/test-plans/index.ts';
 import { workFeature } from './features/work/index.ts';
 import { analyticsFeature } from './features/analytics/index.ts';
+import { eventsFeature } from './features/events/index.ts';
 
 export type AzureDevOpsServer = Server;
 
@@ -70,7 +78,46 @@ const FEATURE_MODULES: readonly FeatureModule[] = [
   testPlansFeature,
   workFeature,
   analyticsFeature,
+  eventsFeature,
 ];
+
+const EventsListRequestSchema = z.object({
+  method: z.literal('events/list'),
+  params: z.record(z.string(), z.unknown()).optional(),
+});
+
+const EventsPollRequestSchema = z.object({
+  method: z.literal('events/poll'),
+  params: z.record(z.string(), z.unknown()).optional(),
+});
+
+const EventsStreamRequestSchema = z.object({
+  method: z.literal('events/stream'),
+  params: z.record(z.string(), z.unknown()).optional(),
+});
+
+const EventsSubscribeRequestSchema = z.object({
+  method: z.literal('events/subscribe'),
+  params: z.record(z.string(), z.unknown()).optional(),
+});
+
+const EventsUnsubscribeRequestSchema = z.object({
+  method: z.literal('events/unsubscribe'),
+  params: z.record(z.string(), z.unknown()).optional(),
+});
+
+function toMcpProtocolError(error: unknown): never {
+  if (isEventsProtocolError(error)) {
+    throw new McpError(error.code, error.message, error.data);
+  }
+  if (error instanceof McpError) {
+    throw error;
+  }
+  const safeMessage = redactSecrets(
+    error instanceof Error ? error.message : String(error),
+  );
+  throw new McpError(-32603, safeMessage);
+}
 
 /**
  * Returns registered executable tools grouped by toolset name (without
@@ -93,6 +140,7 @@ export function getRegisteredToolRegistry(): Record<
     'test-plans': testPlansFeature.tools,
     work: workFeature.tools,
     analytics: analyticsFeature.tools,
+    events: eventsFeature.tools,
   };
 }
 
@@ -114,6 +162,7 @@ export function getToolRegistry(): Record<ToolsetName, ToolDefinition[]> {
     'test-plans': registered['test-plans'].map((t) => t.toDefinition()),
     work: registered.work.map((t) => t.toDefinition()),
     analytics: registered.analytics.map((t) => t.toDefinition()),
+    events: registered.events.map((t) => t.toDefinition()),
   };
 }
 
@@ -128,13 +177,28 @@ export function getFeatureModules(): readonly FeatureModule[] {
  * - Converts Zod schemas to JSON Schema lazily only for enabled tools.
  * - Uses a single cached AzureDevOpsSession per server instance (no per-call
  *   connection probes or credential re-instantiation).
- * - Dispatches tools in O(1) via Map lookup with uniform schema validation.
+ * - Dispatches tools in O(1) via Map lookup with uniform schema validation and
+ *   centralized Spotlighting.
+ * - Exposes 2025-11-25 resource subscriptions and SEP-3415 `io.modelcontextprotocol/events`.
  */
 export function createAzureDevOpsServer(
   config: AzureDevOpsConfig,
   sessionDeps?: CreateSessionOptions,
 ): Server {
-  const session = createAzureDevOpsSession(config, sessionDeps);
+  const ownsEventEngine = !sessionDeps?.eventEngine;
+  const eventEngine =
+    sessionDeps?.eventEngine ??
+    new EventEngine({
+      bufferSize: config.eventBufferSize,
+      pollIntervalMs: config.eventPollIntervalMs,
+    });
+  const sessionId = sessionDeps?.sessionId ?? `session-${randomUUID()}`;
+
+  const session = createAzureDevOpsSession(config, {
+    ...sessionDeps,
+    eventEngine,
+    sessionId,
+  });
 
   const toolCatalog = resolveEnabledTools(getRegisteredToolRegistry(), {
     toolsets: session.config.toolsets,
@@ -178,10 +242,25 @@ export function createAzureDevOpsServer(
     {
       capabilities: {
         tools: {},
-        resources: {},
+        resources: {
+          subscribe: true,
+          listChanged: false,
+        },
+        extensions: {
+          'io.modelcontextprotocol/events': {
+            listChanged: false,
+          },
+        },
       },
     },
   );
+
+  server.onclose = () => {
+    eventEngine.cleanupSession(sessionId);
+    if (ownsEventEngine) {
+      eventEngine.close();
+    }
+  };
 
   server.setRequestHandler(ListToolsRequestSchema, () => {
     return { tools: getMcpTools() };
@@ -195,8 +274,120 @@ export function createAzureDevOpsServer(
     return { resourceTemplates: [...ADO_RESOURCE_TEMPLATES] };
   });
 
+  server.setRequestHandler(SubscribeRequestSchema, async (request) => {
+    try {
+      const uri = request.params.uri;
+      await eventEngine.subscribeResource(
+        sessionId,
+        uri,
+        session,
+        async (updatedUri) => {
+          try {
+            await server.sendResourceUpdated({ uri: updatedUri });
+          } catch (notifyErr) {
+            const safeMsg = redactSecrets(
+              notifyErr instanceof Error
+                ? notifyErr.message
+                : String(notifyErr),
+            );
+            logError(`Failed to send resource update notification: ${safeMsg}`);
+          }
+        },
+      );
+      return {};
+    } catch (error) {
+      toMcpProtocolError(error);
+    }
+  });
+
+  server.setRequestHandler(UnsubscribeRequestSchema, (request) => {
+    try {
+      eventEngine.unsubscribeResource(sessionId, request.params.uri);
+      return {};
+    } catch (error) {
+      toMcpProtocolError(error);
+    }
+  });
+
+  server.setRequestHandler(EventsListRequestSchema, () => {
+    try {
+      const res = eventEngine.listEvents();
+      return {
+        resultType: res.resultType,
+        events: [...res.events],
+      };
+    } catch (error) {
+      toMcpProtocolError(error);
+    }
+  });
+
+  server.setRequestHandler(EventsPollRequestSchema, (request) => {
+    try {
+      const res = eventEngine.pollEvents(request.params ?? {});
+      return {
+        resultType: res.resultType,
+        events: [...res.events],
+        cursor: res.cursor,
+        truncated: res.truncated,
+        hasMore: res.hasMore,
+        nextPollMs: res.nextPollMs,
+      };
+    } catch (error) {
+      toMcpProtocolError(error);
+    }
+  });
+
+  server.setRequestHandler(
+    EventsStreamRequestSchema,
+    async (request, extra) => {
+      try {
+        await eventEngine.openStream(
+          request.params ?? {},
+          async (notification) => {
+            await extra.sendNotification({
+              method: notification.method,
+              params: notification.params,
+            });
+          },
+          extra.signal,
+          extra.requestId,
+          sessionId,
+        );
+        return {
+          resultType: 'complete',
+          reason: 'closed',
+        };
+      } catch (error) {
+        toMcpProtocolError(error);
+      }
+    },
+  );
+
+  server.setRequestHandler(EventsSubscribeRequestSchema, () => {
+    toMcpProtocolError(eventEngine.createUnsupportedError('events/subscribe'));
+  });
+
+  server.setRequestHandler(EventsUnsubscribeRequestSchema, () => {
+    toMcpProtocolError(
+      eventEngine.createUnsupportedError('events/unsubscribe'),
+    );
+  });
+
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     try {
+      if (isAdoEventResourceUri(request.params.uri)) {
+        const feed = eventEngine.readEventResource(request.params.uri);
+        return {
+          contents: [
+            {
+              uri: request.params.uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(feed, null, 2),
+            },
+          ],
+        };
+      }
+
       const parsed = parseAdoResourceUri(request.params.uri);
       const connection = await session.getWebApi(parsed.organization);
 
@@ -275,6 +466,9 @@ export function createAzureDevOpsServer(
         ],
       };
     } catch (error) {
+      if (isEventsProtocolError(error)) {
+        throw new McpError(error.code, error.message, error.data);
+      }
       const safeMessage = redactSecrets(
         error instanceof Error ? error.message : String(error),
       );

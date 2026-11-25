@@ -3,6 +3,10 @@ import { AzureDevOpsValidationError } from '../../../shared/errors/index.ts';
 import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url.ts';
 import { createSessionFromEnv } from '../../../shared/session/azure-devops-session.ts';
 import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import {
+  WIKI_SEARCH_LOCATION_ID,
+  negotiateSearchApiVersion,
+} from '../api-version.ts';
 import type {
   SearchWikiOptions,
   WikiSearchRequest,
@@ -60,6 +64,13 @@ export async function searchWiki(
     };
   }
 
+  const apiVersion = await negotiateSearchApiVersion(
+    session,
+    baseUrls.searchBaseUrl,
+    WIKI_SEARCH_LOCATION_ID,
+    'wikiSearchResults',
+  );
+
   const searchUrl = effectiveProjectId
     ? `${baseUrls.searchBaseUrl}/${encodeURIComponent(effectiveProjectId)}/_apis/search/wikisearchresults`
     : `${baseUrls.searchBaseUrl}/_apis/search/wikisearchresults`;
@@ -67,7 +78,7 @@ export async function searchWiki(
   const response = await session.requestAzureDevOps<WikiSearchResponse>({
     method: 'POST',
     url: searchUrl,
-    query: { 'api-version': session.config.apiVersion },
+    query: { 'api-version': apiVersion },
     body: searchRequest,
     context: 'searching wiki',
   });

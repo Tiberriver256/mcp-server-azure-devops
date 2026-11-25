@@ -3,7 +3,12 @@ import {
   AzureDevOpsError,
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
+  AzureDevOpsValidationError,
 } from '../../../shared/errors/index.ts';
+import {
+  PIPELINES_UNSUPPORTED_ERROR_MESSAGE,
+  isUnsupportedPipelinesLocationError,
+} from '../api-version.ts';
 import { normalizeBranch, resolvePipelineProjectId } from '../helpers.ts';
 import type { Run, TriggerPipelineOptions } from '../types.ts';
 
@@ -71,6 +76,10 @@ export async function triggerPipeline(
     // Handle specific error types
     if (error instanceof AzureDevOpsError) {
       throw error;
+    }
+
+    if (isUnsupportedPipelinesLocationError(error)) {
+      throw new AzureDevOpsValidationError(PIPELINES_UNSUPPORTED_ERROR_MESSAGE);
     }
 
     // Check for specific error types and convert to appropriate Azure DevOps errors

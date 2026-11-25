@@ -43,7 +43,7 @@ void describe('createAzureDevOpsServer deep seam tests', () => {
     return handler;
   }
 
-  void it('registers all 75 tools across 12 toolsets with explicit boolean readOnly', () => {
+  void it('registers all 77 tools across 13 toolsets with explicit boolean readOnly', () => {
     const registry = getToolRegistry();
     let total = 0;
     for (const toolset of TOOLSET_NAMES) {
@@ -53,7 +53,7 @@ void describe('createAzureDevOpsServer deep seam tests', () => {
         total += 1;
       }
     }
-    assert.strictEqual(total, 75);
+    assert.strictEqual(total, 77);
   });
 
   void it('filters ListTools by toolsets and disabledTools and emits spec-compliant MCP tools', async () => {
@@ -296,7 +296,7 @@ void describe('createAzureDevOpsServer deep seam tests', () => {
       { method: 'resources/templates/list', params: {} },
       {},
     )) as { resourceTemplates: Array<{ uriTemplate: string }> };
-    assert.strictEqual(templates.resourceTemplates.length, 5);
+    assert.strictEqual(templates.resourceTemplates.length, 9);
 
     const readResource = getHandler(
       server,

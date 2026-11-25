@@ -8,6 +8,12 @@ import {
 import { extractContinuationToken as extractHeaderContinuationToken } from '../../../shared/http/http-client.ts';
 import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
 import {
+  PIPELINES_AREA,
+  PIPELINES_UNSUPPORTED_ERROR_MESSAGE,
+  PIPELINE_RUNS_LOCATION_ID,
+  negotiatePipelineApiVersion,
+} from '../api-version.ts';
+import {
   normalizeBranch,
   resolvePipelineApiVersion,
   resolvePipelineProjectId,
@@ -54,10 +60,18 @@ export async function listPipelineRuns(
     const projectId = ctx
       ? ctx.resolveProjectId(options.projectId)
       : resolvePipelineProjectId(options.projectId);
-    const apiVersion = resolvePipelineApiVersion(ctx?.config.apiVersion);
+    const baseUrl = connection.serverUrl.replace(/\/+$/, '');
+    const apiVersion = await negotiatePipelineApiVersion({
+      apiClient: pipelinesApi,
+      baseUrl,
+      area: PIPELINES_AREA,
+      locationId: PIPELINE_RUNS_LOCATION_ID,
+      resourceName: 'runs',
+      fallbackApiVersion: resolvePipelineApiVersion(ctx?.config.apiVersion),
+      missingLocationErrorMessage: PIPELINES_UNSUPPORTED_ERROR_MESSAGE,
+    });
     const pipelineId = options.pipelineId;
 
-    const baseUrl = connection.serverUrl.replace(/\/+$/, '');
     const route = `${encodeURIComponent(projectId)}/_apis/pipelines/${pipelineId}/runs`;
     const url = new URL(`${route}`, `${baseUrl}/`);
 

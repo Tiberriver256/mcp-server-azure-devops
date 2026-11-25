@@ -6,6 +6,12 @@ import {
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors/index.ts';
 import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import {
+  PIPELINES_AREA,
+  PIPELINES_UNSUPPORTED_ERROR_MESSAGE,
+  PIPELINE_RUNS_LOCATION_ID,
+  negotiatePipelineApiVersion,
+} from '../api-version.ts';
 import { fetchRunArtifacts } from '../artifacts.ts';
 import {
   coercePipelineId,
@@ -29,7 +35,16 @@ export async function getPipelineRun(
     const projectId = ctx
       ? ctx.resolveProjectId(options.projectId)
       : resolvePipelineProjectId(options.projectId);
-    const apiVersion = resolvePipelineApiVersion(ctx?.config.apiVersion);
+    const baseUrl = connection.serverUrl.replace(/\/+$/, '');
+    const apiVersion = await negotiatePipelineApiVersion({
+      apiClient: pipelinesApi,
+      baseUrl,
+      area: PIPELINES_AREA,
+      locationId: PIPELINE_RUNS_LOCATION_ID,
+      resourceName: 'runs',
+      fallbackApiVersion: resolvePipelineApiVersion(ctx?.config.apiVersion),
+      missingLocationErrorMessage: PIPELINES_UNSUPPORTED_ERROR_MESSAGE,
+    });
     const runId = options.runId;
     const resolvedPipelineId = await resolvePipelineId(
       connection,
@@ -38,7 +53,6 @@ export async function getPipelineRun(
       options.pipelineId,
     );
 
-    const baseUrl = connection.serverUrl.replace(/\/+$/, '');
     const encodedProject = encodeURIComponent(projectId);
 
     const requestOptions = pipelinesApi.createRequestOptions(

@@ -27,7 +27,7 @@ const EXPECTED_ANNOTATION_KEYS = [
 ];
 
 void describe('tool-registry contract differential tests: Zod definitions vs MCP ListTools JSON Schema', () => {
-  void it('validates all 75 tools against MCP ListToolsResultSchema with full annotations, invariants, and zero leaked internals', async () => {
+  void it('validates all 77 tools against MCP ListToolsResultSchema with full annotations, invariants, and zero leaked internals', async () => {
     const server = createAzureDevOpsServer({
       organizationUrl: 'https://dev.azure.com/contract-org',
       authMethod: AuthenticationMethod.PersonalAccessToken,
@@ -52,7 +52,7 @@ void describe('tool-registry contract differential tests: Zod definitions vs MCP
 
     // 1. Validate against official MCP SDK ListToolsResultSchema
     const mcpResult = ListToolsResultSchema.parse(rawResult);
-    assert.strictEqual(mcpResult.tools.length, 75);
+    assert.strictEqual(mcpResult.tools.length, 77);
 
     // 2. Build independent catalog from feature modules
     const modules = getFeatureModules();
@@ -65,11 +65,11 @@ void describe('tool-registry contract differential tests: Zod definitions vs MCP
     const registeredList = TOOLSET_NAMES.flatMap(
       (ts) => registeredRegistry[ts],
     );
-    assert.strictEqual(registeredList.length, 75);
+    assert.strictEqual(registeredList.length, 77);
 
     // 3. No duplicate tool names across all toolsets
     const names = registeredList.map((t) => t.name);
-    assert.strictEqual(new Set(names).size, 75);
+    assert.strictEqual(new Set(names).size, 77);
     assert.deepStrictEqual(
       mcpResult.tools.map((t) => t.name),
       names,

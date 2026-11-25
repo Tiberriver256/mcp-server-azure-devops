@@ -3,6 +3,10 @@ import { AzureDevOpsValidationError } from '../../../shared/errors/index.ts';
 import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url.ts';
 import { createSessionFromEnv } from '../../../shared/session/azure-devops-session.ts';
 import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import {
+  WORK_ITEM_SEARCH_LOCATION_ID,
+  negotiateSearchApiVersion,
+} from '../api-version.ts';
 import type {
   SearchWorkItemsOptions,
   WorkItemSearchRequest,
@@ -56,6 +60,13 @@ export async function searchWorkItems(
     $orderBy: options.orderBy,
   };
 
+  const apiVersion = await negotiateSearchApiVersion(
+    session,
+    baseUrls.searchBaseUrl,
+    WORK_ITEM_SEARCH_LOCATION_ID,
+    'workItemSearchResults',
+  );
+
   const searchUrl = effectiveProjectId
     ? `${baseUrls.searchBaseUrl}/${encodeURIComponent(effectiveProjectId)}/_apis/search/workitemsearchresults`
     : `${baseUrls.searchBaseUrl}/_apis/search/workitemsearchresults`;
@@ -63,7 +74,7 @@ export async function searchWorkItems(
   const response = await session.requestAzureDevOps<WorkItemSearchResponse>({
     method: 'POST',
     url: searchUrl,
-    query: { 'api-version': session.config.apiVersion },
+    query: { 'api-version': apiVersion },
     body: searchRequest,
     context: 'searching work items',
   });
