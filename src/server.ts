@@ -557,7 +557,14 @@ export function createAzureDevOpsServer(
       }
       return result;
     } catch (error) {
-      return handleResponseError(error);
+      const errorResult = handleResponseError(error);
+      if (session.config.spotlighting !== false) {
+        return wrapToolResultWithSpotlighting(
+          errorResult,
+          formatToolSourceLabel(request.params.name),
+        );
+      }
+      return errorResult;
     }
   });
 

@@ -121,10 +121,14 @@ void describe('Azure DevOps MCP Server E2E Tests', { skip: skipReason }, () => {
       });
 
       assert.notStrictEqual(result, undefined);
-      const rawText = getTextContent(result.content);
-      if (result.isError && /^Authentication Failed:/i.test(rawText)) {
+      const unwrappedText = unwrapToolText(
+        result.content,
+        'list_organizations',
+        expectSpotlighting,
+      );
+      if (result.isError && /^Authentication Failed:/i.test(unwrappedText)) {
         console.warn(
-          `WARNING: Skipping list_organizations E2E assertions (${rawText}). ` +
+          `WARNING: Skipping list_organizations E2E assertions (${unwrappedText}). ` +
             'The VSSPS profile/accounts endpoint requires an "All accessible organizations" PAT, which is intentionally not required in CI.',
         );
         t.skip(
@@ -133,14 +137,8 @@ void describe('Azure DevOps MCP Server E2E Tests', { skip: skipReason }, () => {
         return;
       }
 
-      assert.notStrictEqual(result.isError, true, rawText);
-      const organizations: Organization[] = JSON.parse(
-        unwrapToolText(
-          result.content,
-          'list_organizations',
-          expectSpotlighting,
-        ),
-      );
+      assert.notStrictEqual(result.isError, true, unwrappedText);
+      const organizations: Organization[] = JSON.parse(unwrappedText);
       assert.strictEqual(Array.isArray(organizations), true);
       if (organizations.length > 0) {
         const firstOrg = organizations[0];

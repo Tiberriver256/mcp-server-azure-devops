@@ -11,13 +11,14 @@ import {
   AzureDevOpsValidationError,
   redactSecrets,
 } from '../shared/errors/index.ts';
-import { logDebug, logError, logInfo } from '../shared/logging.ts';
+import { logDebug, logError, logInfo, logWarn } from '../shared/logging.ts';
 import { BoundedEventStore } from './bounded-event-store.ts';
 import {
   HTTP_LOCKED_OUT_TOOLS,
   MAX_MCP_BODY_BYTES,
   MAX_WEBHOOK_BODY_BYTES,
   SlidingWindowRateLimiter,
+  isLoopbackHost,
   normalizeTrustedProxies,
   readBoundedBody,
   resolveClientRateLimitKey,
@@ -98,6 +99,8 @@ export interface StreamableHttpTransportOptions {
   mcpAuthFailLimitPerMinute?: number;
   /** Sliding window duration in milliseconds for MCP HTTP rate limiting (default: 60000). */
   mcpRateLimitWindowMs?: number;
+  /** Maximum /healthz & /readyz probes per client IP per window (separate from /mcp budget; default: 600). */
+  healthRateLimitPerMinute?: number;
   /** Maximum distinct client IP keys tracked by each rate limiter (default: 1024). */
   maxTrackedRateLimitKeys?: number;
   /** Server version reported by GET /healthz. */
@@ -144,6 +147,7 @@ const DEFAULT_WEBHOOK_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_MCP_RATE_LIMIT_PER_MINUTE = 600;
 const DEFAULT_MCP_AUTH_FAIL_LIMIT_PER_MINUTE = 20;
 const DEFAULT_MCP_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_HEALTH_RATE_LIMIT_PER_MINUTE = 600;
 const DEFAULT_MAX_TRACKED_RATE_LIMIT_KEYS = 1_024;
 const WEBHOOK_PATH = '/webhooks/ado';
 const HEALTHZ_PATH = '/healthz';
@@ -286,6 +290,7 @@ interface NumericTransportOptions {
   mcpRateLimitPerMinute: number;
   mcpAuthFailLimitPerMinute: number;
   mcpRateLimitWindowMs: number;
+  healthRateLimitPerMinute: number;
   maxTrackedRateLimitKeys: number;
 }
 
@@ -370,6 +375,14 @@ function validateNumericOptions(opts: NumericTransportOptions): void {
     );
   }
   if (
+    !Number.isInteger(opts.healthRateLimitPerMinute) ||
+    opts.healthRateLimitPerMinute < 1
+  ) {
+    throw new AzureDevOpsValidationError(
+      `Invalid healthRateLimitPerMinute "${opts.healthRateLimitPerMinute}". Must be an integer >= 1.`,
+    );
+  }
+  if (
     !Number.isInteger(opts.maxTrackedRateLimitKeys) ||
     opts.maxTrackedRateLimitKeys < 1
   ) {
@@ -416,6 +429,8 @@ export async function startStreamableHttpServer(
     options.mcpAuthFailLimitPerMinute ?? DEFAULT_MCP_AUTH_FAIL_LIMIT_PER_MINUTE;
   const mcpRateLimitWindowMs =
     options.mcpRateLimitWindowMs ?? DEFAULT_MCP_RATE_LIMIT_WINDOW_MS;
+  const healthRateLimitPerMinute =
+    options.healthRateLimitPerMinute ?? DEFAULT_HEALTH_RATE_LIMIT_PER_MINUTE;
   const maxTrackedRateLimitKeys =
     options.maxTrackedRateLimitKeys ?? DEFAULT_MAX_TRACKED_RATE_LIMIT_KEYS;
   const version = options.version;
@@ -432,6 +447,7 @@ export async function startStreamableHttpServer(
     mcpRateLimitPerMinute,
     mcpAuthFailLimitPerMinute,
     mcpRateLimitWindowMs,
+    healthRateLimitPerMinute,
     maxTrackedRateLimitKeys,
   });
   validateHttpServerSecurityConfig({
@@ -439,6 +455,13 @@ export async function startStreamableHttpServer(
     authToken,
     allowUnauthenticated,
   });
+
+  if (!isLoopbackHost(host)) {
+    logWarn(
+      `SECURITY WARNING: Streamable HTTP server is binding to non-loopback host "${host}" over plaintext HTTP without TLS. ` +
+        'Authorization, X-API-Key, and X-Azure-DevOps-PAT credentials will travel unencrypted unless terminated behind a TLS-enforcing reverse proxy.',
+    );
+  }
 
   const sessions = new Map<string, StatefulSessionEntry>();
   const activeStatelessCleanups = new Set<() => Promise<void>>();
@@ -460,6 +483,11 @@ export async function startStreamableHttpServer(
   });
   const mcpAuthFailLimiter = new SlidingWindowRateLimiter({
     limit: mcpAuthFailLimitPerMinute,
+    windowMs: mcpRateLimitWindowMs,
+    maxKeys: maxTrackedRateLimitKeys,
+  });
+  const healthRequestLimiter = new SlidingWindowRateLimiter({
+    limit: healthRateLimitPerMinute,
     windowMs: mcpRateLimitWindowMs,
     maxKeys: maxTrackedRateLimitKeys,
   });
@@ -1144,7 +1172,7 @@ export async function startStreamableHttpServer(
     }
 
     const clientKey = resolveClientRateLimitKey(req, trustedProxySet);
-    const rateLimit = mcpRequestLimiter.consume(clientKey);
+    const rateLimit = healthRequestLimiter.consume(clientKey);
     if (!rateLimit.allowed) {
       sendJson(
         res,
@@ -1303,6 +1331,7 @@ export async function startStreamableHttpServer(
       webhookAuthFailLimiter.clear();
       mcpRequestLimiter.clear();
       mcpAuthFailLimiter.clear();
+      healthRequestLimiter.clear();
     })();
 
     return closePromise;

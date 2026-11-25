@@ -1905,12 +1905,14 @@ void describe('startStreamableHttpServer', () => {
     assert.equal(legitimate.status, 200);
   });
 
-  void it('enforces Host/Origin DNS-rebinding protection and rate limiting on /healthz and /readyz', async (t) => {
+  void it('enforces Host/Origin DNS-rebinding protection and an independent rate-limit budget on /healthz and /readyz', async (t) => {
     const started = await startStreamableHttpServer({
       host: '127.0.0.1',
       port: 0,
-      mode: 'stateful',
-      mcpRateLimitPerMinute: 2,
+      mode: 'stateless',
+      enableJsonResponse: true,
+      mcpRateLimitPerMinute: 1,
+      healthRateLimitPerMinute: 2,
       mcpRateLimitWindowMs: 60_000,
       version: '1.0.0',
       createServer: (o) => ({ server: createTestMcpServer(o) }),
@@ -1933,7 +1935,21 @@ void describe('startStreamableHttpServer', () => {
       assert.equal(forgedOrigin.status, 403);
     }
 
-    // Valid loopback requests succeed up to the rate limit, then return 429 + Retry-After
+    // Exhaust /mcp rate limit completely -> /mcp returns 429
+    const mcpOk = await sendHttpRequest(baseUrl, '/mcp', {
+      method: 'POST',
+      headers: { Accept: 'application/json, text/event-stream' },
+      body: makeInitBody(),
+    });
+    assert.equal(mcpOk.status, 200);
+    const mcpThrottled = await sendHttpRequest(baseUrl, '/mcp', {
+      method: 'POST',
+      headers: { Accept: 'application/json, text/event-stream' },
+      body: makeInitBody(),
+    });
+    assert.equal(mcpThrottled.status, 429);
+
+    // Health probes MUST STILL succeed using their own dedicated budget
     const okHealth = await sendHttpRequest(baseUrl, '/healthz', {
       method: 'GET',
     });
@@ -1944,6 +1960,7 @@ void describe('startStreamableHttpServer', () => {
     });
     assert.equal(okReady.status, 200);
 
+    // Exceeding the dedicated healthRateLimitPerMinute returns 429 + Retry-After
     const throttledHealth = await sendHttpRequest(baseUrl, '/healthz', {
       method: 'GET',
     });
