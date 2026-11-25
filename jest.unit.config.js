@@ -9,13 +9,20 @@ module.exports = {
   },
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
-  testMatch: ['**/*.spec.unit.ts'],
+  testMatch: ['**/*.spec.{unit,prop,diff}.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   collectCoverage: true,
   coverageDirectory: '<rootDir>/coverage',
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.spec.*.ts', '!src/types/**'],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.spec.*.ts',
+    '!src/**/__test__/**',
+    '!src/shared/test/**',
+    '!src/shared/types/**',
+    '!src/**/types.ts',
+  ],
   coverageReporters: ['text', 'lcov'],
   coverageThreshold: {
     global: {

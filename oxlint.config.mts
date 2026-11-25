@@ -56,9 +56,11 @@ export default defineConfig({
   overrides: [
     ...(cloudflare.overrides ?? []),
     {
-      // Carry forward test-file relaxations for this repo's *.spec.{unit,int,e2e}.ts convention
+      // Carry forward test-file relaxations for this repo's *.spec.{unit,prop,diff,int,e2e}.ts convention
       files: [
         '**/*.spec.unit.ts',
+        '**/*.spec.prop.ts',
+        '**/*.spec.diff.ts',
         '**/*.spec.int.ts',
         '**/*.spec.e2e.ts',
         'tests/**/*.ts',
