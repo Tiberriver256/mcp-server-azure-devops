@@ -14,12 +14,10 @@ import {
   parseCliToolFilterArgs,
   parseCsvList,
 } from './shared/config';
-import { logDebug, logError, logInfo } from './shared/logging';
+import { redactSecrets } from './shared/errors';
+import { logDebug, logError, logInfo, resolveLogLevel } from './shared/logging';
 
 export { normalizeAuthMethod };
-
-// Load environment variables once from .env if present (zero-dep Node 22 native)
-loadEnvFile();
 
 function describeDefaultProject(envValue: string | undefined): string {
   if (envValue === undefined) {
@@ -29,15 +27,6 @@ function describeDefaultProject(envValue: string | undefined): string {
     return 'empty string';
   }
   return `set (${envValue})`;
-}
-
-function isDebugLoggingEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  const level = (
-    env.AZURE_DEVOPS_LOG_LEVEL ||
-    env.LOG_LEVEL ||
-    ''
-  ).toLowerCase();
-  return level === 'debug';
 }
 
 export function getConfig(
@@ -74,7 +63,7 @@ export function getConfig(
   enabledTools: ${enabledTools ? enabledTools.join(',') : 'all'}
   disabledTools: ${disabledTools ? disabledTools.join(',') : 'none'}
   readOnly: ${readOnly === true ? 'true' : 'false'}`,
-    isDebugLoggingEnabled(env),
+    resolveLogLevel(env) === 'debug',
   );
 
   return {
@@ -92,23 +81,27 @@ export function getConfig(
 
 async function main() {
   try {
+    // Load environment variables from .env if present (only on CLI startup, not on import)
+    loadEnvFile();
     const server = createAzureDevOpsServer(getConfig());
     const transport = new StdioServerTransport();
     await server.connect(transport);
     logInfo('Azure DevOps MCP Server running on stdio');
   } catch (error) {
-    logError(
-      `Fatal error in main(): ${error instanceof Error ? error.message : String(error)}`,
+    const safeMessage = redactSecrets(
+      error instanceof Error ? error.message : String(error),
     );
+    logError(`Fatal error in main(): ${safeMessage}`);
     process.exit(1);
   }
 }
 
 if (require.main === module) {
   main().catch((error: unknown) => {
-    logError(
-      `Fatal error in main(): ${error instanceof Error ? error.message : String(error)}`,
+    const safeMessage = redactSecrets(
+      error instanceof Error ? error.message : String(error),
     );
+    logError(`Fatal error in main(): ${safeMessage}`);
     process.exit(1);
   });
 }

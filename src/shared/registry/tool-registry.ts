@@ -26,23 +26,50 @@ export interface FeatureModule {
   readonly tools: readonly RegisteredTool[];
 }
 
+function isTextContentBlock(
+  item: unknown,
+): item is { type: 'text'; text: string } {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    'type' in item &&
+    item.type === 'text' &&
+    'text' in item &&
+    typeof item.text === 'string'
+  );
+}
+
 function isMcpToolResult(value: unknown): value is McpToolResult {
   if (typeof value !== 'object' || value === null || !('content' in value)) {
     return false;
   }
-  return Array.isArray(value.content);
+  if (!Array.isArray(value.content) || value.content.length === 0) {
+    return false;
+  }
+  if (
+    'isError' in value &&
+    value.isError !== undefined &&
+    typeof value.isError !== 'boolean'
+  ) {
+    return false;
+  }
+  return value.content.every(isTextContentBlock);
 }
 
 /**
  * Format any handler return value into a spec-compliant MCP tool result.
- * Strings are returned verbatim; objects/arrays are pretty-printed JSON.
+ * Strings are returned verbatim; undefined becomes ''; objects/arrays are pretty-printed JSON.
  */
 export function formatToolResult(value: unknown): McpToolResult {
   if (isMcpToolResult(value)) {
     return value;
   }
   const text =
-    typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+    value === undefined
+      ? ''
+      : typeof value === 'string'
+        ? value
+        : (JSON.stringify(value, null, 2) ?? '');
   return {
     content: [{ type: 'text', text }],
   };

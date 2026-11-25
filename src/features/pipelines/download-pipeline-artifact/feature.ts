@@ -15,22 +15,15 @@ import type {
   ZipEntryMeta,
 } from '../../../shared/utils/zip-reader';
 import { MAX_ARTIFACT_ZIP_BYTES, parseArtifactContainer } from '../artifacts';
-import { resolvePipelineId, resolvePipelineProjectId } from '../helpers';
+import {
+  isSameOrigin,
+  resolvePipelineId,
+  resolvePipelineProjectId,
+} from '../helpers';
 import type {
   DownloadPipelineArtifactOptions,
   PipelineArtifactContent,
 } from '../types';
-
-function isSameOrigin(targetUrl: string, serverUrl?: string): boolean {
-  if (!serverUrl) {
-    return false;
-  }
-  try {
-    return new URL(targetUrl).origin === new URL(serverUrl).origin;
-  } catch {
-    return false;
-  }
-}
 
 export function normalizeArtifactPath(artifactPath: string): {
   artifactName: string;
@@ -156,36 +149,57 @@ export function selectZipEntry(
   rootPath?: string,
 ): ZipEntryMeta | null {
   const normalized = normalizeZipPath(relativePath);
+  const normalizedArtifactName = artifactName
+    ? normalizeZipPath(artifactName)
+    : '';
+  const normalizedRootPath = rootPath ? normalizeZipPath(rootPath) : '';
   const candidates = [normalized];
 
-  if (artifactName) {
-    candidates.push(`${artifactName}/${normalized}`);
+  if (normalizedArtifactName) {
+    candidates.push(`${normalizedArtifactName}/${normalized}`);
   }
 
-  if (rootPath) {
-    candidates.push(`${rootPath}/${normalized}`);
-    if (artifactName) {
-      candidates.push(`${artifactName}/${rootPath}/${normalized}`);
+  if (normalizedRootPath) {
+    candidates.push(`${normalizedRootPath}/${normalized}`);
+    if (normalizedArtifactName) {
+      candidates.push(
+        `${normalizedArtifactName}/${normalizedRootPath}/${normalized}`,
+      );
     }
   }
 
+  const fileEntries = (zip.entries ?? [])
+    .filter((entry) => !entry.isDirectory)
+    .map((entry) => ({
+      entry,
+      normalizedName: normalizeZipPath(entry.name),
+    }));
+
   for (const candidate of candidates) {
-    const match = zip.findEntry(candidate);
-    if (match && !match.isDirectory) {
-      return match;
+    const exact = zip.findEntry(candidate);
+    if (exact && !exact.isDirectory) {
+      return exact;
+    }
+    const normalizedMatch = fileEntries.find(
+      (item) => item.normalizedName === candidate,
+    );
+    if (normalizedMatch) {
+      return normalizedMatch.entry;
     }
   }
 
   const suffix = `/${normalized}`;
-  const fallbackMatches = zip.entries.filter(
-    (entry) =>
-      !entry.isDirectory &&
-      (entry.name === normalized || entry.name.endsWith(suffix)),
+  const fallbackMatches = fileEntries.filter(
+    (item) =>
+      item.normalizedName === normalized ||
+      item.normalizedName.endsWith(suffix),
   );
 
   if (fallbackMatches.length > 0) {
-    fallbackMatches.sort((a, b) => a.name.length - b.name.length);
-    return fallbackMatches[0] ?? null;
+    fallbackMatches.sort(
+      (a, b) => a.normalizedName.length - b.normalizedName.length,
+    );
+    return fallbackMatches[0]?.entry ?? null;
   }
 
   return null;

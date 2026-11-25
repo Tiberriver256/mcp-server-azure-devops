@@ -3,11 +3,64 @@ import * as fs from 'fs';
 import * as fsp from 'fs/promises';
 import * as path from 'path';
 import { pipeline } from 'stream/promises';
-import { AzureDevOpsError } from '../../../shared/errors';
+import {
+  AzureDevOpsError,
+  AzureDevOpsResourceNotFoundError,
+} from '../../../shared/errors';
 import type {
   GetWorkItemAttachmentOptions,
   GetWorkItemAttachmentResult,
 } from '../types';
+
+function isAzureDevOpsAttachmentErrorPayload(content: string): boolean {
+  const trimmed = content.trim();
+  if (trimmed.length === 0) {
+    return false;
+  }
+
+  // Detect structured Azure DevOps VSS JSON error envelopes (always include typeKey + message)
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        !Array.isArray(parsed) &&
+        'typeKey' in parsed &&
+        typeof (parsed as { typeKey?: unknown }).typeKey === 'string' &&
+        'message' in parsed &&
+        typeof (parsed as { message?: unknown }).message === 'string'
+      ) {
+        return true;
+      }
+    } catch {
+      // Not valid JSON; continue checking specific Azure DevOps error markers
+    }
+  }
+
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.includes('tf401232') ||
+    lower.includes('vs402323') ||
+    lower.includes('attachment does not exist')
+  ) {
+    return true;
+  }
+
+  // Detect Azure DevOps HTML sign-in / error pages without flagging legitimate HTML attachments
+  if (lower.includes('<html') || lower.includes('<!doctype')) {
+    return (
+      lower.includes('azure devops services | sign in') ||
+      lower.includes('azure devops server | sign in') ||
+      lower.includes('vss.webplatform') ||
+      lower.includes('vss-web-page-data') ||
+      lower.includes('tfs-sign-in') ||
+      lower.includes('microsoft.teamfoundation.')
+    );
+  }
+
+  return false;
+}
 
 /**
  * Download an attachment from a work item and save it to disk using
@@ -46,24 +99,16 @@ export async function getWorkItemAttachment(
       throw streamError;
     }
 
-    // Azure DevOps may return an HTML/JSON error body for invalid attachment
-    // IDs instead of throwing; detect that and surface a not-found error.
+    // Azure DevOps may return a JSON/HTML error envelope for invalid attachment
+    // IDs instead of throwing; detect genuine ADO error payloads only so valid
+    // small HTML or stack-trace attachments are never discarded.
     const stats = await fsp.stat(options.outputPath);
     if (stats.size > 0 && stats.size < 4096) {
-      const preview = (
-        await fsp.readFile(options.outputPath, 'utf8')
-      ).toLowerCase();
-      if (
-        preview.includes('<!doctype') ||
-        preview.includes('<html') ||
-        preview.includes('tf401232') ||
-        preview.includes('attachment does not exist') ||
-        preview.includes('"typekey"') ||
-        preview.includes('exception')
-      ) {
+      const preview = await fsp.readFile(options.outputPath, 'utf8');
+      if (isAzureDevOpsAttachmentErrorPayload(preview)) {
         await fsp.unlink(options.outputPath).catch(() => undefined);
-        throw new Error(
-          `Failed to get attachment: Attachment not found (${options.attachmentId})`,
+        throw new AzureDevOpsResourceNotFoundError(
+          `Attachment not found (${options.attachmentId})`,
         );
       }
     }

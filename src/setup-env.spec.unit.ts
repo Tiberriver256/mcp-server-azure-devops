@@ -120,6 +120,7 @@ esac
         cwd: tempDir,
         env: {
           ...process.env,
+          SETUP_ENV_NONINTERACTIVE: '',
           PATH: `${binDir}:${process.env.PATH}`,
         },
         input: '1\nn\nn\n',
@@ -179,6 +180,7 @@ exit 0
         cwd: tempDir,
         env: {
           ...process.env,
+          SETUP_ENV_NONINTERACTIVE: '',
           PATH: `${binDir}:${process.env.PATH}`,
         },
         input:

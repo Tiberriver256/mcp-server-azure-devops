@@ -26,6 +26,7 @@ export { TriggerPipelineSchema } from './trigger-pipeline/schema';
 export * from './run-reference';
 
 import type { WebApi } from 'azure-devops-node-api';
+import { AzureDevOpsValidationError } from '../../shared/errors';
 import { defineTool } from '../../shared/registry/tool-registry';
 import type { FeatureModule } from '../../shared/registry/tool-registry';
 import type { ToolContext } from '../../shared/session/azure-devops-session';
@@ -95,7 +96,9 @@ async function withResolvedPipeline<
     args,
   );
   if (typeof pipelineId !== 'number') {
-    throw new Error('Either pipelineId or pipelineName is required');
+    throw new AzureDevOpsValidationError(
+      'Either pipelineId or pipelineName is required',
+    );
   }
   return { ...rest, projectId, pipelineId };
 }

@@ -1,7 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { join } from 'path';
-import fs from 'fs';
 import type { Organization } from './features/organizations/types';
 import { loadEnvFile } from './shared/config/load-env';
 import { getTextContent } from '@/shared/test/text-content';
@@ -11,7 +10,6 @@ loadEnvFile();
 describe('Azure DevOps MCP Server E2E Tests', () => {
   let client: Client;
   let transport: StdioClientTransport;
-  let tempEnvFile: string | null = null;
 
   beforeAll(async () => {
     const serverPath = join(process.cwd(), 'dist', 'index.js');
@@ -27,25 +25,22 @@ describe('Azure DevOps MCP Server E2E Tests', () => {
       );
     }
 
-    tempEnvFile = join(process.cwd(), '.env.e2e-test');
-    fs.writeFileSync(
-      tempEnvFile,
-      [
-        `AZURE_DEVOPS_ORG_URL=${orgUrl}`,
-        `AZURE_DEVOPS_PAT=${pat}`,
-        `AZURE_DEVOPS_DEFAULT_PROJECT=${defaultProject}`,
-        `AZURE_DEVOPS_AUTH_METHOD=${authMethod}`,
-        '',
-      ].join('\n'),
-    );
+    const childEnv: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      if (value !== undefined) {
+        childEnv[key] = value;
+      }
+    }
+    childEnv.NODE_ENV = 'test';
+    childEnv.AZURE_DEVOPS_ORG_URL = orgUrl;
+    childEnv.AZURE_DEVOPS_PAT = pat;
+    childEnv.AZURE_DEVOPS_DEFAULT_PROJECT = defaultProject;
+    childEnv.AZURE_DEVOPS_AUTH_METHOD = authMethod;
 
     transport = new StdioClientTransport({
       command: 'node',
-      args: [`--env-file=${tempEnvFile}`, serverPath],
-      env: {
-        ...process.env,
-        NODE_ENV: 'test',
-      },
+      args: [serverPath],
+      env: childEnv,
     });
 
     client = new Client(
@@ -67,9 +62,6 @@ describe('Azure DevOps MCP Server E2E Tests', () => {
     }
     if (client) {
       await client.close();
-    }
-    if (tempEnvFile && fs.existsSync(tempEnvFile)) {
-      fs.unlinkSync(tempEnvFile);
     }
   });
 

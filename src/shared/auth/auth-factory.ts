@@ -10,6 +10,7 @@ import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsValidationError,
+  redactSecrets,
 } from '../errors';
 import {
   formatOrgUrlForLog,
@@ -151,19 +152,19 @@ export interface AuthProvider {
 
 /**
  * Refreshable Bearer token handler for `azure-devops-node-api`'s `WebApi`.
- * Allows caching a single `WebApi` instance across token expirations.
+ * Reads the latest cached token via a live getter so multiple cached `WebApi`
+ * instances (e.g., across organizations) stay synchronized after any refresh.
  */
-class RefreshingBearerCredentialHandler implements IRequestHandler {
-  private currentToken: string;
+export class RefreshingBearerCredentialHandler implements IRequestHandler {
+  private readonly getCurrentToken: () => string;
   private readonly refreshToken: () => Promise<string>;
 
-  constructor(initialToken: string, refreshToken: () => Promise<string>) {
-    this.currentToken = initialToken;
+  constructor(
+    getCurrentToken: () => string,
+    refreshToken: () => Promise<string>,
+  ) {
+    this.getCurrentToken = getCurrentToken;
     this.refreshToken = refreshToken;
-  }
-
-  setToken(token: string): void {
-    this.currentToken = token;
   }
 
   prepareRequest(options: http.RequestOptions): void {
@@ -175,7 +176,7 @@ class RefreshingBearerCredentialHandler implements IRequestHandler {
     const headers: http.OutgoingHttpHeaders = isHeadersRecord(options.headers)
       ? options.headers
       : {};
-    headers['Authorization'] = `Bearer ${this.currentToken}`;
+    headers['Authorization'] = `Bearer ${this.getCurrentToken()}`;
     headers['X-TFS-FedAuthRedirect'] = 'Suppress';
     options.headers = headers;
   }
@@ -189,16 +190,37 @@ class RefreshingBearerCredentialHandler implements IRequestHandler {
     requestInfo: IRequestInfo,
     objs: unknown,
   ): Promise<IHttpClientResponse> {
-    this.currentToken = await this.refreshToken();
+    await this.refreshToken();
     this.prepareRequest(requestInfo.options);
-    const isReadableStream = (value: unknown): value is NodeJS.ReadableStream =>
+
+    const isReadableStream = (
+      value: unknown,
+    ): value is NodeJS.ReadableStream & {
+      readableEnded?: boolean;
+      destroyed?: boolean;
+    } =>
       typeof value === 'object' &&
       value !== null &&
       'pipe' in value &&
       typeof value.pipe === 'function';
-    const payload =
-      typeof objs === 'string' || isReadableStream(objs) ? objs : '';
-    return await httpClient.requestRaw(requestInfo, payload);
+
+    if (isReadableStream(objs)) {
+      if (objs.readableEnded || objs.destroyed) {
+        throw new AzureDevOpsAuthenticationError(
+          'Authentication expired during a streaming upload; please retry the operation',
+        );
+      }
+      return await httpClient.requestRaw(requestInfo, objs);
+    }
+
+    // Pass `null` (not `''`) when there is no body so typed-rest-client does NOT
+    // inject `Content-Length: 0` onto GET/HEAD/DELETE retries.
+    // `requestRaw`'s TypeScript signature expects `string | NodeJS.ReadableStream`,
+    // while typed-rest-client's runtime explicitly checks `if (typeof data === 'string')`.
+    const payload = typeof objs === 'string' ? objs : null;
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+    const rawData = payload as unknown as string;
+    return await httpClient.requestRaw(requestInfo, rawData);
   }
 }
 
@@ -238,7 +260,6 @@ export function createAuthProvider(config: AuthConfig): AuthProvider {
   let credentialInstance: TokenCredentialLike | null = null;
   let cachedToken: CachedAccessToken | null = null;
   let inFlightToken: Promise<CachedAccessToken> | null = null;
-  let activeBearerHandler: RefreshingBearerCredentialHandler | null = null;
 
   const getCredential = async (): Promise<TokenCredentialLike> => {
     if (credentialInstance) {
@@ -272,7 +293,6 @@ export function createAuthProvider(config: AuthConfig): AuthProvider {
             throw new Error('Failed to acquire token');
           }
           cachedToken = token;
-          activeBearerHandler?.setToken(token.token);
           return token;
         } catch (error) {
           const label =
@@ -318,11 +338,10 @@ export function createAuthProvider(config: AuthConfig): AuthProvider {
     }
 
     const initialToken = await acquireToken(false);
-    activeBearerHandler = new RefreshingBearerCredentialHandler(
-      initialToken,
+    return new RefreshingBearerCredentialHandler(
+      () => cachedToken?.token ?? initialToken,
       () => acquireToken(true),
     );
-    return activeBearerHandler;
   };
 
   return {
@@ -345,7 +364,9 @@ export function classifyConnectionError(
   }
 
   const orgDisplay = formatOrgUrlForLog(organizationUrl);
-  const message = error instanceof Error ? error.message : String(error);
+  const message = redactSecrets(
+    error instanceof Error ? error.message : String(error),
+  );
 
   if (isLocationLookupFailure(error)) {
     return new AzureDevOpsValidationError(
@@ -353,7 +374,7 @@ export function classifyConnectionError(
         'This is usually a wrong or unreachable AZURE_DEVOPS_ORG_URL ' +
         '(expected https://dev.azure.com/<org>), not a credential failure.',
       undefined,
-      { cause: error },
+      { cause: new Error(message) },
     );
   }
 

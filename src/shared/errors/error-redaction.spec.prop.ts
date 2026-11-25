@@ -24,30 +24,31 @@ describe('error & log secret-redaction security properties', () => {
     stderrSpy.mockRestore();
   });
 
-  it('SECURITY INVARIANT: arbitrary Basic/Bearer tokens and URL userinfo never survive redactSecrets or handleResponseError (neither response nor stderr)', () => {
+  it('SECURITY INVARIANT: arbitrary Basic/Bearer tokens (any casing) and URL userinfo never survive redactSecrets or handleResponseError (neither response nor stderr)', () => {
     fc.assert(
       fc.property(
-        fc.constantFrom('Basic', 'Bearer'),
+        fc.constantFrom('Basic', 'Bearer', 'basic', 'bearer', 'BEARER'),
+        fc.constantFrom('user:', ':', ''),
         tokenArb,
         patArb,
-        (scheme, token, pat) => {
+        (scheme, userPrefix, token, pat) => {
           stderrChunks.length = 0;
           const leakyMessage =
             `Request failed: Authorization: ${scheme} ${token} ` +
-            `to https://user:${pat}@dev.azure.com/org/_apis/git?secret=${pat}`;
+            `to https://${userPrefix}${pat}@dev.azure.com/org/_apis/git`;
 
           const redacted = redactSecrets(leakyMessage);
           expect(redacted).not.toContain(token);
-          expect(redacted).not.toContain(`:${pat}@`);
+          expect(redacted).not.toContain(`${pat}@`);
 
           const response = handleResponseError(new Error(leakyMessage));
           expect(response.isError).toBe(true);
           expect(response.content[0].text).not.toContain(token);
-          expect(response.content[0].text).not.toContain(`:${pat}@`);
+          expect(response.content[0].text).not.toContain(`${pat}@`);
 
           const stderrText = stderrChunks.join('');
           expect(stderrText).not.toContain(token);
-          expect(stderrText).not.toContain(`:${pat}@`);
+          expect(stderrText).not.toContain(`${pat}@`);
         },
       ),
       { numRuns: 150 },

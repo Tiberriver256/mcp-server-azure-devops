@@ -35,26 +35,26 @@ export interface ResolvedToolCatalog<T extends ToolLike = ToolLike> {
   readOnlyBlockedNames: Set<string>;
 }
 
-const TOOLSET_ALIASES: Record<string, ToolsetName> = {
-  users: 'users',
-  organizations: 'organizations',
-  projects: 'projects',
-  repositories: 'repositories',
-  repos: 'repositories',
-  'work-items': 'work-items',
-  work_items: 'work-items',
-  workitems: 'work-items',
-  search: 'search',
-  'pull-requests': 'pull-requests',
-  pull_requests: 'pull-requests',
-  pullrequests: 'pull-requests',
-  prs: 'pull-requests',
-  pipelines: 'pipelines',
-  wikis: 'wikis',
-  'test-plans': 'test-plans',
-  test_plans: 'test-plans',
-  testplans: 'test-plans',
-};
+const TOOLSET_ALIASES = new Map<string, ToolsetName>([
+  ['users', 'users'],
+  ['organizations', 'organizations'],
+  ['projects', 'projects'],
+  ['repositories', 'repositories'],
+  ['repos', 'repositories'],
+  ['work-items', 'work-items'],
+  ['work_items', 'work-items'],
+  ['workitems', 'work-items'],
+  ['search', 'search'],
+  ['pull-requests', 'pull-requests'],
+  ['pull_requests', 'pull-requests'],
+  ['pullrequests', 'pull-requests'],
+  ['prs', 'pull-requests'],
+  ['pipelines', 'pipelines'],
+  ['wikis', 'wikis'],
+  ['test-plans', 'test-plans'],
+  ['test_plans', 'test-plans'],
+  ['testplans', 'test-plans'],
+]);
 
 /**
  * Parse a comma-separated string into a deduplicated list of trimmed non-empty entries.
@@ -206,7 +206,7 @@ export function normalizeToolsetName(raw: string): ToolsetName | 'all' {
   if (key === 'all') {
     return 'all';
   }
-  const canonical = TOOLSET_ALIASES[key];
+  const canonical = TOOLSET_ALIASES.get(key);
   if (!canonical) {
     throw new AzureDevOpsValidationError(
       `Unknown toolset '${raw}'. Valid toolsets are: all, ${TOOLSET_NAMES.join(', ')}`,

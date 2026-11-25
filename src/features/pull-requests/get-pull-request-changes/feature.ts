@@ -1,19 +1,8 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type {
-  GitPullRequestIterationChanges,
-  GitChange,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { GitPullRequestIterationChanges } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import type { PolicyEvaluationRecord } from 'azure-devops-node-api/interfaces/PolicyInterfaces';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { mapWithConcurrency } from '../../../shared/utils/concurrency';
-import {
-  isLikelyBinaryBuffer,
-  streamToBuffer,
-} from '../../../shared/utils/stream';
-import { createTwoFilesPatch } from 'diff';
-
-const MAX_DIFF_BLOB_BYTES = 2 * 1024 * 1024; // 2 MiB cap per blob
-const BLOB_FETCH_CONCURRENCY = 6;
+import { buildGitChangesDiffs } from '../../../shared/utils/git-diff';
 
 export interface PullRequestChangesOptions {
   projectId: string;
@@ -71,62 +60,21 @@ export async function getPullRequestChanges(
       connection.getPolicyApi(),
     ]);
 
-    const artifactId = `vstfs:///CodeReview/CodeReviewId/${options.projectId}/${options.pullRequestId}`;
+    // Policy evaluations require the project GUID in vstfs:///CodeReview/CodeReviewId/{projectGuid}/{prId}
+    const projectGuid =
+      pullRequest?.repository?.project?.id ?? options.projectId;
+    const artifactId = `vstfs:///CodeReview/CodeReviewId/${projectGuid}/${options.pullRequestId}`;
     const evaluations = await policyApi.getPolicyEvaluations(
       options.projectId,
       artifactId,
     );
 
     const changeEntries = changes.changeEntries ?? [];
-
-    const getBlobInfo = async (
-      objId?: string,
-    ): Promise<{ text: string; skippedReason?: string }> => {
-      if (!objId) {
-        return { text: '' };
-      }
-      const stream = await gitApi.getBlobContent(
-        options.repositoryId,
-        objId,
-        options.projectId,
-      );
-      if (!stream) {
-        return { text: '' };
-      }
-      try {
-        const buf = await streamToBuffer(stream, MAX_DIFF_BLOB_BYTES);
-        if (isLikelyBinaryBuffer(buf)) {
-          return { text: '', skippedReason: 'binary file' };
-        }
-        return { text: buf.toString('utf8') };
-      } catch {
-        return {
-          text: '',
-          skippedReason: `file exceeds ${MAX_DIFF_BLOB_BYTES} byte diff limit`,
-        };
-      }
-    };
-
-    const files = await mapWithConcurrency(
+    const files = await buildGitChangesDiffs(
+      gitApi,
+      options.repositoryId,
+      options.projectId,
       changeEntries,
-      BLOB_FETCH_CONCURRENCY,
-      async (entry: GitChange) => {
-        const filePath = entry.item?.path || entry.originalPath || '';
-        const [oldBlob, newBlob] = await Promise.all([
-          getBlobInfo(entry.item?.originalObjectId),
-          getBlobInfo(entry.item?.objectId),
-        ]);
-        const skipReason = oldBlob.skippedReason ?? newBlob.skippedReason;
-        const patch = skipReason
-          ? `[Diff omitted: ${skipReason}]`
-          : createTwoFilesPatch(
-              entry.originalPath || filePath,
-              filePath,
-              oldBlob.text,
-              newBlob.text,
-            );
-        return { path: filePath, patch };
-      },
     );
 
     return {

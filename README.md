@@ -173,7 +173,7 @@ Key environment variables include:
 | `AZURE_DEVOPS_ENABLED_TOOLS`   | Comma-separated allowlist of specific tool names to expose                                                                                                                      | No                           | all              |
 | `AZURE_DEVOPS_DISABLED_TOOLS`  | Comma-separated denylist of specific tool names to hide/block                                                                                                                   | No                           | -                |
 | `AZURE_DEVOPS_READ_ONLY`       | Set to `true` to expose only read-only tools and block all write operations                                                                                                     | No                           | `false`          |
-| `AZURE_DEVOPS_LOG_LEVEL`       | Set to `debug` to print sanitized startup configuration to stderr (also falls back to `LOG_LEVEL`)                                                                              | No                           | `info`           |
+| `AZURE_DEVOPS_LOG_LEVEL`       | Stderr logging threshold (`debug`, `info`, `warn`, `error`); `debug` also prints sanitized startup config (falls back to `LOG_LEVEL`)                                           | No                           | `info`           |
 
 ### Tool Filtering & Read-Only Mode
 

@@ -6,11 +6,8 @@ import { posix } from 'path';
  * and ignores dotfiles unless the pattern explicitly starts with `.` (matching minimatch defaults).
  */
 export function matchesGlob(value: string, pattern: string): boolean {
-  if (pattern === '' && value === '') {
-    return true;
-  }
   if (pattern === '') {
-    return false;
+    return value === '';
   }
 
   let negated = false;
@@ -34,8 +31,8 @@ export function matchesGlob(value: string, pattern: string): boolean {
 export function compileGlobMatcher(
   pattern: string,
 ): (value: string) => boolean {
-  if (pattern === '*') {
-    return (value: string) => value.length > 0 && !value.startsWith('.');
+  if (pattern === '') {
+    return (value: string) => value === '';
   }
 
   let negated = false;

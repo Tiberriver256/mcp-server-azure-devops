@@ -16,6 +16,7 @@ import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
   handleResponseError,
+  redactSecrets,
 } from './shared/errors';
 import { logError } from './shared/logging';
 import { createAzureDevOpsSession } from './shared/session/azure-devops-session';
@@ -257,14 +258,18 @@ export function createAzureDevOpsServer(
         ],
       };
     } catch (error) {
-      logError(
-        `Error reading resource: ${error instanceof Error ? error.message : String(error)}`,
+      const safeMessage = redactSecrets(
+        error instanceof Error ? error.message : String(error),
       );
+      logError(`Error reading resource: ${safeMessage}`);
       if (error instanceof AzureDevOpsError) {
+        if (safeMessage !== error.message) {
+          error.message = safeMessage;
+        }
         throw error;
       }
       throw new AzureDevOpsResourceNotFoundError(
-        `Failed to read resource: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to read resource: ${safeMessage}`,
       );
     }
   });

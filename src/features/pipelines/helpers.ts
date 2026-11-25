@@ -25,11 +25,54 @@ export function coercePipelineId(id: unknown): number | undefined {
   return undefined;
 }
 
+/**
+ * Normalize a branch name to a full Git ref (`refs/heads/...`) unless it
+ * already starts with `refs/`. Returns undefined for empty/whitespace inputs.
+ */
+export function normalizeBranch(branch?: string): string | undefined {
+  if (!branch) {
+    return undefined;
+  }
+
+  const trimmed = branch.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+  if (trimmed.startsWith('refs/')) {
+    return trimmed;
+  }
+
+  return `refs/heads/${trimmed}`;
+}
+
+/**
+ * Returns true if `targetUrl` shares the exact same origin (scheme, host, port)
+ * as `serverUrl`, guarding against forwarding credentials to third-party hosts.
+ */
+export function isSameOrigin(targetUrl: string, serverUrl?: string): boolean {
+  if (!serverUrl) {
+    return false;
+  }
+  try {
+    return new URL(targetUrl).origin === new URL(serverUrl).origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve API version from explicit value (typically `ToolContext.config.apiVersion`).
+ * Falls back to `process.env.AZURE_DEVOPS_API_VERSION` only for standalone callers.
+ */
 export function resolvePipelineApiVersion(explicit?: string): string {
   const candidate = (explicit ?? process.env.AZURE_DEVOPS_API_VERSION)?.trim();
   return candidate && candidate.length > 0 ? candidate : DEFAULT_API_VERSION;
 }
 
+/**
+ * Resolve project ID from explicit value (typically `ToolContext.resolveProjectId(...)`).
+ * Falls back to `process.env.AZURE_DEVOPS_DEFAULT_PROJECT` only for standalone callers.
+ */
 export function resolvePipelineProjectId(explicit?: string): string {
   const candidate = (
     explicit ?? process.env.AZURE_DEVOPS_DEFAULT_PROJECT

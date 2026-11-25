@@ -1,6 +1,7 @@
 import { AuthenticationMethod } from '../../../shared/auth';
 import {
   AzureDevOpsAuthenticationError,
+  AzureDevOpsError,
   AzureDevOpsValidationError,
 } from '../../../shared/errors';
 import { HttpError } from '../../../shared/http/http-client';
@@ -98,5 +99,32 @@ describe('listOrganizations', () => {
     const err = await listOrganizations(ctx).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(AzureDevOpsAuthenticationError);
     expect((err as Error).message).not.toContain('secret-pat-value');
+  });
+
+  it('maps HTTP 500 and malformed accounts payloads to AzureDevOpsError (not AuthenticationError)', async () => {
+    const ctx500 = makeContext(async (req) => {
+      throw new HttpError({
+        message: 'Internal Server Error',
+        status: 500,
+        statusText: 'Internal Server Error',
+        url: req.url,
+      });
+    });
+
+    const err500 = await listOrganizations(ctx500).catch((e: unknown) => e);
+    expect(err500).toBeInstanceOf(AzureDevOpsError);
+    expect(err500).not.toBeInstanceOf(AzureDevOpsAuthenticationError);
+
+    const ctxMalformed = makeContext(async (req) => {
+      if (req.url.includes('/_apis/profile/profiles/me')) {
+        return { status: 200, data: { publicAlias: 'user-alias-123' } };
+      }
+      return { status: 200, data: { value: 'not-an-array' } };
+    });
+    const errMalformed = await listOrganizations(ctxMalformed).catch(
+      (e: unknown) => e,
+    );
+    expect(errMalformed).toBeInstanceOf(AzureDevOpsError);
+    expect(errMalformed).not.toBeInstanceOf(AzureDevOpsAuthenticationError);
   });
 });

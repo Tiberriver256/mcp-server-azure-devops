@@ -4,7 +4,7 @@ import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { resolvePipelineProjectId } from '../helpers';
+import { normalizeBranch, resolvePipelineProjectId } from '../helpers';
 import type { Run, TriggerPipelineOptions } from '../types';
 
 /**
@@ -42,9 +42,10 @@ export async function triggerPipeline(
       runParameters.stagesToSkip = stagesToSkip;
     }
 
-    // Prepare resources (including branch)
-    const resources: Record<string, unknown> = branch
-      ? { repositories: { self: { refName: `refs/heads/${branch}` } } }
+    // Prepare resources (including normalized branch ref)
+    const refName = normalizeBranch(branch);
+    const resources: Record<string, unknown> = refName
+      ? { repositories: { self: { refName } } }
       : {};
 
     // Add resources to run parameters if not empty

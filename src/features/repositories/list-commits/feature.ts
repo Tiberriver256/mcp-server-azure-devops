@@ -1,21 +1,12 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { GitChange } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { createTwoFilesPatch } from 'diff';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { mapWithConcurrency } from '../../../shared/utils/concurrency';
-import {
-  isLikelyBinaryBuffer,
-  streamToBuffer,
-} from '../../../shared/utils/stream';
+import { buildGitChangesDiffs } from '../../../shared/utils/git-diff';
 import type {
   CommitWithContent,
   ListCommitsOptions,
   ListCommitsResponse,
 } from '../types';
-
-const MAX_DIFF_BLOB_BYTES = 2 * 1024 * 1024; // 2 MiB cap per blob when computing diffs
-const BLOB_FETCH_CONCURRENCY = 6;
 
 /**
  * List commits on a branch including their file-level diffs with bounded
@@ -44,34 +35,6 @@ export async function listCommits(
       return { commits: [] };
     }
 
-    const getBlobInfo = async (
-      objId?: string,
-    ): Promise<{ text: string; skippedReason?: string }> => {
-      if (!objId) {
-        return { text: '' };
-      }
-      const stream = await gitApi.getBlobContent(
-        options.repositoryId,
-        objId,
-        options.projectId,
-      );
-      if (!stream) {
-        return { text: '' };
-      }
-      try {
-        const buf = await streamToBuffer(stream, MAX_DIFF_BLOB_BYTES);
-        if (isLikelyBinaryBuffer(buf)) {
-          return { text: '', skippedReason: 'binary file' };
-        }
-        return { text: buf.toString('utf8') };
-      } catch {
-        return {
-          text: '',
-          skippedReason: `file exceeds ${MAX_DIFF_BLOB_BYTES} byte diff limit`,
-        };
-      }
-    };
-
     const commitsWithContent: CommitWithContent[] = [];
 
     for (const commit of commits) {
@@ -86,28 +49,11 @@ export async function listCommits(
         options.projectId,
       );
       const changeEntries = commitChanges?.changes ?? [];
-
-      const files = await mapWithConcurrency(
+      const files = await buildGitChangesDiffs(
+        gitApi,
+        options.repositoryId,
+        options.projectId,
         changeEntries,
-        BLOB_FETCH_CONCURRENCY,
-        async (entry: GitChange) => {
-          const filePath = entry.item?.path || entry.originalPath || '';
-          const [oldBlob, newBlob] = await Promise.all([
-            getBlobInfo(entry.item?.originalObjectId),
-            getBlobInfo(entry.item?.objectId),
-          ]);
-
-          const skipReason = oldBlob.skippedReason ?? newBlob.skippedReason;
-          const patch = skipReason
-            ? `[Diff omitted: ${skipReason}]`
-            : createTwoFilesPatch(
-                entry.originalPath || filePath,
-                filePath,
-                oldBlob.text,
-                newBlob.text,
-              );
-          return { path: filePath, patch };
-        },
       );
 
       commitsWithContent.push({

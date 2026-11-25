@@ -1,6 +1,5 @@
 import type { WebApi } from 'azure-devops-node-api';
 import {
-  AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsValidationError,
 } from '../../../shared/errors';
@@ -8,7 +7,10 @@ import {
   isAzureDevOpsServicesUrl,
   resolveAzureDevOpsBaseUrls,
 } from '../../../shared/azure-devops-url';
-import { isHttpError } from '../../../shared/http/http-client';
+import {
+  isHttpError,
+  mapHttpErrorToAzureDevOpsError,
+} from '../../../shared/http/http-client';
 import { createSessionFromEnv } from '../../../shared/session/azure-devops-session';
 import type { ToolContext } from '../../../shared/session/azure-devops-session';
 import type { UserProfile } from '../types';
@@ -50,7 +52,7 @@ export async function getMe(
       displayName?: string;
       emailAddress?: string;
     }>(
-      `https://vssps.dev.azure.com/${organization}/_apis/profile/profiles/me?api-version=7.1`,
+      `https://vssps.dev.azure.com/${encodeURIComponent(organization)}/_apis/profile/profiles/me?api-version=7.1`,
       {
         headers: {
           Authorization: authHeader,
@@ -60,20 +62,29 @@ export async function getMe(
     );
 
     const profile = response.data;
+    if (
+      !profile ||
+      typeof profile !== 'object' ||
+      typeof profile.id !== 'string' ||
+      profile.id.length === 0
+    ) {
+      throw new AzureDevOpsError(
+        'Unexpected response format from Azure DevOps profile endpoint',
+      );
+    }
+
     return {
       id: profile.id,
       displayName: profile.displayName || '',
       email: profile.emailAddress || '',
     };
   } catch (error) {
-    if (isHttpError(error) && (error.status === 401 || error.status === 403)) {
-      throw new AzureDevOpsAuthenticationError(
-        `Authentication failed: ${error.message}`,
-      );
-    }
-
     if (error instanceof AzureDevOpsError) {
       throw error;
+    }
+
+    if (isHttpError(error)) {
+      throw mapHttpErrorToAzureDevOpsError(error, 'getting user information');
     }
 
     throw new AzureDevOpsError(

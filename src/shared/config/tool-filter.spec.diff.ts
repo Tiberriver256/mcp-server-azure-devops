@@ -1,10 +1,7 @@
 import { parseArgs } from 'util';
 import fc from 'fast-check';
 import {
-  normalizeToolsetName,
-  parseBooleanOption,
   parseCliToolFilterArgs,
-  parseCsvList,
   resolveEnabledTools,
   TOOLSET_NAMES,
 } from './tool-filter';
@@ -48,14 +45,51 @@ const ALL_NAMES = TOOLSET_NAMES.flatMap((ts) =>
   registry[ts].map((t) => t.name),
 );
 
+const ORACLE_ALIASES = new Map<string, string>([
+  ['repos', 'repositories'],
+  ['prs', 'pull-requests'],
+  ['pull_requests', 'pull-requests'],
+  ['pullrequests', 'pull-requests'],
+  ['work_items', 'work-items'],
+  ['workitems', 'work-items'],
+  ['test_plans', 'test-plans'],
+  ['testplans', 'test-plans'],
+]);
+
+function oracleNormalizeToolset(raw: string): string {
+  const key = raw.trim().toLowerCase();
+  if (key === 'all') {
+    return 'all';
+  }
+  return ORACLE_ALIASES.get(key) ?? key;
+}
+
+function oracleParseCsv(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function oracleParseBool(raw: string): boolean {
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === 'true' || normalized === '1' || normalized === 'yes') {
+    return true;
+  }
+  if (normalized === 'false' || normalized === '0' || normalized === 'no') {
+    return false;
+  }
+  throw new Error(`Invalid boolean: ${raw}`);
+}
+
 /**
- * Independent brute-force per-tool set-algebra oracle.
+ * Independent brute-force per-tool set-algebra oracle (shares no parser/normalizer code with SUT).
  */
 function oracleResolveEnabledToolNames(options: ToolFilterOptions): string[] {
   const normalizedToolsets =
     options.toolsets && options.toolsets.length > 0
-      ? options.toolsets.map(normalizeToolsetName)
-      : ['all' as const];
+      ? options.toolsets.map(oracleNormalizeToolset)
+      : ['all'];
   const includeAll = normalizedToolsets.includes('all');
   const allowedToolsets = new Set<string>(normalizedToolsets);
   const allowSet =
@@ -102,16 +136,16 @@ function oracleParseCliWithUtilParseArgs(argv: string[]): ToolFilterOptions {
 
   const out: ToolFilterOptions = {};
   if (typeof values.toolsets === 'string') {
-    out.toolsets = parseCsvList(values.toolsets);
+    out.toolsets = oracleParseCsv(values.toolsets);
   }
   if (typeof values['enabled-tools'] === 'string') {
-    out.enabledTools = parseCsvList(values['enabled-tools']);
+    out.enabledTools = oracleParseCsv(values['enabled-tools']);
   }
   if (typeof values['disabled-tools'] === 'string') {
-    out.disabledTools = parseCsvList(values['disabled-tools']);
+    out.disabledTools = oracleParseCsv(values['disabled-tools']);
   }
   if (typeof values['read-only'] === 'string') {
-    out.readOnly = parseBooleanOption(values['read-only'], '--read-only');
+    out.readOnly = oracleParseBool(values['read-only']);
   }
   return out;
 }

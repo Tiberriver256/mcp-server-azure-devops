@@ -8,6 +8,7 @@ import {
 import { extractContinuationToken as extractHeaderContinuationToken } from '../../../shared/http/http-client';
 import type { ToolContext } from '../../../shared/session/azure-devops-session';
 import {
+  normalizeBranch,
   resolvePipelineApiVersion,
   resolvePipelineProjectId,
 } from '../helpers';
@@ -17,21 +18,7 @@ import type {
   Run,
 } from '../types';
 
-export function normalizeBranch(branch?: string): string | undefined {
-  if (!branch) {
-    return undefined;
-  }
-
-  const trimmed = branch.trim();
-  if (trimmed.length === 0) {
-    return undefined;
-  }
-  if (trimmed.startsWith('refs/')) {
-    return trimmed;
-  }
-
-  return `refs/heads/${trimmed}`;
-}
+export { normalizeBranch };
 
 function isRunArray(value: unknown): value is Run[] {
   return Array.isArray(value);

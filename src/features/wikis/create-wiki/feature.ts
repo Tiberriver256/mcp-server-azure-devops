@@ -3,6 +3,7 @@ import {
   AzureDevOpsError,
   AzureDevOpsValidationError,
 } from '../../../shared/errors';
+import { createSessionFromEnv } from '../../../shared/session/azure-devops-session';
 import type { ToolContext } from '../../../shared/session/azure-devops-session';
 import { WikiType } from '../schemas';
 import { createWikiClient } from '../wiki-client';
@@ -20,14 +21,10 @@ export interface CreateWikiOptions {
  * Create a new wiki in Azure DevOps.
  */
 export async function createWiki(
-  _connectionOrContext: WebApi | ToolContext,
+  connectionOrContext: WebApi | ToolContext,
   options: CreateWikiOptions,
 ) {
   try {
-    const ctx =
-      'requestAzureDevOps' in _connectionOrContext
-        ? _connectionOrContext
-        : undefined;
     const {
       name,
       type = WikiType.ProjectWiki,
@@ -41,14 +38,20 @@ export async function createWiki(
       );
     }
 
-    const projectId = ctx
-      ? ctx.resolveProjectId(options.projectId)
-      : options.projectId;
+    const session =
+      'requestAzureDevOps' in connectionOrContext
+        ? connectionOrContext
+        : createSessionFromEnv({
+            organizationUrl: connectionOrContext.serverUrl,
+            defaultProject: options.projectId,
+          });
+
+    const projectId = session.resolveOptionalProjectId(options.projectId);
     if (!projectId) {
       throw new AzureDevOpsValidationError('Project ID is required');
     }
 
-    const wikiClient = createWikiClient(ctx, {
+    const wikiClient = createWikiClient(session, {
       organizationId: options.organizationId,
       projectId,
     });

@@ -2,6 +2,19 @@ import { AzureDevOpsError } from '../errors';
 
 export const DEFAULT_MAX_STREAM_BYTES = 25 * 1024 * 1024; // 25 MiB
 
+/**
+ * Typed error raised when a stream exceeds its configured maximum byte limit.
+ */
+export class StreamSizeLimitError extends AzureDevOpsError {
+  readonly maxBytes: number;
+
+  constructor(maxBytes: number) {
+    super(`Stream exceeded maximum allowed size of ${maxBytes} bytes`);
+    this.name = 'StreamSizeLimitError';
+    this.maxBytes = maxBytes;
+  }
+}
+
 function isDestroyableStream(value: unknown): value is { destroy: () => void } {
   return (
     typeof value === 'object' &&
@@ -14,6 +27,7 @@ function isDestroyableStream(value: unknown): value is { destroy: () => void } {
 /**
  * Read a NodeJS.ReadableStream into a single Buffer with an optional byte cap
  * to prevent unbounded memory allocation on oversized responses.
+ * Rejects cleanly if the stream errors or closes prematurely before emitting `end`.
  */
 export async function streamToBuffer(
   stream: NodeJS.ReadableStream,
@@ -42,11 +56,7 @@ export async function streamToBuffer(
       const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       totalBytes += buf.length;
       if (totalBytes > maxBytes) {
-        fail(
-          new AzureDevOpsError(
-            `Stream exceeded maximum allowed size of ${maxBytes} bytes`,
-          ),
-        );
+        fail(new StreamSizeLimitError(maxBytes));
         return;
       }
       chunks.push(buf);
@@ -64,6 +74,12 @@ export async function streamToBuffer(
       resolve(
         chunks.length === 1 ? chunks[0] : Buffer.concat(chunks, totalBytes),
       );
+    });
+
+    stream.on('close', () => {
+      if (!settled) {
+        fail(new AzureDevOpsError('Stream closed prematurely before end'));
+      }
     });
   });
 }

@@ -9,6 +9,7 @@ import {
 } from '../../server';
 import { AuthenticationMethod } from '../auth';
 import { TOOLSET_NAMES } from '../config';
+import { formatToolResult } from './tool-registry';
 
 describe('tool-registry contract differential tests: Zod definitions vs MCP ListTools JSON Schema', () => {
   it('validates all 60 tools against MCP ListToolsResultSchema with zero leaked internals or sentinel defaults', async () => {
@@ -108,5 +109,25 @@ describe('tool-registry contract differential tests: Zod definitions vs MCP List
         expect(registered.schema.safeParse({}).success).toBe(false);
       }
     }
+  });
+
+  it('formatToolResult produces valid MCP text blocks for undefined and domain objects containing arbitrary content arrays', () => {
+    expect(formatToolResult(undefined)).toEqual({
+      content: [{ type: 'text', text: '' }],
+    });
+
+    const domainObject = { content: [{ foo: 1 }], id: 42 };
+    const formatted = formatToolResult(domainObject);
+    expect(formatted.content).toHaveLength(1);
+    expect(formatted.content[0].type).toBe('text');
+    expect(JSON.parse(formatted.content[0].text)).toEqual(domainObject);
+
+    const emptyContentDomain = { content: [] };
+    expect(
+      JSON.parse(formatToolResult(emptyContentDomain).content[0].text),
+    ).toEqual(emptyContentDomain);
+
+    const validMcp = { content: [{ type: 'text' as const, text: 'ok' }] };
+    expect(formatToolResult(validMcp)).toBe(validMcp);
   });
 });

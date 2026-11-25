@@ -1,5 +1,7 @@
 import fc from 'fast-check';
+import { AzureDevOpsValidationError } from '../errors';
 import {
+  normalizeToolsetName,
   parseCliToolFilterArgs,
   resolveEnabledTools,
   TOOLSET_NAMES,
@@ -178,6 +180,31 @@ describe('tool-filter properties', () => {
         },
       ),
       { numRuns: 100 },
+    );
+  });
+
+  it('SECURITY INVARIANT: Object.prototype property names are rejected as unknown toolsets', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(
+          'toString',
+          'constructor',
+          '__proto__',
+          'valueOf',
+          'hasOwnProperty',
+          'isPrototypeOf',
+          'toLocaleString',
+        ),
+        (protoKey) => {
+          expect(() => normalizeToolsetName(protoKey)).toThrow(
+            AzureDevOpsValidationError,
+          );
+          expect(() =>
+            resolveEnabledTools(sampleRegistry, { toolsets: [protoKey] }),
+          ).toThrow(AzureDevOpsValidationError);
+        },
+      ),
+      { numRuns: 50 },
     );
   });
 });

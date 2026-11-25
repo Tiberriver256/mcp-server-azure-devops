@@ -5,7 +5,10 @@ import {
   AzureDevOpsValidationError,
 } from '../../../shared/errors';
 import { isAzureDevOpsServicesUrl } from '../../../shared/azure-devops-url';
-import { isHttpError } from '../../../shared/http/http-client';
+import {
+  isHttpError,
+  mapHttpErrorToAzureDevOpsError,
+} from '../../../shared/http/http-client';
 import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session';
 import type { ToolContext } from '../../../shared/session/azure-devops-session';
 import type { Organization } from '../types';
@@ -52,8 +55,11 @@ export async function listOrganizations(
       },
     );
 
-    const publicAlias = profileResponse.data.publicAlias;
-    if (!publicAlias) {
+    const publicAlias =
+      profileResponse.data && typeof profileResponse.data === 'object'
+        ? profileResponse.data.publicAlias
+        : undefined;
+    if (typeof publicAlias !== 'string' || publicAlias.length === 0) {
       throw new AzureDevOpsAuthenticationError(
         'Unable to get user publicAlias from profile',
       );
@@ -61,7 +67,7 @@ export async function listOrganizations(
 
     // Step 2: Get organizations using the publicAlias
     const orgsResponse = await ctx.http.get<{
-      value: AzureDevOpsAccountRecord[];
+      value?: AzureDevOpsAccountRecord[];
     }>(
       `https://app.vssps.visualstudio.com/_apis/accounts?memberId=${encodeURIComponent(publicAlias)}&api-version=6.0`,
       {
@@ -72,26 +78,33 @@ export async function listOrganizations(
       },
     );
 
+    if (
+      !orgsResponse.data ||
+      typeof orgsResponse.data !== 'object' ||
+      !Array.isArray(orgsResponse.data.value)
+    ) {
+      throw new AzureDevOpsError(
+        'Unexpected response format from Azure DevOps accounts endpoint',
+      );
+    }
+
     return orgsResponse.data.value.map((org) => ({
       id: org.accountId,
       name: org.accountName,
       url: org.accountUri,
     }));
   } catch (error) {
-    if (isHttpError(error) && error.url.includes('profile')) {
-      throw new AzureDevOpsAuthenticationError(
-        `Authentication failed: ${error.message} (status ${error.status})`,
-      );
-    }
-
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
 
+    if (isHttpError(error)) {
+      throw mapHttpErrorToAzureDevOpsError(error, 'listing organizations');
+    }
+
     if (
       error instanceof Error &&
-      (error.message.includes('profile') ||
-        error.message.includes('Unauthorized') ||
+      (error.message.includes('Unauthorized') ||
         error.message.includes('Authentication'))
     ) {
       throw new AzureDevOpsAuthenticationError(
@@ -99,7 +112,7 @@ export async function listOrganizations(
       );
     }
 
-    throw new AzureDevOpsAuthenticationError(
+    throw new AzureDevOpsError(
       `Failed to list organizations: ${error instanceof Error ? error.message : String(error)}`,
     );
   }

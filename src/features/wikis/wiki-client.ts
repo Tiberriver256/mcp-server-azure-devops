@@ -3,7 +3,10 @@ import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
 } from '../../shared/errors';
-import { extractETag } from '../../shared/http/http-client';
+import {
+  extractContinuationToken,
+  extractETag,
+} from '../../shared/http/http-client';
 import { createSessionFromEnv } from '../../shared/session/azure-devops-session';
 import type { ToolContext } from '../../shared/session/azure-devops-session';
 
@@ -66,7 +69,7 @@ export class WikiClient {
   private async getProjectId(projectNameOrId: string): Promise<string> {
     const response = await this.session.requestAzureDevOps<{ id: string }>({
       method: 'GET',
-      url: `${this.baseUrl}/_apis/projects/${projectNameOrId}`,
+      url: `${this.baseUrl}/_apis/projects/${encodeURIComponent(projectNameOrId)}`,
       query: { 'api-version': this.session.config.apiVersion },
       headers: { 'Content-Type': 'application/json' },
       context: `getting project details for '${projectNameOrId}'`,
@@ -85,7 +88,7 @@ export class WikiClient {
       Record<string, unknown>
     >({
       method: 'POST',
-      url: `${this.baseUrl}/${project}/_apis/wiki/wikis`,
+      url: `${this.baseUrl}/${encodeURIComponent(project)}/_apis/wiki/wikis`,
       query: { 'api-version': this.session.config.apiVersion },
       body: {
         name: params.name,
@@ -113,7 +116,7 @@ export class WikiClient {
 
     const response = await this.session.requestAzureDevOps<string>({
       method: 'GET',
-      url: `${this.baseUrl}/${project}/_apis/wiki/wikis/${wikiId}/pages`,
+      url: `${this.baseUrl}/${encodeURIComponent(project)}/_apis/wiki/wikis/${encodeURIComponent(wikiId)}/pages`,
       query: {
         'api-version': this.session.config.apiVersion,
         path: normalizedPath,
@@ -122,7 +125,7 @@ export class WikiClient {
         Accept: 'text/plain',
       },
       responseType: 'text',
-      context: `getting wiki page '${pagePath}' in wiki '${wikiId}'`,
+      context: `getting wiki page '${normalizedPath}' in wiki '${wikiId}'`,
     });
 
     return {
@@ -139,11 +142,12 @@ export class WikiClient {
     options?: PageUpdateOptions,
   ): Promise<Record<string, unknown>> {
     const project = this.session.resolveProjectId(projectId);
+    const normalizedPath = pagePath.startsWith('/') ? pagePath : `/${pagePath}`;
 
     // Fetch current ETag when page already exists; 404 means we are creating a new page
     let currentETag: string | undefined;
     try {
-      const currentPage = await this.getPage(project, wikiId, pagePath);
+      const currentPage = await this.getPage(project, wikiId, normalizedPath);
       currentETag = currentPage.eTag;
     } catch (error) {
       if (!(error instanceof AzureDevOpsResourceNotFoundError)) {
@@ -158,20 +162,20 @@ export class WikiClient {
       headers['If-Match'] = `"${currentETag}"`;
     }
 
-    // Pass raw pagePath: buildRequestUrl encodes query parameters once (avoids double-encoding)
+    // Pass normalizedPath raw: buildRequestUrl encodes query parameters once (avoids double-encoding)
     const response = await this.session.requestAzureDevOps<
       Record<string, unknown>
     >({
       method: 'PUT',
-      url: `${this.baseUrl}/${project}/_apis/wiki/wikis/${wikiId}/pages`,
+      url: `${this.baseUrl}/${encodeURIComponent(project)}/_apis/wiki/wikis/${encodeURIComponent(wikiId)}/pages`,
       query: {
         'api-version': this.session.config.apiVersion,
-        path: pagePath,
+        path: normalizedPath,
         comment: options?.comment,
       },
       headers,
       body: { content: content.content },
-      context: `updating wiki page '${pagePath}' in wiki '${wikiId}'`,
+      context: `updating wiki page '${normalizedPath}' in wiki '${wikiId}'`,
     });
 
     return {
@@ -189,7 +193,7 @@ export class WikiClient {
     wikiId: string,
   ): Promise<WikiPageSummary[]> {
     const project = this.session.resolveProjectId(projectId);
-    const url = `${this.baseUrl}/${project}/_apis/wiki/wikis/${wikiId}/pagesbatch`;
+    const url = `${this.baseUrl}/${encodeURIComponent(project)}/_apis/wiki/wikis/${encodeURIComponent(wikiId)}/pagesbatch`;
 
     const allPages: WikiPageSummary[] = [];
     const seenTokens = new Set<string>();
@@ -218,7 +222,9 @@ export class WikiClient {
         allPages.push(...response.data.value);
       }
 
-      const nextToken = response.data?.continuationToken;
+      const nextToken =
+        extractContinuationToken(response.headers) ??
+        response.data?.continuationToken;
       if (nextToken && seenTokens.has(nextToken)) {
         throw new AzureDevOpsError(
           `Detected repeated continuation token while listing wiki pages in '${wikiId}'`,

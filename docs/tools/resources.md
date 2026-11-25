@@ -116,9 +116,8 @@ For directories, the content is returned as a JSON array with MIME type `applica
 
 The resource handler may throw the following errors:
 
-- `AzureDevOpsResourceNotFoundError`: If the specified resource cannot be found (project, repository, path, or version)
+- `AzureDevOpsResourceNotFoundError`: If the URI format is invalid or the specified resource cannot be found (project, repository, path, or version)
 - `AzureDevOpsAuthenticationError`: If authentication fails
-- `AzureDevOpsValidationError`: If the URI format is invalid
 - Other errors: For unexpected issues
 
 ## Related Tools

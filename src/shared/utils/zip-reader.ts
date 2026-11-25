@@ -193,6 +193,9 @@ export function readZipArchive(
     }
 
     const flags = buf.readUInt16LE(cursor + 8);
+    if ((flags & 0x0001) !== 0) {
+      throw new AzureDevOpsError('Encrypted ZIP archives are not supported');
+    }
     const compressionMethod = buf.readUInt16LE(cursor + 10);
     let compressedSize = buf.readUInt32LE(cursor + 20);
     let uncompressedSize = buf.readUInt32LE(cursor + 24);
@@ -237,7 +240,7 @@ export function readZipArchive(
 
     const meta: ZipEntryMeta = {
       name,
-      isDirectory: name.endsWith('/'),
+      isDirectory: name.endsWith('/') || name.endsWith('\\'),
       compressedSize,
       uncompressedSize,
       compressionMethod,
@@ -257,9 +260,14 @@ export function readZipArchive(
       return Buffer.alloc(0);
     }
 
-    if (entry.uncompressedSize > maxBytes) {
+    if (!Number.isFinite(maxBytes) || maxBytes < 0) {
+      throw new AzureDevOpsError(`Invalid maxBytes limit: ${maxBytes}`);
+    }
+    const maxAllowedBytes = Math.floor(maxBytes);
+
+    if (entry.uncompressedSize > maxAllowedBytes) {
       throw new AzureDevOpsError(
-        `ZIP entry '${entry.name}' exceeds maximum allowed size of ${maxBytes} bytes`,
+        `ZIP entry '${entry.name}' exceeds maximum allowed size of ${maxAllowedBytes} bytes`,
       );
     }
 
@@ -290,9 +298,9 @@ export function readZipArchive(
     const compressedData = buf.subarray(dataStart, dataEnd);
 
     if (entry.compressionMethod === 0) {
-      if (compressedData.length > maxBytes) {
+      if (compressedData.length > maxAllowedBytes) {
         throw new AzureDevOpsError(
-          `ZIP entry '${entry.name}' exceeds maximum allowed size of ${maxBytes} bytes`,
+          `ZIP entry '${entry.name}' exceeds maximum allowed size of ${maxAllowedBytes} bytes`,
         );
       }
       return Buffer.from(compressedData);
@@ -300,8 +308,21 @@ export function readZipArchive(
 
     if (entry.compressionMethod === 8) {
       try {
-        return inflateRawSync(compressedData, { maxOutputLength: maxBytes });
+        // Node's zlib.inflateRawSync requires integer maxOutputLength >= 1; for 0,
+        // inflate with a 1-byte cap and reject if output is non-empty.
+        const inflated = inflateRawSync(compressedData, {
+          maxOutputLength: Math.max(1, maxAllowedBytes),
+        });
+        if (inflated.length > maxAllowedBytes) {
+          throw new AzureDevOpsError(
+            `ZIP entry '${entry.name}' exceeds maximum allowed size of ${maxAllowedBytes} bytes`,
+          );
+        }
+        return inflated;
       } catch (error) {
+        if (error instanceof AzureDevOpsError) {
+          throw error;
+        }
         const message = error instanceof Error ? error.message : String(error);
         throw new AzureDevOpsError(
           `Failed to decompress ZIP entry '${entry.name}': ${message}`,

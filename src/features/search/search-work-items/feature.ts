@@ -24,13 +24,30 @@ export async function searchWorkItems(
     ? connectionOrContext
     : createSessionFromEnv({ organizationUrl: serverUrl });
 
+  const baseUrls = resolveAzureDevOpsBaseUrls(serverUrl, {
+    organizationId: options.organizationId,
+    projectId: options.projectId,
+  });
+
+  const effectiveProjectId =
+    options.projectId?.trim() ||
+    (baseUrls.type === 'server'
+      ? (session.config.defaultProject ?? baseUrls.projectFromUrl)
+      : undefined);
+
+  if (baseUrls.type === 'server' && !effectiveProjectId) {
+    throw new AzureDevOpsValidationError(
+      'Project ID is required for Azure DevOps Server work item search',
+    );
+  }
+
   const searchRequest: WorkItemSearchRequest = {
     searchText: options.searchText,
     $skip: options.skip,
     $top: options.top,
     filters: {
-      ...(options.projectId
-        ? { 'System.TeamProject': [options.projectId] }
+      ...(effectiveProjectId
+        ? { 'System.TeamProject': [effectiveProjectId] }
         : {}),
       ...options.filters,
     },
@@ -38,19 +55,8 @@ export async function searchWorkItems(
     $orderBy: options.orderBy,
   };
 
-  const baseUrls = resolveAzureDevOpsBaseUrls(serverUrl, {
-    organizationId: options.organizationId,
-    projectId: options.projectId,
-  });
-
-  if (baseUrls.type === 'server' && !options.projectId) {
-    throw new AzureDevOpsValidationError(
-      'Project ID is required for Azure DevOps Server work item search',
-    );
-  }
-
-  const searchUrl = options.projectId
-    ? `${baseUrls.searchBaseUrl}/${options.projectId}/_apis/search/workitemsearchresults`
+  const searchUrl = effectiveProjectId
+    ? `${baseUrls.searchBaseUrl}/${encodeURIComponent(effectiveProjectId)}/_apis/search/workitemsearchresults`
     : `${baseUrls.searchBaseUrl}/_apis/search/workitemsearchresults`;
 
   const response = await session.requestAzureDevOps<WorkItemSearchResponse>({

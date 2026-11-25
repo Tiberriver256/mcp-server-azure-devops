@@ -88,7 +88,7 @@ write_env_file() {
     cat > .env << EOF
 # Azure DevOps MCP Server - Environment Variables
 
-# Azure DevOps Organization Name (selected from your available organizations)
+# Azure DevOps Organization Name (used by wiki integration tests; the MCP server reads AZURE_DEVOPS_ORG_URL)
 AZURE_DEVOPS_ORG=$org_name
 
 # Azure DevOps Organization URL (required)

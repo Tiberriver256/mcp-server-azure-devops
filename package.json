@@ -63,6 +63,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "typecheck:tests": "tsc -p tsconfig.jest.json --noEmit",
     "prepack": "npm run build && chmod +x dist/index.js",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
@@ -73,7 +74,7 @@
     "test:diff": "jest --config jest.unit.config.js --testMatch='**/*.spec.diff.ts' --coverage=false",
     "test:int": "jest --config jest.int.config.js",
     "test:e2e": "jest --config jest.e2e.config.js",
-    "test:watch": "jest --watch",
+    "test:watch": "jest --config jest.unit.config.js --watch",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt \"src/**/*.ts\" \"tests/**/*.ts\"",

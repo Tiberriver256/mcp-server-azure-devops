@@ -178,15 +178,25 @@ export function createAzureDevOpsSession(
   const webApiCache = new Map<string, Promise<WebApi>>();
 
   const getWebApi = async (organizationId?: string): Promise<WebApi> => {
-    const targetUrl =
-      organizationId &&
-      organizationId.trim().length > 0 &&
-      baseUrls.type === 'services' &&
-      organizationId !== baseUrls.organization
-        ? resolveAzureDevOpsBaseUrls(config.organizationUrl, {
-            organizationId: organizationId.trim(),
-          }).coreBaseUrl
-        : config.organizationUrl;
+    const trimmedOrg = organizationId?.trim();
+    let targetUrl = config.organizationUrl;
+
+    if (trimmedOrg && trimmedOrg.length > 0) {
+      if (
+        baseUrls.type === 'services' &&
+        trimmedOrg !== baseUrls.organization
+      ) {
+        targetUrl = resolveAzureDevOpsBaseUrls(config.organizationUrl, {
+          organizationId: trimmedOrg,
+        }).coreBaseUrl;
+      } else if (
+        baseUrls.type === 'server' &&
+        baseUrls.instanceBaseUrl &&
+        trimmedOrg !== baseUrls.collection
+      ) {
+        targetUrl = `${baseUrls.instanceBaseUrl.replace(/\/+$/, '')}/${encodeURIComponent(trimmedOrg)}`;
+      }
+    }
 
     const provider = getAuthProvider();
 
@@ -237,11 +247,19 @@ export function createAzureDevOpsSession(
     const { context, ...httpOptions } = options;
     try {
       const authHeader = await getAuthHeader();
+      const sanitizedHeaders: Record<string, string> = {};
+      if (httpOptions.headers) {
+        for (const [key, value] of Object.entries(httpOptions.headers)) {
+          if (key.toLowerCase() !== 'authorization') {
+            sanitizedHeaders[key] = value;
+          }
+        }
+      }
       return await http.request<T>({
         ...httpOptions,
         headers: {
+          ...sanitizedHeaders,
           Authorization: authHeader,
-          ...httpOptions.headers,
         },
       });
     } catch (error) {

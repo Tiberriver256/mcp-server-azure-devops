@@ -27,8 +27,9 @@ export const SUITE_TEST_CASES_LOCATION_ID =
 const NO_DEFAULT_PROJECT = 'no default project';
 
 /**
- * Resolve projectId from explicit argument, optional default override,
- * or process.env.AZURE_DEVOPS_DEFAULT_PROJECT.
+ * Resolve projectId from explicit argument or configured default (passed from
+ * `ToolContext.config.defaultProject` in MCP handlers). Falls back to
+ * `process.env.AZURE_DEVOPS_DEFAULT_PROJECT` only for standalone callers.
  * Fails fast with AzureDevOpsValidationError if neither is configured.
  */
 export function resolveProjectId(

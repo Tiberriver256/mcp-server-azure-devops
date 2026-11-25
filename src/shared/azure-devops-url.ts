@@ -38,11 +38,13 @@ export function resolveAzureDevOpsBaseUrls(
       );
     }
 
+    const encodedOrg = encodeURIComponent(organization);
+
     return {
       type: 'services',
       organization,
-      coreBaseUrl: `https://${DEV_AZURE_HOST}/${organization}`,
-      searchBaseUrl: `https://${SEARCH_HOST}/${organization}`,
+      coreBaseUrl: `https://${DEV_AZURE_HOST}/${encodedOrg}`,
+      searchBaseUrl: `https://${SEARCH_HOST}/${encodedOrg}`,
     };
   }
 
@@ -205,15 +207,15 @@ function extractServerInfo(
 }
 
 function buildBaseUrl(origin: string, segments: string[]): string {
+  const normalizedOrigin = origin.replace(/\/+$/, '');
   if (segments.length === 0) {
-    return origin.replace(/\/+$/, '');
+    return normalizedOrigin;
   }
 
-  const url = new URL(origin);
-  url.pathname = `/${segments.join('/')}`;
-  return url.toString().replace(/\/+$/, '');
+  const encodedPath = segments.map((s) => encodeURIComponent(s)).join('/');
+  return `${normalizedOrigin}/${encodedPath}`;
 }
 
 function joinUrl(base: string, segment: string): string {
-  return `${base.replace(/\/+$/, '')}/${segment}`;
+  return `${base.replace(/\/+$/, '')}/${encodeURIComponent(segment)}`;
 }

@@ -1,6 +1,7 @@
 import * as http from 'http';
 import type { AddressInfo } from 'net';
 import {
+  buildRequestUrl,
   createHttpClient,
   extractContinuationToken,
   extractETag,
@@ -67,6 +68,29 @@ describe('http-client wire-level differential tests vs real Node http.Server ora
         if (parsed.pathname === '/large') {
           res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
           res.end(Buffer.alloc(4096, 0x61));
+          return;
+        }
+
+        if (parsed.pathname === '/auth-redirect-203') {
+          res.writeHead(203, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end(
+            '<!DOCTYPE html><html><head><title>Azure DevOps Services | Sign In</title></head><body>Sign in</body></html>',
+          );
+          return;
+        }
+
+        if (parsed.pathname === '/no-content-204') {
+          res.writeHead(204);
+          res.end();
+          return;
+        }
+
+        if (parsed.pathname === '/rate-limit-blank') {
+          res.writeHead(429, {
+            'Content-Type': 'application/json',
+            'Retry-After': '   ',
+          });
+          res.end(JSON.stringify({ message: 'Too many requests' }));
           return;
         }
 
@@ -155,6 +179,51 @@ describe('http-client wire-level differential tests vs real Node http.Server ora
         maxResponseBytes: 512,
       }),
     ).rejects.toThrow(/exceeded maximum allowed size/i);
+  });
+
+  it('treats Azure DevOps HTTP 203 HTML sign-in redirects as HttpError(203) -> AzureDevOpsAuthenticationError', async () => {
+    const client = createHttpClient();
+    const caught = await client
+      .get(`${baseUrl}/auth-redirect-203`)
+      .catch((e: unknown) => e);
+
+    expect(caught).toBeInstanceOf(HttpError);
+    expect((caught as HttpError).status).toBe(203);
+    expect(
+      mapHttpErrorToAzureDevOpsError(caught, 'fetching wiki'),
+    ).toBeInstanceOf(AzureDevOpsAuthenticationError);
+  });
+
+  it('handles HTTP 204 No Content responses cleanly across json/text/arraybuffer modes', async () => {
+    const client = createHttpClient();
+    const jsonRes = await client.get(`${baseUrl}/no-content-204`);
+    expect(jsonRes.status).toBe(204);
+    expect(jsonRes.data).toBeUndefined();
+
+    const textRes = await client.get<string>(`${baseUrl}/no-content-204`, {
+      responseType: 'text',
+    });
+    expect(textRes.data).toBe('');
+  });
+
+  it('falls back to 60s retryAfter when Retry-After header is blank/whitespace and preserves #fragments in buildRequestUrl', async () => {
+    const client = createHttpClient();
+    const before = Date.now();
+    const caught = await client
+      .get(`${baseUrl}/rate-limit-blank`)
+      .catch((e: unknown) => e);
+    const mapped = mapHttpErrorToAzureDevOpsError(caught, 'rate limit test');
+
+    expect(mapped).toBeInstanceOf(AzureDevOpsRateLimitError);
+    expect(
+      (mapped as AzureDevOpsRateLimitError).resetAt.getTime(),
+    ).toBeGreaterThanOrEqual(before + 55_000);
+
+    expect(
+      buildRequestUrl('https://dev.azure.com/org/_apis/wiki#section', {
+        'api-version': '7.1',
+      }),
+    ).toBe('https://dev.azure.com/org/_apis/wiki?api-version=7.1#section');
   });
 
   it.each([

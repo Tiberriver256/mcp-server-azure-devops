@@ -14,7 +14,8 @@ The `create_pull_request` tool creates a new pull request in a specified Azure D
 
 ```json
 {
-  "projectId": "MyProject", // Required: The ID or name of the project
+  "projectId": "MyProject", // Optional: The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT)
+  "organizationId": "MyOrg", // Optional: The ID or name of the organization (defaults to configured organization)
   "repositoryId": "MyRepo", // Required: The ID or name of the repository
   "title": "Update feature X", // Required: The title of the pull request
   "sourceRefName": "refs/heads/feature-branch", // Required: The source branch name
@@ -22,21 +23,26 @@ The `create_pull_request` tool creates a new pull request in a specified Azure D
   "description": "This PR implements feature X", // Optional: The description of the pull request
   "reviewers": ["user@example.com"], // Optional: List of reviewer email addresses or IDs
   "isDraft": true, // Optional: Whether the pull request should be created as a draft
-  "workItemRefs": [123, 456] // Optional: List of work item IDs to link to the pull request
+  "workItemRefs": [123, 456], // Optional: List of work item IDs to link to the pull request
+  "tags": ["feature", "backend"], // Optional: List of tags to apply to the pull request
+  "additionalProperties": {} // Optional: Additional properties to set on the pull request
 }
 ```
 
-| Parameter       | Type     | Required | Description                                                    |
-| --------------- | -------- | -------- | -------------------------------------------------------------- |
-| `projectId`     | string   | Yes      | The ID or name of the project containing the repository        |
-| `repositoryId`  | string   | Yes      | The ID or name of the repository to create the pull request in |
-| `title`         | string   | Yes      | The title of the pull request                                  |
-| `sourceRefName` | string   | Yes      | The source branch name (e.g., "refs/heads/feature-branch")     |
-| `targetRefName` | string   | Yes      | The target branch name (e.g., "refs/heads/main")               |
-| `description`   | string   | No       | The description of the pull request                            |
-| `reviewers`     | string[] | No       | List of reviewer email addresses or IDs                        |
-| `isDraft`       | boolean  | No       | Whether the pull request should be created as a draft          |
-| `workItemRefs`  | number[] | No       | List of work item IDs to link to the pull request              |
+| Parameter              | Type                    | Required | Description                                                                          |
+| ---------------------- | ----------------------- | -------- | ------------------------------------------------------------------------------------ |
+| `projectId`            | string                  | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)           |
+| `organizationId`       | string                  | No       | The ID or name of the organization (defaults to configured organization)             |
+| `repositoryId`         | string                  | Yes      | The ID or name of the repository to create the pull request in                       |
+| `title`                | string                  | Yes      | The title of the pull request                                                        |
+| `sourceRefName`        | string                  | Yes      | The source branch name (e.g., "refs/heads/feature-branch")                           |
+| `targetRefName`        | string                  | Yes      | The target branch name (e.g., "refs/heads/main")                                     |
+| `description`          | string                  | No       | The description of the pull request (markdown is supported)                          |
+| `reviewers`            | string[]                | No       | List of reviewer email addresses or IDs                                              |
+| `isDraft`              | boolean                 | No       | Whether the pull request should be created as a draft                                |
+| `workItemRefs`         | number[]                | No       | List of work item IDs to link to the pull request                                    |
+| `tags`                 | string[]                | No       | List of tags to apply to the pull request                                            |
+| `additionalProperties` | Record<string, unknown> | No       | Additional properties to set on the pull request                                     |
 
 ### Response
 

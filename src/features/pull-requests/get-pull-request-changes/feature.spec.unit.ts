@@ -59,6 +59,45 @@ describe('getPullRequestChanges unit', () => {
     expect(mockGitApi.getPullRequest).toHaveBeenCalledWith('r', 1, 'p');
   });
 
+  test('uses project GUID from pullRequest metadata in policy artifactId and propagates non-size-limit stream errors', async () => {
+    const getPolicyEvaluations = jest.fn().mockResolvedValue([]);
+    const mockGitApi = {
+      getPullRequest: jest.fn().mockResolvedValue({
+        sourceRefName: 'refs/heads/feature',
+        targetRefName: 'refs/heads/main',
+        repository: { project: { id: 'guid-1111-2222' } },
+      }),
+      getPullRequestIterations: jest.fn().mockResolvedValue([{ id: 1 }]),
+      getPullRequestIterationChanges: jest.fn().mockResolvedValue({
+        changeEntries: [{ item: { path: '/broken.txt', objectId: 'obj-1' } }],
+      }),
+      getBlobContent: jest.fn().mockImplementation(() => {
+        return new Readable({
+          read() {
+            this.destroy(new Error('network timeout while reading blob'));
+          },
+        });
+      }),
+    };
+    const mockConnection: any = {
+      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+      getPolicyApi: jest.fn().mockResolvedValue({ getPolicyEvaluations }),
+    };
+
+    await expect(
+      getPullRequestChanges(mockConnection, {
+        projectId: 'MyProjectName',
+        repositoryId: 'r',
+        pullRequestId: 9,
+      }),
+    ).rejects.toThrow('network timeout while reading blob');
+
+    expect(getPolicyEvaluations).toHaveBeenCalledWith(
+      'MyProjectName',
+      'vstfs:///CodeReview/CodeReviewId/guid-1111-2222/9',
+    );
+  });
+
   test('should throw when no iterations found', async () => {
     const mockConnection: any = {
       getGitApi: jest.fn().mockResolvedValue({

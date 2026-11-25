@@ -24,11 +24,28 @@ export async function searchWiki(
     ? connectionOrContext
     : createSessionFromEnv({ organizationUrl: serverUrl });
 
+  const baseUrls = resolveAzureDevOpsBaseUrls(serverUrl, {
+    organizationId: options.organizationId,
+    projectId: options.projectId,
+  });
+
+  const effectiveProjectId =
+    options.projectId?.trim() ||
+    (baseUrls.type === 'server'
+      ? (session.config.defaultProject ?? baseUrls.projectFromUrl)
+      : undefined);
+
+  if (baseUrls.type === 'server' && !effectiveProjectId) {
+    throw new AzureDevOpsValidationError(
+      'Project ID is required for Azure DevOps Server wiki search',
+    );
+  }
+
   const searchRequest: WikiSearchRequest = {
     searchText: options.searchText,
     $skip: options.skip,
     $top: options.top,
-    filters: options.projectId ? { Project: [options.projectId] } : {},
+    filters: effectiveProjectId ? { Project: [effectiveProjectId] } : {},
     includeFacets: options.includeFacets,
   };
 
@@ -42,19 +59,8 @@ export async function searchWiki(
     };
   }
 
-  const baseUrls = resolveAzureDevOpsBaseUrls(serverUrl, {
-    organizationId: options.organizationId,
-    projectId: options.projectId,
-  });
-
-  if (baseUrls.type === 'server' && !options.projectId) {
-    throw new AzureDevOpsValidationError(
-      'Project ID is required for Azure DevOps Server wiki search',
-    );
-  }
-
-  const searchUrl = options.projectId
-    ? `${baseUrls.searchBaseUrl}/${options.projectId}/_apis/search/wikisearchresults`
+  const searchUrl = effectiveProjectId
+    ? `${baseUrls.searchBaseUrl}/${encodeURIComponent(effectiveProjectId)}/_apis/search/wikisearchresults`
     : `${baseUrls.searchBaseUrl}/_apis/search/wikisearchresults`;
 
   const response = await session.requestAzureDevOps<WikiSearchResponse>({

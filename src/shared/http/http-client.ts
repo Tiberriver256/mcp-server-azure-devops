@@ -165,8 +165,11 @@ export function buildRequestUrl(
     return baseUrl;
   }
 
-  const separator = baseUrl.includes('?') ? '&' : '?';
-  return `${baseUrl}${separator}${pairs.join('&')}`;
+  const hashIndex = baseUrl.indexOf('#');
+  const withoutHash = hashIndex === -1 ? baseUrl : baseUrl.slice(0, hashIndex);
+  const hashSuffix = hashIndex === -1 ? '' : baseUrl.slice(hashIndex);
+  const separator = withoutHash.includes('?') ? '&' : '?';
+  return `${withoutHash}${separator}${pairs.join('&')}${hashSuffix}`;
 }
 
 function headersToRecord(headers: Headers): Record<string, string> {
@@ -258,8 +261,8 @@ function extractErrorMessage(data: unknown, fallback: string): string {
 }
 
 function parseRetryAfterDate(headers: Record<string, string>): Date {
-  const raw = extractHeader(headers, 'retry-after');
-  if (raw) {
+  const raw = extractHeader(headers, 'retry-after')?.trim();
+  if (raw && raw.length > 0) {
     const seconds = Number(raw);
     if (Number.isFinite(seconds) && seconds >= 0) {
       return new Date(Date.now() + seconds * 1000);
@@ -306,6 +309,7 @@ export function mapHttpErrorToAzureDevOpsError(
           `Invalid request while ${context}: ${message}`,
           apiData,
         );
+      case 203:
       case 401:
         return new AzureDevOpsAuthenticationError(
           `Authentication failed while ${context}: ${message}`,
@@ -409,16 +413,29 @@ export function createHttpClient(config: HttpClientConfig = {}): HttpClient {
       }
     }
 
+    const signal =
+      Number.isFinite(timeoutMs) && timeoutMs > 0
+        ? AbortSignal.timeout(timeoutMs)
+        : undefined;
+
     const response = await fetchFn(fullUrl, {
       method,
       headers,
       body: serializedBody,
-      signal: timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined,
+      signal,
     });
 
     const responseHeaders = headersToRecord(response.headers);
+    const contentType = (responseHeaders['content-type'] ?? '').toLowerCase();
 
-    if (!response.ok) {
+    // Azure DevOps REST APIs return HTTP 203 Non-Authoritative Information with an
+    // HTML sign-in page when a PAT is invalid or expired. Treat this as auth failure
+    // rather than silently returning HTML cast as JSON/text.
+    const isAuthRedirect203 =
+      response.status === 203 &&
+      (contentType.includes('text/html') || responseType === 'json');
+
+    if (!response.ok || isAuthRedirect203) {
       const errorBuf = await readBoundedResponseBuffer(
         response,
         Math.min(maxBytes, 1024 * 1024),
@@ -426,8 +443,9 @@ export function createHttpClient(config: HttpClientConfig = {}): HttpClient {
       ).catch(() => Buffer.alloc(0));
       const errorText = errorBuf.toString('utf8');
       const errorData = tryParseJson(errorText);
-      const fallbackMessage =
-        `HTTP ${response.status} ${response.statusText || 'Error'}`.trim();
+      const fallbackMessage = isAuthRedirect203
+        ? 'HTTP 203 Non-Authoritative Information (sign-in required; check PAT or credentials)'
+        : `HTTP ${response.status} ${response.statusText || 'Error'}`.trim();
       const message = extractErrorMessage(errorData, fallbackMessage);
 
       throw new HttpError({
@@ -438,6 +456,17 @@ export function createHttpClient(config: HttpClientConfig = {}): HttpClient {
         responseData: errorData,
         headers: responseHeaders,
       });
+    }
+
+    if (response.status === 204) {
+      if (response.body) {
+        await response.body.cancel().catch(() => undefined);
+      }
+      return {
+        status: response.status,
+        headers: responseHeaders,
+        data: decodeResponsePayload<T>(Buffer.alloc(0), responseType),
+      };
     }
 
     const buffer = await readBoundedResponseBuffer(response, maxBytes, safeUrl);

@@ -55,7 +55,7 @@ export async function searchCode(
     projectId,
   });
 
-  const searchUrl = `${baseUrls.searchBaseUrl}/${projectId}/_apis/search/codesearchresults`;
+  const searchUrl = `${baseUrls.searchBaseUrl}/${encodeURIComponent(projectId)}/_apis/search/codesearchresults`;
   const searchResponse = await session.requestAzureDevOps<CodeSearchResponse>({
     method: 'POST',
     url: searchUrl,

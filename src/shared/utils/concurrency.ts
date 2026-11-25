@@ -11,7 +11,10 @@ export async function mapWithConcurrency<T, R>(
     return [];
   }
 
-  const limit = Math.max(1, Math.min(Math.floor(concurrency), items.length));
+  const safeConcurrency = Number.isFinite(concurrency)
+    ? Math.floor(concurrency)
+    : 1;
+  const limit = Math.max(1, Math.min(safeConcurrency, items.length));
   const results = new Array<R>(items.length);
   let nextIndex = 0;
 

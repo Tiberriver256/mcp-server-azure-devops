@@ -134,6 +134,57 @@ describe('downloadPipelineArtifact', () => {
     );
   });
 
+  it('matches Windows backslash ZIP entry names inside PipelineArtifact archives', async () => {
+    const pipelineArtifact: BuildArtifact = {
+      name: 'reports',
+      source: 'source',
+      resource: {
+        type: 'PipelineArtifact',
+        downloadUrl: 'https://blobs.example.com/win-reports.zip',
+      },
+    };
+    getArtifacts.mockResolvedValue([pipelineArtifact]);
+
+    const zipBuffer = buildTestZip([
+      { name: 'reports\\sub\\output.json', content: '{"os":"windows"}' },
+    ]);
+    const arrayBuffer = zipBuffer.buffer.slice(
+      zipBuffer.byteOffset,
+      zipBuffer.byteOffset + zipBuffer.byteLength,
+    );
+
+    getPipelinesApi.mockResolvedValue({
+      getArtifact: jest.fn().mockResolvedValue({
+        signedContent: { url: 'https://blobs.example.com/win-reports.zip' },
+      }),
+    });
+
+    const mockCtx = {
+      http: {
+        get: jest.fn().mockResolvedValue({
+          status: 200,
+          headers: {},
+          data: arrayBuffer,
+        }),
+      },
+      getAuthHeader: jest.fn().mockResolvedValue('Basic c2VjcmV0'),
+      resolveProjectId: (p?: string) => p ?? projectId,
+    } as unknown as ToolContext;
+
+    const result = await downloadPipelineArtifact(
+      connection,
+      {
+        projectId,
+        pipelineId: 77,
+        runId,
+        artifactPath: 'reports/sub/output.json',
+      },
+      mockCtx,
+    );
+
+    expect(result.content).toBe('{"os":"windows"}');
+  });
+
   it('throws when the requested file is missing', async () => {
     getItem.mockResolvedValue({ statusCode: 404, result: undefined });
 

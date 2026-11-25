@@ -372,6 +372,54 @@ describe('createAzureDevOpsServer deep seam tests', () => {
     );
   });
 
+  it('redacts secrets in ReadResource error logs and thrown messages', async () => {
+    const stderrChunks: string[] = [];
+    const stderrSpy = jest
+      .spyOn(process.stderr, 'write')
+      .mockImplementation((chunk: unknown) => {
+        stderrChunks.push(String(chunk));
+        return true;
+      });
+
+    try {
+      const mockWebApi = {
+        getGitApi: jest
+          .fn()
+          .mockRejectedValue(
+            new Error(
+              'Fetch failed with bearer superSecretBearerToken999 at https://:patSecretValue12345@dev.azure.com/org',
+            ),
+          ),
+      } as unknown as WebApi;
+      const server = createAzureDevOpsServer(baseConfig, {
+        webApiFactory: jest.fn().mockResolvedValue(mockWebApi),
+      });
+
+      const readResource = getHandler(
+        server,
+        ReadResourceRequestSchema.shape.method.value,
+      );
+
+      const err = await readResource(
+        {
+          method: 'resources/read',
+          params: {
+            uri: 'ado://test-org/demo-project/my-repo/contents/src/app.ts',
+          },
+        },
+        {},
+      ).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(Error);
+      expect((err as Error).message).not.toContain('superSecretBearerToken999');
+      expect((err as Error).message).not.toContain('patSecretValue12345');
+      expect(stderrChunks.join('')).not.toContain('superSecretBearerToken999');
+      expect(stderrChunks.join('')).not.toContain('patSecretValue12345');
+    } finally {
+      stderrSpy.mockRestore();
+    }
+  });
+
   it('fails fast on unknown toolset during server creation', () => {
     expect(() =>
       createAzureDevOpsServer({

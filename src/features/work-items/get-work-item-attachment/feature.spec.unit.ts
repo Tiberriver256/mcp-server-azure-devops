@@ -4,7 +4,10 @@ import * as path from 'path';
 import { Readable } from 'stream';
 import type { WebApi } from 'azure-devops-node-api';
 import { getWorkItemAttachment } from './feature';
-import { AzureDevOpsError } from '../../../shared/errors';
+import {
+  AzureDevOpsError,
+  AzureDevOpsResourceNotFoundError,
+} from '../../../shared/errors';
 
 describe('getWorkItemAttachment unit', () => {
   let tempDir: string;
@@ -42,6 +45,38 @@ describe('getWorkItemAttachment unit', () => {
     expect(fs.readFileSync(outPath)).toEqual(payload);
   });
 
+  test('preserves valid small stack-trace and HTML attachments without false-positive deletion', async () => {
+    const stackPath = path.join(tempDir, 'stacktrace.txt');
+    const stackText =
+      'System.NullReferenceException: Object reference not set to an instance of an object.\n  at App.Main()';
+    const htmlPath = path.join(tempDir, 'report.html');
+    const htmlText =
+      '<!DOCTYPE html><html><body><h1>Test Report</h1><p>All tests passed.</p></body></html>';
+
+    const mockConnection = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getAttachmentContent: jest
+          .fn()
+          .mockResolvedValueOnce(Readable.from([stackText]))
+          .mockResolvedValueOnce(Readable.from([htmlText])),
+      }),
+    } as unknown as WebApi;
+
+    const stackRes = await getWorkItemAttachment(mockConnection, {
+      attachmentId: 'att-stack',
+      outputPath: stackPath,
+    });
+    expect(stackRes.size).toBe(Buffer.byteLength(stackText));
+    expect(fs.readFileSync(stackPath, 'utf8')).toBe(stackText);
+
+    const htmlRes = await getWorkItemAttachment(mockConnection, {
+      attachmentId: 'att-html',
+      outputPath: htmlPath,
+    });
+    expect(htmlRes.size).toBe(Buffer.byteLength(htmlText));
+    expect(fs.readFileSync(htmlPath, 'utf8')).toBe(htmlText);
+  });
+
   test('unlinks partial file when the download stream fails mid-transfer', async () => {
     const outPath = path.join(tempDir, 'partial.bin');
     const failingStream = new Readable({
@@ -67,27 +102,43 @@ describe('getWorkItemAttachment unit', () => {
     expect(fs.existsSync(outPath)).toBe(false);
   });
 
-  test('detects HTML/JSON error body responses and deletes the downloaded error page', async () => {
-    const outPath = path.join(tempDir, 'not-found.txt');
-    const errorPage =
-      '<!DOCTYPE html><html><body>Attachment does not exist</body></html>';
+  test('detects genuine ADO JSON error envelopes and ADO sign-in HTML, unlinking and throwing AzureDevOpsResourceNotFoundError', async () => {
+    const jsonErrPath = path.join(tempDir, 'not-found.json');
+    const adoJsonError = JSON.stringify({
+      $id: '1',
+      innerException: null,
+      message: 'TF401232: Attachment does not exist.',
+      typeKey: 'AttachmentNotFoundException',
+      errorCode: 0,
+    });
+    const signInPath = path.join(tempDir, 'signin.html');
+    const adoSignInHtml =
+      '<!DOCTYPE html><html><head><title>Azure DevOps Services | Sign In</title></head><body>Sign in</body></html>';
 
     const mockConnection = {
       getWorkItemTrackingApi: jest.fn().mockResolvedValue({
         getAttachmentContent: jest
           .fn()
-          .mockResolvedValue(Readable.from([errorPage])),
+          .mockResolvedValueOnce(Readable.from([adoJsonError]))
+          .mockResolvedValueOnce(Readable.from([adoSignInHtml])),
       }),
     } as unknown as WebApi;
 
-    await expect(
-      getWorkItemAttachment(mockConnection, {
-        attachmentId: 'missing-id',
-        outputPath: outPath,
-      }),
-    ).rejects.toThrow('Attachment not found (missing-id)');
+    const err1 = await getWorkItemAttachment(mockConnection, {
+      attachmentId: 'missing-id',
+      outputPath: jsonErrPath,
+    }).catch((e: unknown) => e);
+    expect(err1).toBeInstanceOf(AzureDevOpsResourceNotFoundError);
+    expect((err1 as Error).message).toBe('Attachment not found (missing-id)');
+    expect(fs.existsSync(jsonErrPath)).toBe(false);
 
-    expect(fs.existsSync(outPath)).toBe(false);
+    const err2 = await getWorkItemAttachment(mockConnection, {
+      attachmentId: 'signin-id',
+      outputPath: signInPath,
+    }).catch((e: unknown) => e);
+    expect(err2).toBeInstanceOf(AzureDevOpsResourceNotFoundError);
+    expect((err2 as Error).message).toBe('Attachment not found (signin-id)');
+    expect(fs.existsSync(signInPath)).toBe(false);
   });
 
   test('validates required inputs and propagates AzureDevOpsError', async () => {

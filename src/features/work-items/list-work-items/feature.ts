@@ -11,13 +11,17 @@ import {
 } from '../../../shared/errors';
 import type { ListWorkItemsOptions, WorkItem as WorkItemType } from '../types';
 
+function escapeWiqlString(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
 /**
  * Constructs the default WIQL query for listing work items
  */
 function constructDefaultWiql(projectId: string, teamId?: string): string {
-  let query = `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '${projectId}'`;
+  let query = `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '${escapeWiqlString(projectId)}'`;
   if (teamId) {
-    query += ` AND [System.TeamId] = '${teamId}'`;
+    query += ` AND [System.TeamId] = '${escapeWiqlString(teamId)}'`;
   }
   query += ' ORDER BY [System.Id]';
   return query;

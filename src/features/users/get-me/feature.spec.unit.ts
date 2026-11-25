@@ -1,6 +1,8 @@
 import { AuthenticationMethod } from '../../../shared/auth';
 import {
   AzureDevOpsAuthenticationError,
+  AzureDevOpsError,
+  AzureDevOpsPermissionError,
   AzureDevOpsValidationError,
 } from '../../../shared/errors';
 import { HttpError } from '../../../shared/http/http-client';
@@ -79,8 +81,8 @@ describe('getMe', () => {
     await expect(getMe(ctx)).rejects.toThrow(AzureDevOpsValidationError);
   });
 
-  it('maps HTTP 401/403 responses to AzureDevOpsAuthenticationError', async () => {
-    const ctx = makeContext(async (req) => {
+  it('maps HTTP 401 to AuthenticationError and HTTP 403 to PermissionError', async () => {
+    const ctx401 = makeContext(async (req) => {
       throw new HttpError({
         message: 'Unauthorized',
         status: 401,
@@ -88,7 +90,24 @@ describe('getMe', () => {
         url: req.url,
       });
     });
+    await expect(getMe(ctx401)).rejects.toThrow(AzureDevOpsAuthenticationError);
 
-    await expect(getMe(ctx)).rejects.toThrow(AzureDevOpsAuthenticationError);
+    const ctx403 = makeContext(async (req) => {
+      throw new HttpError({
+        message: 'Forbidden',
+        status: 403,
+        statusText: 'Forbidden',
+        url: req.url,
+      });
+    });
+    await expect(getMe(ctx403)).rejects.toThrow(AzureDevOpsPermissionError);
+  });
+
+  it('rejects malformed profile response payloads with AzureDevOpsError', async () => {
+    const ctx = makeContext(async () => ({
+      status: 200,
+      data: '<html>unexpected</html>',
+    }));
+    await expect(getMe(ctx)).rejects.toThrow(AzureDevOpsError);
   });
 });

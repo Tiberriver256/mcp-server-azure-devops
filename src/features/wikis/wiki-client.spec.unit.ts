@@ -261,4 +261,63 @@ describe('WikiClient & Wiki feature operations', () => {
       AzureDevOpsResourceNotFoundError,
     );
   });
+
+  it('paginates listWikiPages using x-ms-continuationtoken response header when body omits token', async () => {
+    let call = 0;
+    const bodies: unknown[] = [];
+    const ctx = createFakeContext(async (req) => {
+      call += 1;
+      bodies.push(req.body);
+      if (call === 1) {
+        const headers: Record<string, string> = {
+          'x-ms-continuationtoken': 'hdr-tok-2',
+        };
+        return {
+          status: 200,
+          headers,
+          data: { value: [{ id: 1, path: '/Page1', order: 1 }] },
+        };
+      }
+      return {
+        status: 200,
+        data: { value: [{ id: 2, path: '/Page2', order: 2 }] },
+      };
+    });
+
+    const client = new WikiClient(ctx);
+    const pages = await client.listWikiPages('test-proj', 'my-wiki');
+    expect(pages.map((p) => p.path)).toEqual(['/Page1', '/Page2']);
+    expect(bodies[1]).toEqual({ top: 100, continuationToken: 'hdr-tok-2' });
+  });
+
+  it('encodes spaced/special-character project & wiki IDs and normalizes updatePage path', async () => {
+    const captured: HttpRequestOptions[] = [];
+    const ctx = createFakeContext(async (req) => {
+      captured.push(req);
+      if (req.method === 'GET') {
+        return { status: 200, headers: { etag: '"e1"' }, data: 'old' };
+      }
+      return {
+        status: 200,
+        headers: { etag: '"e2"' },
+        data: { path: '/Guide/Intro' },
+      };
+    });
+
+    const client = new WikiClient(ctx);
+    await client.updatePage(
+      { content: 'updated' },
+      'My Project',
+      'My#Wiki',
+      'Guide/Intro',
+    );
+
+    expect(captured[0].url).toBe(
+      'https://dev.azure.com/test-org/My%20Project/_apis/wiki/wikis/My%23Wiki/pages',
+    );
+    expect(captured[1].url).toBe(
+      'https://dev.azure.com/test-org/My%20Project/_apis/wiki/wikis/My%23Wiki/pages',
+    );
+    expect(captured[1].query?.path).toBe('/Guide/Intro');
+  });
 });

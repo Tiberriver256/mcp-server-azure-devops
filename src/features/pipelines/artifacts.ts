@@ -9,7 +9,9 @@ import { GetArtifactExpandOptions } from 'azure-devops-node-api/interfaces/Pipel
 import { createHttpClient } from '../../shared/http/http-client';
 import type { HttpClient } from '../../shared/http/http-client';
 import type { ToolContext } from '../../shared/session/azure-devops-session';
+import { mapWithConcurrency } from '../../shared/utils/concurrency';
 import { readZipArchive } from '../../shared/utils/zip-reader';
+import { isSameOrigin } from './helpers';
 import type { PipelineArtifactItem, PipelineRunArtifact } from './types';
 
 export interface ArtifactContainerInfo {
@@ -19,17 +21,7 @@ export interface ArtifactContainerInfo {
 
 export const MAX_ITEMS_PER_ARTIFACT = 200;
 export const MAX_ARTIFACT_ZIP_BYTES = 25 * 1024 * 1024; // 25 MiB cap to prevent OOM on large artifacts
-
-function isSameOrigin(targetUrl: string, serverUrl?: string): boolean {
-  if (!serverUrl) {
-    return false;
-  }
-  try {
-    return new URL(targetUrl).origin === new URL(serverUrl).origin;
-  } catch {
-    return false;
-  }
-}
+const ARTIFACT_ENRICH_CONCURRENCY = 4;
 
 export function extractContainerInfo(
   resource?: ArtifactResource,
@@ -313,8 +305,10 @@ export async function fetchRunArtifacts(
 
     if (typeof pipelineId === 'number') {
       const pipelinesApi = await connection.getPipelinesApi();
-      await Promise.all(
-        summaries.map(async (summary) => {
+      await mapWithConcurrency(
+        summaries,
+        ARTIFACT_ENRICH_CONCURRENCY,
+        async (summary) => {
           try {
             const artifactDetails = await pipelinesApi.getArtifact(
               projectId,
@@ -331,12 +325,14 @@ export async function fetchRunArtifacts(
           } catch {
             // Ignore failures fetching signed content; best-effort enrichment.
           }
-        }),
+        },
       );
     }
 
-    const enriched = await Promise.all(
-      summaries.map(async (artifact) => {
+    const enriched = await mapWithConcurrency(
+      summaries,
+      ARTIFACT_ENRICH_CONCURRENCY,
+      async (artifact) => {
         const collectors: Array<
           Promise<{ items?: PipelineArtifactItem[]; truncated?: boolean }>
         > = [];
@@ -402,7 +398,7 @@ export async function fetchRunArtifacts(
             uniqueItems.length > MAX_ITEMS_PER_ARTIFACT ||
             undefined,
         };
-      }),
+      },
     );
 
     return enriched;
