@@ -49,4 +49,11 @@ export interface AzureDevOpsConfig {
    * When true, only tools explicitly marked read-only are exposed and callable
    */
   readOnly?: boolean;
+
+  /**
+   * When true (default), untrusted external text is wrapped in spotlighting
+   * delimiters to mitigate indirect prompt injection.
+   * @default true
+   */
+  spotlighting?: boolean;
 }

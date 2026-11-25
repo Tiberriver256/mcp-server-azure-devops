@@ -12,6 +12,7 @@ import type { ToolsetName } from './shared/config/index.ts';
 import { VERSION, resolveEnabledTools } from './shared/config/index.ts';
 import type {
   AzureDevOpsConfig,
+  ToolAnnotations,
   ToolDefinition,
 } from './shared/types/index.ts';
 import {
@@ -22,6 +23,10 @@ import {
   redactSecrets,
 } from './shared/errors/index.ts';
 import { logError } from './shared/logging.ts';
+import {
+  formatToolSourceLabel,
+  wrapToolResultWithSpotlighting,
+} from './shared/security/spotlighting.ts';
 import { createAzureDevOpsSession } from './shared/session/azure-devops-session.ts';
 import type { CreateSessionOptions } from './shared/session/azure-devops-session.ts';
 import type {
@@ -139,7 +144,7 @@ export function createAzureDevOpsServer(
     name: string;
     description: string;
     inputSchema: Record<string, unknown>;
-    annotations: { readOnlyHint: boolean };
+    annotations: ToolAnnotations;
   }> | null = null;
 
   const getMcpTools = () => {
@@ -150,9 +155,7 @@ export function createAzureDevOpsServer(
           name: def.name,
           description: def.description,
           inputSchema: def.inputSchema,
-          annotations: {
-            readOnlyHint: def.readOnly,
-          },
+          annotations: def.annotations,
         };
       });
     }
@@ -298,7 +301,14 @@ export function createAzureDevOpsServer(
         throw new Error(`Unknown tool: ${toolName}`);
       }
 
-      return await tool.execute(session, request.params.arguments);
+      const result = await tool.execute(session, request.params.arguments);
+      if (session.config.spotlighting !== false) {
+        return wrapToolResultWithSpotlighting(
+          result,
+          formatToolSourceLabel(toolName),
+        );
+      }
+      return result;
     } catch (error) {
       return handleResponseError(error);
     }

@@ -40,6 +40,7 @@ export interface ResolvedAzureDevOpsConfig {
   readonly enabledTools?: readonly string[];
   readonly disabledTools?: readonly string[];
   readonly readOnly: boolean;
+  readonly spotlighting: boolean;
 }
 
 /**
@@ -137,6 +138,7 @@ export function resolveAzureDevOpsConfig(
     enabledTools: config.enabledTools ? [...config.enabledTools] : undefined,
     disabledTools: config.disabledTools ? [...config.disabledTools] : undefined,
     readOnly: config.readOnly === true,
+    spotlighting: config.spotlighting !== false,
   };
 }
 

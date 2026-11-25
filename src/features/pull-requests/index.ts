@@ -48,6 +48,8 @@ export const pullRequestsFeature: FeatureModule = {
         'Create a new pull request, including reviewers, linked work items, and optional tags',
       schema: CreatePullRequestSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         return await createPullRequest(
@@ -128,6 +130,8 @@ export const pullRequestsFeature: FeatureModule = {
         'Add a comment to a pull request (repositoryId optional; derived from pullRequestId when omitted)',
       schema: AddPullRequestCommentSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         const projectId = ctx.resolveProjectId(args.projectId);
@@ -157,6 +161,8 @@ export const pullRequestsFeature: FeatureModule = {
         'Update an existing pull request with new properties, manage reviewers and work items, and add or remove tags',
       schema: UpdatePullRequestSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         return await updatePullRequest(
@@ -207,6 +213,8 @@ export const pullRequestsFeature: FeatureModule = {
         'Update the status of a comment thread in a pull request (repositoryId optional; derived from pullRequestId when omitted)',
       schema: UpdatePullRequestThreadStatusSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: true,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         return await updatePullRequestThreadStatus(
@@ -225,6 +233,8 @@ export const pullRequestsFeature: FeatureModule = {
         'Complete (merge) an active pull request immediately or enable/cancel auto-complete with merge strategy, source branch deletion, work item transitions, and policy bypass options (repositoryId optional; derived from pullRequestId when omitted; works on both Azure DevOps Services and Azure DevOps Server)',
       schema: MergePullRequestSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi();
         return await mergePullRequest(connection, {

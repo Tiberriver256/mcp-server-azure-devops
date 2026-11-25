@@ -217,6 +217,8 @@ export const pipelinesFeature: FeatureModule = {
         'Trigger a pipeline run. The pipeline can be identified by pipelineId or pipelineName.',
       schema: TriggerPipelineSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi();
         return await triggerPipeline(

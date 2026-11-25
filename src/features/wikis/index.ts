@@ -62,6 +62,8 @@ export const wikisFeature: FeatureModule = {
       description: 'Create a new wiki in the project',
       schema: CreateWikiSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: (ctx, args) =>
         createWiki(ctx, {
           organizationId: args.organizationId ?? undefined,
@@ -77,6 +79,8 @@ export const wikisFeature: FeatureModule = {
       description: 'Update content of a wiki page',
       schema: UpdateWikiPageSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: (ctx, args) => updateWikiPage(args, ctx),
     }),
     defineTool({
@@ -92,6 +96,8 @@ export const wikisFeature: FeatureModule = {
         'Create a new page in a wiki. If the page already exists at the specified path, it will be updated.',
       schema: CreateWikiPageSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: (ctx, args) => createWikiPage(args, ctx),
     }),
   ],

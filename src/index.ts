@@ -58,6 +58,11 @@ export function getConfig(
   const readOnly =
     cliFilters.readOnly ??
     parseBooleanOption(env.AZURE_DEVOPS_READ_ONLY, 'AZURE_DEVOPS_READ_ONLY');
+  const spotlightingEnv = parseBooleanOption(
+    env.AZURE_DEVOPS_SPOTLIGHTING,
+    'AZURE_DEVOPS_SPOTLIGHTING',
+  );
+  const spotlighting = cliFilters.spotlighting ?? spotlightingEnv ?? true;
 
   logInfo(`Azure DevOps MCP Server starting (org=${orgDisplay})`, env);
 
@@ -71,7 +76,8 @@ export function getConfig(
   toolsets: ${toolsets ? toolsets.join(',') : 'all'}
   enabledTools: ${enabledTools ? enabledTools.join(',') : 'all'}
   disabledTools: ${disabledTools ? disabledTools.join(',') : 'none'}
-  readOnly: ${readOnly === true ? 'true' : 'false'}`,
+  readOnly: ${readOnly === true ? 'true' : 'false'}
+  spotlighting: ${spotlighting ? 'true' : 'false'}`,
     resolveLogLevel(env) === 'debug',
   );
 
@@ -85,6 +91,7 @@ export function getConfig(
     enabledTools,
     disabledTools,
     readOnly,
+    spotlighting,
   };
 }
 

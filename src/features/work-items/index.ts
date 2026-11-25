@@ -69,6 +69,8 @@ export const workItemsFeature: FeatureModule = {
       description: 'Create a new work item',
       schema: CreateWorkItemSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         return await createWorkItem(
@@ -95,6 +97,8 @@ export const workItemsFeature: FeatureModule = {
       description: 'Update an existing work item',
       schema: UpdateWorkItemSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi();
         return await updateWorkItem(connection, args.workItemId, {
@@ -118,6 +122,8 @@ export const workItemsFeature: FeatureModule = {
       description: 'Add or remove links between work items',
       schema: ManageWorkItemLinkSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         return await manageWorkItemLink(
@@ -159,6 +165,8 @@ export const workItemsFeature: FeatureModule = {
         'Upload a file and attach it to a work item. The file is read from the local filesystem, uploaded to Azure DevOps, and linked to the specified work item.',
       schema: CreateWorkItemAttachmentSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi();
         return await createWorkItemAttachment(connection, args.workItemId, {
@@ -173,7 +181,9 @@ export const workItemsFeature: FeatureModule = {
       description:
         'Download an attachment from Azure DevOps and save it to the local filesystem. The attachment ID can be obtained from the work item relations.',
       schema: GetWorkItemAttachmentSchema,
-      readOnly: true,
+      readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi();
         return await getWorkItemAttachment(connection, {
@@ -188,6 +198,8 @@ export const workItemsFeature: FeatureModule = {
         'Delete an attachment from a work item. The attachment ID can be obtained from the work item relations.',
       schema: DeleteWorkItemAttachmentSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi();
         return await deleteWorkItemAttachment(connection, {

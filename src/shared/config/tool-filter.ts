@@ -16,6 +16,32 @@ export const TOOLSET_NAMES = [
 
 export type ToolsetName = (typeof TOOLSET_NAMES)[number];
 
+export const TOOLSET_PRESET_NAMES = [
+  'pr-review',
+  'ci-debug',
+  'boards',
+  'core',
+] as const;
+
+export type ToolsetPresetName = (typeof TOOLSET_PRESET_NAMES)[number];
+
+export const TOOLSET_PRESETS: Record<
+  ToolsetPresetName,
+  readonly ToolsetName[]
+> = {
+  'pr-review': ['users', 'projects', 'repositories', 'pull-requests'],
+  'ci-debug': ['projects', 'pipelines', 'pull-requests'],
+  boards: ['users', 'projects', 'work-items', 'search'],
+  core: [
+    'users',
+    'organizations',
+    'projects',
+    'repositories',
+    'work-items',
+    'pull-requests',
+  ],
+};
+
 export interface ToolLike {
   readonly name: string;
   readonly readOnly?: boolean;
@@ -26,6 +52,7 @@ export interface ToolFilterOptions {
   enabledTools?: readonly string[];
   disabledTools?: readonly string[];
   readOnly?: boolean;
+  spotlighting?: boolean;
 }
 
 export interface ResolvedToolCatalog<T extends ToolLike = ToolLike> {
@@ -55,6 +82,20 @@ const TOOLSET_ALIASES = new Map<string, ToolsetName>([
   ['test_plans', 'test-plans'],
   ['testplans', 'test-plans'],
 ]);
+
+const TOOLSET_PRESET_ALIASES = new Map<string, ToolsetPresetName>([
+  ['pr-review', 'pr-review'],
+  ['pr_review', 'pr-review'],
+  ['prreview', 'pr-review'],
+  ['ci-debug', 'ci-debug'],
+  ['ci_debug', 'ci-debug'],
+  ['cidebug', 'ci-debug'],
+  ['boards', 'boards'],
+  ['core', 'core'],
+]);
+
+const SUPPORTED_CLI_FLAGS =
+  '--toolsets, --enabled-tools, --disabled-tools, --read-only, --spotlighting, --no-spotlighting';
 
 /**
  * Parse a comma-separated string into a deduplicated list of trimmed non-empty entries.
@@ -133,11 +174,46 @@ export function parseCliToolFilterArgs(argv: string[]): ToolFilterOptions {
     return { values: parsed, nextIdx };
   };
 
+  const readBooleanFlag = (
+    flag: string,
+    inlineValue: string | undefined,
+    idx: number,
+  ): { value: boolean; nextIdx: number } => {
+    if (inlineValue !== undefined) {
+      const parsed = parseBooleanOption(inlineValue, flag);
+      if (parsed === undefined) {
+        throw new AzureDevOpsValidationError(
+          `Flag '${flag}' requires a boolean value when '=' is used`,
+        );
+      }
+      return {
+        value: parsed,
+        nextIdx: idx,
+      };
+    }
+
+    const next = argv[idx + 1];
+    if (next !== undefined && !next.startsWith('-')) {
+      const parsed = parseBooleanOption(next, flag);
+      if (parsed === undefined) {
+        throw new AzureDevOpsValidationError(
+          `Flag '${flag}' requires a non-empty boolean value`,
+        );
+      }
+      return {
+        value: parsed,
+        nextIdx: idx + 1,
+      };
+    }
+
+    return { value: true, nextIdx: idx };
+  };
+
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (!arg.startsWith('-')) {
       throw new AzureDevOpsValidationError(
-        `Unexpected argument '${arg}'. Supported flags: --toolsets, --enabled-tools, --disabled-tools, --read-only`,
+        `Unexpected argument '${arg}'. Supported flags: ${SUPPORTED_CLI_FLAGS}`,
       );
     }
 
@@ -165,32 +241,29 @@ export function parseCliToolFilterArgs(argv: string[]): ToolFilterOptions {
         break;
       }
       case '--read-only': {
+        const { value, nextIdx } = readBooleanFlag(flag, inlineValue, i);
+        options.readOnly = value;
+        i = nextIdx;
+        break;
+      }
+      case '--spotlighting': {
+        const { value, nextIdx } = readBooleanFlag(flag, inlineValue, i);
+        options.spotlighting = value;
+        i = nextIdx;
+        break;
+      }
+      case '--no-spotlighting': {
         if (inlineValue !== undefined) {
-          if (inlineValue.trim() === '') {
-            throw new AzureDevOpsValidationError(
-              `Flag '--read-only' requires a boolean value when '=' is used`,
-            );
-          }
-          options.readOnly = parseBooleanOption(inlineValue, '--read-only');
-        } else {
-          const next = argv[i + 1];
-          if (next !== undefined && !next.startsWith('-')) {
-            if (next.trim() === '') {
-              throw new AzureDevOpsValidationError(
-                `Flag '--read-only' requires a non-empty boolean value`,
-              );
-            }
-            options.readOnly = parseBooleanOption(next, '--read-only');
-            i += 1;
-          } else {
-            options.readOnly = true;
-          }
+          throw new AzureDevOpsValidationError(
+            `Flag '--no-spotlighting' does not accept a value`,
+          );
         }
+        options.spotlighting = false;
         break;
       }
       default:
         throw new AzureDevOpsValidationError(
-          `Unknown flag '${flag}'. Supported flags: --toolsets, --enabled-tools, --disabled-tools, --read-only`,
+          `Unknown flag '${flag}'. Supported flags: ${SUPPORTED_CLI_FLAGS}`,
         );
     }
   }
@@ -199,7 +272,7 @@ export function parseCliToolFilterArgs(argv: string[]): ToolFilterOptions {
 }
 
 /**
- * Normalize a user-provided toolset name to its canonical ToolsetName (or 'all').
+ * Normalize a user-provided single toolset name to its canonical ToolsetName (or 'all').
  */
 export function normalizeToolsetName(raw: string): ToolsetName | 'all' {
   const key = raw.trim().toLowerCase();
@@ -209,17 +282,39 @@ export function normalizeToolsetName(raw: string): ToolsetName | 'all' {
   const canonical = TOOLSET_ALIASES.get(key);
   if (!canonical) {
     throw new AzureDevOpsValidationError(
-      `Unknown toolset '${raw}'. Valid toolsets are: all, ${TOOLSET_NAMES.join(', ')}`,
+      `Unknown toolset '${raw}'. Valid toolsets are: all, ${TOOLSET_NAMES.join(', ')}. Valid presets are: ${TOOLSET_PRESET_NAMES.join(', ')}`,
     );
   }
   return canonical;
 }
 
 /**
+ * Expand a user-provided toolset name or workflow preset into canonical ToolsetName(s) (or 'all').
+ */
+export function expandToolsetNames(raw: string): ToolsetName[] | 'all' {
+  const key = raw.trim().toLowerCase();
+  if (key === 'all') {
+    return 'all';
+  }
+  const preset = TOOLSET_PRESET_ALIASES.get(key);
+  if (preset) {
+    return [...TOOLSET_PRESETS[preset]];
+  }
+  const canonical = TOOLSET_ALIASES.get(key);
+  if (canonical) {
+    return [canonical];
+  }
+  throw new AzureDevOpsValidationError(
+    `Unknown toolset '${raw}'. Valid toolsets are: all, ${TOOLSET_NAMES.join(', ')}. Valid presets are: ${TOOLSET_PRESET_NAMES.join(', ')}`,
+  );
+}
+
+/**
  * Resolve the active tool catalog from the full toolset registry and filter options.
  *
  * Evaluation order:
- * 1. Toolsets filter (`toolsets`, defaults to all toolsets when omitted or includes 'all')
+ * 1. Toolsets filter (`toolsets`, defaults to all toolsets when omitted or includes 'all';
+ *    supports individual toolsets and curated workflow presets)
  * 2. Explicit allowlist (`enabledTools`, intersects with selected toolsets)
  * 3. Explicit denylist (`disabledTools`, removes matching tools)
  * 4. Read-only mode (`readOnly: true`, fail-closed: only tools with `readOnly === true` remain)
@@ -234,12 +329,19 @@ export function resolveEnabledTools<T extends ToolLike>(
   }
   const allToolNames = new Set(allTools.map((t) => t.name));
 
-  // 1. Toolsets selection (preserve canonical TOOLSET_NAMES ordering)
+  // 1. Toolsets selection (expand presets & preserve canonical TOOLSET_NAMES ordering)
   let selectedToolsets: ToolsetName[] = [...TOOLSET_NAMES];
   if (options.toolsets && options.toolsets.length > 0) {
-    const normalized = options.toolsets.map(normalizeToolsetName);
-    if (!normalized.includes('all')) {
-      const selectedSet = new Set<string>(normalized);
+    const expanded = options.toolsets.map(expandToolsetNames);
+    if (!expanded.includes('all')) {
+      const selectedSet = new Set<ToolsetName>();
+      for (const entry of expanded) {
+        if (entry !== 'all') {
+          for (const name of entry) {
+            selectedSet.add(name);
+          }
+        }
+      }
       selectedToolsets = TOOLSET_NAMES.filter((name) => selectedSet.has(name));
     }
   }

@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import { describe, it, mock } from 'node:test';
+import { getConfig } from '../../index.ts';
 import type { ToolLike, ToolsetName } from './tool-filter.ts';
 import {
+  expandToolsetNames,
   normalizeToolsetName,
   parseBooleanOption,
   parseCliToolFilterArgs,
   parseCsvList,
   resolveEnabledTools,
   TOOLSET_NAMES,
+  TOOLSET_PRESET_NAMES,
+  TOOLSET_PRESETS,
 } from './tool-filter.ts';
 import { AzureDevOpsValidationError } from '../errors/index.ts';
 
@@ -114,6 +118,52 @@ void describe('tool-filter', () => {
       });
     });
 
+    void it('parses --no-spotlighting and --spotlighting flags', () => {
+      assert.deepStrictEqual(parseCliToolFilterArgs(['--no-spotlighting']), {
+        spotlighting: false,
+      });
+      assert.deepStrictEqual(parseCliToolFilterArgs(['--spotlighting']), {
+        spotlighting: true,
+      });
+      assert.deepStrictEqual(parseCliToolFilterArgs(['--spotlighting=true']), {
+        spotlighting: true,
+      });
+      assert.deepStrictEqual(parseCliToolFilterArgs(['--spotlighting=false']), {
+        spotlighting: false,
+      });
+      assert.deepStrictEqual(
+        parseCliToolFilterArgs(['--spotlighting', 'true']),
+        {
+          spotlighting: true,
+        },
+      );
+      assert.deepStrictEqual(
+        parseCliToolFilterArgs(['--spotlighting', 'false']),
+        {
+          spotlighting: false,
+        },
+      );
+      assert.deepStrictEqual(
+        parseCliToolFilterArgs(['--spotlighting', '--read-only']),
+        {
+          spotlighting: true,
+          readOnly: true,
+        },
+      );
+      assert.deepStrictEqual(
+        parseCliToolFilterArgs(['--no-spotlighting', '--spotlighting']),
+        {
+          spotlighting: true,
+        },
+      );
+      assert.deepStrictEqual(
+        parseCliToolFilterArgs(['--spotlighting', '--no-spotlighting']),
+        {
+          spotlighting: false,
+        },
+      );
+    });
+
     void it('throws on missing, empty, comma-only, or invalid flag values and unknown flags', () => {
       for (const badArgs of [
         ['--toolsets'],
@@ -130,6 +180,16 @@ void describe('tool-filter', () => {
         ['--read-only', '   '],
         ['--read-only', 'invalid'],
         ['--read-only=flase'],
+        ['--spotlighting='],
+        ['--spotlighting=   '],
+        ['--spotlighting', ''],
+        ['--spotlighting', '   '],
+        ['--spotlighting', 'maybe'],
+        ['--spotlighting=maybe'],
+        ['--no-spotlighting=true'],
+        ['--no-spotlighting=false'],
+        ['--no-spotlighting='],
+        ['--no-spotlighting', 'false'],
         ['--readonly'],
         ['--toolset', 'projects'],
         ['positional'],
@@ -139,6 +199,16 @@ void describe('tool-filter', () => {
           AzureDevOpsValidationError,
         );
       }
+
+      assert.throws(
+        () => parseCliToolFilterArgs(['--unknown']),
+        (err: unknown) => {
+          assert.ok(err instanceof AzureDevOpsValidationError);
+          assert.match(err.message, /--spotlighting/);
+          assert.match(err.message, /--no-spotlighting/);
+          return true;
+        },
+      );
     });
   });
 
@@ -160,10 +230,61 @@ void describe('tool-filter', () => {
       }
     });
 
-    void it('throws AzureDevOpsValidationError for unknown toolsets', () => {
+    void it('throws AzureDevOpsValidationError mentioning valid presets for unknown toolsets', () => {
       assert.throws(
         () => normalizeToolsetName('nonexistent'),
-        AzureDevOpsValidationError,
+        (err: unknown) => {
+          assert.ok(err instanceof AzureDevOpsValidationError);
+          for (const preset of TOOLSET_PRESET_NAMES) {
+            assert.ok(err.message.includes(preset));
+          }
+          return true;
+        },
+      );
+    });
+  });
+
+  void describe('expandToolsetNames', () => {
+    void it('expands all 4 curated workflow presets and underscore aliases', () => {
+      assert.deepStrictEqual(
+        expandToolsetNames('pr-review'),
+        TOOLSET_PRESETS['pr-review'],
+      );
+      assert.deepStrictEqual(
+        expandToolsetNames('pr_review'),
+        TOOLSET_PRESETS['pr-review'],
+      );
+      assert.deepStrictEqual(
+        expandToolsetNames('PR-REVIEW'),
+        TOOLSET_PRESETS['pr-review'],
+      );
+      assert.deepStrictEqual(
+        expandToolsetNames('ci-debug'),
+        TOOLSET_PRESETS['ci-debug'],
+      );
+      assert.deepStrictEqual(
+        expandToolsetNames('ci_debug'),
+        TOOLSET_PRESETS['ci-debug'],
+      );
+      assert.deepStrictEqual(
+        expandToolsetNames('boards'),
+        TOOLSET_PRESETS.boards,
+      );
+      assert.deepStrictEqual(expandToolsetNames('core'), TOOLSET_PRESETS.core);
+      assert.strictEqual(expandToolsetNames('ALL'), 'all');
+      assert.deepStrictEqual(expandToolsetNames('prs'), ['pull-requests']);
+    });
+
+    void it('throws AzureDevOpsValidationError mentioning valid presets on unknown value', () => {
+      assert.throws(
+        () => expandToolsetNames('unknown-preset'),
+        (err: unknown) => {
+          assert.ok(err instanceof AzureDevOpsValidationError);
+          for (const preset of TOOLSET_PRESET_NAMES) {
+            assert.ok(err.message.includes(preset));
+          }
+          return true;
+        },
       );
     });
   });
@@ -267,6 +388,158 @@ void describe('tool-filter', () => {
         result.readOnlyBlockedNames.has('unmarked_write_tool'),
         true,
       );
+    });
+
+    void it('expands all 4 curated workflow presets in canonical TOOLSET_NAMES order', () => {
+      const registry = makeRegistry();
+
+      const prReview = resolveEnabledTools(registry, {
+        toolsets: ['pr-review'],
+      });
+      assert.deepStrictEqual(
+        prReview.tools.map((t) => t.name),
+        [
+          'get_me',
+          'list_projects',
+          'get_project',
+          'list_repositories',
+          'create_commit',
+          'list_pull_requests',
+          'create_pull_request',
+        ],
+      );
+
+      const ciDebug = resolveEnabledTools(registry, {
+        toolsets: ['ci_debug'],
+      });
+      // Canonical TOOLSET_NAMES order puts pull-requests before pipelines
+      assert.deepStrictEqual(
+        ciDebug.tools.map((t) => t.name),
+        [
+          'list_projects',
+          'get_project',
+          'list_pull_requests',
+          'create_pull_request',
+          'list_pipelines',
+          'trigger_pipeline',
+        ],
+      );
+
+      const boards = resolveEnabledTools(registry, {
+        toolsets: ['boards'],
+      });
+      assert.deepStrictEqual(
+        boards.tools.map((t) => t.name),
+        [
+          'get_me',
+          'list_projects',
+          'get_project',
+          'get_work_item',
+          'create_work_item',
+          'unmarked_write_tool',
+          'search_code',
+        ],
+      );
+
+      const core = resolveEnabledTools(registry, {
+        toolsets: ['core'],
+      });
+      assert.deepStrictEqual(
+        core.tools.map((t) => t.name),
+        [
+          'get_me',
+          'list_organizations',
+          'list_projects',
+          'get_project',
+          'list_repositories',
+          'create_commit',
+          'get_work_item',
+          'create_work_item',
+          'unmarked_write_tool',
+          'list_pull_requests',
+          'create_pull_request',
+        ],
+      );
+    });
+
+    void it('mixes presets and individual toolsets with deduplication and canonical ordering', () => {
+      const registry = makeRegistry();
+      const mixed = resolveEnabledTools(registry, {
+        toolsets: ['wikis', 'pr-review', 'projects', 'pr_review'],
+      });
+
+      assert.deepStrictEqual(
+        mixed.tools.map((t) => t.name),
+        [
+          'get_me',
+          'list_projects',
+          'get_project',
+          'list_repositories',
+          'create_commit',
+          'list_pull_requests',
+          'create_pull_request',
+          'get_wikis',
+          'create_wiki_page',
+        ],
+      );
+    });
+  });
+
+  void describe('spotlighting config resolution', () => {
+    void it('defaults to true, reads AZURE_DEVOPS_SPOTLIGHTING, and lets CLI override', () => {
+      const stderrMock = mock.method(process.stderr, 'write', () => true);
+      try {
+        const defaultConfig = getConfig([], {
+          AZURE_DEVOPS_ORG_URL: 'https://dev.azure.com/test-org',
+        });
+        assert.strictEqual(defaultConfig.spotlighting, true);
+
+        const envDisabled = getConfig([], {
+          AZURE_DEVOPS_ORG_URL: 'https://dev.azure.com/test-org',
+          AZURE_DEVOPS_SPOTLIGHTING: 'false',
+        });
+        assert.strictEqual(envDisabled.spotlighting, false);
+
+        const cliDisabledOverEnv = getConfig(['--no-spotlighting'], {
+          AZURE_DEVOPS_ORG_URL: 'https://dev.azure.com/test-org',
+          AZURE_DEVOPS_SPOTLIGHTING: 'true',
+        });
+        assert.strictEqual(cliDisabledOverEnv.spotlighting, false);
+
+        const cliEnabledOverEnv = getConfig(['--spotlighting'], {
+          AZURE_DEVOPS_ORG_URL: 'https://dev.azure.com/test-org',
+          AZURE_DEVOPS_SPOTLIGHTING: 'false',
+        });
+        assert.strictEqual(cliEnabledOverEnv.spotlighting, true);
+
+        const cliEqualsDisabled = getConfig(['--spotlighting=false'], {
+          AZURE_DEVOPS_ORG_URL: 'https://dev.azure.com/test-org',
+          AZURE_DEVOPS_SPOTLIGHTING: 'true',
+        });
+        assert.strictEqual(cliEqualsDisabled.spotlighting, false);
+      } finally {
+        stderrMock.mock.restore();
+      }
+    });
+
+    void it('fails fast on invalid AZURE_DEVOPS_SPOTLIGHTING values', () => {
+      const stderrMock = mock.method(process.stderr, 'write', () => true);
+      try {
+        assert.throws(
+          () =>
+            getConfig([], {
+              AZURE_DEVOPS_ORG_URL: 'https://dev.azure.com/test-org',
+              AZURE_DEVOPS_SPOTLIGHTING: 'maybe',
+            }),
+          (err: unknown) => {
+            assert.ok(err instanceof AzureDevOpsValidationError);
+            assert.match(err.message, /AZURE_DEVOPS_SPOTLIGHTING/);
+            return true;
+          },
+        );
+      } finally {
+        stderrMock.mock.restore();
+      }
     });
   });
 });

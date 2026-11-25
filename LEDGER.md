@@ -317,3 +317,24 @@ Every figure below was directly measured before M1 changes began:
   - Guard `after()` cleanup hooks against partial `before()` failures, keep `process.env` setup inside `before()` (never module top-level), and `delete process.env.KEY` when restoring `undefined` in `finally`.
   - Use double-quoted globs in `package.json` scripts, never use Node-26-only CLI flags without Node 24 verification, prepend `PATH="/opt/nvm/versions/node/v26.13.1/bin:$PATH"` for isolated Node 26 `npm` checks, keep `tsconfig.test.json` excluding `tests/e2e-suite/**`, and never run `oxfmt` over `.github/copilot-instructions.md`.
   - **Deferred non-blocking docs/IDE polish (out of M1c-3 ownership):** `docs/testing/setup.md:35–72` (legacy `@/` import examples and `npm test` phrasing), `docs/testing/README.md` (optional mention of `node:test` / `test:coverage` / `typecheck`), and `.vscode/settings.json:4,6` (`importModuleSpecifier` & `spec.{prop,diff}` nesting) can be refreshed in a later docs hygiene pass.
+
+---
+
+## Milestone M2 — Tier 1: ToolAnnotations, Spotlighting, Presets & Repo Hygiene (`COMPLETE`)
+
+- **Features Delivered:** `F6` (Full MCP `ToolAnnotations` + compile-time Poka-yoke), `F7` (Zero-dep Prompt-Injection Spotlighting), `F8` (Curated `--toolsets` presets + `create_commit` token trim), `F9` (Stale branch cleanup + `0.2.0` Release Please target).
+- **F6 (`ToolAnnotations` & `get_work_item_attachment` classification):**
+  - `defineTool()` in `src/shared/registry/tool-registry.ts` enforces a compile-time discriminated union: read-only tools auto-emit `{ title, readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint }`; write tools require explicit `destructive` and `idempotent` booleans.
+  - All 60 tools emit all 5 MCP `ToolAnnotations` hints in `tools/list` (`38` read-only / `22` write). `get_work_item_attachment` was reclassified to `readOnly: false, destructive: true, idempotent: true` because it writes to local disk (`outputPath`), safely excluding it under `--read-only`.
+- **F7 (Prompt-Injection Spotlighting):**
+  - Implemented zero-dep `src/shared/security/spotlighting.ts` using 128-bit CSPRNG lowercase hex nonces (`randomBytes(16).toString('hex')`), Unicode `U+2014` em-dash framing, sanitized source labels, and a non-enumerable private `Symbol` double-wrap guard.
+  - Applied centrally at the `CallTool` seam in `src/server.ts` (ON by default; opt-out via `--no-spotlighting` / `--spotlighting=false` or `AZURE_DEVOPS_SPOTLIGHTING=false`; invalid boolean values fail fast with exit code `1`). Raw `resources/read` code files remain unwrapped.
+- **F8 (`--toolsets` Presets & `create_commit` Trim):**
+  - Added 4 curated workflow presets (`pr-review`, `ci-debug`, `boards`, `core`) in `src/shared/config/tool-filter.ts` (mixable with individual toolsets, deduplicated in canonical order).
+  - Trimmed `create_commit` description from `1,615 B` to `342 B` and total serialized tool definition from `5,045 B` to `1,988 B` (`-60.6%`), removing duplicated `inputSchema.description` tutorial text.
+- **F9 (Repo Hygiene & `0.2.0` Release Target):**
+  - Deleted all 19 verified stale remote branches on GitHub (0 open PRs) while preserving `main` and `pr-assets/maintenance-overhaul` (which hosts PR #423 embedded charts): `bugfix/enhance-get_pull_request_comments`, `bugfix/95--length-issue`, `copilot/fix-258`, `copilot/fix-claude-desktop-connection`, `copilot/fix-repository-url-error`, `copilot/fix-severity-parameter-issue`, `copilot/fixdependabot-majors`, `copilot/fixdependabot-majors-2`, `copilot/research-mcp-servers-strategies`, `devin/1782184300-refactor-shared-utilities`, `devin/1782184308-add-unit-tests-low-coverage`, `devin/1782184322-improve-error-handling`, `devin/1782184385-security-fixes`, `feature/create-wiki-page`, `fix/create-wiki-page-api-version-tests`, `fix/dependabot-majors`, `fix/dependabot-majors-2`, `jules-16092452870461000162-b05bf105`, `pr-246`.
+  - Release target: `0.2.0` via Release Please (`feat!:` commit for `engines.node >=24.0.0`, keeping commits local until ready to push/open PR).
+- **Process Optimization (`無駄取り` / `改善`):**
+  - Empirical profiling of M1 under nested `teamwork` showed `221` agent runs / `5.44 MB` of internal markdown (`89.1%` coordination/verification overhead, `10.9%` code/test authoring). Replaced nested orchestrator/explorer/5-verifier ceremony with flat orchestration, parallel disjoint `feature-worker` subagents, automated E2E gates (`tests/e2e-suite/`), and 1 `neon-reviewer` diff pass per milestone — reducing M2 implementation wall-clock from ~3h to ~5 min.
+
