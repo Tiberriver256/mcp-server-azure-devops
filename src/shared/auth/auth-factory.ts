@@ -193,24 +193,19 @@ export class RefreshingBearerCredentialHandler implements IRequestHandler {
     await this.refreshToken();
     this.prepareRequest(requestInfo.options);
 
-    const isReadableStream = (
-      value: unknown,
-    ): value is NodeJS.ReadableStream & {
-      readableEnded?: boolean;
-      destroyed?: boolean;
-    } =>
+    const isReadableStream = (value: unknown): value is NodeJS.ReadableStream =>
       typeof value === 'object' &&
       value !== null &&
       'pipe' in value &&
       typeof value.pipe === 'function';
 
+    // typed-rest-client only invokes handleAuthentication after piping `objs`
+    // into the failed initial request; replaying any ReadableStream risks
+    // silently uploading truncated/corrupted data or hanging on an ended stream.
     if (isReadableStream(objs)) {
-      if (objs.readableEnded || objs.destroyed) {
-        throw new AzureDevOpsAuthenticationError(
-          'Authentication expired during a streaming upload; please retry the operation',
-        );
-      }
-      return await httpClient.requestRaw(requestInfo, objs);
+      throw new AzureDevOpsAuthenticationError(
+        'Authentication expired during a streaming upload; please retry the operation',
+      );
     }
 
     // Pass `null` (not `''`) when there is no body so typed-rest-client does NOT

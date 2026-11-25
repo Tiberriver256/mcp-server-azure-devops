@@ -2,7 +2,12 @@ import { Readable } from 'stream';
 import type { WebApi } from 'azure-devops-node-api';
 import type { BuildArtifact } from 'azure-devops-node-api/interfaces/BuildInterfaces';
 import { downloadPipelineArtifact } from './feature';
-import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
+import {
+  AzureDevOpsAuthenticationError,
+  AzureDevOpsRateLimitError,
+  AzureDevOpsResourceNotFoundError,
+} from '../../../shared/errors';
+import { HttpError } from '../../../shared/http/http-client';
 import { buildTestZip } from '../../../shared/test/zip-builder';
 import type { ToolContext } from '../../../shared/session/azure-devops-session';
 
@@ -183,6 +188,76 @@ describe('downloadPipelineArtifact', () => {
     );
 
     expect(result.content).toBe('{"os":"windows"}');
+  });
+
+  it('maps HttpError statuses (203 auth redirect, 429 rate limit) to typed AzureDevOpsError subclasses', async () => {
+    const pipelineArtifact: BuildArtifact = {
+      name: 'reports',
+      source: 'source',
+      resource: {
+        type: 'PipelineArtifact',
+        downloadUrl:
+          'https://dev.azure.com/test-org/_apis/artifacts/reports.zip',
+      },
+    };
+    getArtifacts.mockResolvedValue([pipelineArtifact]);
+    getPipelinesApi.mockResolvedValue({
+      getArtifact: jest.fn().mockResolvedValue({
+        signedContent: { url: 'https://blobs.example.com/reports.zip' },
+      }),
+    });
+
+    const httpGet = jest
+      .fn()
+      .mockRejectedValueOnce(
+        new HttpError({
+          message: 'HTTP 203 Non-Authoritative Information',
+          status: 203,
+          statusText: 'Non-Authoritative Information',
+          url: 'https://blobs.example.com/reports.zip',
+        }),
+      )
+      .mockRejectedValueOnce(
+        new HttpError({
+          message: 'Too Many Requests',
+          status: 429,
+          statusText: 'Too Many Requests',
+          url: 'https://blobs.example.com/reports.zip',
+          headers: { 'retry-after': '15' },
+        }),
+      );
+
+    const mockCtx = {
+      http: { get: httpGet },
+      getAuthHeader: jest.fn().mockResolvedValue('Basic c2VjcmV0'),
+      resolveProjectId: (p?: string) => p ?? projectId,
+    } as unknown as ToolContext;
+
+    await expect(
+      downloadPipelineArtifact(
+        connection,
+        {
+          projectId,
+          pipelineId: 77,
+          runId,
+          artifactPath: 'reports/sub/output.json',
+        },
+        mockCtx,
+      ),
+    ).rejects.toBeInstanceOf(AzureDevOpsAuthenticationError);
+
+    await expect(
+      downloadPipelineArtifact(
+        connection,
+        {
+          projectId,
+          pipelineId: 77,
+          runId,
+          artifactPath: 'reports/sub/output.json',
+        },
+        mockCtx,
+      ),
+    ).rejects.toBeInstanceOf(AzureDevOpsRateLimitError);
   });
 
   it('throws when the requested file is missing', async () => {

@@ -226,7 +226,13 @@ describe('createAuthProvider token caching & AzureDevOpsSession recovery', () =>
       'Bearer token-v2',
     );
 
-    // Already-consumed ReadableStream rejects cleanly instead of hanging on retry
+    // Any ReadableStream (even if not yet ended) rejects cleanly so partially-consumed uploads are never truncated
+    requestRaw.mockClear();
+    const liveStream = Readable.from(['chunk-1', 'chunk-2']);
+    await expect(
+      handlerOrgA.handleAuthentication(mockHttp, reqInfo, liveStream),
+    ).rejects.toBeInstanceOf(AzureDevOpsAuthenticationError);
+
     const endedStream = Readable.from(['done']);
     for await (const _chunk of endedStream) {
       // drain stream so readableEnded === true
@@ -234,6 +240,7 @@ describe('createAuthProvider token caching & AzureDevOpsSession recovery', () =>
     await expect(
       handlerOrgA.handleAuthentication(mockHttp, reqInfo, endedStream),
     ).rejects.toBeInstanceOf(AzureDevOpsAuthenticationError);
+    expect(requestRaw).not.toHaveBeenCalled();
   });
 
   it('evicts failed WebApi promises from AzureDevOpsSession so subsequent calls recover', async () => {

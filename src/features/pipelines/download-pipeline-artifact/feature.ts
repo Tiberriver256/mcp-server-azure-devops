@@ -6,7 +6,11 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { createHttpClient } from '../../../shared/http/http-client';
+import {
+  createHttpClient,
+  isHttpError,
+  mapHttpErrorToAzureDevOpsError,
+} from '../../../shared/http/http-client';
 import type { ToolContext } from '../../../shared/session/azure-devops-session';
 import { streamToBuffer } from '../../../shared/utils/stream';
 import { readZipArchive } from '../../../shared/utils/zip-reader';
@@ -380,6 +384,13 @@ export async function downloadPipelineArtifact(
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
       throw error;
+    }
+
+    if (isHttpError(error)) {
+      throw mapHttpErrorToAzureDevOpsError(
+        error,
+        'downloading pipeline artifact',
+      );
     }
 
     if (error instanceof Error) {

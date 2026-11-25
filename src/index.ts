@@ -50,7 +50,7 @@ export function getConfig(
     cliFilters.readOnly ??
     parseBooleanOption(env.AZURE_DEVOPS_READ_ONLY, 'AZURE_DEVOPS_READ_ONLY');
 
-  logInfo(`Azure DevOps MCP Server starting (org=${orgDisplay})`);
+  logInfo(`Azure DevOps MCP Server starting (org=${orgDisplay})`, env);
 
   logDebug(
     `DEBUG - Config:

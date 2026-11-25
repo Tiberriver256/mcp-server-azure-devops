@@ -65,5 +65,16 @@ describe('logging level filtering', () => {
     logWarn('wrn');
     logError('err');
     expect(stderrChunks).toEqual(['dbg\n', 'inf\n', 'WARNING: wrn\n', 'err\n']);
+
+    // Explicit env overrides process.env hermetically
+    stderrChunks.length = 0;
+    const strictEnv = { AZURE_DEVOPS_LOG_LEVEL: 'warn' };
+    logInfo('suppressed-info', strictEnv);
+    logWarn('visible-warn', strictEnv);
+    logError('visible-error', strictEnv);
+    expect(stderrChunks).toEqual([
+      'WARNING: visible-warn\n',
+      'visible-error\n',
+    ]);
   });
 });

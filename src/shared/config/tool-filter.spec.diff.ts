@@ -65,18 +65,32 @@ function oracleNormalizeToolset(raw: string): string {
 }
 
 function oracleParseCsv(raw: string): string[] {
-  return raw
-    .split(',')
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
+  return Array.from(
+    new Set(
+      raw
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0),
+    ),
+  );
 }
 
 function oracleParseBool(raw: string): boolean {
   const normalized = raw.trim().toLowerCase();
-  if (normalized === 'true' || normalized === '1' || normalized === 'yes') {
+  if (
+    normalized === 'true' ||
+    normalized === '1' ||
+    normalized === 'yes' ||
+    normalized === 'on'
+  ) {
     return true;
   }
-  if (normalized === 'false' || normalized === '0' || normalized === 'no') {
+  if (
+    normalized === 'false' ||
+    normalized === '0' ||
+    normalized === 'no' ||
+    normalized === 'off'
+  ) {
     return false;
   }
   throw new Error(`Invalid boolean: ${raw}`);
@@ -189,18 +203,25 @@ describe('tool-filter differential tests vs set-algebra & util.parseArgs oracles
 
   it('parseCliToolFilterArgs agrees with Node util.parseArgs oracle across randomized flag orderings and formats', () => {
     const flagSpecArb = fc.record({
-      toolsets: fc.option(fc.subarray([...TOOLSET_NAMES], { minLength: 1 }), {
-        nil: undefined,
-      }),
-      enabled: fc.option(fc.subarray(ALL_NAMES, { minLength: 1 }), {
-        nil: undefined,
-      }),
-      disabled: fc.option(fc.subarray(ALL_NAMES, { minLength: 1 }), {
-        nil: undefined,
-      }),
-      readOnly: fc.option(fc.constantFrom('true', 'false', '1', '0'), {
-        nil: undefined,
-      }),
+      toolsets: fc.option(
+        fc.array(fc.constantFrom(...TOOLSET_NAMES), {
+          minLength: 1,
+          maxLength: 5,
+        }),
+        { nil: undefined },
+      ),
+      enabled: fc.option(
+        fc.array(fc.constantFrom(...ALL_NAMES), { minLength: 1, maxLength: 5 }),
+        { nil: undefined },
+      ),
+      disabled: fc.option(
+        fc.array(fc.constantFrom(...ALL_NAMES), { minLength: 1, maxLength: 5 }),
+        { nil: undefined },
+      ),
+      readOnly: fc.option(
+        fc.constantFrom('true', 'false', '1', '0', 'yes', 'no', 'on', 'off'),
+        { nil: undefined },
+      ),
       useEquals: fc.boolean(),
     });
 

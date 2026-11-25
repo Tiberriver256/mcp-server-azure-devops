@@ -15,6 +15,7 @@ function makeContext(
     req: HttpRequestOptions,
   ) => Promise<{ status: number; data: unknown }>,
   organizationUrl = 'https://dev.azure.com/test-org',
+  defaultProject?: string,
 ) {
   const http = {
     request: async <T = unknown>(req: HttpRequestOptions) => {
@@ -42,6 +43,7 @@ function makeContext(
       organizationUrl,
       authMethod: AuthenticationMethod.PersonalAccessToken,
       personalAccessToken: 'test-pat',
+      defaultProject,
     },
     { httpClient: http },
   );
@@ -75,7 +77,7 @@ describe('searchWorkItems', () => {
     });
   });
 
-  it('requires projectId on Azure DevOps Server', async () => {
+  it('requires projectId on Azure DevOps Server when no defaultProject is configured', async () => {
     const ctx = makeContext(
       async () => ({ status: 200, data: {} }),
       'https://ado.local/tfs/DefaultCollection',
@@ -83,6 +85,34 @@ describe('searchWorkItems', () => {
     await expect(searchWorkItems(ctx, { searchText: 'bug' })).rejects.toThrow(
       AzureDevOpsValidationError,
     );
+  });
+
+  it('falls back to defaultProject on Azure DevOps Server without duplicating project segment on project-suffixed URLs', async () => {
+    const urls: string[] = [];
+    const collectionCtx = makeContext(
+      async (req) => {
+        urls.push(req.url);
+        return { status: 200, data: { count: 0, results: [], facets: {} } };
+      },
+      'https://ado.local/tfs/DefaultCollection',
+      'My Project',
+    );
+    await searchWorkItems(collectionCtx, { searchText: 'bug' });
+
+    const projectSuffixedCtx = makeContext(
+      async (req) => {
+        urls.push(req.url);
+        return { status: 200, data: { count: 0, results: [], facets: {} } };
+      },
+      'https://ado.local/tfs/DefaultCollection/MyProject',
+      'MyProject',
+    );
+    await searchWorkItems(projectSuffixedCtx, { searchText: 'bug' });
+
+    expect(urls).toEqual([
+      'https://ado.local/tfs/DefaultCollection/My%20Project/_apis/search/workitemsearchresults',
+      'https://ado.local/tfs/DefaultCollection/MyProject/_apis/search/workitemsearchresults',
+    ]);
   });
 
   it.each([

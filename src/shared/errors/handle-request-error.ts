@@ -20,7 +20,7 @@ export function redactSecrets(input: string): string {
       /(authorization["']?\s*[:=]\s*["']?(?:basic|bearer)\s+)[^\s"',;}\])]+/gi,
       '$1[REDACTED]',
     )
-    .replace(/\b(Basic|Bearer)\s+[A-Za-z0-9+/=._-]{8,}/gi, '$1 [REDACTED]')
+    .replace(/\b(Basic|Bearer)\s+[A-Za-z0-9+/=._-]{16,}/gi, '$1 [REDACTED]')
     .replace(/(https?:\/\/)[^/\s@]+@/gi, '$1[REDACTED]@');
 }
 

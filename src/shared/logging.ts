@@ -36,20 +36,29 @@ function shouldLog(
   return LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[resolveLogLevel(env)];
 }
 
-export function logInfo(message: string): void {
-  if (shouldLog('info')) {
+export function logInfo(
+  message: string,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  if (shouldLog('info', env)) {
     process.stderr.write(`${message}\n`);
   }
 }
 
-export function logWarn(message: string): void {
-  if (shouldLog('warn')) {
+export function logWarn(
+  message: string,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  if (shouldLog('warn', env)) {
     process.stderr.write(`WARNING: ${message}\n`);
   }
 }
 
-export function logError(message: string): void {
-  if (shouldLog('error')) {
+export function logError(
+  message: string,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  if (shouldLog('error', env)) {
     process.stderr.write(`${message}\n`);
   }
 }

@@ -78,4 +78,13 @@ describe('error & log secret-redaction security properties', () => {
       { numRuns: 100 },
     );
   });
+
+  it('preserves ordinary English diagnostics containing Basic/Bearer words without false-positive redaction', () => {
+    expect(redactSecrets('Basic authentication failed for request')).toBe(
+      'Basic authentication failed for request',
+    );
+    expect(redactSecrets('Invalid basic credentials supplied')).toBe(
+      'Invalid basic credentials supplied',
+    );
+  });
 });

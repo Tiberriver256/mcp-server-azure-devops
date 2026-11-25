@@ -24,13 +24,14 @@ export async function searchWorkItems(
     ? connectionOrContext
     : createSessionFromEnv({ organizationUrl: serverUrl });
 
+  const explicitProjectId = options.projectId?.trim() || undefined;
   const baseUrls = resolveAzureDevOpsBaseUrls(serverUrl, {
     organizationId: options.organizationId,
-    projectId: options.projectId,
+    projectId: explicitProjectId ?? session.config.defaultProject,
   });
 
   const effectiveProjectId =
-    options.projectId?.trim() ||
+    explicitProjectId ??
     (baseUrls.type === 'server'
       ? (session.config.defaultProject ?? baseUrls.projectFromUrl)
       : undefined);

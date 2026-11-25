@@ -15,6 +15,7 @@ function makeContext(
     req: HttpRequestOptions,
   ) => Promise<{ status: number; data: unknown }>,
   organizationUrl = 'https://dev.azure.com/test-org',
+  defaultProject?: string,
 ) {
   const http = {
     request: async <T = unknown>(req: HttpRequestOptions) => {
@@ -42,6 +43,7 @@ function makeContext(
       organizationUrl,
       authMethod: AuthenticationMethod.PersonalAccessToken,
       personalAccessToken: 'test-pat',
+      defaultProject,
     },
     { httpClient: http },
   );
@@ -74,7 +76,7 @@ describe('searchWiki', () => {
     });
   });
 
-  it('requires projectId for Azure DevOps Server on-prem wiki search', async () => {
+  it('requires projectId for Azure DevOps Server on-prem wiki search when no defaultProject is configured', async () => {
     const ctx = makeContext(
       async () => ({ status: 200, data: {} }),
       'https://ado.local/tfs/DefaultCollection',
@@ -83,6 +85,34 @@ describe('searchWiki', () => {
     await expect(searchWiki(ctx, { searchText: 'onboarding' })).rejects.toThrow(
       AzureDevOpsValidationError,
     );
+  });
+
+  it('falls back to defaultProject on Azure DevOps Server without duplicating project segment on project-suffixed URLs', async () => {
+    const urls: string[] = [];
+    const collectionCtx = makeContext(
+      async (req) => {
+        urls.push(req.url);
+        return { status: 200, data: { count: 0, results: [], facets: {} } };
+      },
+      'https://ado.local/tfs/DefaultCollection',
+      'My Project',
+    );
+    await searchWiki(collectionCtx, { searchText: 'onboarding' });
+
+    const projectSuffixedCtx = makeContext(
+      async (req) => {
+        urls.push(req.url);
+        return { status: 200, data: { count: 0, results: [], facets: {} } };
+      },
+      'https://ado.local/tfs/DefaultCollection/MyProject',
+      'MyProject',
+    );
+    await searchWiki(projectSuffixedCtx, { searchText: 'onboarding' });
+
+    expect(urls).toEqual([
+      'https://ado.local/tfs/DefaultCollection/My%20Project/_apis/search/wikisearchresults',
+      'https://ado.local/tfs/DefaultCollection/MyProject/_apis/search/wikisearchresults',
+    ]);
   });
 
   it.each([

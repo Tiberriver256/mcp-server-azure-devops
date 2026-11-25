@@ -76,7 +76,7 @@ jobs:
 
             const newRow = `| skill-creator | ${description} | [skills/skill-creator/SKILL.md](skills/skill-creator/SKILL.md) |`;
             const instructions = fs.readFileSync(instructionsPath, "utf8");
-            const updated = instructions.replace(/^\| skill-creator \|.*$/m, newRow);
+            const updated = instructions.replace(/^\| skill-creator \|.*$/m, () => newRow);
             if (updated === instructions && !instructions.includes(newRow)) {
               throw new Error("Could not find skill-creator table row in " + instructionsPath);
             }
