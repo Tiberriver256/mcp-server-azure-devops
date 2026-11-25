@@ -1,11 +1,17 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import { parseArgs } from 'util';
 import fc from 'fast-check';
 import {
   parseCliToolFilterArgs,
   resolveEnabledTools,
   TOOLSET_NAMES,
-} from './tool-filter';
-import type { ToolFilterOptions, ToolLike, ToolsetName } from './tool-filter';
+} from './tool-filter.ts';
+import type {
+  ToolFilterOptions,
+  ToolLike,
+  ToolsetName,
+} from './tool-filter.ts';
 
 const registry: Record<ToolsetName, readonly ToolLike[]> = {
   users: [{ name: 'get_me', readOnly: true }],
@@ -39,6 +45,9 @@ const registry: Record<ToolsetName, readonly ToolLike[]> = {
     { name: 'list_test_plans', readOnly: true },
     { name: 'create_test_plan', readOnly: false },
   ],
+  work: [{ name: 'list_iterations', readOnly: true }],
+  analytics: [{ name: 'query_analytics', readOnly: true }],
+  events: [{ name: 'list_event_types', readOnly: true }],
 };
 
 const ALL_NAMES = TOOLSET_NAMES.flatMap((ts) =>
@@ -164,8 +173,8 @@ function oracleParseCliWithUtilParseArgs(argv: string[]): ToolFilterOptions {
   return out;
 }
 
-describe('tool-filter differential tests vs set-algebra & util.parseArgs oracles', () => {
-  it('resolveEnabledTools agrees with independent brute-force set-algebra oracle on all filter combinations', () => {
+void describe('tool-filter differential tests vs set-algebra & util.parseArgs oracles', () => {
+  void it('resolveEnabledTools agrees with independent brute-force set-algebra oracle on all filter combinations', () => {
     const aliasOrNameArb = fc.constantFrom(
       ...TOOLSET_NAMES,
       'all',
@@ -194,14 +203,14 @@ describe('tool-filter differential tests vs set-algebra & util.parseArgs oracles
             (t) => t.name,
           );
           const expected = oracleResolveEnabledToolNames(opts);
-          expect(actual).toEqual(expected);
+          assert.deepStrictEqual(actual, expected);
         },
       ),
       { numRuns: 200 },
     );
   });
 
-  it('parseCliToolFilterArgs agrees with Node util.parseArgs oracle across randomized flag orderings and formats', () => {
+  void it('parseCliToolFilterArgs agrees with Node util.parseArgs oracle across randomized flag orderings and formats', () => {
     const flagSpecArb = fc.record({
       toolsets: fc.option(
         fc.array(fc.constantFrom(...TOOLSET_NAMES), {
@@ -249,7 +258,8 @@ describe('tool-filter differential tests vs set-algebra & util.parseArgs oracles
           pushFlag('--read-only', spec.readOnly);
         }
 
-        expect(parseCliToolFilterArgs(argv)).toEqual(
+        assert.deepStrictEqual(
+          parseCliToolFilterArgs(argv),
           oracleParseCliWithUtilParseArgs(argv),
         );
       }),

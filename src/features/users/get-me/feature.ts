@@ -2,18 +2,18 @@ import type { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsError,
   AzureDevOpsValidationError,
-} from '../../../shared/errors';
+} from '../../../shared/errors/index.ts';
 import {
   isAzureDevOpsServicesUrl,
   resolveAzureDevOpsBaseUrls,
-} from '../../../shared/azure-devops-url';
+} from '../../../shared/azure-devops-url.ts';
 import {
   isHttpError,
   mapHttpErrorToAzureDevOpsError,
-} from '../../../shared/http/http-client';
-import { createSessionFromEnv } from '../../../shared/session/azure-devops-session';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
-import type { UserProfile } from '../types';
+} from '../../../shared/http/http-client.ts';
+import { createSessionFromEnv } from '../../../shared/session/azure-devops-session.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import type { UserProfile } from '../types.ts';
 
 /**
  * Get details of the currently authenticated user (Azure DevOps Services only).

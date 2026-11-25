@@ -1,15 +1,18 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { TeamContext } from 'azure-devops-node-api/interfaces/CoreInterfaces';
+import type { TeamContext } from 'azure-devops-node-api/interfaces/CoreInterfaces.js';
 import type {
   WorkItem,
   WorkItemReference,
-} from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+} from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
 import {
   AzureDevOpsError,
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
-import type { ListWorkItemsOptions, WorkItem as WorkItemType } from '../types';
+} from '../../../shared/errors/index.ts';
+import type {
+  ListWorkItemsOptions,
+  WorkItem as WorkItemType,
+} from '../types.ts';
 
 function escapeWiqlString(value: string): string {
   return value.replace(/'/g, "''");

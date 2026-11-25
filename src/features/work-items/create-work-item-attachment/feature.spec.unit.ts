@@ -1,12 +1,14 @@
+import assert from 'node:assert/strict';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { afterEach, beforeEach, describe, mock, test } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { createWorkItemAttachment } from './feature';
-import { AzureDevOpsError } from '../../../shared/errors';
-import { streamToString } from '../../../shared/utils/stream';
+import { createWorkItemAttachment } from './feature.ts';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import { streamToString } from '../../../shared/utils/stream.ts';
 
-describe('createWorkItemAttachment unit', () => {
+void describe('createWorkItemAttachment unit', () => {
   let tempDir: string;
   let sampleFile: string;
 
@@ -20,24 +22,34 @@ describe('createWorkItemAttachment unit', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  test('streams file content from disk and attaches relation to work item', async () => {
+  void test('streams file content from disk and attaches relation to work item', async () => {
     let streamedBody = '';
-    const createAttachment = jest.fn(
-      async (_headers: unknown, stream: NodeJS.ReadableStream) => {
+    const createAttachment = mock.fn(
+      async (
+        _headers: unknown,
+        stream: NodeJS.ReadableStream,
+        _fileName?: string,
+        _uploadType?: string,
+        _areaPath?: string,
+      ) => {
         streamedBody = await streamToString(stream);
         return { url: 'https://dev.azure.com/org/_apis/wit/attachments/att-1' };
       },
     );
-    const updateWorkItem = jest.fn().mockResolvedValue({
-      id: 123,
-      relations: [{ rel: 'AttachedFile' }],
-    });
+    const updateWorkItem = mock.fn((..._args: unknown[]) =>
+      Promise.resolve({
+        id: 123,
+        relations: [{ rel: 'AttachedFile' }],
+      }),
+    );
 
     const mockConnection = {
-      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
-        createAttachment,
-        updateWorkItem,
-      }),
+      getWorkItemTrackingApi: mock.fn(() =>
+        Promise.resolve({
+          createAttachment,
+          updateWorkItem,
+        }),
+      ),
     } as unknown as WebApi;
 
     const result = await createWorkItemAttachment(mockConnection, 123, {
@@ -45,15 +57,27 @@ describe('createWorkItemAttachment unit', () => {
       comment: 'Diagnostic log',
     });
 
-    expect(streamedBody).toBe('streaming attachment payload');
-    expect(createAttachment).toHaveBeenCalledWith(
-      {},
-      expect.any(fs.ReadStream),
-      'notes.txt',
-      undefined,
-      undefined,
+    assert.strictEqual(streamedBody, 'streaming attachment payload');
+    assert.strictEqual(createAttachment.mock.callCount(), 1);
+    const createArgs = createAttachment.mock.calls[0]?.arguments;
+    assert.ok(createArgs);
+    assert.strictEqual(createArgs.length, 5);
+    assert.deepStrictEqual(createArgs[0], {});
+    assert.notStrictEqual(createArgs[1], null);
+    assert.notStrictEqual(createArgs[1], undefined);
+    assert.strictEqual(
+      Object.getPrototypeOf(createArgs[1]),
+      fs.ReadStream.prototype,
     );
-    expect(updateWorkItem).toHaveBeenCalledWith(
+    assert.strictEqual(createArgs[2], 'notes.txt');
+    assert.strictEqual(createArgs[3], undefined);
+    assert.strictEqual(createArgs[4], undefined);
+
+    assert.strictEqual(updateWorkItem.mock.callCount(), 1);
+    const updateArgs = updateWorkItem.mock.calls[0]?.arguments;
+    assert.ok(updateArgs);
+    assert.strictEqual(updateArgs.length, 8);
+    assert.deepStrictEqual(updateArgs.slice(0, 7), [
       {},
       [
         {
@@ -74,45 +98,67 @@ describe('createWorkItemAttachment unit', () => {
       false,
       false,
       false,
-      expect.anything(),
-    );
-    expect(result.id).toBe(123);
+    ]);
+    assert.notStrictEqual(updateArgs[7], null);
+    assert.notStrictEqual(updateArgs[7], undefined);
+    assert.strictEqual(result.id, 123);
   });
 
-  test('throws when filePath is empty or file does not exist', async () => {
+  void test('throws when filePath is empty or file does not exist', async () => {
     const mockConnection = {
-      getWorkItemTrackingApi: jest.fn(),
+      getWorkItemTrackingApi: mock.fn(),
     } as unknown as WebApi;
 
-    await expect(
-      createWorkItemAttachment(mockConnection, 123, { filePath: '' }),
-    ).rejects.toThrow('File path is required');
+    await assert.rejects(
+      () => createWorkItemAttachment(mockConnection, 123, { filePath: '' }),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(err.message.includes('File path is required'));
+        return true;
+      },
+    );
 
     const missing = path.join(tempDir, 'missing.txt');
-    await expect(
-      createWorkItemAttachment(mockConnection, 123, { filePath: missing }),
-    ).rejects.toThrow(`File does not exist: ${missing}`);
+    await assert.rejects(
+      () =>
+        createWorkItemAttachment(mockConnection, 123, { filePath: missing }),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(err.message.includes(`File does not exist: ${missing}`));
+        return true;
+      },
+    );
   });
 
-  test('propagates AzureDevOpsError and wraps unexpected errors', async () => {
+  void test('propagates AzureDevOpsError and wraps unexpected errors', async () => {
     const adoErrConn = {
-      getWorkItemTrackingApi: jest
-        .fn()
-        .mockRejectedValue(new AzureDevOpsError('Custom error')),
+      getWorkItemTrackingApi: mock.fn(() =>
+        Promise.reject(new AzureDevOpsError('Custom error')),
+      ),
     } as unknown as WebApi;
 
-    await expect(
-      createWorkItemAttachment(adoErrConn, 123, { filePath: sampleFile }),
-    ).rejects.toThrow(AzureDevOpsError);
+    await assert.rejects(
+      () => createWorkItemAttachment(adoErrConn, 123, { filePath: sampleFile }),
+      AzureDevOpsError,
+    );
 
     const genericErrConn = {
-      getWorkItemTrackingApi: jest
-        .fn()
-        .mockRejectedValue(new Error('Unexpected error')),
+      getWorkItemTrackingApi: mock.fn(() =>
+        Promise.reject(new Error('Unexpected error')),
+      ),
     } as unknown as WebApi;
 
-    await expect(
-      createWorkItemAttachment(genericErrConn, 123, { filePath: sampleFile }),
-    ).rejects.toThrow('Failed to create attachment: Unexpected error');
+    await assert.rejects(
+      () =>
+        createWorkItemAttachment(genericErrConn, 123, { filePath: sampleFile }),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.strictEqual(
+          err.message,
+          'Failed to create attachment: Unexpected error',
+        );
+        return true;
+      },
+    );
   });
 });

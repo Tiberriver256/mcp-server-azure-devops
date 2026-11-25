@@ -1,31 +1,30 @@
+import assert from 'node:assert/strict';
+import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 import {
   logDebug,
   logError,
   logInfo,
   logWarn,
   resolveLogLevel,
-} from './logging';
+} from './logging.ts';
 
-describe('logging level filtering', () => {
+void describe('logging level filtering', () => {
   const originalAdoLevel = process.env.AZURE_DEVOPS_LOG_LEVEL;
   const originalLogLevel = process.env.LOG_LEVEL;
   let stderrChunks: string[];
-  let stderrSpy: jest.SpyInstance;
 
   beforeEach(() => {
     delete process.env.AZURE_DEVOPS_LOG_LEVEL;
     delete process.env.LOG_LEVEL;
     stderrChunks = [];
-    stderrSpy = jest
-      .spyOn(process.stderr, 'write')
-      .mockImplementation((chunk: unknown) => {
-        stderrChunks.push(String(chunk));
-        return true;
-      });
+    mock.method(process.stderr, 'write', (chunk: unknown) => {
+      stderrChunks.push(String(chunk));
+      return true;
+    });
   });
 
   afterEach(() => {
-    stderrSpy.mockRestore();
+    mock.restoreAll();
     if (originalAdoLevel === undefined) {
       delete process.env.AZURE_DEVOPS_LOG_LEVEL;
     } else {
@@ -38,25 +37,29 @@ describe('logging level filtering', () => {
     }
   });
 
-  it('resolves AZURE_DEVOPS_LOG_LEVEL with LOG_LEVEL fallback and info default', () => {
-    expect(resolveLogLevel({})).toBe('info');
-    expect(resolveLogLevel({ LOG_LEVEL: 'WARN' })).toBe('warn');
-    expect(
+  void it('resolves AZURE_DEVOPS_LOG_LEVEL with LOG_LEVEL fallback and info default', () => {
+    assert.strictEqual(resolveLogLevel({}), 'info');
+    assert.strictEqual(resolveLogLevel({ LOG_LEVEL: 'WARN' }), 'warn');
+    assert.strictEqual(
       resolveLogLevel({
         AZURE_DEVOPS_LOG_LEVEL: 'error',
         LOG_LEVEL: 'debug',
       }),
-    ).toBe('error');
-    expect(resolveLogLevel({ AZURE_DEVOPS_LOG_LEVEL: 'invalid' })).toBe('info');
+      'error',
+    );
+    assert.strictEqual(
+      resolveLogLevel({ AZURE_DEVOPS_LOG_LEVEL: 'invalid' }),
+      'info',
+    );
   });
 
-  it('filters stderr output according to configured threshold', () => {
+  void it('filters stderr output according to configured threshold', () => {
     process.env.AZURE_DEVOPS_LOG_LEVEL = 'error';
     logDebug('dbg');
     logInfo('inf');
     logWarn('wrn');
     logError('err');
-    expect(stderrChunks).toEqual(['err\n']);
+    assert.deepStrictEqual(stderrChunks, ['err\n']);
 
     stderrChunks.length = 0;
     process.env.AZURE_DEVOPS_LOG_LEVEL = 'debug';
@@ -64,7 +67,12 @@ describe('logging level filtering', () => {
     logInfo('inf');
     logWarn('wrn');
     logError('err');
-    expect(stderrChunks).toEqual(['dbg\n', 'inf\n', 'WARNING: wrn\n', 'err\n']);
+    assert.deepStrictEqual(stderrChunks, [
+      'dbg\n',
+      'inf\n',
+      'WARNING: wrn\n',
+      'err\n',
+    ]);
 
     // Explicit env overrides process.env hermetically
     stderrChunks.length = 0;
@@ -72,7 +80,7 @@ describe('logging level filtering', () => {
     logInfo('suppressed-info', strictEnv);
     logWarn('visible-warn', strictEnv);
     logError('visible-error', strictEnv);
-    expect(stderrChunks).toEqual([
+    assert.deepStrictEqual(stderrChunks, [
       'WARNING: visible-warn\n',
       'visible-error\n',
     ]);

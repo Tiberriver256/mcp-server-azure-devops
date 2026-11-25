@@ -6,11 +6,11 @@ import { pipeline } from 'stream/promises';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
+} from '../../../shared/errors/index.ts';
 import type {
   GetWorkItemAttachmentOptions,
   GetWorkItemAttachmentResult,
-} from '../types';
+} from '../types.ts';
 
 function isAzureDevOpsAttachmentErrorPayload(content: string): boolean {
   const trimmed = content.trim();

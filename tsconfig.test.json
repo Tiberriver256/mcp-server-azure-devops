@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": ["src/**/*", "tests/setup.ts", "tests/matrix/**/*"],
+  "exclude": ["node_modules", "dist", "tests/e2e-suite/**"]
+}

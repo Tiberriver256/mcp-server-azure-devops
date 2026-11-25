@@ -10,7 +10,7 @@ We love your input! We want to make contributing to Azure DevOps MCP Server as e
 
 ## Prerequisites
 
-- **Node.js `>=22.0.0`** (the server uses Node 22 built-ins including `fetch`, `process.loadEnvFile`, `path.posix.matchesGlob`, and `zlib`)
+- **Node.js `>=24.0.0`** (tested on Node 24/26 LTS; uses native TypeScript execution, `node:test` + V8 coverage, `node --watch`, `fetch`, `process.loadEnvFile`, `path.posix.matchesGlob`, and `zlib`)
 - **npm**
 
 ## Development Process
@@ -73,10 +73,12 @@ When adding a tool to an existing feature module:
 1. Add the Zod input schema to the feature's `schemas.ts`
 2. Implement the core logic in `src/features/<toolset>/<tool-name>/feature.ts`
 3. Register the tool in the feature's `index.ts` using `defineTool(...)` with an explicit `readOnly: true | false`
-4. Add focused tests (`*.spec.unit.ts`, and `*.spec.prop.ts` / `*.spec.diff.ts` for pure parsers, validators, or algorithms)
+4. Add focused `node:test` + `node:assert/strict` tests (`*.spec.unit.ts`, and `*.spec.prop.ts` / `*.spec.diff.ts` for pure parsers, validators, or algorithms)
 5. Update `README.md` and `docs/tools/` to document the tool
 
 When adding a brand-new toolset, also add its name to `TOOLSET_NAMES` in `src/shared/config/tool-filter.ts` and register the module in `src/server.ts`.
+
+Use explicit `.ts` / `/index.ts` relative imports (no `@/` path aliases), explicit `.js` extensions on `azure-devops-node-api` / `typed-rest-client` deep subpaths, and `as const` objects instead of TypeScript `enum` (`erasableSyntaxOnly: true` for native Node TypeScript execution).
 
 ## Local Setup (run the server from source)
 
@@ -97,12 +99,15 @@ npm run dev
 ### Offline Verification (no Azure DevOps credentials required)
 
 ```bash
-npm run test:unit      # Runs unit, property-based, and differential tests + coverage
+npm run test:unit      # Runs unit, property-based, and differential tests via node:test (alias: npm test)
+npm run test:coverage  # Runs offline suites with native V8 coverage (lines >=70%, branches >=50%, functions >=60%)
 npm run test:prop      # Runs fast-check property-based suites only (*.spec.prop.ts)
 npm run test:diff      # Runs differential oracle suites only (*.spec.diff.ts)
+npm run test:watch     # Runs offline suites in watch mode (node --test --watch)
+npm run typecheck      # Type-checks src/ and all test suites (tsconfig.test.json) with TypeScript 7
 npm run lint           # Runs Oxlint (type-aware)
 npm run format:check   # Checks formatting with oxfmt
-npm run build          # Compiles TypeScript to dist/
+npm run build          # Cleans dist/ and compiles TypeScript to dist/
 ```
 
 ### Integration & E2E Tests

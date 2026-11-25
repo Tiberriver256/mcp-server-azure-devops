@@ -10,15 +10,15 @@ A Model Context Protocol (MCP) server implementation for Azure DevOps, allowing 
 
 This server implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) for Azure DevOps, enabling AI assistants like Claude to interact with Azure DevOps resources securely. The server acts as a bridge between AI models and Azure DevOps APIs, providing a standardized way to:
 
-- Access and manage projects, work items, repositories, pull requests, pipelines, wikis, search, and test plans
+- Access and manage projects, teams, work items, sprints/iterations, repositories, pull requests, pipelines, wikis, search, test plans, OData analytics, and real-time events
 - Create and update work items, branches, commits, pull requests, wiki pages, and test suites
-- Execute common DevOps workflows through natural language
-- Access repository content via standardized `ado://` resource URIs
-- Safely authenticate and interact with both Azure DevOps Services (cloud) and Azure DevOps Server (on-premises)
+- Execute common DevOps workflows through natural language over stdio or Streamable HTTP (with Docker support)
+- Access repository content and live event streams via standardized `ado://` resource URIs
+- Safely authenticate and interact with both Azure DevOps Services (cloud) and Azure DevOps Server (on-premises), with prompt-injection Spotlighting enabled by default
 
 ## Server Structure
 
-The server is structured around the Model Context Protocol (MCP) for communicating with AI assistants. It provides 60 tools organized into 10 toolsets:
+The server is structured around the Model Context Protocol (MCP) for communicating with AI assistants. It provides 77 tools organized into 13 toolsets:
 
 - Users
 - Organizations
@@ -30,19 +30,23 @@ The server is structured around the Model Context Protocol (MCP) for communicati
 - Pipelines
 - Wikis
 - Test Plans
+- Work (Sprints & Iterations)
+- Analytics (OData v4)
+- Events (MCP Events & Webhooks)
 
 ### Core Components
 
-- **MCP Server (`src/server.ts`)**: Initializes the MCP server, resolves enabled toolsets/filters upfront, registers `ListTools`, `CallTool`, `ListResources`, `ListResourceTemplates`, and `ReadResource` handlers, and dispatches tools in O(1) via a prebuilt registry map.
+- **MCP Server (`src/server.ts`)**: Initializes the MCP server, resolves enabled toolsets/presets/filters upfront, registers `ListTools`, `CallTool` (with full `ToolAnnotations` and default-ON Spotlighting), `ListResources`, `ListResourceTemplates`, `ReadResource`, `resources/subscribe`, and SEP-3415 `events/*` handlers, and dispatches tools in O(1) via a prebuilt registry map.
+- **Transports (`src/transport/`)**: Supports both MCP `stdio` (default) and zero-dependency `node:http` Streamable HTTP (`--transport http`), with DNS-rebinding/Origin protection, Bearer/per-request PAT auth, bounded body/session limits, and Docker packaging.
 - **Session & Auth (`src/shared/session/`, `src/shared/auth/`)**: Single cached `AzureDevOpsSession` per server instance managing validated configuration, cached `WebApi` connections, lazy-loaded `@azure/identity` token refresh, and a native `fetch`-based `HttpClient`.
-- **Declarative Feature Modules (`src/features/*`)**: Each feature area binds its Zod schemas, read-only metadata, and typed handlers via `defineTool`, ensuring tool schemas, definitions, and dispatch stay in sync.
-- **Resource URIs (`src/shared/resources/`)**: Parses and serves `ado://` repository resource URIs across default branches, named branches (including slashed names), commits, tags, and pull requests.
+- **Declarative Feature Modules (`src/features/*`)**: Each feature area binds its Zod schemas, full MCP `ToolAnnotations` metadata, and typed handlers via `defineTool`, ensuring tool schemas, definitions, and dispatch stay in sync.
+- **Events & Resource URIs (`src/shared/events/`, `src/shared/resources/`)**: Serves `ado://` repository and event resource URIs, bounded event ring buffers, `POST /webhooks/ado` ingestion, and per-session `resources/subscribe` polling.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (`>=22.0.0`)
+- Node.js (`>=24.0.0`)
 - npm or yarn
 - Azure DevOps account with appropriate access
 - Authentication credentials (see [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md) for details):
@@ -72,7 +76,7 @@ npm start              # runs: node dist/index.js
 For iterative development (auto-reload):
 
 ```bash
-npm run dev            # runs src/index.ts via tsx watch
+npm run dev            # runs src/index.ts via native node --watch
 ```
 
 ### Usage with Claude Desktop/Cursor AI
@@ -159,38 +163,48 @@ For a complete list of environment variables and their descriptions, see the [Au
 
 Key environment variables include:
 
-| Variable                       | Description                                                                                                                                                                     | Required                     | Default          |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ---------------- |
-| `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) - case-insensitive                                                                                              | No                           | `azure-identity` |
-| `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization or Server collection (e.g., `https://server:8080/tfs/DefaultCollection`)                                                             | Yes                          | -                |
-| `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                                                                                                                                            | Only with PAT auth           | -                |
-| `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                                                                                                                                               | No                           | -                |
-| `AZURE_DEVOPS_API_VERSION`     | REST api-version for tools that call the REST API directly ([per-release values](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md#rest-api-version)) | No                           | `7.1`            |
-| `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                                                                                                                                     | Only with service principals | -                |
-| `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                                                                                                                                | Only with service principals | -                |
-| `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                                                                                                                                 | Only with service principals | -                |
-| `AZURE_DEVOPS_TOOLSETS`        | Comma-separated toolsets to enable (`all`, `users`, `organizations`, `projects`, `repositories`, `work-items`, `search`, `pull-requests`, `pipelines`, `wikis`, `test-plans`)   | No                           | `all`            |
-| `AZURE_DEVOPS_ENABLED_TOOLS`   | Comma-separated allowlist of specific tool names to expose                                                                                                                      | No                           | all              |
-| `AZURE_DEVOPS_DISABLED_TOOLS`  | Comma-separated denylist of specific tool names to hide/block                                                                                                                   | No                           | -                |
-| `AZURE_DEVOPS_READ_ONLY`       | Set to `true` to expose only read-only tools and block all write operations                                                                                                     | No                           | `false`          |
-| `AZURE_DEVOPS_LOG_LEVEL`       | Stderr logging threshold (`debug`, `info`, `warn`, `error`); `debug` also prints sanitized startup config (falls back to `LOG_LEVEL`)                                           | No                           | `info`           |
+| Variable                       | Description                                                                                                                                                                                                                                                       | Required                     | Default          |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ---------------- |
+| `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) - case-insensitive                                                                                                                                                                                | No                           | `azure-identity` |
+| `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization or Server collection (e.g., `https://server:8080/tfs/DefaultCollection`)                                                                                                                                               | Yes                          | -                |
+| `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                                                                                                                                                                                                                              | Only with PAT auth           | -                |
+| `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                                                                                                                                                                                                                                 | No                           | -                |
+| `AZURE_DEVOPS_API_VERSION`     | REST api-version for tools that call the REST API directly ([per-release values](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md#rest-api-version))                                                                     | No                           | `7.1`            |
+| `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                                                                                                                                                                                                                       | Only with service principals | -                |
+| `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                                                                                                                                                                                                                  | Only with service principals | -                |
+| `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                                                                                                                                                                                                                   | Only with service principals | -                |
+| `AZURE_DEVOPS_TOOLSETS`        | Comma-separated toolsets or presets (`all`, `users`, `organizations`, `projects`, `repositories`, `work-items`, `search`, `pull-requests`, `pipelines`, `wikis`, `test-plans`, `work`, `analytics`, `events`; presets: `pr-review`, `ci-debug`, `boards`, `core`) | No                           | `all`            |
+| `AZURE_DEVOPS_ENABLED_TOOLS`   | Comma-separated allowlist of specific tool names to expose                                                                                                                                                                                                        | No                           | all              |
+| `AZURE_DEVOPS_DISABLED_TOOLS`  | Comma-separated denylist of specific tool names to hide/block                                                                                                                                                                                                     | No                           | -                |
+| `AZURE_DEVOPS_READ_ONLY`       | Set to `true` to expose only read-only tools and block all write operations                                                                                                                                                                                       | No                           | `false`          |
+| `AZURE_DEVOPS_SPOTLIGHTING`    | Wrap tool outputs in per-call 128-bit nonce prompt-injection delimiters (`false` or `--no-spotlighting` to disable)                                                                                                                                               | No                           | `true`           |
+| `AZURE_DEVOPS_TRANSPORT`       | Transport mode (`stdio` or `http` for Streamable HTTP)                                                                                                                                                                                                            | No                           | `stdio`          |
+| `AZURE_DEVOPS_LOG_LEVEL`       | Stderr logging threshold (`debug`, `info`, `warn`, `error`); `debug` also prints sanitized startup config (falls back to `LOG_LEVEL`)                                                                                                                             | No                           | `info`           |
 
-### Tool Filtering & Read-Only Mode
+### Tool Filtering, Presets, Spotlighting & Read-Only Mode
 
 To reduce tool count (e.g., for clients with tool limits) or prevent mutations, you can filter registered tools using environment variables or CLI flags (CLI flags take precedence over environment variables and support both `--flag value` and `--flag=value` syntax):
 
 ```bash
+# Use a curated workflow preset (pr-review, ci-debug, boards, core)
+npx -y @tiberriver256/mcp-server-azure-devops --toolsets pr-review
+
 # Only expose work-items and pull-requests toolsets, in read-only mode
 npx -y @tiberriver256/mcp-server-azure-devops --toolsets work-items,pull-requests --read-only
 
 # Or pick specific tools / exclude specific tools (--flag=value syntax also supported)
 npx -y @tiberriver256/mcp-server-azure-devops --enabled-tools=get_work_item,list_work_items
 npx -y @tiberriver256/mcp-server-azure-devops --disabled-tools create_commit,delete_work_item_attachment
+
+# Run over Streamable HTTP (loopback-only by default; see Dockerfile for container deployment)
+npx -y @tiberriver256/mcp-server-azure-devops --transport http --port 3000 --http-auth-token <TOKEN>
 ```
 
-- **Toolset aliases:** Common aliases are accepted: `repos` (`repositories`), `prs`/`pull_requests`/`pullrequests` (`pull-requests`), `work_items`/`workitems` (`work-items`), and `test_plans`/`testplans` (`test-plans`).
+- **Curated presets:** `pr-review` (`users,projects,repositories,pull-requests`), `ci-debug` (`projects,pipelines,pull-requests`), `boards` (`users,projects,work-items,search,work`), and `core` (`users,organizations,projects,repositories,work-items,pull-requests`).
+- **Toolset aliases:** Common aliases are accepted: `repos` (`repositories`), `prs`/`pull_requests`/`pullrequests` (`pull-requests`), `work_items`/`workitems` (`work-items`), `test_plans`/`testplans` (`test-plans`), `sprints`/`iterations` (`work`), and `odata` (`analytics`).
 - **Evaluation order:** `toolsets` → `enabled-tools` (intersection) → `disabled-tools` → `read-only` (fail-closed: write tools cannot be re-enabled when `--read-only` / `AZURE_DEVOPS_READ_ONLY=true` is set).
-- **Read-only scope:** `--read-only` / `AZURE_DEVOPS_READ_ONLY=true` prevents all Azure DevOps state mutations (note: `get_work_item_attachment` is considered read-only with respect to Azure DevOps, though it saves downloaded attachments to a local path; use `--disabled-tools get_work_item_attachment` if you also want to disallow local file downloads).
+- **Read-only scope:** `--read-only` / `AZURE_DEVOPS_READ_ONLY=true` prevents all Azure DevOps state mutations as well as local file writes (`get_work_item_attachment` is classified as a write/destructive tool and is excluded in read-only mode).
+- **Spotlighting:** Enabled by default (`AZURE_DEVOPS_SPOTLIGHTING=true`) to delimit untrusted Azure DevOps tool output with per-call 128-bit cryptographic nonces; opt out with `--no-spotlighting` or `AZURE_DEVOPS_SPOTLIGHTING=false`.
 - Disabled tools are both omitted from `tools/list` and rejected if invoked via `tools/call`.
 
 ## Troubleshooting Authentication
@@ -210,7 +224,7 @@ For technical details about how authentication is implemented in the Azure DevOp
 
 ## Available Tools
 
-The Azure DevOps MCP server provides 60 tools across 10 toolsets. For detailed parameter tables, response formats, and examples, see the [Tools Documentation](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/README.md).
+The Azure DevOps MCP server provides 77 tools across 13 toolsets. For detailed parameter tables, response formats, and examples, see the [Tools Documentation](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/README.md).
 
 ### User Tools (1)
 
@@ -220,13 +234,14 @@ The Azure DevOps MCP server provides 60 tools across 10 toolsets. For detailed p
 
 - `list_organizations`: List all accessible organizations (Azure DevOps Services only)
 
-### Project Tools (3)
+### Project Tools (4)
 
 - `list_projects`: List all projects in an organization
 - `get_project`: Get details of a specific project
 - `get_project_details`: Get comprehensive details of a project including process, work item types, fields, and teams
+- `list_teams`: List teams in a project
 
-### Repository Tools (9)
+### Repository Tools (10)
 
 - `list_repositories`: List all repositories in a project
 - `get_repository`: Get details of a specific repository
@@ -237,8 +252,9 @@ The Azure DevOps MCP server provides 60 tools across 10 toolsets. For detailed p
 - `create_branch`: Create a new branch from an existing one
 - `create_commit`: Commit multiple file changes to a branch using unified diffs or search/replace instructions
 - `list_commits`: List recent commits on a branch with diff summaries
+- `list_branches`: List branches in a repository with ahead/behind and creator metadata
 
-### Work Item Tools (9)
+### Work Item Tools (11)
 
 - `get_work_item`: Retrieve a work item by ID
 - `create_work_item`: Create a new work item
@@ -246,6 +262,8 @@ The Azure DevOps MCP server provides 60 tools across 10 toolsets. For detailed p
 - `list_work_items`: List work items in a project
 - `manage_work_item_link`: Add, remove, or update links between work items
 - `get_work_item_comments`: Retrieve paginated comments on a work item
+- `add_work_item_comment`: Add a comment to a work item
+- `get_work_item_revisions`: Retrieve revision history for a work item
 - `create_work_item_attachment`: Upload and attach a file to a work item
 - `get_work_item_attachment`: Download an attachment from a work item
 - `delete_work_item_attachment`: Delete an attachment from a work item
@@ -256,7 +274,7 @@ The Azure DevOps MCP server provides 60 tools across 10 toolsets. For detailed p
 - `search_wiki`: Search for content across wiki pages in a project
 - `search_work_items`: Search for work items across projects in Azure DevOps
 
-### Pipelines Tools (8)
+### Pipelines Tools (10)
 
 - `list_pipelines`: List pipelines in a project
 - `get_pipeline`: Get details of a specific pipeline
@@ -266,6 +284,8 @@ The Azure DevOps MCP server provides 60 tools across 10 toolsets. For detailed p
 - `pipeline_timeline`: Retrieve the stage and job timeline for a run
 - `get_pipeline_log`: Retrieve raw or JSON-formatted log content
 - `trigger_pipeline`: Trigger a pipeline run with customizable parameters
+- `get_build_test_results`: Retrieve test run summaries and failing test case details for a build
+- `retry_pipeline_stage`: Retry a failed or canceled stage in a pipeline build
 
 ### Wiki Tools (6)
 
@@ -276,7 +296,7 @@ The Azure DevOps MCP server provides 60 tools across 10 toolsets. For detailed p
 - `list_wiki_pages`: List all pages within a wiki
 - `create_wiki_page`: Create or update a wiki page at a specified path
 
-### Pull Request Tools (10)
+### Pull Request Tools (12)
 
 - [`create_pull_request`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#create_pull_request) - Create a new pull request
 - [`get_pull_request`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#get_pull_request) - Get a pull request by ID
@@ -288,6 +308,8 @@ The Azure DevOps MCP server provides 60 tools across 10 toolsets. For detailed p
 - [`get_pull_request_changes`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#get_pull_request_changes) - List changes in a pull request and policy evaluation status
 - [`get_pull_request_checks`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#get_pull_request_checks) - Summarize status checks, policy evaluations, and their related pipelines
 - [`merge_pull_request`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#merge_pull_request) - Complete (merge) an active pull request or manage auto-complete (merge strategy, delete source branch, work item transitions, policy bypass)
+- `vote_pull_request`: Submit or reset a reviewer vote on a pull request
+- `manage_pull_request_reviewers`: Add or remove required/optional reviewers on a pull request
 
 ### Test Plans Tools (10)
 
@@ -301,6 +323,24 @@ The Azure DevOps MCP server provides 60 tools across 10 toolsets. For detailed p
 - `add_test_cases_to_suite`: Attach existing Test Case work items to a suite
 - `remove_test_cases_from_suite`: Remove test cases from a static suite
 - `create_test_case`: Create a Test Case work item with structured steps XML, optional requirement link, and optional suite attachment
+
+### Work / Sprint Tools (4)
+
+- `list_iterations`: List project iteration classification nodes
+- `list_team_iterations`: List iterations assigned to a team (all, past, current, or future)
+- `get_team_settings`: Get team backlog, working days, and default iteration settings
+- `get_iteration_work_items`: List work items assigned to a specific team iteration
+
+### Analytics Tools (3)
+
+- `get_analytics_schema`: Discover OData v4 Analytics entity sets, properties, and navigation properties from `$metadata`
+- `query_analytics`: Execute guarded OData v4 queries with `$batch` support and same-origin `@odata.nextLink` paging
+- `get_analytics_metrics`: Compute preset agile and CI metrics (`cycle_time`, `lead_time`, `velocity`, `burndown`, `pipeline_pass_rate`, `test_pass_rate`)
+
+### Events Tools (2)
+
+- `list_event_types`: List supported Azure DevOps MCP event types and payload schemas
+- `poll_events`: Poll buffered Azure DevOps events by cursor and optional event type filter
 
 For comprehensive documentation on all tools, see the [Tools Documentation](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/README.md).
 

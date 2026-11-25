@@ -1,7 +1,7 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { GitRefUpdate } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { AzureDevOpsError } from '../../../shared/errors';
-import type { CreateBranchOptions } from '../types';
+import type { GitRefUpdate } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import type { CreateBranchOptions } from '../types.ts';
 
 /**
  * Create a new branch from an existing one

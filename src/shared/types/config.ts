@@ -1,4 +1,4 @@
-import type { AuthenticationMethod } from '../auth/auth-factory';
+import type { AuthenticationMethod } from '../auth/auth-factory.ts';
 
 /**
  * Azure DevOps configuration type definition
@@ -49,4 +49,23 @@ export interface AzureDevOpsConfig {
    * When true, only tools explicitly marked read-only are exposed and callable
    */
   readOnly?: boolean;
+
+  /**
+   * When true (default), untrusted external text is wrapped in spotlighting
+   * delimiters to mitigate indirect prompt injection.
+   * @default true
+   */
+  spotlighting?: boolean;
+
+  /**
+   * Minimum polling interval in milliseconds for opt-in event resource watchers.
+   * @default 30000
+   */
+  eventPollIntervalMs?: number;
+
+  /**
+   * Maximum bounded ring-buffer capacity for MCP events.
+   * @default 1000
+   */
+  eventBufferSize?: number;
 }

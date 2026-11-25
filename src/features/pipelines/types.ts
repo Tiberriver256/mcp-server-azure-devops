@@ -2,7 +2,7 @@
 import type {
   Pipeline,
   Run,
-} from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
+} from 'azure-devops-node-api/interfaces/PipelinesInterfaces.js';
 
 /**
  * Options for listing pipelines
@@ -140,5 +140,131 @@ export interface GetPipelineLogOptions {
 }
 
 export type PipelineLogContent = unknown;
+
+export type TestOutcomeName =
+  | 'Unspecified'
+  | 'None'
+  | 'Passed'
+  | 'Failed'
+  | 'Inconclusive'
+  | 'Timeout'
+  | 'Aborted'
+  | 'Blocked'
+  | 'NotExecuted'
+  | 'Warning'
+  | 'Error'
+  | 'NotApplicable'
+  | 'Paused'
+  | 'InProgress'
+  | 'NotImpacted';
+
+export type ResultDetailsName =
+  | 'None'
+  | 'Iterations'
+  | 'WorkItems'
+  | 'SubResults'
+  | 'Point';
+
+/**
+ * Options for retrieving test results for a build/pipeline run
+ */
+export interface GetBuildTestResultsOptions {
+  projectId: string;
+  runId: number;
+  pipelineId?: number;
+  outcomes?: 'all' | ReadonlyArray<TestOutcomeName | number>;
+  detailsToInclude?: ResultDetailsName;
+  maxResults?: number;
+  skip?: number;
+  topRuns?: number;
+}
+
+export interface BuildTestRunSummary {
+  id: number;
+  name?: string;
+  state?: string;
+  isAutomated?: boolean;
+  totalTests: number;
+  passedTests: number;
+  failedTests: number;
+  incompleteTests: number;
+  notApplicableTests: number;
+  startedDate?: string;
+  completedDate?: string;
+  url?: string;
+}
+
+export interface BuildTestResultFailingSince {
+  date?: string;
+  build?: {
+    id?: number;
+    number?: string;
+  };
+  release?: {
+    id?: number;
+    name?: string;
+  };
+}
+
+export interface BuildTestResultBugReference {
+  id?: string;
+  name?: string;
+  url?: string;
+}
+
+export interface BuildTestResultItem {
+  id?: number;
+  runId: number;
+  runName?: string;
+  testCaseTitle?: string;
+  automatedTestName?: string;
+  automatedTestStorage?: string;
+  outcome?: string;
+  errorMessage?: string;
+  stackTrace?: string;
+  durationInMs?: number;
+  failingSince?: BuildTestResultFailingSince;
+  associatedBugs?: BuildTestResultBugReference[];
+}
+
+export interface BuildTestResultsResponse {
+  buildId: number;
+  projectId: string;
+  summary: {
+    totalRuns: number;
+    totalTests: number;
+    passedTests: number;
+    failedTests: number;
+    incompleteTests: number;
+    notApplicableTests: number;
+  };
+  runs: BuildTestRunSummary[];
+  results: BuildTestResultItem[];
+  truncated: boolean;
+}
+
+export type StageActionState = 'retry' | 'cancel' | 'run';
+
+/**
+ * Options for retrying, canceling, or running a pipeline stage
+ */
+export interface RetryPipelineStageOptions {
+  projectId: string;
+  runId: number;
+  pipelineId?: number;
+  stageRefName: string;
+  state?: StageActionState;
+  forceRetryAllJobs?: boolean;
+  retryDependencies?: boolean;
+}
+
+export interface RetryPipelineStageResult {
+  buildId: number;
+  stageRefName: string;
+  state: StageActionState;
+  forceRetryAllJobs: boolean;
+  retryDependencies?: boolean;
+  status: 'accepted';
+}
 
 export type { Pipeline, Run };

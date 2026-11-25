@@ -3,22 +3,22 @@ import type {
   Comment,
   GitPullRequest,
   GitPullRequestCommentThread,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import {
   CommentThreadStatus,
   CommentType,
   GitVersionType,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
-import type { IGitApi } from 'azure-devops-node-api/GitApi';
-import { AzureDevOpsError } from '../../../shared/errors';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import type { IGitApi } from 'azure-devops-node-api/GitApi.js';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
 import type {
   AddPullRequestCommentOptions,
   AddCommentResponse,
-} from '../types';
+} from '../types.ts';
 import {
   transformCommentThreadStatus,
   transformCommentType,
-} from '../../../shared/enums';
+} from '../../../shared/enums/index.ts';
 
 /**
  * Get the length of a line of a file at the source commit of a pull request.

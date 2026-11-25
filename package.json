@@ -62,19 +62,23 @@
     ]
   },
   "scripts": {
-    "build": "tsc",
-    "typecheck:tests": "tsc -p tsconfig.jest.json --noEmit",
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "typecheck": "tsc --noEmit && npm run typecheck:tests",
+    "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
     "prepack": "npm run build && chmod +x dist/index.js",
-    "dev": "tsx watch src/index.ts",
+    "dev": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --watch src/index.ts",
     "start": "node dist/index.js",
-    "inspector": "npm run build && npx @modelcontextprotocol/inspector@0.9.0 node dist/index.js",
-    "test": "npm run test:unit && npm run test:int && npm run test:e2e",
-    "test:unit": "jest --config jest.unit.config.js",
-    "test:prop": "jest --config jest.unit.config.js --testMatch='**/*.spec.prop.ts' --coverage=false",
-    "test:diff": "jest --config jest.unit.config.js --testMatch='**/*.spec.diff.ts' --coverage=false",
-    "test:int": "jest --config jest.int.config.js",
-    "test:e2e": "jest --config jest.e2e.config.js",
-    "test:watch": "jest --config jest.unit.config.js --watch",
+    "inspector": "npm run build && npx @modelcontextprotocol/inspector@2.16.0 -- node dist/index.js",
+    "test": "npm run test:unit",
+    "test:unit": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.spec.{unit,prop,diff}.ts\"",
+    "test:coverage": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test --experimental-test-coverage --test-coverage-lines=70 --test-coverage-branches=50 --test-coverage-functions=60 --test-coverage-include=\"src/**/*.ts\" --test-coverage-exclude=\"src/**/*.spec.*.ts\" --test-coverage-exclude=\"src/**/__test__/**\" --test-coverage-exclude=\"src/shared/test/**\" --test-coverage-exclude=\"src/shared/types/**\" --test-coverage-exclude=\"src/**/types.ts\" \"src/**/*.spec.{unit,prop,diff}.ts\"",
+    "test:prop": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.spec.prop.ts\"",
+    "test:diff": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.spec.diff.ts\"",
+    "test:matrix": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"tests/matrix/**/*.spec.ts\"",
+    "test:e2e:offline": "node --test \"tests/e2e-suite/**/*.test.mjs\"",
+    "test:int": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./tests/setup.ts --test --test-concurrency=1 --test-timeout=30000 \"src/**/*.spec.int.ts\"",
+    "test:e2e": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./tests/setup.ts --test --test-timeout=30000 \"src/**/*.spec.e2e.ts\"",
+    "test:watch": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test --watch \"src/**/*.spec.{unit,prop,diff}.ts\"",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt \"src/**/*.ts\" \"tests/**/*.ts\"",
@@ -91,7 +95,7 @@
   "author": "",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.0.0"
   },
   "dependencies": {
     "@azure/identity": "^4.14.1",
@@ -105,23 +109,13 @@
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
     "@commitlint/prompt-cli": "^21.2.4",
-    "@types/jest": "^30.0.0",
     "@types/node": "^26.6.7",
-    "@typescript/native": "npm:typescript@^7.0.2",
     "fast-check": "^4.11.0",
     "husky": "^9.1.7",
-    "jest": "^30.5.1",
     "lint-staged": "^17.6.2",
     "oxfmt": "^0.80.0",
     "oxlint": "^1.95.0",
-    "ts-jest": "^29.4.15",
     "tsrs": "^7.1.0-beta.tsrs5",
-    "tsx": "^4.23.15",
-    "typescript": "npm:@typescript/typescript6@^6.0.2"
-  },
-  "overrides": {
-    "@istanbuljs/load-nyc-config": {
-      "js-yaml": "^4.1.0"
-    }
+    "typescript": "^7.0.2"
   }
 }

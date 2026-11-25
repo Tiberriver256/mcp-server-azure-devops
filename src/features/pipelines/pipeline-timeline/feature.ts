@@ -1,20 +1,25 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { TimelineRecord } from 'azure-devops-node-api/interfaces/BuildInterfaces';
+import type { TimelineRecord } from 'azure-devops-node-api/interfaces/BuildInterfaces.js';
 import {
   TimelineRecordState,
   TaskResult,
-} from 'azure-devops-node-api/interfaces/BuildInterfaces';
+} from 'azure-devops-node-api/interfaces/BuildInterfaces.js';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
+} from '../../../shared/errors/index.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import {
+  BUILD_AREA,
+  BUILD_TIMELINE_LOCATION_ID,
+  negotiatePipelineApiVersion,
+} from '../api-version.ts';
 import {
   resolvePipelineApiVersion,
   resolvePipelineProjectId,
-} from '../helpers';
-import type { GetPipelineTimelineOptions, PipelineTimeline } from '../types';
+} from '../helpers.ts';
+import type { GetPipelineTimelineOptions, PipelineTimeline } from '../types.ts';
 
 export async function getPipelineTimeline(
   connection: WebApi,
@@ -26,11 +31,18 @@ export async function getPipelineTimeline(
     const projectId = ctx
       ? ctx.resolveProjectId(options.projectId)
       : resolvePipelineProjectId(options.projectId);
-    const apiVersion = resolvePipelineApiVersion(ctx?.config.apiVersion);
+    const baseUrl = connection.serverUrl.replace(/\/+$/, '');
+    const apiVersion = await negotiatePipelineApiVersion({
+      apiClient: buildApi,
+      baseUrl,
+      area: BUILD_AREA,
+      locationId: BUILD_TIMELINE_LOCATION_ID,
+      resourceName: 'timeline',
+      fallbackApiVersion: resolvePipelineApiVersion(ctx?.config.apiVersion),
+    });
     const { runId, timelineId, state, result } = options;
 
     const route = `${encodeURIComponent(projectId)}/_apis/build/builds/${runId}/timeline`;
-    const baseUrl = connection.serverUrl.replace(/\/+$/, '');
     const url = new URL(`${route}`, `${baseUrl}/`);
     url.searchParams.set('api-version', apiVersion);
     if (timelineId) {

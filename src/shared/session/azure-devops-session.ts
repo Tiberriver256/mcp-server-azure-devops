@@ -1,28 +1,29 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { AzureDevOpsConfig } from '../types/config';
+import type { AzureDevOpsConfig } from '../types/config.ts';
 import {
   AuthenticationMethod,
   createAuthClient,
   createAuthProvider,
   normalizeAuthMethod,
-} from '../auth/auth-factory';
-import type { AuthProvider } from '../auth/auth-factory';
-import { resolveAzureDevOpsBaseUrls } from '../azure-devops-url';
+} from '../auth/auth-factory.ts';
+import type { AuthProvider } from '../auth/auth-factory.ts';
+import { resolveAzureDevOpsBaseUrls } from '../azure-devops-url.ts';
 import type {
   AzureDevOpsBaseUrls,
   AzureDevOpsUrlOptions,
-} from '../azure-devops-url';
+} from '../azure-devops-url.ts';
 import {
   createHttpClient,
   mapHttpErrorToAzureDevOpsError,
-} from '../http/http-client';
+} from '../http/http-client.ts';
 import type {
   HttpClient,
   HttpRequestOptions,
   HttpResponse,
-} from '../http/http-client';
-import { AzureDevOpsValidationError } from '../errors';
-import { logInfo } from '../logging';
+} from '../http/http-client.ts';
+import { AzureDevOpsValidationError } from '../errors/index.ts';
+import type { EventEngine } from '../events/event-engine.ts';
+import { logInfo } from '../logging.ts';
 
 export const DEFAULT_API_VERSION = '7.1';
 
@@ -40,6 +41,9 @@ export interface ResolvedAzureDevOpsConfig {
   readonly enabledTools?: readonly string[];
   readonly disabledTools?: readonly string[];
   readonly readOnly: boolean;
+  readonly spotlighting: boolean;
+  readonly eventPollIntervalMs?: number;
+  readonly eventBufferSize?: number;
 }
 
 /**
@@ -55,6 +59,7 @@ export interface ToolContext {
   readonly config: ResolvedAzureDevOpsConfig;
   readonly baseUrls: AzureDevOpsBaseUrls;
   readonly http: HttpClient;
+  readonly eventEngine?: EventEngine;
 
   /**
    * Return a cached, authenticated `WebApi` instance for the configured org
@@ -137,12 +142,21 @@ export function resolveAzureDevOpsConfig(
     enabledTools: config.enabledTools ? [...config.enabledTools] : undefined,
     disabledTools: config.disabledTools ? [...config.disabledTools] : undefined,
     readOnly: config.readOnly === true,
+    spotlighting: config.spotlighting !== false,
+    ...(config.eventPollIntervalMs !== undefined
+      ? { eventPollIntervalMs: config.eventPollIntervalMs }
+      : {}),
+    ...(config.eventBufferSize !== undefined
+      ? { eventBufferSize: config.eventBufferSize }
+      : {}),
   };
 }
 
 export interface CreateSessionOptions {
   httpClient?: HttpClient;
   authProvider?: AuthProvider;
+  eventEngine?: EventEngine;
+  sessionId?: string;
   webApiFactory?: (
     organizationUrl: string,
     provider: AuthProvider,
@@ -303,6 +317,7 @@ export function createAzureDevOpsSession(
     config,
     baseUrls,
     http,
+    ...(deps.eventEngine ? { eventEngine: deps.eventEngine } : {}),
     getWebApi,
     getAuthHeader,
     requestAzureDevOps,

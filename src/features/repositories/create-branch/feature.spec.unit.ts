@@ -1,14 +1,20 @@
-import { createBranch } from './feature';
-import { AzureDevOpsError } from '../../../shared/errors';
+import assert from 'node:assert/strict';
+import { describe, mock, test } from 'node:test';
+import { createBranch } from './feature.ts';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
 
-describe('createBranch unit', () => {
-  test('should create branch when source exists', async () => {
-    const updateRefs = jest.fn().mockResolvedValue([{ success: true }]);
+void describe('createBranch unit', () => {
+  void test('should create branch when source exists', async () => {
+    const updateRefs = mock.fn(() => Promise.resolve([{ success: true }]));
     const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getBranch: jest.fn().mockResolvedValue({ commit: { commitId: 'abc' } }),
-        updateRefs,
-      }),
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getBranch: mock.fn(() =>
+            Promise.resolve({ commit: { commitId: 'abc' } }),
+          ),
+          updateRefs,
+        }),
+      ),
     };
 
     await createBranch(mockConnection, {
@@ -18,23 +24,27 @@ describe('createBranch unit', () => {
       newBranch: 'feature',
     });
 
-    expect(updateRefs).toHaveBeenCalled();
+    assert.strictEqual(updateRefs.mock.callCount(), 1);
   });
 
-  test('should throw error when source branch missing', async () => {
+  void test('should throw error when source branch missing', async () => {
     const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getBranch: jest.fn().mockResolvedValue(null),
-      }),
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getBranch: mock.fn(() => Promise.resolve(null)),
+        }),
+      ),
     };
 
-    await expect(
-      createBranch(mockConnection, {
-        projectId: 'p',
-        repositoryId: 'r',
-        sourceBranch: 'missing',
-        newBranch: 'feature',
-      }),
-    ).rejects.toThrow(AzureDevOpsError);
+    await assert.rejects(
+      () =>
+        createBranch(mockConnection, {
+          projectId: 'p',
+          repositoryId: 'r',
+          sourceBranch: 'missing',
+          newBranch: 'feature',
+        }),
+      AzureDevOpsError,
+    );
   });
 });

@@ -1,16 +1,19 @@
+import assert from 'node:assert/strict';
+import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 import { Readable } from 'stream';
 import type { WebApi } from 'azure-devops-node-api';
-import { AuthenticationMethod } from '../../../shared/auth';
+import { AuthenticationMethod } from '../../../shared/auth/index.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsPermissionError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../../../shared/errors';
-import { HttpError } from '../../../shared/http/http-client';
-import type { HttpRequestOptions } from '../../../shared/http/http-client';
-import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session';
-import { searchCode } from './feature';
+} from '../../../shared/errors/index.ts';
+import { HttpError } from '../../../shared/http/http-client.ts';
+import type { HttpRequestOptions } from '../../../shared/http/http-client.ts';
+import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session.ts';
+import { clearSearchApiVersionCache } from '../api-version.ts';
+import { searchCode } from './feature.ts';
 
 function makeSearchContext(
   handler: (
@@ -51,8 +54,20 @@ function makeSearchContext(
   );
 }
 
-describe('searchCode', () => {
-  it('posts to almsearch.dev.azure.com, caps top to 10 when includeContent=true, and enriches file streams', async () => {
+void describe('searchCode', () => {
+  beforeEach(() => {
+    clearSearchApiVersionCache();
+    mock.method(globalThis, 'fetch', () =>
+      Promise.reject(new Error('offline unit test')),
+    );
+  });
+
+  afterEach(() => {
+    mock.restoreAll();
+    clearSearchApiVersionCache();
+  });
+
+  void it('posts to almsearch.dev.azure.com, caps top to 10 when includeContent=true, and enriches file streams', async () => {
     let capturedReq: HttpRequestOptions | undefined;
     const ctx = makeSearchContext(async (req) => {
       capturedReq = req;
@@ -77,13 +92,13 @@ describe('searchCode', () => {
     });
 
     const mockGitApi = {
-      getItemContent: jest
-        .fn()
-        .mockResolvedValue(Readable.from([Buffer.from('export const x = 1;')])),
+      getItemContent: mock.fn(() =>
+        Promise.resolve(Readable.from([Buffer.from('export const x = 1;')])),
+      ),
     };
     const connection = {
       serverUrl: 'https://dev.azure.com/test-org',
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     } as unknown as WebApi;
 
     const result = await searchCode(
@@ -97,14 +112,18 @@ describe('searchCode', () => {
       ctx,
     );
 
-    expect(capturedReq?.url).toBe(
+    assert.strictEqual(
+      capturedReq?.url,
       'https://almsearch.dev.azure.com/test-org/proj1/_apis/search/codesearchresults',
     );
-    expect((capturedReq?.body as { $top?: number } | undefined)?.$top).toBe(10);
-    expect(result.results[0].content).toBe('export const x = 1;');
+    assert.strictEqual(
+      (capturedReq?.body as { $top?: number } | undefined)?.$top,
+      10,
+    );
+    assert.strictEqual(result.results[0].content, 'export const x = 1;');
   });
 
-  it('targets on-premises Server collection URL directly', async () => {
+  void it('targets on-premises Server collection URL directly', async () => {
     let capturedUrl = '';
     const ctx = makeSearchContext(async (req) => {
       capturedUrl = req.url;
@@ -116,7 +135,7 @@ describe('searchCode', () => {
 
     const connection = {
       serverUrl: 'https://ado.local:8080/tfs/DefaultCollection',
-      getGitApi: jest.fn(),
+      getGitApi: mock.fn(),
     } as unknown as WebApi;
 
     await searchCode(
@@ -125,33 +144,40 @@ describe('searchCode', () => {
       ctx,
     );
 
-    expect(capturedUrl).toBe(
+    assert.strictEqual(
+      capturedUrl,
       'https://ado.local:8080/tfs/DefaultCollection/MyProj/_apis/search/codesearchresults',
     );
   });
 
-  it.each([
+  const errorStatusCases = [
     [400, AzureDevOpsValidationError],
     [401, AzureDevOpsAuthenticationError],
     [403, AzureDevOpsPermissionError],
     [404, AzureDevOpsResourceNotFoundError],
-  ] as const)('maps HTTP %d to %p', async (status, ErrorClass) => {
-    const ctx = makeSearchContext(async (req) => {
-      throw new HttpError({
-        message: `HTTP ${status}`,
-        status,
-        statusText: 'Error',
-        url: req.url,
+  ] as const;
+
+  for (const [status, ExpectedError] of errorStatusCases) {
+    void it(`maps HTTP ${status} to ${ExpectedError.name}`, async () => {
+      const ctx = makeSearchContext(async (req) => {
+        throw new HttpError({
+          message: `HTTP ${status}`,
+          status,
+          statusText: 'Error',
+          url: req.url,
+        });
       });
+
+      const connection = {
+        serverUrl: 'https://dev.azure.com/test-org',
+        getGitApi: mock.fn(),
+      } as unknown as WebApi;
+
+      await assert.rejects(
+        () =>
+          searchCode(connection, { searchText: 'x', projectId: 'proj1' }, ctx),
+        ExpectedError,
+      );
     });
-
-    const connection = {
-      serverUrl: 'https://dev.azure.com/test-org',
-      getGitApi: jest.fn(),
-    } as unknown as WebApi;
-
-    await expect(
-      searchCode(connection, { searchText: 'x', projectId: 'proj1' }, ctx),
-    ).rejects.toThrow(ErrorClass);
-  });
+  }
 });

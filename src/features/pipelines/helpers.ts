@@ -1,6 +1,6 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { Build } from 'azure-devops-node-api/interfaces/BuildInterfaces';
-import { DEFAULT_API_VERSION } from '../../shared/session/azure-devops-session';
+import type { Build } from 'azure-devops-node-api/interfaces/BuildInterfaces.js';
+import { DEFAULT_API_VERSION } from '../../shared/session/azure-devops-session.ts';
 
 const NO_DEFAULT_PROJECT = 'no default project';
 

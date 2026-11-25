@@ -1,12 +1,12 @@
-import type { GitPullRequest } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { GitPullRequest } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import type { WebApi } from 'azure-devops-node-api';
-import type { WorkItemRelation } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
-import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
-import { AzureDevOpsError } from '../../../shared/errors';
-import { logError } from '../../../shared/logging';
-import { createSessionFromEnv } from '../../../shared/session/azure-devops-session';
-import type { UpdatePullRequestOptions } from '../types';
-import { pullRequestStatusMapper } from '../../../shared/enums';
+import type { WorkItemRelation } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
+import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import { logError } from '../../../shared/logging.ts';
+import { createSessionFromEnv } from '../../../shared/session/azure-devops-session.ts';
+import type { UpdatePullRequestOptions } from '../types.ts';
+import { pullRequestStatusMapper } from '../../../shared/enums/index.ts';
 
 function normalizeTags(tags?: string[]): string[] {
   if (!tags) {

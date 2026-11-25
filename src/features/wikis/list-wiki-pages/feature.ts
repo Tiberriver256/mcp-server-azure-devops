@@ -1,8 +1,8 @@
-import { AzureDevOpsError } from '../../../shared/errors';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
-import type { ListWikiPagesOptions } from '../schemas';
-import { createWikiClient } from '../wiki-client';
-import type { WikiPageSummary } from '../wiki-client';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import type { ListWikiPagesOptions } from '../schemas.ts';
+import { createWikiClient } from '../wiki-client.ts';
+import type { WikiPageSummary } from '../wiki-client.ts';
 
 export type { WikiPageSummary };
 

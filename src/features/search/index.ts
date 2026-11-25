@@ -1,19 +1,19 @@
-export * from './schemas';
-export * from './types';
-export { searchCode } from './search-code/feature';
-export { searchWiki } from './search-wiki/feature';
-export { searchWorkItems } from './search-work-items/feature';
+export * from './schemas.ts';
+export * from './types.ts';
+export { searchCode } from './search-code/feature.ts';
+export { searchWiki } from './search-wiki/feature.ts';
+export { searchWorkItems } from './search-work-items/feature.ts';
 
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
 import {
   SearchCodeSchema,
   SearchWikiSchema,
   SearchWorkItemsSchema,
-} from './schemas';
-import { searchCode } from './search-code/feature';
-import { searchWiki } from './search-wiki/feature';
-import { searchWorkItems } from './search-work-items/feature';
+} from './schemas.ts';
+import { searchCode } from './search-code/feature.ts';
+import { searchWiki } from './search-wiki/feature.ts';
+import { searchWorkItems } from './search-work-items/feature.ts';
 
 export const searchFeature: FeatureModule = {
   toolset: 'search',

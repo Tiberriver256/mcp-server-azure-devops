@@ -1,21 +1,26 @@
+import assert from 'node:assert/strict';
+import { before, describe, test } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { triggerPipeline } from './feature';
-import { listPipelines } from '../list-pipelines/feature';
+import { triggerPipeline } from './feature.ts';
+import { listPipelines } from '../list-pipelines/feature.ts';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,
-} from '../../../shared/test/test-helpers';
+} from '../../../shared/test/test-helpers.ts';
 
 const shouldSkip = shouldSkipIntegrationTest();
 const projectId = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '';
-const hasProjectId = Boolean(projectId);
-const describeOrSkip = !shouldSkip && hasProjectId ? describe : describe.skip;
+const skipReason = shouldSkip
+  ? 'No real Azure DevOps connection available'
+  : !projectId
+    ? 'AZURE_DEVOPS_DEFAULT_PROJECT is not set'
+    : false;
 
-describeOrSkip('triggerPipeline integration', () => {
+void describe('triggerPipeline integration', { skip: skipReason }, () => {
   let connection: WebApi;
   let existingPipelineId: number;
 
-  beforeAll(async () => {
+  before(async () => {
     // Get a real connection using environment variables
     const testConnection = await getTestConnection();
     if (!testConnection) {
@@ -34,7 +39,7 @@ describeOrSkip('triggerPipeline integration', () => {
     existingPipelineId = pipelineId;
   });
 
-  test('should trigger a pipeline run', async () => {
+  void test('should trigger a pipeline run', async () => {
     // Arrange - prepare options for running the pipeline
     const options = {
       projectId,
@@ -47,18 +52,18 @@ describeOrSkip('triggerPipeline integration', () => {
     const run = await triggerPipeline(connection, options);
 
     // Assert - verify the response
-    expect(run).toBeDefined();
+    assert.notStrictEqual(run, undefined);
     // Run ID should be present
-    expect(run.id).toBeDefined();
-    expect(typeof run.id).toBe('number');
+    assert.notStrictEqual(run.id, undefined);
+    assert.strictEqual(typeof run.id, 'number');
     // Pipeline reference should match the pipeline we triggered
-    expect(run.pipeline?.id).toBe(existingPipelineId);
+    assert.strictEqual(run.pipeline?.id, existingPipelineId);
     // URL should exist and point to the run
-    expect(run.url).toBeDefined();
-    expect(run.url).toContain('_apis/pipelines');
+    assert.notStrictEqual(run.url, undefined);
+    assert.ok(run.url?.includes('_apis/pipelines'));
   });
 
-  test('should trigger with custom branch', async () => {
+  void test('should trigger with custom branch', async () => {
     // Arrange - prepare options with a branch
     const options = {
       projectId,
@@ -72,20 +77,25 @@ describeOrSkip('triggerPipeline integration', () => {
     const run = await triggerPipeline(connection, options);
 
     // Assert - verify the response
-    expect(run).toBeDefined();
-    expect(run.id).toBeDefined();
+    assert.notStrictEqual(run, undefined);
+    assert.notStrictEqual(run.id, undefined);
     // Resources should include the specified branch
-    expect(run.resources?.repositories?.self?.refName).toBe('refs/heads/main');
+    assert.strictEqual(
+      run.resources?.repositories?.self?.refName,
+      'refs/heads/main',
+    );
   });
 
-  test('should handle non-existent pipeline', async () => {
+  void test('should handle non-existent pipeline', async () => {
     const nonExistentPipelineId = 999999;
 
-    await expect(
-      triggerPipeline(connection, {
-        projectId,
-        pipelineId: nonExistentPipelineId,
-      }),
-    ).rejects.toThrow();
+    await assert.rejects(
+      () =>
+        triggerPipeline(connection, {
+          projectId,
+          pipelineId: nonExistentPipelineId,
+        }),
+      Error,
+    );
   });
 });

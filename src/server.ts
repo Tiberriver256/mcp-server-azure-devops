@@ -1,46 +1,72 @@
+import { randomUUID } from 'node:crypto';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   CallToolRequestSchema,
+  ErrorCode,
   ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
   ListToolsRequestSchema,
+  McpError,
   ReadResourceRequestSchema,
+  SubscribeRequestSchema,
+  UnsubscribeRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 import type { WebApi } from 'azure-devops-node-api';
-import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import type { ToolsetName } from './shared/config';
-import { VERSION, resolveEnabledTools } from './shared/config';
-import type { AzureDevOpsConfig, ToolDefinition } from './shared/types';
+import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import type { ToolsetName } from './shared/config/index.ts';
+import { VERSION, resolveEnabledTools } from './shared/config/index.ts';
+import type {
+  AzureDevOpsConfig,
+  ToolAnnotations,
+  ToolDefinition,
+} from './shared/types/index.ts';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
   handleResponseError,
   redactSecrets,
-} from './shared/errors';
-import { logError } from './shared/logging';
-import { createAzureDevOpsSession } from './shared/session/azure-devops-session';
-import type { CreateSessionOptions } from './shared/session/azure-devops-session';
+} from './shared/errors/index.ts';
+import { logError } from './shared/logging.ts';
+import {
+  formatToolSourceLabel,
+  wrapToolResultWithSpotlighting,
+} from './shared/security/spotlighting.ts';
+import { createAzureDevOpsSession } from './shared/session/azure-devops-session.ts';
+import type { CreateSessionOptions } from './shared/session/azure-devops-session.ts';
 import type {
   FeatureModule,
   RegisteredTool,
-} from './shared/registry/tool-registry';
+} from './shared/registry/tool-registry.ts';
 import {
   ADO_RESOURCE_TEMPLATES,
   getMimeType,
+  isAdoEventResourceUri,
   parseAdoResourceUri,
-} from './shared/resources/ado-resource-uri';
+} from './shared/resources/ado-resource-uri.ts';
+import {
+  ADO_EVENT_RESOURCE_TEMPLATES,
+  EventEngine,
+  isEventsProtocolError,
+} from './shared/events/index.ts';
 
-import { usersFeature } from './features/users';
-import { organizationsFeature } from './features/organizations';
-import { projectsFeature } from './features/projects';
-import { repositoriesFeature, getFileContent } from './features/repositories';
-import { workItemsFeature } from './features/work-items';
-import { searchFeature } from './features/search';
-import { pullRequestsFeature } from './features/pull-requests';
-import { pipelinesFeature } from './features/pipelines';
-import { wikisFeature } from './features/wikis';
-import { testPlansFeature } from './features/test-plans';
+import { usersFeature } from './features/users/index.ts';
+import { organizationsFeature } from './features/organizations/index.ts';
+import { projectsFeature } from './features/projects/index.ts';
+import {
+  repositoriesFeature,
+  getFileContent,
+} from './features/repositories/index.ts';
+import { workItemsFeature } from './features/work-items/index.ts';
+import { searchFeature } from './features/search/index.ts';
+import { pullRequestsFeature } from './features/pull-requests/index.ts';
+import { pipelinesFeature } from './features/pipelines/index.ts';
+import { wikisFeature } from './features/wikis/index.ts';
+import { testPlansFeature } from './features/test-plans/index.ts';
+import { workFeature } from './features/work/index.ts';
+import { analyticsFeature } from './features/analytics/index.ts';
+import { eventsFeature } from './features/events/index.ts';
 
 export type AzureDevOpsServer = Server;
 
@@ -55,7 +81,55 @@ const FEATURE_MODULES: readonly FeatureModule[] = [
   pipelinesFeature,
   wikisFeature,
   testPlansFeature,
+  workFeature,
+  analyticsFeature,
+  eventsFeature,
 ];
+
+const EventsListRequestSchema = z.object({
+  method: z.literal('events/list'),
+  params: z.record(z.string(), z.unknown()).optional(),
+});
+
+const EventsPollRequestSchema = z.object({
+  method: z.literal('events/poll'),
+  params: z.record(z.string(), z.unknown()).optional(),
+});
+
+const EventsStreamRequestSchema = z.object({
+  method: z.literal('events/stream'),
+  params: z.record(z.string(), z.unknown()).optional(),
+});
+
+const EventsSubscribeRequestSchema = z.object({
+  method: z.literal('events/subscribe'),
+  params: z.record(z.string(), z.unknown()).optional(),
+});
+
+const EventsUnsubscribeRequestSchema = z.object({
+  method: z.literal('events/unsubscribe'),
+  params: z.record(z.string(), z.unknown()).optional(),
+});
+
+const EVENTS_DISABLED_MESSAGE =
+  "Events functionality is disabled because the 'events' toolset is not enabled";
+
+const EVENT_TEMPLATE_URIS = new Set(
+  ADO_EVENT_RESOURCE_TEMPLATES.map((template) => template.uriTemplate),
+);
+
+function toMcpProtocolError(error: unknown): never {
+  if (isEventsProtocolError(error)) {
+    throw new McpError(error.code, error.message, error.data);
+  }
+  if (error instanceof McpError) {
+    throw error;
+  }
+  const safeMessage = redactSecrets(
+    error instanceof Error ? error.message : String(error),
+  );
+  throw new McpError(-32603, safeMessage);
+}
 
 /**
  * Returns registered executable tools grouped by toolset name (without
@@ -76,6 +150,9 @@ export function getRegisteredToolRegistry(): Record<
     pipelines: pipelinesFeature.tools,
     wikis: wikisFeature.tools,
     'test-plans': testPlansFeature.tools,
+    work: workFeature.tools,
+    analytics: analyticsFeature.tools,
+    events: eventsFeature.tools,
   };
 }
 
@@ -95,6 +172,9 @@ export function getToolRegistry(): Record<ToolsetName, ToolDefinition[]> {
     pipelines: registered.pipelines.map((t) => t.toDefinition()),
     wikis: registered.wikis.map((t) => t.toDefinition()),
     'test-plans': registered['test-plans'].map((t) => t.toDefinition()),
+    work: registered.work.map((t) => t.toDefinition()),
+    analytics: registered.analytics.map((t) => t.toDefinition()),
+    events: registered.events.map((t) => t.toDefinition()),
   };
 }
 
@@ -109,13 +189,28 @@ export function getFeatureModules(): readonly FeatureModule[] {
  * - Converts Zod schemas to JSON Schema lazily only for enabled tools.
  * - Uses a single cached AzureDevOpsSession per server instance (no per-call
  *   connection probes or credential re-instantiation).
- * - Dispatches tools in O(1) via Map lookup with uniform schema validation.
+ * - Dispatches tools in O(1) via Map lookup with uniform schema validation and
+ *   centralized Spotlighting.
+ * - Exposes 2025-11-25 resource subscriptions and SEP-3415 `io.modelcontextprotocol/events`.
  */
 export function createAzureDevOpsServer(
   config: AzureDevOpsConfig,
   sessionDeps?: CreateSessionOptions,
 ): Server {
-  const session = createAzureDevOpsSession(config, sessionDeps);
+  const ownsEventEngine = !sessionDeps?.eventEngine;
+  const eventEngine =
+    sessionDeps?.eventEngine ??
+    new EventEngine({
+      bufferSize: config.eventBufferSize,
+      pollIntervalMs: config.eventPollIntervalMs,
+    });
+  const sessionId = sessionDeps?.sessionId ?? `session-${randomUUID()}`;
+
+  const session = createAzureDevOpsSession(config, {
+    ...sessionDeps,
+    eventEngine,
+    sessionId,
+  });
 
   const toolCatalog = resolveEnabledTools(getRegisteredToolRegistry(), {
     toolsets: session.config.toolsets,
@@ -129,11 +224,21 @@ export function createAzureDevOpsServer(
     enabledToolMap.set(tool.name, tool);
   }
 
+  const eventsEnabled = eventsFeature.tools.some((tool) =>
+    enabledToolMap.has(tool.name),
+  );
+
+  const assertEventsEnabled = (): void => {
+    if (!eventsEnabled) {
+      throw new McpError(ErrorCode.InvalidRequest, EVENTS_DISABLED_MESSAGE);
+    }
+  };
+
   let cachedMcpTools: Array<{
     name: string;
     description: string;
     inputSchema: Record<string, unknown>;
-    annotations: { readOnlyHint: boolean };
+    annotations: ToolAnnotations;
   }> | null = null;
 
   const getMcpTools = () => {
@@ -144,9 +249,7 @@ export function createAzureDevOpsServer(
           name: def.name,
           description: def.description,
           inputSchema: def.inputSchema,
-          annotations: {
-            readOnlyHint: def.readOnly,
-          },
+          annotations: def.annotations,
         };
       });
     }
@@ -159,12 +262,34 @@ export function createAzureDevOpsServer(
       version: VERSION,
     },
     {
-      capabilities: {
-        tools: {},
-        resources: {},
-      },
+      capabilities: eventsEnabled
+        ? {
+            tools: {},
+            resources: {
+              subscribe: true,
+              listChanged: false,
+            },
+            extensions: {
+              'io.modelcontextprotocol/events': {
+                listChanged: false,
+              },
+            },
+          }
+        : {
+            tools: {},
+            resources: {
+              listChanged: false,
+            },
+          },
     },
   );
+
+  server.onclose = () => {
+    eventEngine.cleanupSession(sessionId);
+    if (ownsEventEngine) {
+      eventEngine.close();
+    }
+  };
 
   server.setRequestHandler(ListToolsRequestSchema, () => {
     return { tools: getMcpTools() };
@@ -175,11 +300,136 @@ export function createAzureDevOpsServer(
   });
 
   server.setRequestHandler(ListResourceTemplatesRequestSchema, () => {
-    return { resourceTemplates: [...ADO_RESOURCE_TEMPLATES] };
+    const resourceTemplates = eventsEnabled
+      ? [...ADO_RESOURCE_TEMPLATES]
+      : ADO_RESOURCE_TEMPLATES.filter(
+          (template) => !EVENT_TEMPLATE_URIS.has(template.uriTemplate),
+        );
+    return { resourceTemplates };
+  });
+
+  server.setRequestHandler(SubscribeRequestSchema, async (request) => {
+    try {
+      assertEventsEnabled();
+      const uri = request.params.uri;
+      await eventEngine.subscribeResource(
+        sessionId,
+        uri,
+        session,
+        async (updatedUri) => {
+          try {
+            await server.sendResourceUpdated({ uri: updatedUri });
+          } catch (notifyErr) {
+            const safeMsg = redactSecrets(
+              notifyErr instanceof Error
+                ? notifyErr.message
+                : String(notifyErr),
+            );
+            logError(`Failed to send resource update notification: ${safeMsg}`);
+          }
+        },
+      );
+      return {};
+    } catch (error) {
+      toMcpProtocolError(error);
+    }
+  });
+
+  server.setRequestHandler(UnsubscribeRequestSchema, (request) => {
+    try {
+      assertEventsEnabled();
+      eventEngine.unsubscribeResource(sessionId, request.params.uri);
+      return {};
+    } catch (error) {
+      toMcpProtocolError(error);
+    }
+  });
+
+  server.setRequestHandler(EventsListRequestSchema, () => {
+    try {
+      assertEventsEnabled();
+      const res = eventEngine.listEvents();
+      return {
+        resultType: res.resultType,
+        events: [...res.events],
+      };
+    } catch (error) {
+      toMcpProtocolError(error);
+    }
+  });
+
+  server.setRequestHandler(EventsPollRequestSchema, (request) => {
+    try {
+      assertEventsEnabled();
+      const res = eventEngine.pollEvents(request.params ?? {});
+      return {
+        resultType: res.resultType,
+        events: [...res.events],
+        cursor: res.cursor,
+        truncated: res.truncated,
+        hasMore: res.hasMore,
+        nextPollMs: res.nextPollMs,
+      };
+    } catch (error) {
+      toMcpProtocolError(error);
+    }
+  });
+
+  server.setRequestHandler(
+    EventsStreamRequestSchema,
+    async (request, extra) => {
+      try {
+        assertEventsEnabled();
+        await eventEngine.openStream(
+          request.params ?? {},
+          async (notification) => {
+            await extra.sendNotification({
+              method: notification.method,
+              params: notification.params,
+            });
+          },
+          extra.signal,
+          extra.requestId,
+          sessionId,
+        );
+        return {
+          resultType: 'complete',
+          reason: 'closed',
+        };
+      } catch (error) {
+        toMcpProtocolError(error);
+      }
+    },
+  );
+
+  server.setRequestHandler(EventsSubscribeRequestSchema, () => {
+    assertEventsEnabled();
+    toMcpProtocolError(eventEngine.createUnsupportedError('events/subscribe'));
+  });
+
+  server.setRequestHandler(EventsUnsubscribeRequestSchema, () => {
+    assertEventsEnabled();
+    toMcpProtocolError(
+      eventEngine.createUnsupportedError('events/unsubscribe'),
+    );
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     try {
+      if (isAdoEventResourceUri(request.params.uri)) {
+        assertEventsEnabled();
+        const feed = eventEngine.readEventResource(request.params.uri);
+        return {
+          contents: [
+            {
+              uri: request.params.uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(feed, null, 2),
+            },
+          ],
+        };
+      }
+
       const parsed = parseAdoResourceUri(request.params.uri);
       const connection = await session.getWebApi(parsed.organization);
 
@@ -258,6 +508,12 @@ export function createAzureDevOpsServer(
         ],
       };
     } catch (error) {
+      if (isEventsProtocolError(error)) {
+        throw new McpError(error.code, error.message, error.data);
+      }
+      if (error instanceof McpError) {
+        throw error;
+      }
       const safeMessage = redactSecrets(
         error instanceof Error ? error.message : String(error),
       );
@@ -292,9 +548,23 @@ export function createAzureDevOpsServer(
         throw new Error(`Unknown tool: ${toolName}`);
       }
 
-      return await tool.execute(session, request.params.arguments);
+      const result = await tool.execute(session, request.params.arguments);
+      if (session.config.spotlighting !== false) {
+        return wrapToolResultWithSpotlighting(
+          result,
+          formatToolSourceLabel(toolName),
+        );
+      }
+      return result;
     } catch (error) {
-      return handleResponseError(error);
+      const errorResult = handleResponseError(error);
+      if (session.config.spotlighting !== false) {
+        return wrapToolResultWithSpotlighting(
+          errorResult,
+          formatToolSourceLabel(request.params.name),
+        );
+      }
+      return errorResult;
     }
   });
 

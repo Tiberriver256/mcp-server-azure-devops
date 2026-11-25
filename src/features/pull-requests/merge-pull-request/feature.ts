@@ -2,23 +2,23 @@ import type { WebApi } from 'azure-devops-node-api';
 import type {
   GitPullRequest,
   GitPullRequestCompletionOptions,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import {
   PullRequestAsyncStatus,
   PullRequestStatus,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import {
   pullRequestMergeStrategyMapper,
   transformPullRequestStatus,
-} from '../../../shared/enums';
+} from '../../../shared/enums/index.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsPermissionError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../../../shared/errors';
-import type { MergePullRequestOptions, PullRequest } from '../types';
+} from '../../../shared/errors/index.ts';
+import type { MergePullRequestOptions, PullRequest } from '../types.ts';
 
 const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
 

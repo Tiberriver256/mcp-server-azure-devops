@@ -1,3 +1,5 @@
+import assert from 'node:assert/strict';
+import { after, before, describe, it } from 'node:test';
 import * as http from 'http';
 import type { AddressInfo } from 'net';
 import {
@@ -7,7 +9,7 @@ import {
   extractETag,
   HttpError,
   mapHttpErrorToAzureDevOpsError,
-} from './http-client';
+} from './http-client.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
@@ -15,9 +17,9 @@ import {
   AzureDevOpsRateLimitError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../errors';
+} from '../errors/index.ts';
 
-describe('http-client wire-level differential tests vs real Node http.Server oracle', () => {
+void describe('http-client wire-level differential tests vs real Node http.Server oracle', () => {
   let server: http.Server;
   let baseUrl: string;
   let lastReceivedUrl: string | undefined;
@@ -25,7 +27,7 @@ describe('http-client wire-level differential tests vs real Node http.Server ora
   let lastReceivedBody: string;
   let lastReceivedAuth: string | undefined;
 
-  beforeAll(async () => {
+  before(async () => {
     server = http.createServer((req, res) => {
       lastReceivedUrl = req.url;
       lastReceivedMethod = req.method;
@@ -120,13 +122,15 @@ describe('http-client wire-level differential tests vs real Node http.Server ora
     baseUrl = `http://127.0.0.1:${addr.port}`;
   });
 
-  afterAll(async () => {
-    await new Promise<void>((resolve, reject) => {
+  after(async () => {
+    const closePromise = new Promise<void>((resolve, reject) => {
       server.close((err) => (err ? reject(err) : resolve()));
     });
+    server.closeAllConnections();
+    await closePromise;
   });
 
-  it('round-trips JSON, Unicode query params (wiki umlaut paths), ETag, and continuation tokens over real HTTP', async () => {
+  void it('round-trips JSON, Unicode query params (wiki umlaut paths), ETag, and continuation tokens over real HTTP', async () => {
     const client = createHttpClient();
     const res = await client.post<{
       method: string;
@@ -145,88 +149,91 @@ describe('http-client wire-level differential tests vs real Node http.Server ora
       },
     );
 
-    expect(res.status).toBe(200);
-    expect(lastReceivedMethod).toBe('POST');
-    expect(lastReceivedAuth).toBe('Basic dXNlcjpzZWNyZXQ=');
-    expect(lastReceivedUrl).toContain('api-version=7.1');
-    expect(res.data.query.path).toBe('/Über/Café & Docs');
-    expect(res.data.body).toEqual({ title: 'Hello' });
-    expect(extractETag(res.headers)).toBe('etag-v123');
-    expect(extractContinuationToken(res.headers)).toBe('tok-abc-99');
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(lastReceivedMethod, 'POST');
+    assert.strictEqual(lastReceivedAuth, 'Basic dXNlcjpzZWNyZXQ=');
+    assert.ok(lastReceivedUrl?.includes('api-version=7.1'));
+    assert.strictEqual(res.data.query.path, '/Über/Café & Docs');
+    assert.deepStrictEqual(res.data.body, { title: 'Hello' });
+    assert.strictEqual(extractETag(res.headers), 'etag-v123');
+    assert.strictEqual(extractContinuationToken(res.headers), 'tok-abc-99');
   });
 
-  it('decodes text and binary ArrayBuffer payloads losslessly over real HTTP', async () => {
+  void it('decodes text and binary ArrayBuffer payloads losslessly over real HTTP', async () => {
     const client = createHttpClient();
 
     const textRes = await client.get<string>(`${baseUrl}/echo-text`, {
       responseType: 'text',
     });
-    expect(textRes.data).toBe('plain text café');
+    assert.strictEqual(textRes.data, 'plain text café');
 
     const binRes = await client.get<ArrayBuffer>(`${baseUrl}/binary`, {
       responseType: 'arraybuffer',
     });
-    expect(Buffer.from(binRes.data)).toEqual(
+    assert.deepStrictEqual(
+      Buffer.from(binRes.data),
       Buffer.from([0x00, 0x01, 0x7f, 0x80, 0xff]),
     );
   });
 
-  it('enforces maxResponseBytes cap on streaming responses without buffering unbounded payloads', async () => {
+  void it('enforces maxResponseBytes cap on streaming responses without buffering unbounded payloads', async () => {
     const client = createHttpClient();
-    await expect(
-      client.get<ArrayBuffer>(`${baseUrl}/large`, {
-        responseType: 'arraybuffer',
-        maxResponseBytes: 512,
-      }),
-    ).rejects.toThrow(/exceeded maximum allowed size/i);
+    await assert.rejects(
+      () =>
+        client.get<ArrayBuffer>(`${baseUrl}/large`, {
+          responseType: 'arraybuffer',
+          maxResponseBytes: 512,
+        }),
+      /exceeded maximum allowed size/i,
+    );
   });
 
-  it('treats Azure DevOps HTTP 203 HTML sign-in redirects as HttpError(203) -> AzureDevOpsAuthenticationError', async () => {
+  void it('treats Azure DevOps HTTP 203 HTML sign-in redirects as HttpError(203) -> AzureDevOpsAuthenticationError', async () => {
     const client = createHttpClient();
     const caught = await client
       .get(`${baseUrl}/auth-redirect-203`)
       .catch((e: unknown) => e);
 
-    expect(caught).toBeInstanceOf(HttpError);
-    expect((caught as HttpError).status).toBe(203);
-    expect(
-      mapHttpErrorToAzureDevOpsError(caught, 'fetching wiki'),
-    ).toBeInstanceOf(AzureDevOpsAuthenticationError);
+    assert.ok(caught instanceof HttpError);
+    assert.strictEqual(caught.status, 203);
+    assert.ok(
+      mapHttpErrorToAzureDevOpsError(caught, 'fetching wiki') instanceof
+        AzureDevOpsAuthenticationError,
+    );
   });
 
-  it('handles HTTP 204 No Content responses cleanly across json/text/arraybuffer modes', async () => {
+  void it('handles HTTP 204 No Content responses cleanly across json/text/arraybuffer modes', async () => {
     const client = createHttpClient();
     const jsonRes = await client.get(`${baseUrl}/no-content-204`);
-    expect(jsonRes.status).toBe(204);
-    expect(jsonRes.data).toBeUndefined();
+    assert.strictEqual(jsonRes.status, 204);
+    assert.strictEqual(jsonRes.data, undefined);
 
     const textRes = await client.get<string>(`${baseUrl}/no-content-204`, {
       responseType: 'text',
     });
-    expect(textRes.data).toBe('');
+    assert.strictEqual(textRes.data, '');
   });
 
-  it('falls back to 60s retryAfter when Retry-After header is blank/whitespace and preserves #fragments in buildRequestUrl', async () => {
+  void it('falls back to 60s retryAfter when Retry-After header is blank/whitespace and preserves #fragments in buildRequestUrl', async () => {
     const client = createHttpClient();
-    const before = Date.now();
+    const startedAt = Date.now();
     const caught = await client
       .get(`${baseUrl}/rate-limit-blank`)
       .catch((e: unknown) => e);
     const mapped = mapHttpErrorToAzureDevOpsError(caught, 'rate limit test');
 
-    expect(mapped).toBeInstanceOf(AzureDevOpsRateLimitError);
-    expect(
-      (mapped as AzureDevOpsRateLimitError).resetAt.getTime(),
-    ).toBeGreaterThanOrEqual(before + 55_000);
+    assert.ok(mapped instanceof AzureDevOpsRateLimitError);
+    assert.ok(mapped.resetAt.getTime() >= startedAt + 55_000);
 
-    expect(
+    assert.strictEqual(
       buildRequestUrl('https://dev.azure.com/org/_apis/wiki#section', {
         'api-version': '7.1',
       }),
-    ).toBe('https://dev.azure.com/org/_apis/wiki?api-version=7.1#section');
+      'https://dev.azure.com/org/_apis/wiki?api-version=7.1#section',
+    );
   });
 
-  it.each([
+  const statusMappings = [
     [400, AzureDevOpsValidationError],
     [401, AzureDevOpsAuthenticationError],
     [403, AzureDevOpsPermissionError],
@@ -234,9 +241,10 @@ describe('http-client wire-level differential tests vs real Node http.Server ora
     [412, AzureDevOpsValidationError],
     [429, AzureDevOpsRateLimitError],
     [500, AzureDevOpsError],
-  ] as const)(
-    'maps wire HTTP %i into typed AzureDevOpsError without leaking Authorization headers in HttpError',
-    async (status, ExpectedErrorCtor) => {
+  ] as const;
+
+  for (const [status, ExpectedError] of statusMappings) {
+    void it(`maps wire HTTP ${status} into typed AzureDevOpsError without leaking Authorization headers in HttpError`, async () => {
       const client = createHttpClient();
       const secretHeader = 'Basic dXNlcjpzdXBlci1zZWNyZXQtcGF0';
 
@@ -249,13 +257,13 @@ describe('http-client wire-level differential tests vs real Node http.Server ora
         caught = err;
       }
 
-      expect(caught).toBeInstanceOf(HttpError);
+      assert.ok(caught instanceof HttpError);
       const serialized = JSON.stringify(caught);
-      expect(serialized).not.toContain(secretHeader);
-      expect((caught as HttpError).message).not.toContain(secretHeader);
+      assert.ok(!serialized.includes(secretHeader));
+      assert.ok(!caught.message.includes(secretHeader));
 
       const mapped = mapHttpErrorToAzureDevOpsError(caught, 'Wire test');
-      expect(mapped).toBeInstanceOf(ExpectedErrorCtor);
-    },
-  );
+      assert.ok(mapped instanceof ExpectedError);
+    });
+  }
 });

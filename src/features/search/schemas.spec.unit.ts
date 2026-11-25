@@ -1,45 +1,43 @@
-describe('search schemas', () => {
-  const originalEnv = process.env;
+import assert from 'node:assert/strict';
+import { afterEach, describe, it } from 'node:test';
+import { SearchCodeSchema } from './schemas.ts';
+
+void describe('search schemas', () => {
+  const originalDefaultProject = process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
+  const originalOrgUrl = process.env.AZURE_DEVOPS_ORG_URL;
 
   afterEach(() => {
-    process.env = originalEnv;
-    jest.resetModules();
+    if (originalDefaultProject === undefined) {
+      delete process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
+    } else {
+      process.env.AZURE_DEVOPS_DEFAULT_PROJECT = originalDefaultProject;
+    }
+    if (originalOrgUrl === undefined) {
+      delete process.env.AZURE_DEVOPS_ORG_URL;
+    } else {
+      process.env.AZURE_DEVOPS_ORG_URL = originalOrgUrl;
+    }
   });
 
-  describe('SearchCodeSchema', () => {
-    it('does not inject a placeholder projectId when projectId is omitted and AZURE_DEVOPS_DEFAULT_PROJECT is unset', () => {
-      process.env = {
-        ...originalEnv,
-        AZURE_DEVOPS_DEFAULT_PROJECT: '',
-      };
-
-      jest.resetModules();
-      // `import('./schemas')` triggers TS2835 under `moduleResolution: Node16` (explicit extensions required).
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { SearchCodeSchema } = require('./schemas');
+  void describe('SearchCodeSchema', () => {
+    void it('does not inject a placeholder projectId when projectId is omitted and AZURE_DEVOPS_DEFAULT_PROJECT is unset', () => {
+      process.env.AZURE_DEVOPS_DEFAULT_PROJECT = '';
 
       const parsed = SearchCodeSchema.parse({
         searchText: 'hello',
       });
 
-      expect(parsed.projectId).toBeUndefined();
+      assert.strictEqual(parsed.projectId, undefined);
     });
 
-    it('does not inject a placeholder organizationId when organizationId is omitted and AZURE_DEVOPS_ORG_URL is unset', () => {
-      process.env = {
-        ...originalEnv,
-        AZURE_DEVOPS_ORG_URL: '',
-      };
-
-      jest.resetModules();
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { SearchCodeSchema } = require('./schemas');
+    void it('does not inject a placeholder organizationId when organizationId is omitted and AZURE_DEVOPS_ORG_URL is unset', () => {
+      process.env.AZURE_DEVOPS_ORG_URL = '';
 
       const parsed = SearchCodeSchema.parse({
         searchText: 'hello',
       });
 
-      expect(parsed.organizationId).toBeUndefined();
+      assert.strictEqual(parsed.organizationId, undefined);
     });
   });
 });

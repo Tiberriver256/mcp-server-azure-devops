@@ -1,5 +1,7 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import fc from 'fast-check';
-import { formatTestStepsXml, parseStrictIsoDate } from './helpers';
+import { formatTestStepsXml, parseStrictIsoDate } from './helpers.ts';
 
 /**
  * Independent XML entity decoder and step-structure parser oracle.
@@ -88,8 +90,8 @@ function oracleIsoDateTimeEpochMs(
   return offsetSign === '+' ? localUtc - offsetMs : localUtc + offsetMs;
 }
 
-describe('test-plans helpers differential tests vs XML & Gregorian epoch oracles', () => {
-  it('formatTestStepsXml round-trips losslessly through independent XML parser oracle for arbitrary strings', () => {
+void describe('test-plans helpers differential tests vs XML & Gregorian epoch oracles', () => {
+  void it('formatTestStepsXml round-trips losslessly through independent XML parser oracle for arbitrary strings', () => {
     const stepArb = fc.record({
       action: fc.string({ minLength: 1, maxLength: 60 }),
       expectedResult: fc.option(fc.string({ minLength: 0, maxLength: 60 }), {
@@ -104,11 +106,12 @@ describe('test-plans helpers differential tests vs XML & Gregorian epoch oracles
           const xml = formatTestStepsXml(steps);
           const parsed = parseStepsXmlOracle(xml);
 
-          expect(parsed).toHaveLength(steps.length);
+          assert.strictEqual(parsed.length, steps.length);
           steps.forEach((step, idx) => {
-            expect(parsed[idx].id).toBe(idx + 2);
-            expect(parsed[idx].action).toBe(step.action);
-            expect(parsed[idx].expectedResult).toBe(
+            assert.strictEqual(parsed[idx].id, idx + 2);
+            assert.strictEqual(parsed[idx].action, step.action);
+            assert.strictEqual(
+              parsed[idx].expectedResult,
               step.expectedResult?.trim() ?? '',
             );
           });
@@ -118,7 +121,7 @@ describe('test-plans helpers differential tests vs XML & Gregorian epoch oracles
     );
   });
 
-  it('parseStrictIsoDate timestamp agrees exactly with independent Gregorian UTC offset epoch oracle', () => {
+  void it('parseStrictIsoDate timestamp agrees exactly with independent Gregorian UTC offset epoch oracle', () => {
     const pad2 = (n: number) => String(n).padStart(2, '0');
 
     fc.assert(
@@ -146,7 +149,7 @@ describe('test-plans helpers differential tests vs XML & Gregorian epoch oracles
             offH,
             offM,
           );
-          expect(parsed?.getTime()).toBe(expectedMs);
+          assert.strictEqual(parsed?.getTime(), expectedMs);
         },
       ),
       { numRuns: 150 },

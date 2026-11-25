@@ -1,2 +1,2 @@
-export * from './azure-devops-errors';
-export * from './handle-request-error';
+export * from './azure-devops-errors.ts';
+export * from './handle-request-error.ts';

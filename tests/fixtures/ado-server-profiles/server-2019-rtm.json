@@ -1,0 +1,724 @@
+{
+  "schemaVersion": "1.0",
+  "name": "server-2019-rtm",
+  "mockProfileId": "server-2019-rtm",
+  "label": "Azure DevOps Server 2019 RTM",
+  "deploymentType": "server",
+  "connectionDeploymentType": "onPremises",
+  "apiVersions": {
+    "maxGa": "5.0",
+    "maxPreview": "5.0-preview",
+    "maxMajorMinor": [5, 0],
+    "maxPreviewMajorMinor": [5, 0]
+  },
+  "hosts": {
+    "multiHost": false,
+    "exampleOrgUrls": [
+      "https://ado.corp:8080/tfs/DefaultCollection",
+      "https://ado.corp/DefaultCollection"
+    ],
+    "coreHost": null,
+    "searchHost": null,
+    "identityHost": null,
+    "analyticsHost": null,
+    "resourceAreasResponseMode": "empty-onprem"
+  },
+  "capabilities": {
+    "supportsPipelinesApi": false,
+    "supportsTestPlanApi": false,
+    "supportsTestResultsApi": false,
+    "supportsWitCommentsCrud": false,
+    "supportsWitCommentMarkdown": false,
+    "supportsBuildStages": false,
+    "supportsWikiPagesBatch": false,
+    "supportsExpandIdentity": false,
+    "supportsRefsTopContinuation": false,
+    "supportsCloudProfileApis": false
+  },
+  "missingEndpoints": [
+    "pipelines",
+    "testplan",
+    "testresults",
+    "wit/comments (CRUD add/update/delete)",
+    "build/stages",
+    "wiki/pagesbatch"
+  ],
+  "directHttpVersions": {
+    "search/codesearchresults": "5.0-preview.1",
+    "search/wikisearchresults": "5.0-preview.1",
+    "search/workitemsearchresults": "5.0-preview.1",
+    "pipelines/pipelines": null,
+    "pipelines/runs": null,
+    "build/timeline": "5.0",
+    "build/logs": "5.0",
+    "build/stages": null,
+    "wiki/wikis": "5.0",
+    "wiki/pages": "5.0",
+    "wiki/pagesbatch": null,
+    "testplan/plans": null,
+    "wit/comments": "5.0-preview.2",
+    "core/teams": "5.0-preview.2",
+    "work/iterations/workitems": "5.0-preview.1",
+    "git/refs": "5.0"
+  },
+  "queryParamConstraints": {
+    "core/teams": {
+      "disallowedOnProfile": ["$expandIdentity"]
+    },
+    "git/refs": {
+      "disallowedOnProfile": ["$top", "continuationToken"]
+    },
+    "wit/comments": {
+      "allowedFormats": ["html"],
+      "readOnlyLegacyLocation": true
+    },
+    "work/iterations": {
+      "allowedTimeframes": ["current"]
+    }
+  },
+  "analyticsOData": {
+    "enabledByDefault": false,
+    "requiresAnalyticsExtension": true,
+    "supportedVersions": ["v1.0", "v2.0", "v3.0-preview"],
+    "unsupportedVersions": ["v4.0-preview"],
+    "defaultRecommendedVersion": "v3.0-preview",
+    "urlPattern": "{analyticsBaseUrl}/{project}/_odata/{version}/{entitySet}",
+    "blockedRulesCount": 7,
+    "entitySetsByVersion": {
+      "v1.0": [
+        "WorkItems",
+        "WorkItemRevisions",
+        "WorkItemSnapshot",
+        "WorkItemBoardSnapshot",
+        "WorkItemLinks",
+        "Areas",
+        "Iterations",
+        "BoardLocations",
+        "Dates",
+        "Tags",
+        "Teams",
+        "Users"
+      ],
+      "v2.0": [
+        "WorkItems",
+        "WorkItemRevisions",
+        "WorkItemSnapshot",
+        "WorkItemBoardSnapshot",
+        "WorkItemLinks",
+        "Areas",
+        "Iterations",
+        "BoardLocations",
+        "Dates",
+        "Tags",
+        "Teams",
+        "Users",
+        "Processes"
+      ],
+      "v3.0-preview": [
+        "WorkItems",
+        "WorkItemRevisions",
+        "WorkItemSnapshot",
+        "WorkItemBoardSnapshot",
+        "WorkItemLinks",
+        "Areas",
+        "Iterations",
+        "BoardLocations",
+        "Dates",
+        "Tags",
+        "Teams",
+        "Users",
+        "Processes",
+        "Pipelines",
+        "PipelineRuns",
+        "PipelineJobs",
+        "PipelineRunActivityResults",
+        "PipelineTasks",
+        "Branches",
+        "TestRuns",
+        "TestResults",
+        "TestResultsDaily",
+        "Tests",
+        "TestPoints",
+        "TestPointHistorySnapshots",
+        "TestSuites",
+        "TestConfigurations"
+      ]
+    }
+  },
+  "resourceLocations": {
+    "Location": [
+      {
+        "id": "00d9565f-ed9c-4a06-9a50-00e7896ccab4",
+        "area": "Location",
+        "resourceName": "ConnectionData",
+        "routeTemplate": "_apis/connectionData",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "0.0"
+      },
+      {
+        "id": "e81700f7-3be2-46de-8624-2eb35882fcaa",
+        "area": "Location",
+        "resourceName": "ResourceAreas",
+        "routeTemplate": "_apis/ResourceAreas/{areaId}",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "0.0"
+      }
+    ],
+    "core": [
+      {
+        "id": "603fe2ac-9723-48b9-88ad-09305aa6c6e1",
+        "area": "core",
+        "resourceName": "projects",
+        "routeTemplate": "_apis/projects/{projectId}",
+        "resourceVersion": 4,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "4976a71a-4487-49aa-8aab-a1eda469037a",
+        "area": "core",
+        "resourceName": "properties",
+        "routeTemplate": "_apis/projects/{projectId}/properties",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "d30a3dd1-f8ba-442a-b86a-bd0c0c383e59",
+        "area": "core",
+        "resourceName": "teams",
+        "routeTemplate": "_apis/projects/{projectId}/teams/{teamId}",
+        "resourceVersion": 3,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "7a4d9ee9-3433-4347-b47a-7a80f1cf307e",
+        "area": "core",
+        "resourceName": "teams",
+        "routeTemplate": "_apis/teams",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "0.0"
+      },
+      {
+        "id": "294c494c-2600-4d7e-b76c-3dd50c3c95be",
+        "area": "core",
+        "resourceName": "members",
+        "routeTemplate": "_apis/projects/{projectId}/teams/{teamId}/members",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      }
+    ],
+    "ims": [
+      {
+        "id": "28010c54-d0c0-4c89-a5b0-1c9e188b9fb7",
+        "area": "ims",
+        "resourceName": "identities",
+        "routeTemplate": "_apis/identities",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      }
+    ],
+    "wit": [
+      {
+        "id": "72c7ddf8-2cdc-4f60-90cd-ab71c14a399b",
+        "area": "wit",
+        "resourceName": "workItems",
+        "routeTemplate": "{project}/_apis/wit/workItems/{id}",
+        "resourceVersion": 3,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "62d3d110-0047-428c-ad3c-4fe872c91c74",
+        "area": "wit",
+        "resourceName": "workItems",
+        "routeTemplate": "{project}/_apis/wit/workItems/${type}",
+        "resourceVersion": 3,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "908509b6-4248-4475-a1cd-829139ba419f",
+        "area": "wit",
+        "resourceName": "workItemsBatch",
+        "routeTemplate": "{project}/_apis/wit/workItemsBatch",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "1a9c53f7-f243-4447-b110-35ef023636e4",
+        "area": "wit",
+        "resourceName": "wiql",
+        "routeTemplate": "{project}/{team}/_apis/wit/wiql",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "a02355f5-5f8a-4671-8e32-369d23aac83d",
+        "area": "wit",
+        "resourceName": "wiql",
+        "routeTemplate": "{project}/{team}/_apis/wit/wiql/{id}",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "a00c85a5-80fa-4565-99c3-bcd2181434bb",
+        "area": "wit",
+        "resourceName": "revisions",
+        "routeTemplate": "{project}/_apis/wit/workItems/{id}/revisions/{revisionNumber}",
+        "resourceVersion": 3,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "7c8d7a76-4a09-43e8-b5df-bd792f4ac6aa",
+        "area": "wit",
+        "resourceName": "workItemTypes",
+        "routeTemplate": "{project}/_apis/wit/workItemTypes/{type}",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "bd293ce5-3d25-4192-8e67-e8092e879efb",
+        "area": "wit",
+        "resourceName": "workItemTypesField",
+        "routeTemplate": "{project}/_apis/wit/workItemTypes/{type}/fields/{field}",
+        "resourceVersion": 3,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "e07b5fa4-1499-494d-a496-64b860fd64ff",
+        "area": "wit",
+        "resourceName": "attachments",
+        "routeTemplate": "{project}/_apis/wit/attachments/{id}",
+        "resourceVersion": 3,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "5a172953-1b41-49d3-840a-33f79c3ce89f",
+        "area": "wit",
+        "resourceName": "classificationNodes",
+        "routeTemplate": "{project}/_apis/wit/classificationNodes/{structureGroup}/{*path}",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "a70579d1-f53a-48ee-a5be-7be8659023b9",
+        "area": "wit",
+        "resourceName": "classificationNodes",
+        "routeTemplate": "{project}/_apis/wit/classificationNodes",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "19335ae7-22f7-4308-93d8-261f9384b7cf",
+        "area": "wit",
+        "resourceName": "comments",
+        "routeTemplate": "{project}/_apis/wit/workItems/{id}/comments/{revision}",
+        "resourceVersion": 2,
+        "minVersion": "3.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "0.0"
+      }
+    ],
+    "git": [
+      {
+        "id": "225f7195-f9c7-4d14-ab28-a83f7ff77e1f",
+        "area": "git",
+        "resourceName": "repositories",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "d5b216de-d8d5-4d32-ae76-51df755b16d3",
+        "area": "git",
+        "resourceName": "stats",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/stats/branches",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "2d874a60-a811-4f62-9c9f-963a6ea0a55b",
+        "area": "git",
+        "resourceName": "refs",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/refs",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "fb93c0db-47ed-4a31-8c20-47552878fb44",
+        "area": "git",
+        "resourceName": "items",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/items",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "7b28e929-2c99-405d-9c5c-6167a06e6816",
+        "area": "git",
+        "resourceName": "blobs",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/blobs/{sha1}",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "c2570c3b-5b3f-41b8-98bf-5407bfde8d58",
+        "area": "git",
+        "resourceName": "commits",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/commits/{commitId}",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "5bf884f5-3e07-42e9-afb8-1b872267bf16",
+        "area": "git",
+        "resourceName": "changes",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/commits/{commitId}/changes",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "ea98d07b-3c87-4971-8ede-a613694ffb55",
+        "area": "git",
+        "resourceName": "pushes",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/pushes/{pushId}",
+        "resourceVersion": 3,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "01a46dea-7d46-4d40-bc84-319e7c260d99",
+        "area": "git",
+        "resourceName": "pullRequests",
+        "routeTemplate": "{project}/_apis/git/pullrequests/{pullRequestId}",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "9946fd70-0d40-406e-b686-b4744cbbcc37",
+        "area": "git",
+        "resourceName": "pullRequests",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "d43911ee-6958-46b0-a42b-8445b8a0d004",
+        "area": "git",
+        "resourceName": "iterations",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/iterations/{iterationId}",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "4216bdcf-b6b1-4d59-8b82-c34cc183fc8b",
+        "area": "git",
+        "resourceName": "iterationChanges",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/iterations/{iterationId}/changes",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "b5f6bb4f-8d1e-4d79-8d11-4c9172c99c35",
+        "area": "git",
+        "resourceName": "statuses",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/statuses/{statusId}",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "ab6e2e5d-a0b7-4153-b64a-a4efe0d49449",
+        "area": "git",
+        "resourceName": "threads",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/threads/{threadId}",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "965a3ec7-5ed8-455a-bdcb-835a5ea7fe7b",
+        "area": "git",
+        "resourceName": "comments",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/threads/{threadId}/comments/{commentId}",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "f22387e3-984e-4c52-9c6d-fbb8f14c812d",
+        "area": "git",
+        "resourceName": "labels",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/labels/{labelIdOrName}",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "4b6702c7-aa35-4b89-9c96-b9abf6d3e540",
+        "area": "git",
+        "resourceName": "reviewers",
+        "routeTemplate": "{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/reviewers/{reviewerId}",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      }
+    ],
+    "policy": [
+      {
+        "id": "c23ddff5-229c-4d04-a80b-0fdce9f360c8",
+        "area": "policy",
+        "resourceName": "evaluations",
+        "routeTemplate": "{project}/_apis/policy/evaluations/{evaluationId}",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "0.0"
+      }
+    ],
+    "build": [
+      {
+        "id": "0cd358e1-9217-4d94-8269-1c1ee6f93dcf",
+        "area": "build",
+        "resourceName": "builds",
+        "routeTemplate": "{project}/_apis/build/builds/{buildId}",
+        "resourceVersion": 7,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "dbeaf647-6167-421a-bda9-c9327b25e2e6",
+        "area": "build",
+        "resourceName": "definitions",
+        "routeTemplate": "{project}/_apis/build/definitions/{definitionId}",
+        "resourceVersion": 7,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "1db06c96-014e-44e1-ac91-90b2d4b3e984",
+        "area": "build",
+        "resourceName": "artifacts",
+        "routeTemplate": "{project}/_apis/build/builds/{buildId}/artifacts",
+        "resourceVersion": 5,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "35a80daf-7f30-45fc-86e8-6b813d9c90df",
+        "area": "build",
+        "resourceName": "logs",
+        "routeTemplate": "{project}/_apis/build/builds/{buildId}/logs/{logId}",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "8baac422-4c6e-4de5-8532-db96d92acffa",
+        "area": "build",
+        "resourceName": "timeline",
+        "routeTemplate": "{project}/_apis/build/builds/{buildId}/timeline/{timelineId}",
+        "resourceVersion": 3,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      }
+    ],
+    "Container": [
+      {
+        "id": "e4f5c81e-e250-447b-9fef-bd48471bea5e",
+        "area": "Container",
+        "resourceName": "Containers",
+        "routeTemplate": "_apis/resources/Containers/{containerId}/{*itemPath}",
+        "resourceVersion": 4,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "0.0"
+      }
+    ],
+    "Test": [
+      {
+        "id": "cadb3810-d47d-4a3c-a234-fe5f3be50138",
+        "area": "Test",
+        "resourceName": "runs",
+        "routeTemplate": "{project}/_apis/test/runs/{runId}",
+        "resourceVersion": 3,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "4637d869-3a76-4468-8057-0bb02aa385cf",
+        "area": "Test",
+        "resourceName": "results",
+        "routeTemplate": "{project}/_apis/test/Runs/{runId}/results/{testCaseResultId}",
+        "resourceVersion": 6,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      }
+    ],
+    "work": [
+      {
+        "id": "c9175577-28a1-4b06-9197-8636af9f64ad",
+        "area": "work",
+        "resourceName": "iterations",
+        "routeTemplate": "{project}/{team}/_apis/work/teamsettings/iterations/{id}",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "c3c1012b-bea7-49d7-b45e-1664e566f84c",
+        "area": "work",
+        "resourceName": "teamsettings",
+        "routeTemplate": "{project}/{team}/_apis/work/teamsettings",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "07ced576-58ed-49e6-9c1e-5cb53ab8bf2a",
+        "area": "work",
+        "resourceName": "teamfieldvalues",
+        "routeTemplate": "{project}/{team}/_apis/work/teamsettings/teamfieldvalues",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "5b3ef1a6-d3ab-44cd-bafd-c7f45db850fa",
+        "area": "work",
+        "resourceName": "workitems",
+        "routeTemplate": "{project}/{team}/_apis/work/teamsettings/iterations/{iterationId}/workitems",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "0.0"
+      }
+    ],
+    "wiki": [
+      {
+        "id": "288d122c-dbd4-451d-aa5f-7dbbba070728",
+        "area": "wiki",
+        "resourceName": "wikis",
+        "routeTemplate": "{project}/_apis/wiki/wikis/{wikiIdentifier}",
+        "resourceVersion": 2,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      },
+      {
+        "id": "25d3fbc7-fe3d-46cb-b5a5-0b6f79caf27b",
+        "area": "wiki",
+        "resourceName": "pages",
+        "routeTemplate": "{project}/_apis/wiki/wikis/{wikiIdentifier}/pages",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "5.0"
+      }
+    ],
+    "search": [
+      {
+        "id": "e7f29993-5b82-4fca-9386-f5cfe683d524",
+        "area": "search",
+        "resourceName": "codeSearchResults",
+        "routeTemplate": "{project}/_apis/search/codesearchresults",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "0.0"
+      },
+      {
+        "id": "e90e7664-7049-4100-9a86-66b161d81080",
+        "area": "search",
+        "resourceName": "wikiSearchResults",
+        "routeTemplate": "{project}/_apis/search/wikisearchresults",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "0.0"
+      },
+      {
+        "id": "73b2c9e2-ff9e-4447-8cda-5f5b21ff7cae",
+        "area": "search",
+        "resourceName": "workItemSearchResults",
+        "routeTemplate": "{project}/_apis/search/workitemsearchresults",
+        "resourceVersion": 1,
+        "minVersion": "1.0",
+        "maxVersion": "5.0",
+        "releasedVersion": "0.0"
+      }
+    ]
+  }
+}

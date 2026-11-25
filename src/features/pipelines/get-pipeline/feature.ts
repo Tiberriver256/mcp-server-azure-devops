@@ -3,8 +3,13 @@ import {
   AzureDevOpsError,
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
-import type { GetPipelineOptions, Pipeline } from '../types';
+  AzureDevOpsValidationError,
+} from '../../../shared/errors/index.ts';
+import {
+  PIPELINES_UNSUPPORTED_ERROR_MESSAGE,
+  isUnsupportedPipelinesLocationError,
+} from '../api-version.ts';
+import type { GetPipelineOptions, Pipeline } from '../types.ts';
 
 /**
  * Get a specific pipeline by ID
@@ -40,6 +45,10 @@ export async function getPipeline(
     // Handle specific error types
     if (error instanceof AzureDevOpsError) {
       throw error;
+    }
+
+    if (isUnsupportedPipelinesLocationError(error)) {
+      throw new AzureDevOpsValidationError(PIPELINES_UNSUPPORTED_ERROR_MESSAGE);
     }
 
     // Check for specific error types and convert to appropriate Azure DevOps errors

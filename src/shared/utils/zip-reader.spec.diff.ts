@@ -1,7 +1,9 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import { execFileSync } from 'child_process';
 import fc from 'fast-check';
-import { readZipArchive } from './zip-reader';
-import { buildTestZip } from '../test/zip-builder';
+import { readZipArchive } from './zip-reader.ts';
+import { buildTestZip } from '../test/zip-builder.ts';
 
 function hasPython3(): boolean {
   try {
@@ -70,12 +72,11 @@ sys.stdout.write(json.dumps({"builtZipsBase64": built, "parsedZips": parsed}))
   return JSON.parse(stdout.toString('utf8')) as PythonBatchOutput;
 }
 
-const describeIfPython = hasPython3() ? describe : describe.skip;
-
-describeIfPython(
+void describe(
   'zip-reader differential tests vs Python stdlib zipfile oracle',
+  { skip: !hasPython3() },
   () => {
-    it('matches Python zipfile byte-for-byte across Stored, Deflate, UTF-8 names, nested folders, and empty files', () => {
+    void it('matches Python zipfile byte-for-byte across Stored, Deflate, UTF-8 names, nested folders, and empty files', () => {
       const entries: ZipSpecEntry[] = [
         { name: 'drop/', contentBase64: '', compress: false, isDir: true },
         {
@@ -112,22 +113,24 @@ describeIfPython(
       });
       const parsed = readZipArchive(Buffer.from(builtZipsBase64[0], 'base64'));
 
-      expect(parsed.entries.map((e) => e.name)).toEqual(
+      assert.deepStrictEqual(
+        parsed.entries.map((e) => e.name),
         entries.map((e) => e.name),
       );
       for (const expected of entries) {
         const meta = parsed.findEntry(expected.name);
-        expect(meta).toBeDefined();
-        expect(meta?.isDirectory).toBe(Boolean(expected.isDir));
+        assert.ok(meta !== undefined);
+        assert.strictEqual(meta.isDirectory, Boolean(expected.isDir));
         if (!expected.isDir) {
-          expect(parsed.readEntryBuffer(meta!).toString('base64')).toBe(
+          assert.strictEqual(
+            parsed.readEntryBuffer(meta).toString('base64'),
             expected.contentBase64,
           );
         }
       }
     });
 
-    it('agrees bidirectionally with Python zipfile across 30 fast-check generated multi-file archives', () => {
+    void it('agrees bidirectionally with Python zipfile across 30 fast-check generated multi-file archives', () => {
       const segArb = fc.stringMatching(/^[a-zA-Z0-9._-]{1,10}$/);
       const archiveArb = fc.uniqueArray(
         fc.record({
@@ -173,11 +176,12 @@ describeIfPython(
         const tsParsed = readZipArchive(
           Buffer.from(builtZipsBase64[idx], 'base64'),
         );
-        expect(tsParsed.entries).toHaveLength(files.length);
+        assert.strictEqual(tsParsed.entries.length, files.length);
         for (const file of files) {
           const entry = tsParsed.findEntry(file.name);
-          expect(entry).toBeDefined();
-          expect(tsParsed.readEntryBuffer(entry!)).toEqual(
+          assert.ok(entry !== undefined);
+          assert.deepStrictEqual(
+            tsParsed.readEntryBuffer(entry),
             Buffer.from(file.bytes),
           );
         }
@@ -186,8 +190,10 @@ describeIfPython(
         const pyRead = parsedZips[idx];
         const tsRead = readZipArchive(nodeZips[idx]);
         for (const file of files) {
-          const entry = tsRead.findEntry(file.name)!;
-          expect(tsRead.readEntryBuffer(entry).toString('base64')).toBe(
+          const entry = tsRead.findEntry(file.name);
+          assert.ok(entry !== undefined);
+          assert.strictEqual(
+            tsRead.readEntryBuffer(entry).toString('base64'),
             pyRead[file.name].contentBase64,
           );
         }

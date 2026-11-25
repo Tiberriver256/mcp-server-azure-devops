@@ -1,2 +1,2 @@
-export * from './config';
-export * from './tool-definition';
+export * from './config.ts';
+export * from './tool-definition.ts';

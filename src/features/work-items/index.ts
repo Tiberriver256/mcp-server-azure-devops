@@ -1,37 +1,43 @@
-export * from './schemas';
-export * from './types';
-export { listWorkItems } from './list-work-items/feature';
-export { getWorkItem } from './get-work-item/feature';
-export { createWorkItem } from './create-work-item/feature';
-export { updateWorkItem } from './update-work-item/feature';
-export { manageWorkItemLink } from './manage-work-item-link/feature';
-export { getWorkItemComments } from './get-work-item-comments/feature';
-export { createWorkItemAttachment } from './create-work-item-attachment/feature';
-export { getWorkItemAttachment } from './get-work-item-attachment/feature';
-export { deleteWorkItemAttachment } from './delete-work-item-attachment/feature';
+export * from './schemas.ts';
+export * from './types.ts';
+export { listWorkItems } from './list-work-items/feature.ts';
+export { getWorkItem } from './get-work-item/feature.ts';
+export { createWorkItem } from './create-work-item/feature.ts';
+export { updateWorkItem } from './update-work-item/feature.ts';
+export { manageWorkItemLink } from './manage-work-item-link/feature.ts';
+export { getWorkItemComments } from './get-work-item-comments/feature.ts';
+export { addWorkItemComment } from './add-work-item-comment/feature.ts';
+export { getWorkItemRevisions } from './get-work-item-revisions/feature.ts';
+export { createWorkItemAttachment } from './create-work-item-attachment/feature.ts';
+export { getWorkItemAttachment } from './get-work-item-attachment/feature.ts';
+export { deleteWorkItemAttachment } from './delete-work-item-attachment/feature.ts';
 
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
 import {
+  AddWorkItemCommentSchema,
   CreateWorkItemAttachmentSchema,
   CreateWorkItemSchema,
   DeleteWorkItemAttachmentSchema,
   GetWorkItemAttachmentSchema,
   GetWorkItemCommentsSchema,
+  GetWorkItemRevisionsSchema,
   GetWorkItemSchema,
   ListWorkItemsSchema,
   ManageWorkItemLinkSchema,
   UpdateWorkItemSchema,
-} from './schemas';
-import { listWorkItems } from './list-work-items/feature';
-import { getWorkItem } from './get-work-item/feature';
-import { createWorkItem } from './create-work-item/feature';
-import { updateWorkItem } from './update-work-item/feature';
-import { manageWorkItemLink } from './manage-work-item-link/feature';
-import { getWorkItemComments } from './get-work-item-comments/feature';
-import { createWorkItemAttachment } from './create-work-item-attachment/feature';
-import { getWorkItemAttachment } from './get-work-item-attachment/feature';
-import { deleteWorkItemAttachment } from './delete-work-item-attachment/feature';
+} from './schemas.ts';
+import { listWorkItems } from './list-work-items/feature.ts';
+import { getWorkItem } from './get-work-item/feature.ts';
+import { createWorkItem } from './create-work-item/feature.ts';
+import { updateWorkItem } from './update-work-item/feature.ts';
+import { manageWorkItemLink } from './manage-work-item-link/feature.ts';
+import { getWorkItemComments } from './get-work-item-comments/feature.ts';
+import { addWorkItemComment } from './add-work-item-comment/feature.ts';
+import { getWorkItemRevisions } from './get-work-item-revisions/feature.ts';
+import { createWorkItemAttachment } from './create-work-item-attachment/feature.ts';
+import { getWorkItemAttachment } from './get-work-item-attachment/feature.ts';
+import { deleteWorkItemAttachment } from './delete-work-item-attachment/feature.ts';
 
 export const workItemsFeature: FeatureModule = {
   toolset: 'work-items',
@@ -69,6 +75,8 @@ export const workItemsFeature: FeatureModule = {
       description: 'Create a new work item',
       schema: CreateWorkItemSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         return await createWorkItem(
@@ -95,6 +103,8 @@ export const workItemsFeature: FeatureModule = {
       description: 'Update an existing work item',
       schema: UpdateWorkItemSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi();
         return await updateWorkItem(connection, args.workItemId, {
@@ -118,6 +128,8 @@ export const workItemsFeature: FeatureModule = {
       description: 'Add or remove links between work items',
       schema: ManageWorkItemLinkSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         return await manageWorkItemLink(
@@ -154,11 +166,49 @@ export const workItemsFeature: FeatureModule = {
       },
     }),
     defineTool({
+      name: 'add_work_item_comment',
+      description:
+        'Add a comment to a specific work item. Supports Markdown or HTML formatting on Azure DevOps Services and gracefully falls back on older Azure DevOps Server instances.',
+      schema: AddWorkItemCommentSchema,
+      readOnly: false,
+      destructive: false,
+      idempotent: false,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await addWorkItemComment(connection, {
+          workItemId: args.workItemId,
+          text: args.text,
+          projectId: ctx.resolveOptionalProjectId(args.projectId),
+          format: args.format,
+        });
+      },
+    }),
+    defineTool({
+      name: 'get_work_item_revisions',
+      description:
+        'Get revision history for a work item, or fetch a single specific revision by revisionNumber',
+      schema: GetWorkItemRevisionsSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await getWorkItemRevisions(connection, {
+          workItemId: args.workItemId,
+          projectId: ctx.resolveOptionalProjectId(args.projectId),
+          revisionNumber: args.revisionNumber,
+          top: args.top,
+          skip: args.skip,
+          expand: args.expand,
+        });
+      },
+    }),
+    defineTool({
       name: 'create_work_item_attachment',
       description:
         'Upload a file and attach it to a work item. The file is read from the local filesystem, uploaded to Azure DevOps, and linked to the specified work item.',
       schema: CreateWorkItemAttachmentSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi();
         return await createWorkItemAttachment(connection, args.workItemId, {
@@ -173,7 +223,9 @@ export const workItemsFeature: FeatureModule = {
       description:
         'Download an attachment from Azure DevOps and save it to the local filesystem. The attachment ID can be obtained from the work item relations.',
       schema: GetWorkItemAttachmentSchema,
-      readOnly: true,
+      readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi();
         return await getWorkItemAttachment(connection, {
@@ -188,6 +240,8 @@ export const workItemsFeature: FeatureModule = {
         'Delete an attachment from a work item. The attachment ID can be obtained from the work item relations.',
       schema: DeleteWorkItemAttachmentSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi();
         return await deleteWorkItemAttachment(connection, {

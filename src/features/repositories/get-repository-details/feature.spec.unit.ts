@@ -1,14 +1,16 @@
-import { getRepositoryDetails } from './feature';
-import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import assert from 'node:assert/strict';
+import { describe, mock, test } from 'node:test';
+import { getRepositoryDetails } from './feature.ts';
+import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
-import type { GitRepository, GitBranchStats, GitRef } from '../types';
+} from '../../../shared/errors/index.ts';
+import type { GitRepository, GitBranchStats, GitRef } from '../types.ts';
 
 // Unit tests should only focus on isolated logic
 // No real connections, HTTP requests, or dependencies
-describe('getRepositoryDetails unit', () => {
+void describe('getRepositoryDetails unit', () => {
   // Mock repository data
   const mockRepository: GitRepository = {
     id: 'repo-id',
@@ -62,11 +64,11 @@ describe('getRepositoryDetails unit', () => {
     },
   ];
 
-  test('should return basic repository information when no additional options are specified', async () => {
+  void test('should return basic repository information when no additional options are specified', async () => {
     // Arrange
     const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => ({
-        getRepository: jest.fn().mockResolvedValue(mockRepository),
+      getGitApi: mock.fn(() => ({
+        getRepository: mock.fn(() => Promise.resolve(mockRepository)),
       })),
     };
 
@@ -77,18 +79,18 @@ describe('getRepositoryDetails unit', () => {
     });
 
     // Assert
-    expect(result).toBeDefined();
-    expect(result.repository).toEqual(mockRepository);
-    expect(result.statistics).toBeUndefined();
-    expect(result.refs).toBeUndefined();
+    assert.notStrictEqual(result, undefined);
+    assert.deepStrictEqual(result.repository, mockRepository);
+    assert.strictEqual(result.statistics, undefined);
+    assert.strictEqual(result.refs, undefined);
   });
 
-  test('should include branch statistics when includeStatistics is true', async () => {
+  void test('should include branch statistics when includeStatistics is true', async () => {
     // Arrange
     const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => ({
-        getRepository: jest.fn().mockResolvedValue(mockRepository),
-        getBranches: jest.fn().mockResolvedValue(mockBranchStats),
+      getGitApi: mock.fn(() => ({
+        getRepository: mock.fn(() => Promise.resolve(mockRepository)),
+        getBranches: mock.fn(() => Promise.resolve(mockBranchStats)),
       })),
     };
 
@@ -100,19 +102,19 @@ describe('getRepositoryDetails unit', () => {
     });
 
     // Assert
-    expect(result).toBeDefined();
-    expect(result.repository).toEqual(mockRepository);
-    expect(result.statistics).toBeDefined();
-    expect(result.statistics?.branches).toEqual(mockBranchStats);
-    expect(result.refs).toBeUndefined();
+    assert.notStrictEqual(result, undefined);
+    assert.deepStrictEqual(result.repository, mockRepository);
+    assert.notStrictEqual(result.statistics, undefined);
+    assert.deepStrictEqual(result.statistics?.branches, mockBranchStats);
+    assert.strictEqual(result.refs, undefined);
   });
 
-  test('should include refs when includeRefs is true', async () => {
+  void test('should include refs when includeRefs is true', async () => {
     // Arrange
     const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => ({
-        getRepository: jest.fn().mockResolvedValue(mockRepository),
-        getRefs: jest.fn().mockResolvedValue(mockRefs),
+      getGitApi: mock.fn(() => ({
+        getRepository: mock.fn(() => Promise.resolve(mockRepository)),
+        getRefs: mock.fn(() => Promise.resolve(mockRefs)),
       })),
     };
 
@@ -124,21 +126,21 @@ describe('getRepositoryDetails unit', () => {
     });
 
     // Assert
-    expect(result).toBeDefined();
-    expect(result.repository).toEqual(mockRepository);
-    expect(result.statistics).toBeUndefined();
-    expect(result.refs).toBeDefined();
-    expect(result.refs?.value).toEqual(mockRefs);
-    expect(result.refs?.count).toBe(mockRefs.length);
+    assert.notStrictEqual(result, undefined);
+    assert.deepStrictEqual(result.repository, mockRepository);
+    assert.strictEqual(result.statistics, undefined);
+    assert.notStrictEqual(result.refs, undefined);
+    assert.deepStrictEqual(result.refs?.value, mockRefs);
+    assert.strictEqual(result.refs?.count, mockRefs.length);
   });
 
-  test('should include both statistics and refs when both options are true', async () => {
+  void test('should include both statistics and refs when both options are true', async () => {
     // Arrange
     const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => ({
-        getRepository: jest.fn().mockResolvedValue(mockRepository),
-        getBranches: jest.fn().mockResolvedValue(mockBranchStats),
-        getRefs: jest.fn().mockResolvedValue(mockRefs),
+      getGitApi: mock.fn(() => ({
+        getRepository: mock.fn(() => Promise.resolve(mockRepository)),
+        getBranches: mock.fn(() => Promise.resolve(mockBranchStats)),
+        getRefs: mock.fn(() => Promise.resolve(mockRefs)),
       })),
     };
 
@@ -151,21 +153,21 @@ describe('getRepositoryDetails unit', () => {
     });
 
     // Assert
-    expect(result).toBeDefined();
-    expect(result.repository).toEqual(mockRepository);
-    expect(result.statistics).toBeDefined();
-    expect(result.statistics?.branches).toEqual(mockBranchStats);
-    expect(result.refs).toBeDefined();
-    expect(result.refs?.value).toEqual(mockRefs);
-    expect(result.refs?.count).toBe(mockRefs.length);
+    assert.notStrictEqual(result, undefined);
+    assert.deepStrictEqual(result.repository, mockRepository);
+    assert.notStrictEqual(result.statistics, undefined);
+    assert.deepStrictEqual(result.statistics?.branches, mockBranchStats);
+    assert.notStrictEqual(result.refs, undefined);
+    assert.deepStrictEqual(result.refs?.value, mockRefs);
+    assert.strictEqual(result.refs?.count, mockRefs.length);
   });
 
-  test('should pass refFilter to getRefs when provided', async () => {
+  void test('should pass refFilter to getRefs when provided', async () => {
     // Arrange
-    const getRefs = jest.fn().mockResolvedValue(mockRefs);
+    const getRefs = mock.fn((..._args: unknown[]) => Promise.resolve(mockRefs));
     const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => ({
-        getRepository: jest.fn().mockResolvedValue(mockRepository),
+      getGitApi: mock.fn(() => ({
+        getRepository: mock.fn(() => Promise.resolve(mockRepository)),
         getRefs,
       })),
     };
@@ -179,19 +181,22 @@ describe('getRepositoryDetails unit', () => {
     });
 
     // Assert
-    expect(getRefs).toHaveBeenCalledWith(
+    assert.strictEqual(getRefs.mock.callCount(), 1);
+    assert.deepStrictEqual(getRefs.mock.calls[0]?.arguments, [
       mockRepository.id,
       'test-project',
       'heads/',
-    );
+    ]);
   });
 
-  test('should pass branchName to getBranches when provided', async () => {
+  void test('should pass branchName to getBranches when provided', async () => {
     // Arrange
-    const getBranches = jest.fn().mockResolvedValue(mockBranchStats);
+    const getBranches = mock.fn((..._args: unknown[]) =>
+      Promise.resolve(mockBranchStats),
+    );
     const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => ({
-        getRepository: jest.fn().mockResolvedValue(mockRepository),
+      getGitApi: mock.fn(() => ({
+        getRepository: mock.fn(() => Promise.resolve(mockRepository)),
         getBranches,
       })),
     };
@@ -205,89 +210,98 @@ describe('getRepositoryDetails unit', () => {
     });
 
     // Assert
-    expect(getBranches).toHaveBeenCalledWith(
+    assert.strictEqual(getBranches.mock.callCount(), 1);
+    assert.deepStrictEqual(getBranches.mock.calls[0]?.arguments, [
       mockRepository.id,
       'test-project',
       {
         version: 'main',
         versionType: GitVersionType.Branch,
       },
-    );
+    ]);
   });
 
-  test('should propagate resource not found errors', async () => {
+  void test('should propagate resource not found errors', async () => {
     // Arrange
     const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => ({
-        getRepository: jest.fn().mockResolvedValue(null), // Simulate repository not found
+      getGitApi: mock.fn(() => ({
+        getRepository: mock.fn(() => Promise.resolve(null)), // Simulate repository not found
       })),
     };
 
     // Act & Assert
-    await expect(
-      getRepositoryDetails(mockConnection, {
-        projectId: 'test-project',
-        repositoryId: 'non-existent-repo',
-      }),
-    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
-
-    await expect(
-      getRepositoryDetails(mockConnection, {
-        projectId: 'test-project',
-        repositoryId: 'non-existent-repo',
-      }),
-    ).rejects.toThrow(
-      "Repository 'non-existent-repo' not found in project 'test-project'",
+    await assert.rejects(
+      () =>
+        getRepositoryDetails(mockConnection, {
+          projectId: 'test-project',
+          repositoryId: 'non-existent-repo',
+        }),
+      (err: unknown) => {
+        assert.ok(err instanceof AzureDevOpsResourceNotFoundError);
+        assert.match(
+          err.message,
+          /Repository 'non-existent-repo' not found in project 'test-project'/,
+        );
+        return true;
+      },
     );
   });
 
-  test('should propagate custom errors when thrown internally', async () => {
+  void test('should propagate custom errors when thrown internally', async () => {
     // Arrange
     const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => {
+      getGitApi: mock.fn(() => {
         throw new AzureDevOpsError('Custom error');
       }),
     };
 
     // Act & Assert
-    await expect(
-      getRepositoryDetails(mockConnection, {
-        projectId: 'test-project',
-        repositoryId: 'test-repo',
-      }),
-    ).rejects.toThrow(AzureDevOpsError);
-
-    await expect(
-      getRepositoryDetails(mockConnection, {
-        projectId: 'test-project',
-        repositoryId: 'test-repo',
-      }),
-    ).rejects.toThrow('Custom error');
+    await assert.rejects(
+      () =>
+        getRepositoryDetails(mockConnection, {
+          projectId: 'test-project',
+          repositoryId: 'test-repo',
+        }),
+      (err: unknown) => {
+        assert.ok(err instanceof AzureDevOpsError);
+        assert.match(err.message, /Custom error/);
+        return true;
+      },
+    );
   });
 
-  test('should wrap unexpected errors in a friendly error message', async () => {
+  void test('should wrap unexpected errors in a friendly error message', async () => {
     // Arrange
     const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => {
+      getGitApi: mock.fn(() => {
         throw new Error('Unexpected error');
       }),
     };
 
     // Act & Assert
-    await expect(
-      getRepositoryDetails(mockConnection, {
-        projectId: 'test-project',
-        repositoryId: 'test-repo',
-      }),
-    ).rejects.toThrow('Failed to get repository details: Unexpected error');
+    await assert.rejects(
+      () =>
+        getRepositoryDetails(mockConnection, {
+          projectId: 'test-project',
+          repositoryId: 'test-repo',
+        }),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.match(
+          err.message,
+          /Failed to get repository details: Unexpected error/,
+        );
+        return true;
+      },
+    );
   });
 
-  test('should handle null refs gracefully', async () => {
+  void test('should handle null refs gracefully', async () => {
     // Arrange
     const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => ({
-        getRepository: jest.fn().mockResolvedValue(mockRepository),
-        getRefs: jest.fn().mockResolvedValue(null), // Simulate null refs
+      getGitApi: mock.fn(() => ({
+        getRepository: mock.fn(() => Promise.resolve(mockRepository)),
+        getRefs: mock.fn(() => Promise.resolve(null)), // Simulate null refs
       })),
     };
 
@@ -299,10 +313,10 @@ describe('getRepositoryDetails unit', () => {
     });
 
     // Assert
-    expect(result).toBeDefined();
-    expect(result.repository).toEqual(mockRepository);
-    expect(result.refs).toBeDefined();
-    expect(result.refs?.value).toEqual([]);
-    expect(result.refs?.count).toBe(0);
+    assert.notStrictEqual(result, undefined);
+    assert.deepStrictEqual(result.repository, mockRepository);
+    assert.notStrictEqual(result.refs, undefined);
+    assert.deepStrictEqual(result.refs?.value, []);
+    assert.strictEqual(result.refs?.count, 0);
   });
 });

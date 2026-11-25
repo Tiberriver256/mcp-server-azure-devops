@@ -1,27 +1,34 @@
-import { getPullRequestChanges } from './feature';
-import { AzureDevOpsError } from '../../../shared/errors';
+import assert from 'node:assert/strict';
+import { describe, mock, test } from 'node:test';
 import { Readable } from 'stream';
+import type { WebApi } from 'azure-devops-node-api';
+import { getPullRequestChanges } from './feature.ts';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
 
-describe('getPullRequestChanges unit', () => {
-  test('should retrieve changes, evaluations, and patches', async () => {
+void describe('getPullRequestChanges unit', () => {
+  void test('should retrieve changes, evaluations, and patches', async () => {
     const mockGitApi = {
-      getPullRequest: jest.fn().mockResolvedValue({
-        sourceRefName: 'refs/heads/feature',
-        targetRefName: 'refs/heads/main',
-      }),
-      getPullRequestIterations: jest.fn().mockResolvedValue([{ id: 1 }]),
-      getPullRequestIterationChanges: jest.fn().mockResolvedValue({
-        changeEntries: [
-          {
-            item: {
-              path: '/file.txt',
-              objectId: 'new',
-              originalObjectId: 'old',
+      getPullRequest: mock.fn((..._args: unknown[]) =>
+        Promise.resolve({
+          sourceRefName: 'refs/heads/feature',
+          targetRefName: 'refs/heads/main',
+        }),
+      ),
+      getPullRequestIterations: mock.fn(() => Promise.resolve([{ id: 1 }])),
+      getPullRequestIterationChanges: mock.fn(() =>
+        Promise.resolve({
+          changeEntries: [
+            {
+              item: {
+                path: '/file.txt',
+                objectId: 'new',
+                originalObjectId: 'old',
+              },
             },
-          },
-        ],
-      }),
-      getBlobContent: jest.fn().mockImplementation((_: string, sha: string) => {
+          ],
+        }),
+      ),
+      getBlobContent: mock.fn((_repo: string, sha: string) => {
         const content = sha === 'new' ? 'new content\n' : 'old content\n';
         const stream = new Readable();
         stream.push(content);
@@ -29,12 +36,14 @@ describe('getPullRequestChanges unit', () => {
         return Promise.resolve(stream);
       }),
     };
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
-      getPolicyApi: jest.fn().mockResolvedValue({
-        getPolicyEvaluations: jest.fn().mockResolvedValue([{ id: '1' }]),
-      }),
-    };
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
+      getPolicyApi: mock.fn(() =>
+        Promise.resolve({
+          getPolicyEvaluations: mock.fn(() => Promise.resolve([{ id: '1' }])),
+        }),
+      ),
+    } as unknown as WebApi;
 
     const result = await getPullRequestChanges(mockConnection, {
       projectId: 'p',
@@ -42,79 +51,100 @@ describe('getPullRequestChanges unit', () => {
       pullRequestId: 1,
     });
 
-    expect(result.changes).toEqual({
+    assert.deepStrictEqual(result.changes, {
       changeEntries: [
         {
           item: { path: '/file.txt', objectId: 'new', originalObjectId: 'old' },
         },
       ],
     });
-    expect(result.evaluations).toHaveLength(1);
-    expect(result.files).toHaveLength(1);
-    expect(result.files[0].path).toBe('/file.txt');
-    expect(result.files[0].patch).toContain('-old content');
-    expect(result.files[0].patch).toContain('+new content');
-    expect(result.sourceRefName).toBe('refs/heads/feature');
-    expect(result.targetRefName).toBe('refs/heads/main');
-    expect(mockGitApi.getPullRequest).toHaveBeenCalledWith('r', 1, 'p');
+    assert.strictEqual(result.evaluations.length, 1);
+    assert.strictEqual(result.files.length, 1);
+    assert.strictEqual(result.files[0].path, '/file.txt');
+    assert.ok(result.files[0].patch.includes('-old content'));
+    assert.ok(result.files[0].patch.includes('+new content'));
+    assert.strictEqual(result.sourceRefName, 'refs/heads/feature');
+    assert.strictEqual(result.targetRefName, 'refs/heads/main');
+    assert.strictEqual(mockGitApi.getPullRequest.mock.callCount(), 1);
+    assert.deepStrictEqual(mockGitApi.getPullRequest.mock.calls[0]?.arguments, [
+      'r',
+      1,
+      'p',
+    ]);
   });
 
-  test('uses project GUID from pullRequest metadata in policy artifactId and propagates non-size-limit stream errors', async () => {
-    const getPolicyEvaluations = jest.fn().mockResolvedValue([]);
+  void test('uses project GUID from pullRequest metadata in policy artifactId and propagates non-size-limit stream errors', async () => {
+    const getPolicyEvaluations = mock.fn((..._args: unknown[]) =>
+      Promise.resolve([]),
+    );
     const mockGitApi = {
-      getPullRequest: jest.fn().mockResolvedValue({
-        sourceRefName: 'refs/heads/feature',
-        targetRefName: 'refs/heads/main',
-        repository: { project: { id: 'guid-1111-2222' } },
-      }),
-      getPullRequestIterations: jest.fn().mockResolvedValue([{ id: 1 }]),
-      getPullRequestIterationChanges: jest.fn().mockResolvedValue({
-        changeEntries: [{ item: { path: '/broken.txt', objectId: 'obj-1' } }],
-      }),
-      getBlobContent: jest.fn().mockImplementation(() => {
-        return new Readable({
-          read() {
-            this.destroy(new Error('network timeout while reading blob'));
-          },
-        });
-      }),
+      getPullRequest: mock.fn(() =>
+        Promise.resolve({
+          sourceRefName: 'refs/heads/feature',
+          targetRefName: 'refs/heads/main',
+          repository: { project: { id: 'guid-1111-2222' } },
+        }),
+      ),
+      getPullRequestIterations: mock.fn(() => Promise.resolve([{ id: 1 }])),
+      getPullRequestIterationChanges: mock.fn(() =>
+        Promise.resolve({
+          changeEntries: [{ item: { path: '/broken.txt', objectId: 'obj-1' } }],
+        }),
+      ),
+      getBlobContent: mock.fn(
+        () =>
+          new Readable({
+            read() {
+              this.destroy(new Error('network timeout while reading blob'));
+            },
+          }),
+      ),
     };
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
-      getPolicyApi: jest.fn().mockResolvedValue({ getPolicyEvaluations }),
-    };
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
+      getPolicyApi: mock.fn(() => Promise.resolve({ getPolicyEvaluations })),
+    } as unknown as WebApi;
 
-    await expect(
-      getPullRequestChanges(mockConnection, {
-        projectId: 'MyProjectName',
-        repositoryId: 'r',
-        pullRequestId: 9,
-      }),
-    ).rejects.toThrow('network timeout while reading blob');
+    await assert.rejects(
+      () =>
+        getPullRequestChanges(mockConnection, {
+          projectId: 'MyProjectName',
+          repositoryId: 'r',
+          pullRequestId: 9,
+        }),
+      /network timeout while reading blob/,
+    );
 
-    expect(getPolicyEvaluations).toHaveBeenCalledWith(
+    assert.strictEqual(getPolicyEvaluations.mock.callCount(), 1);
+    assert.deepStrictEqual(getPolicyEvaluations.mock.calls[0]?.arguments, [
       'MyProjectName',
       'vstfs:///CodeReview/CodeReviewId/guid-1111-2222/9',
-    );
+    ]);
   });
 
-  test('should throw when no iterations found', async () => {
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getPullRequest: jest.fn().mockResolvedValue({
-          sourceRefName: 'refs/heads/source',
-          targetRefName: 'refs/heads/target',
+  void test('should throw when no iterations found', async () => {
+    const mockConnection = {
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getPullRequest: mock.fn(() =>
+            Promise.resolve({
+              sourceRefName: 'refs/heads/source',
+              targetRefName: 'refs/heads/target',
+            }),
+          ),
+          getPullRequestIterations: mock.fn(() => Promise.resolve([])),
         }),
-        getPullRequestIterations: jest.fn().mockResolvedValue([]),
-      }),
-    };
+      ),
+    } as unknown as WebApi;
 
-    await expect(
-      getPullRequestChanges(mockConnection, {
-        projectId: 'p',
-        repositoryId: 'r',
-        pullRequestId: 1,
-      }),
-    ).rejects.toThrow(AzureDevOpsError);
+    await assert.rejects(
+      () =>
+        getPullRequestChanges(mockConnection, {
+          projectId: 'p',
+          repositoryId: 'r',
+          pullRequestId: 1,
+        }),
+      AzureDevOpsError,
+    );
   });
 });

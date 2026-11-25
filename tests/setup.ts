@@ -1,9 +1,11 @@
 /**
- * Jest setup file that runs before all tests.
+ * Node test runner setup module preloaded via `--import ./tests/setup.ts`.
  */
 
-import path from 'path';
-import { loadEnvFile } from '../src/shared/config/load-env';
+import path from 'node:path';
+import { afterEach, beforeEach, mock } from 'node:test';
+import type { Mock } from 'node:test';
+import { loadEnvFile } from '../src/shared/config/load-env.ts';
 
 loadEnvFile(path.resolve(process.cwd(), '.env'));
 
@@ -12,33 +14,54 @@ if (process.env.AZURE_DEVOPS_PAT) {
   process.env.AZURE_DEVOPS_AUTH_METHOD = 'pat';
 }
 
-jest.setTimeout(30000);
-
 const originalConsoleLog = console.log;
 const originalConsoleWarn = console.warn;
 
-const quietLog = (...args: unknown[]) => {
-  const first = args[0]?.toString() ?? '';
+const quietLog: typeof console.log = (...args: unknown[]) => {
+  const first = String(args[0] ?? '');
   if (first.includes('Skip') || first.includes('Environment')) {
     originalConsoleLog(...args);
   }
 };
 
-const quietWarn = (...args: unknown[]) => {
-  const first = args[0]?.toString() ?? '';
+const quietWarn: typeof console.warn = (...args: unknown[]) => {
+  const first = String(args[0] ?? '');
   if (first.includes('Warning') || first.includes('WARNING')) {
     originalConsoleWarn(...args);
   }
 };
 
-beforeEach(() => {
-  jest.clearAllMocks();
-  if (process.env.DEBUG !== 'true') {
-    jest.spyOn(console, 'log').mockImplementation(quietLog);
-    jest.spyOn(console, 'warn').mockImplementation(quietWarn);
-  }
-});
+let logMock: Mock<typeof console.log> | undefined;
+let warnMock: Mock<typeof console.warn> | undefined;
+let activeFilterCount = 0;
+const filteredTests = new WeakSet<object>();
 
-afterEach(() => {
-  jest.restoreAllMocks();
-});
+const isNodeTestRunner =
+  process.env.NODE_TEST_CONTEXT !== undefined ||
+  process.execArgv.includes('--test');
+
+if (isNodeTestRunner) {
+  beforeEach((t) => {
+    if (process.env.DEBUG !== 'true') {
+      if (activeFilterCount === 0) {
+        logMock = mock.method(console, 'log', quietLog);
+        warnMock = mock.method(console, 'warn', quietWarn);
+      }
+      activeFilterCount += 1;
+      filteredTests.add(t);
+    }
+  });
+
+  afterEach((t) => {
+    if (!filteredTests.delete(t)) {
+      return;
+    }
+    activeFilterCount -= 1;
+    if (activeFilterCount === 0) {
+      logMock?.mock.restore();
+      warnMock?.mock.restore();
+      logMock = undefined;
+      warnMock = undefined;
+    }
+  });
+}

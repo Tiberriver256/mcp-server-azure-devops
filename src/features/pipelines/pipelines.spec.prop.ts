@@ -1,17 +1,19 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import fc from 'fast-check';
-import { coercePipelineId } from './helpers';
-import { parsePipelineName } from './run-reference';
-import { normalizeBranch } from './list-pipeline-runs/feature';
-import { makeRelativePath } from './artifacts';
+import { coercePipelineId } from './helpers.ts';
+import { parsePipelineName } from './run-reference.ts';
+import { normalizeBranch } from './list-pipeline-runs/feature.ts';
+import { makeRelativePath } from './artifacts.ts';
 import {
   buildContainerPathCandidates,
   normalizeArtifactPath,
-} from './download-pipeline-artifact/feature';
+} from './download-pipeline-artifact/feature.ts';
 
 const segmentArb = fc.stringMatching(/^[a-zA-Z0-9._-]{1,14}$/);
 
-describe('pipelines helpers properties', () => {
-  it('parsePipelineName treats forward slashes and backslashes identically and prefixes folders with \\', () => {
+void describe('pipelines helpers properties', () => {
+  void it('parsePipelineName treats forward slashes and backslashes identically and prefixes folders with \\', () => {
     fc.assert(
       fc.property(
         fc.array(segmentArb, { minLength: 1, maxLength: 4 }),
@@ -23,16 +25,17 @@ describe('pipelines helpers properties', () => {
 
           const fromFwd = parsePipelineName(fwd);
           const fromBack = parsePipelineName(back);
-          expect(fromFwd).toEqual(fromBack);
-          expect(fromFwd.name).toBe(segments[segments.length - 1]);
+          assert.deepStrictEqual(fromFwd, fromBack);
+          assert.strictEqual(fromFwd.name, segments[segments.length - 1]);
           if (segments.length > 1) {
-            expect(fromFwd.folder).toBe(
+            assert.strictEqual(
+              fromFwd.folder,
               `\\${segments.slice(0, -1).join('\\')}`,
             );
           } else if (leadingSep) {
-            expect(fromFwd.folder).toBe('\\');
+            assert.strictEqual(fromFwd.folder, '\\');
           } else {
-            expect(fromFwd.folder).toBeUndefined();
+            assert.strictEqual(fromFwd.folder, undefined);
           }
         },
       ),
@@ -40,26 +43,26 @@ describe('pipelines helpers properties', () => {
     );
   });
 
-  it('normalizeBranch is idempotent, returns undefined for whitespace-only inputs, and always starts with refs/', () => {
+  void it('normalizeBranch is idempotent, returns undefined for whitespace-only inputs, and always starts with refs/', () => {
     fc.assert(
       fc.property(fc.string({ maxLength: 60 }), (raw) => {
         const once = normalizeBranch(raw);
         if (raw.trim().length === 0) {
-          expect(once).toBeUndefined();
+          assert.strictEqual(once, undefined);
         } else {
-          expect(once?.startsWith('refs/')).toBe(true);
-          expect(normalizeBranch(once)).toBe(once);
+          assert.strictEqual(once?.startsWith('refs/'), true);
+          assert.strictEqual(normalizeBranch(once), once);
         }
       }),
       { numRuns: 150 },
     );
   });
 
-  it('coercePipelineId accepts only positive safe integers (or pure decimal strings) and rejects trailing garbage / non-integers', () => {
+  void it('coercePipelineId accepts only positive safe integers (or pure decimal strings) and rejects trailing garbage / non-integers', () => {
     fc.assert(
       fc.property(fc.integer({ min: 1, max: 1_000_000_000 }), (n) => {
-        expect(coercePipelineId(n)).toBe(n);
-        expect(coercePipelineId(`  ${n}  `)).toBe(n);
+        assert.strictEqual(coercePipelineId(n), n);
+        assert.strictEqual(coercePipelineId(`  ${n}  `), n);
       }),
       { numRuns: 100 },
     );
@@ -88,14 +91,14 @@ describe('pipelines helpers properties', () => {
             .map(([n, junk]) => `${n}${junk}`),
         ),
         (bad) => {
-          expect(coercePipelineId(bad)).toBeUndefined();
+          assert.strictEqual(coercePipelineId(bad), undefined);
         },
       ),
       { numRuns: 150 },
     );
   });
 
-  it('makeRelativePath strips longest matching prefix cleanly and never leaves leading slashes', () => {
+  void it('makeRelativePath strips longest matching prefix cleanly and never leaves leading slashes', () => {
     fc.assert(
       fc.property(
         segmentArb,
@@ -103,17 +106,20 @@ describe('pipelines helpers properties', () => {
         (root, rest) => {
           const full = `${root}/${rest.join('/')}`;
           const rel = makeRelativePath(full, [root]);
-          expect(rel).toBe(rest.join('/'));
-          expect(rel.startsWith('/')).toBe(false);
+          assert.strictEqual(rel, rest.join('/'));
+          assert.strictEqual(rel.startsWith('/'), false);
           // Backslash variant matches identically
-          expect(makeRelativePath(full.replace(/\//g, '\\'), [root])).toBe(rel);
+          assert.strictEqual(
+            makeRelativePath(full.replace(/\//g, '\\'), [root]),
+            rel,
+          );
         },
       ),
       { numRuns: 100 },
     );
   });
 
-  it('normalizeArtifactPath & buildContainerPathCandidates normalize separators and produce deduplicated non-empty candidates', () => {
+  void it('normalizeArtifactPath & buildContainerPathCandidates normalize separators and produce deduplicated non-empty candidates', () => {
     fc.assert(
       fc.property(
         segmentArb,
@@ -122,18 +128,19 @@ describe('pipelines helpers properties', () => {
         (artifact, fileParts, rootPath) => {
           const raw = `/${artifact}\\${fileParts.join('\\')}/`;
           const parsed = normalizeArtifactPath(raw);
-          expect(parsed.artifactName).toBe(artifact);
-          expect(parsed.relativePath).toBe(fileParts.join('/'));
+          assert.strictEqual(parsed.artifactName, artifact);
+          assert.strictEqual(parsed.relativePath, fileParts.join('/'));
 
           const candidates = buildContainerPathCandidates(
             parsed.artifactName,
             rootPath,
             parsed.relativePath,
           );
-          expect(candidates.length).toBeGreaterThan(0);
-          expect(new Set(candidates).size).toBe(candidates.length);
-          expect(candidates).toContain(parsed.relativePath);
-          expect(candidates).toContain(`${artifact}/${parsed.relativePath}`);
+          assert.ok(candidates.length > 0);
+          const candidateSet = new Set(candidates);
+          assert.strictEqual(candidateSet.size, candidates.length);
+          assert.ok(candidateSet.has(parsed.relativePath));
+          assert.ok(candidateSet.has(`${artifact}/${parsed.relativePath}`));
         },
       ),
       { numRuns: 100 },

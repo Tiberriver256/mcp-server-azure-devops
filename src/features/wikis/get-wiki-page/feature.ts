@@ -1,6 +1,6 @@
-import { AzureDevOpsError } from '../../../shared/errors';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
-import { createWikiClient } from '../wiki-client';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import { createWikiClient } from '../wiki-client.ts';
 
 export interface GetWikiPageOptions {
   organizationId?: string;

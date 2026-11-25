@@ -1,18 +1,22 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { AzureDevOpsValidationError } from '../../../shared/errors';
-import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url';
-import { logError } from '../../../shared/logging';
-import { mapWithConcurrency } from '../../../shared/utils/concurrency';
-import { streamToString } from '../../../shared/utils/stream';
-import { createSessionFromEnv } from '../../../shared/session/azure-devops-session';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
+import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { AzureDevOpsValidationError } from '../../../shared/errors/index.ts';
+import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url.ts';
+import { logError } from '../../../shared/logging.ts';
+import { mapWithConcurrency } from '../../../shared/utils/concurrency.ts';
+import { streamToString } from '../../../shared/utils/stream.ts';
+import { createSessionFromEnv } from '../../../shared/session/azure-devops-session.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import {
+  CODE_SEARCH_LOCATION_ID,
+  negotiateSearchApiVersion,
+} from '../api-version.ts';
 import type {
   CodeSearchRequest,
   CodeSearchResponse,
   CodeSearchResult,
   SearchCodeOptions,
-} from '../types';
+} from '../types.ts';
 
 const MAX_ENRICHED_FILE_BYTES = 1024 * 1024; // 1 MiB per file when enriching code search
 
@@ -55,11 +59,18 @@ export async function searchCode(
     projectId,
   });
 
+  const apiVersion = await negotiateSearchApiVersion(
+    session,
+    baseUrls.searchBaseUrl,
+    CODE_SEARCH_LOCATION_ID,
+    'codeSearchResults',
+  );
+
   const searchUrl = `${baseUrls.searchBaseUrl}/${encodeURIComponent(projectId)}/_apis/search/codesearchresults`;
   const searchResponse = await session.requestAzureDevOps<CodeSearchResponse>({
     method: 'POST',
     url: searchUrl,
-    query: { 'api-version': session.config.apiVersion },
+    query: { 'api-version': apiVersion },
     body: searchRequest,
     context: 'searching code',
   });

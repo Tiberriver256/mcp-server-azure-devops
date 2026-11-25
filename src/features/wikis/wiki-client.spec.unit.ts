@@ -1,18 +1,21 @@
-import { AuthenticationMethod } from '../../shared/auth';
+import assert from 'node:assert/strict';
+import { afterEach, beforeEach, describe, it, mock } from 'node:test';
+import { AuthenticationMethod } from '../../shared/auth/index.ts';
 import {
   AzureDevOpsError,
   AzureDevOpsPermissionError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../../shared/errors';
-import { HttpError } from '../../shared/http/http-client';
-import type { HttpRequestOptions } from '../../shared/http/http-client';
-import { createAzureDevOpsSession } from '../../shared/session/azure-devops-session';
-import type { ToolContext } from '../../shared/session/azure-devops-session';
-import { createWiki } from './create-wiki/feature';
-import { createWikiPage } from './create-wiki-page/feature';
-import { WikiType } from './schemas';
-import { WikiClient } from './wiki-client';
+} from '../../shared/errors/index.ts';
+import { HttpError } from '../../shared/http/http-client.ts';
+import type { HttpRequestOptions } from '../../shared/http/http-client.ts';
+import { createAzureDevOpsSession } from '../../shared/session/azure-devops-session.ts';
+import type { ToolContext } from '../../shared/session/azure-devops-session.ts';
+import { clearWikiApiVersionCache } from './api-version.ts';
+import { createWiki } from './create-wiki/feature.ts';
+import { createWikiPage } from './create-wiki-page/feature.ts';
+import { WikiType } from './schemas.ts';
+import { WikiClient } from './wiki-client.ts';
 
 function createFakeContext(
   handler: (req: HttpRequestOptions) => Promise<{
@@ -62,8 +65,20 @@ function createFakeContext(
   );
 }
 
-describe('WikiClient & Wiki feature operations', () => {
-  it('passes raw Unicode pagePath to query params so paths are never double-encoded', async () => {
+void describe('WikiClient & Wiki feature operations', () => {
+  beforeEach(() => {
+    clearWikiApiVersionCache();
+    mock.method(globalThis, 'fetch', () =>
+      Promise.reject(new Error('offline unit test')),
+    );
+  });
+
+  afterEach(() => {
+    mock.restoreAll();
+    clearWikiApiVersionCache();
+  });
+
+  void it('passes raw Unicode pagePath to query params so paths are never double-encoded', async () => {
     const captured: HttpRequestOptions[] = [];
     const ctx = createFakeContext(async (req) => {
       captured.push(req);
@@ -93,23 +108,23 @@ describe('WikiClient & Wiki feature operations', () => {
       ctx,
     );
 
-    expect(result).toMatchObject({
+    assert.partialDeepStrictEqual(result, {
       path: '/Über/Spaced Page',
       version: 'v1',
       message: 'Page created successfully',
     });
 
     const putReq = captured.find((r) => r.method === 'PUT');
-    expect(putReq).toBeDefined();
-    expect(putReq?.query).toEqual({
+    assert.notStrictEqual(putReq, undefined);
+    assert.deepStrictEqual(putReq?.query, {
       'api-version': '7.1',
       path: '/Über/Spaced Page',
       comment: 'Initial commit',
     });
-    expect(putReq?.headers?.['If-Match']).toBeUndefined();
+    assert.strictEqual(putReq?.headers?.['If-Match'], undefined);
   });
 
-  it('sends quoted If-Match ETag when updating an existing page', async () => {
+  void it('sends quoted If-Match ETag when updating an existing page', async () => {
     const captured: HttpRequestOptions[] = [];
     const ctx = createFakeContext(async (req) => {
       captured.push(req);
@@ -135,15 +150,15 @@ describe('WikiClient & Wiki feature operations', () => {
       '/Home',
     );
 
-    expect(result).toMatchObject({
+    assert.partialDeepStrictEqual(result, {
       version: 'etag-43',
       message: 'Page updated successfully',
     });
     const putReq = captured.find((r) => r.method === 'PUT');
-    expect(putReq?.headers?.['If-Match']).toBe('"etag-42"');
+    assert.strictEqual(putReq?.headers?.['If-Match'], '"etag-42"');
   });
 
-  it('paginates listWikiPages via continuationToken, sorts by (order, path), and guards cycles', async () => {
+  void it('paginates listWikiPages via continuationToken, sorts by (order, path), and guards cycles', async () => {
     let call = 0;
     const ctx = createFakeContext(async () => {
       call += 1;
@@ -172,12 +187,10 @@ describe('WikiClient & Wiki feature operations', () => {
 
     const client = new WikiClient(ctx);
     const pages = await client.listWikiPages('test-proj', 'my-wiki');
-    expect(pages.map((p) => p.path)).toEqual([
-      '/Alpha',
-      '/Beta',
-      '/Zeta',
-      '/NoOrder',
-    ]);
+    assert.deepStrictEqual(
+      pages.map((p) => p.path),
+      ['/Alpha', '/Beta', '/Zeta', '/NoOrder'],
+    );
 
     // Cycle detection
     const cyclicCtx = createFakeContext(async () => ({
@@ -185,12 +198,13 @@ describe('WikiClient & Wiki feature operations', () => {
       data: { value: [{ id: 1, path: '/A' }], continuationToken: 'same-token' },
     }));
     const cyclicClient = new WikiClient(cyclicCtx);
-    await expect(
-      cyclicClient.listWikiPages('test-proj', 'my-wiki'),
-    ).rejects.toThrow(AzureDevOpsError);
+    await assert.rejects(
+      () => cyclicClient.listWikiPages('test-proj', 'my-wiki'),
+      AzureDevOpsError,
+    );
   });
 
-  it('validates codeWiki requires repositoryId and maps HTTP errors accurately', async () => {
+  void it('validates codeWiki requires repositoryId and maps HTTP errors accurately', async () => {
     const ctx = createFakeContext(async (req) => {
       if (req.url.includes('/_apis/projects/')) {
         throw new HttpError({
@@ -203,24 +217,28 @@ describe('WikiClient & Wiki feature operations', () => {
       return { status: 200, data: {} };
     });
 
-    await expect(
-      createWiki(ctx, {
-        projectId: 'test-proj',
-        name: 'code-wiki',
-        type: WikiType.CodeWiki,
-      }),
-    ).rejects.toThrow(AzureDevOpsValidationError);
+    await assert.rejects(
+      () =>
+        createWiki(ctx, {
+          projectId: 'test-proj',
+          name: 'code-wiki',
+          type: WikiType.CodeWiki,
+        }),
+      AzureDevOpsValidationError,
+    );
 
-    await expect(
-      createWiki(ctx, {
-        projectId: 'test-proj',
-        name: 'proj-wiki',
-        type: WikiType.ProjectWiki,
-      }),
-    ).rejects.toThrow(AzureDevOpsPermissionError);
+    await assert.rejects(
+      () =>
+        createWiki(ctx, {
+          projectId: 'test-proj',
+          name: 'proj-wiki',
+          type: WikiType.ProjectWiki,
+        }),
+      AzureDevOpsPermissionError,
+    );
   });
 
-  it('uses configured on-prem server collection URL and apiVersion', async () => {
+  void it('uses configured on-prem server collection URL and apiVersion', async () => {
     const captured: HttpRequestOptions[] = [];
     const ctx = createFakeContext(
       async (req) => {
@@ -239,14 +257,18 @@ describe('WikiClient & Wiki feature operations', () => {
 
     const client = new WikiClient(ctx);
     const page = await client.getPage('test-proj', 'w1', 'Guide');
-    expect(page).toEqual({ content: 'on-prem content', eTag: '1' });
-    expect(captured[0].url).toBe(
+    assert.deepStrictEqual(page, { content: 'on-prem content', eTag: '1' });
+    assert.strictEqual(
+      captured[0].url,
       'https://ado.local:8080/tfs/DefaultCollection/test-proj/_apis/wiki/wikis/w1/pages',
     );
-    expect(captured[0].query).toEqual({ 'api-version': '7.0', path: '/Guide' });
+    assert.deepStrictEqual(captured[0].query, {
+      'api-version': '7.0',
+      path: '/Guide',
+    });
   });
 
-  it('maps 404 from getPage to AzureDevOpsResourceNotFoundError', async () => {
+  void it('maps 404 from getPage to AzureDevOpsResourceNotFoundError', async () => {
     const ctx = createFakeContext(async (req) => {
       throw new HttpError({
         message: 'Page not found',
@@ -257,12 +279,13 @@ describe('WikiClient & Wiki feature operations', () => {
     });
 
     const client = new WikiClient(ctx);
-    await expect(client.getPage('test-proj', 'w1', '/Missing')).rejects.toThrow(
+    await assert.rejects(
+      () => client.getPage('test-proj', 'w1', '/Missing'),
       AzureDevOpsResourceNotFoundError,
     );
   });
 
-  it('paginates listWikiPages using x-ms-continuationtoken response header when body omits token', async () => {
+  void it('paginates listWikiPages using x-ms-continuationtoken response header when body omits token', async () => {
     let call = 0;
     const bodies: unknown[] = [];
     const ctx = createFakeContext(async (req) => {
@@ -286,11 +309,17 @@ describe('WikiClient & Wiki feature operations', () => {
 
     const client = new WikiClient(ctx);
     const pages = await client.listWikiPages('test-proj', 'my-wiki');
-    expect(pages.map((p) => p.path)).toEqual(['/Page1', '/Page2']);
-    expect(bodies[1]).toEqual({ top: 100, continuationToken: 'hdr-tok-2' });
+    assert.deepStrictEqual(
+      pages.map((p) => p.path),
+      ['/Page1', '/Page2'],
+    );
+    assert.deepStrictEqual(bodies[1], {
+      top: 100,
+      continuationToken: 'hdr-tok-2',
+    });
   });
 
-  it('encodes spaced/special-character project & wiki IDs and normalizes updatePage path', async () => {
+  void it('encodes spaced/special-character project & wiki IDs and normalizes updatePage path', async () => {
     const captured: HttpRequestOptions[] = [];
     const ctx = createFakeContext(async (req) => {
       captured.push(req);
@@ -312,12 +341,14 @@ describe('WikiClient & Wiki feature operations', () => {
       'Guide/Intro',
     );
 
-    expect(captured[0].url).toBe(
+    assert.strictEqual(
+      captured[0].url,
       'https://dev.azure.com/test-org/My%20Project/_apis/wiki/wikis/My%23Wiki/pages',
     );
-    expect(captured[1].url).toBe(
+    assert.strictEqual(
+      captured[1].url,
       'https://dev.azure.com/test-org/My%20Project/_apis/wiki/wikis/My%23Wiki/pages',
     );
-    expect(captured[1].query?.path).toBe('/Guide/Intro');
+    assert.strictEqual(captured[1].query?.path, '/Guide/Intro');
   });
 });

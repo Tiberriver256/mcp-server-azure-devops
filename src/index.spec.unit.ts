@@ -1,20 +1,19 @@
-import { getConfig, normalizeAuthMethod } from './index';
-import { AuthenticationMethod } from './shared/auth/auth-factory';
+import assert from 'node:assert/strict';
+import { afterEach, beforeEach, describe, it, mock } from 'node:test';
+import { getConfig, normalizeAuthMethod } from './index.ts';
+import { AuthenticationMethod } from './shared/auth/auth-factory.ts';
 
-describe('index', () => {
-  describe('getConfig', () => {
-    let originalStderrWrite: typeof process.stderr.write;
-
+void describe('index', () => {
+  void describe('getConfig', () => {
     beforeEach(() => {
-      originalStderrWrite = process.stderr.write;
-      process.stderr.write = jest.fn();
+      mock.method(process.stderr, 'write', () => true);
     });
 
     afterEach(() => {
-      process.stderr.write = originalStderrWrite;
+      mock.restoreAll();
     });
 
-    it('reads tool filtering and read-only options from environment variables', () => {
+    void it('reads tool filtering and read-only options from environment variables', () => {
       const config = getConfig([], {
         AZURE_DEVOPS_ORG_URL: 'https://dev.azure.com/test-org',
         AZURE_DEVOPS_TOOLSETS: 'projects, work-items',
@@ -23,13 +22,18 @@ describe('index', () => {
         AZURE_DEVOPS_READ_ONLY: 'true',
       });
 
-      expect(config.toolsets).toEqual(['projects', 'work-items']);
-      expect(config.enabledTools).toEqual(['get_project', 'get_work_item']);
-      expect(config.disabledTools).toEqual(['delete_work_item_attachment']);
-      expect(config.readOnly).toBe(true);
+      assert.deepStrictEqual(config.toolsets, ['projects', 'work-items']);
+      assert.deepStrictEqual(config.enabledTools, [
+        'get_project',
+        'get_work_item',
+      ]);
+      assert.deepStrictEqual(config.disabledTools, [
+        'delete_work_item_attachment',
+      ]);
+      assert.strictEqual(config.readOnly, true);
     });
 
-    it('prefers CLI flags over environment variables', () => {
+    void it('prefers CLI flags over environment variables', () => {
       const config = getConfig(
         [
           '--toolsets',
@@ -47,15 +51,15 @@ describe('index', () => {
         },
       );
 
-      expect(config.toolsets).toEqual(['repositories']);
-      expect(config.enabledTools).toEqual(['list_repositories']);
-      expect(config.disabledTools).toEqual(['create_commit']);
-      expect(config.readOnly).toBe(false);
+      assert.deepStrictEqual(config.toolsets, ['repositories']);
+      assert.deepStrictEqual(config.enabledTools, ['list_repositories']);
+      assert.deepStrictEqual(config.disabledTools, ['create_commit']);
+      assert.strictEqual(config.readOnly, false);
     });
   });
 
-  describe('normalizeAuthMethod', () => {
-    it('should return AzureIdentity when authMethodStr is undefined', () => {
+  void describe('normalizeAuthMethod', () => {
+    void it('should return AzureIdentity when authMethodStr is undefined', () => {
       // Arrange
       const authMethodStr = undefined;
 
@@ -63,10 +67,10 @@ describe('index', () => {
       const result = normalizeAuthMethod(authMethodStr);
 
       // Assert
-      expect(result).toBe(AuthenticationMethod.AzureIdentity);
+      assert.strictEqual(result, AuthenticationMethod.AzureIdentity);
     });
 
-    it('should return AzureIdentity when authMethodStr is empty', () => {
+    void it('should return AzureIdentity when authMethodStr is empty', () => {
       // Arrange
       const authMethodStr = '';
 
@@ -74,22 +78,23 @@ describe('index', () => {
       const result = normalizeAuthMethod(authMethodStr);
 
       // Assert
-      expect(result).toBe(AuthenticationMethod.AzureIdentity);
+      assert.strictEqual(result, AuthenticationMethod.AzureIdentity);
     });
 
-    it('should handle PersonalAccessToken case-insensitively', () => {
+    void it('should handle PersonalAccessToken case-insensitively', () => {
       // Arrange
       const variations = ['pat', 'PAT', 'Pat', 'pAt', 'paT'];
 
       // Act & Assert
       variations.forEach((variant) => {
-        expect(normalizeAuthMethod(variant)).toBe(
+        assert.strictEqual(
+          normalizeAuthMethod(variant),
           AuthenticationMethod.PersonalAccessToken,
         );
       });
     });
 
-    it('should handle AzureIdentity case-insensitively', () => {
+    void it('should handle AzureIdentity case-insensitively', () => {
       // Arrange
       const variations = [
         'azure-identity',
@@ -101,13 +106,14 @@ describe('index', () => {
 
       // Act & Assert
       variations.forEach((variant) => {
-        expect(normalizeAuthMethod(variant)).toBe(
+        assert.strictEqual(
+          normalizeAuthMethod(variant),
           AuthenticationMethod.AzureIdentity,
         );
       });
     });
 
-    it('should handle AzureCli case-insensitively', () => {
+    void it('should handle AzureCli case-insensitively', () => {
       // Arrange
       const variations = [
         'azure-cli',
@@ -119,13 +125,14 @@ describe('index', () => {
 
       // Act & Assert
       variations.forEach((variant) => {
-        expect(normalizeAuthMethod(variant)).toBe(
+        assert.strictEqual(
+          normalizeAuthMethod(variant),
           AuthenticationMethod.AzureCli,
         );
       });
     });
 
-    it('should return AzureIdentity for unrecognized values', () => {
+    void it('should return AzureIdentity for unrecognized values', () => {
       // Arrange
       const unrecognized = [
         'unknown',
@@ -137,17 +144,17 @@ describe('index', () => {
       ];
 
       // Act & Assert (mute stderr for warning messages)
-      const originalStderrWrite = process.stderr.write;
-      process.stderr.write = jest.fn();
+      const stderrSpy = mock.method(process.stderr, 'write', () => true);
 
       try {
         unrecognized.forEach((value) => {
-          expect(normalizeAuthMethod(value)).toBe(
+          assert.strictEqual(
+            normalizeAuthMethod(value),
             AuthenticationMethod.AzureIdentity,
           );
         });
       } finally {
-        process.stderr.write = originalStderrWrite;
+        stderrSpy.mock.restore();
       }
     });
   });

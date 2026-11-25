@@ -1,3 +1,5 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import fc from 'fast-check';
 import {
   commentThreadStatusMapper,
@@ -5,8 +7,8 @@ import {
   gitVersionTypeMapper,
   pullRequestMergeStrategyMapper,
   pullRequestStatusMapper,
-} from './index';
-import type { EnumMapper } from './index';
+} from './index.ts';
+import type { EnumMapper } from './index.ts';
 
 const ALL_MAPPERS: Array<[string, EnumMapper]> = [
   ['commentThreadStatusMapper', commentThreadStatusMapper],
@@ -27,13 +29,12 @@ const PROTO_KEYS = [
   'toLocaleString',
 ];
 
-describe('shared/enums properties', () => {
-  it.each(ALL_MAPPERS)(
-    '%s satisfies bijection, arbitrary random casing, and Object.prototype safety',
-    (_name, mapper) => {
+void describe('shared/enums properties', () => {
+  for (const [name, mapper] of ALL_MAPPERS) {
+    void it(`${name} satisfies bijection, arbitrary random casing, and Object.prototype safety`, () => {
       // Prototype keys must NEVER resolve to functions or numbers
       for (const protoKey of PROTO_KEYS) {
-        expect(mapper.toEnum(protoKey)).toBeUndefined();
+        assert.strictEqual(mapper.toEnum(protoKey), undefined);
       }
 
       const keyArb = fc.constantFrom(...mapper.keys);
@@ -52,9 +53,9 @@ describe('shared/enums properties', () => {
       fc.assert(
         fc.property(caseFlipArb, ({ canonical, mixed }) => {
           const enumVal = mapper.toEnum(mixed);
-          expect(typeof enumVal).toBe('number');
-          expect(enumVal).toBe(mapper.toEnum(canonical));
-          expect(mapper.toString(enumVal as number)).toBe(canonical);
+          assert.ok(typeof enumVal === 'number');
+          assert.strictEqual(enumVal, mapper.toEnum(canonical));
+          assert.strictEqual(mapper.toString(enumVal), canonical);
         }),
         { numRuns: 100 },
       );
@@ -67,11 +68,11 @@ describe('shared/enums properties', () => {
             .integer({ min: -1000, max: 1000 })
             .filter((n) => !knownNumbers.has(n)),
           (unknownNum) => {
-            expect(mapper.toString(unknownNum)).toBe('unknown');
+            assert.strictEqual(mapper.toString(unknownNum), 'unknown');
           },
         ),
         { numRuns: 50 },
       );
-    },
-  );
+    });
+  }
 });

@@ -1,14 +1,16 @@
-import { AuthenticationMethod } from '../../../shared/auth';
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { AuthenticationMethod } from '../../../shared/auth/index.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsPermissionError,
   AzureDevOpsValidationError,
-} from '../../../shared/errors';
-import { HttpError } from '../../../shared/http/http-client';
-import type { HttpRequestOptions } from '../../../shared/http/http-client';
-import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session';
-import { getMe } from './feature';
+} from '../../../shared/errors/index.ts';
+import { HttpError } from '../../../shared/http/http-client.ts';
+import type { HttpRequestOptions } from '../../../shared/http/http-client.ts';
+import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session.ts';
+import { getMe } from './feature.ts';
 
 function makeContext(
   handler: (
@@ -47,8 +49,8 @@ function makeContext(
   );
 }
 
-describe('getMe', () => {
-  it('returns user profile from vssps.dev.azure.com for Services URLs', async () => {
+void describe('getMe', () => {
+  void it('returns user profile from vssps.dev.azure.com for Services URLs', async () => {
     let requestedUrl = '';
     const ctx = makeContext(async (req) => {
       requestedUrl = req.url;
@@ -63,25 +65,26 @@ describe('getMe', () => {
     });
 
     const profile = await getMe(ctx);
-    expect(profile).toEqual({
+    assert.deepStrictEqual(profile, {
       id: 'user-1',
       displayName: 'Ada Lovelace',
       email: 'ada@example.com',
     });
-    expect(requestedUrl).toBe(
+    assert.strictEqual(
+      requestedUrl,
       'https://vssps.dev.azure.com/test-org/_apis/profile/profiles/me?api-version=7.1',
     );
   });
 
-  it('rejects on-premises Azure DevOps Server URLs', async () => {
+  void it('rejects on-premises Azure DevOps Server URLs', async () => {
     const ctx = makeContext(
       async () => ({ status: 200, data: {} }),
       'https://ado.local/tfs/DefaultCollection',
     );
-    await expect(getMe(ctx)).rejects.toThrow(AzureDevOpsValidationError);
+    await assert.rejects(() => getMe(ctx), AzureDevOpsValidationError);
   });
 
-  it('maps HTTP 401 to AuthenticationError and HTTP 403 to PermissionError', async () => {
+  void it('maps HTTP 401 to AuthenticationError and HTTP 403 to PermissionError', async () => {
     const ctx401 = makeContext(async (req) => {
       throw new HttpError({
         message: 'Unauthorized',
@@ -90,7 +93,7 @@ describe('getMe', () => {
         url: req.url,
       });
     });
-    await expect(getMe(ctx401)).rejects.toThrow(AzureDevOpsAuthenticationError);
+    await assert.rejects(() => getMe(ctx401), AzureDevOpsAuthenticationError);
 
     const ctx403 = makeContext(async (req) => {
       throw new HttpError({
@@ -100,14 +103,14 @@ describe('getMe', () => {
         url: req.url,
       });
     });
-    await expect(getMe(ctx403)).rejects.toThrow(AzureDevOpsPermissionError);
+    await assert.rejects(() => getMe(ctx403), AzureDevOpsPermissionError);
   });
 
-  it('rejects malformed profile response payloads with AzureDevOpsError', async () => {
+  void it('rejects malformed profile response payloads with AzureDevOpsError', async () => {
     const ctx = makeContext(async () => ({
       status: 200,
       data: '<html>unexpected</html>',
     }));
-    await expect(getMe(ctx)).rejects.toThrow(AzureDevOpsError);
+    await assert.rejects(() => getMe(ctx), AzureDevOpsError);
   });
 });

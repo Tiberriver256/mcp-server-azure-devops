@@ -1,9 +1,14 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import fc from 'fast-check';
-import { parseNumeric } from './get-pull-request-checks/feature';
-import { AddPullRequestCommentSchema, MergePullRequestSchema } from './schemas';
+import { parseNumeric } from './get-pull-request-checks/feature.ts';
+import {
+  AddPullRequestCommentSchema,
+  MergePullRequestSchema,
+} from './schemas.ts';
 
-describe('pull-requests properties', () => {
-  it('parseNumeric accepts finite numbers and decimal strings, and strictly rejects empty/whitespace/booleans/non-finite', () => {
+void describe('pull-requests properties', () => {
+  void it('parseNumeric accepts finite numbers and decimal strings, and strictly rejects empty/whitespace/booleans/non-finite', () => {
     fc.assert(
       fc.property(
         fc.double({
@@ -13,8 +18,8 @@ describe('pull-requests properties', () => {
           max: 1e9,
         }),
         (n) => {
-          expect(parseNumeric(n)).toBe(n);
-          expect(parseNumeric(`  ${n}  `)).toBe(Number(String(n)));
+          assert.strictEqual(parseNumeric(n), n);
+          assert.strictEqual(parseNumeric(`  ${n}  `), Number(String(n)));
         },
       ),
       { numRuns: 150 },
@@ -40,14 +45,14 @@ describe('pull-requests properties', () => {
           fc.stringMatching(/^[a-zA-Z]{1,12}$/),
         ),
         (bad) => {
-          expect(parseNumeric(bad)).toBeUndefined();
+          assert.strictEqual(parseNumeric(bad), undefined);
         },
       ),
       { numRuns: 100 },
     );
   });
 
-  it('AddPullRequestCommentSchema enforces line range ordering: endLineNumber >= lineNumber iff filePath & lineNumber present', () => {
+  void it('AddPullRequestCommentSchema enforces line range ordering: endLineNumber >= lineNumber iff filePath & lineNumber present', () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 1, max: 500 }),
@@ -64,14 +69,14 @@ describe('pull-requests properties', () => {
           });
 
           const shouldBeValid = hasFilePath && lineB >= lineA;
-          expect(result.success).toBe(shouldBeValid);
+          assert.strictEqual(result.success, shouldBeValid);
         },
       ),
       { numRuns: 150 },
     );
   });
 
-  it('MergePullRequestSchema enforces cross-field policy invariants across arbitrary boolean combinations', () => {
+  void it('MergePullRequestSchema enforces cross-field policy invariants across arbitrary boolean combinations', () => {
     fc.assert(
       fc.property(
         fc.option(fc.boolean(), { nil: undefined }),
@@ -105,7 +110,7 @@ describe('pull-requests properties', () => {
             !cancelAutoCompleteWithBypass &&
             !ignoreIdsViolation;
 
-          expect(result.success).toBe(expectedValid);
+          assert.strictEqual(result.success, expectedValid);
         },
       ),
       { numRuns: 100 },

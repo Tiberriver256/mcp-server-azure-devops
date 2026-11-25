@@ -2,15 +2,15 @@ import type { WebApi } from 'azure-devops-node-api';
 import type {
   SuiteTestCaseCreateUpdateParameters,
   TestCase,
-} from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
-import { TypeInfo } from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
+} from 'azure-devops-node-api/interfaces/TestPlanInterfaces.js';
+import { TypeInfo } from 'azure-devops-node-api/interfaces/TestPlanInterfaces.js';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsPermissionError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../../../shared/errors';
+} from '../../../shared/errors/index.ts';
 import {
   deduplicateIds,
   fetchPagedTestPlanCollection,
@@ -18,7 +18,7 @@ import {
   mapTestPlanError,
   resolveProjectId,
   SUITE_TEST_CASES_LOCATION_ID,
-} from '../helpers';
+} from '../helpers.ts';
 import type {
   AddTestCasesToSuiteOptions,
   CreateTestCaseOptions,
@@ -27,7 +27,7 @@ import type {
   ListSuiteTestCasesResponse,
   RemoveTestCasesFromSuiteOptions,
   RemoveTestCasesFromSuiteResponse,
-} from '../types';
+} from '../types.ts';
 
 /**
  * List test cases linked to a specific test suite with optional filters and pagination.

@@ -157,119 +157,59 @@ export const CreateBranchSchema = z
 /**
  * Schema for creating a commit with multiple file changes
  */
-export const CreateCommitSchema = z
-  .object({
-    projectId: z.string().optional().describe(defaultProjectDesc),
-    organizationId: z.string().optional().describe(defaultOrgDesc),
-    repositoryId: z.string().describe('The ID or name of the repository'),
-    branchName: z
-      .string()
-      .describe(
-        'The branch to commit to (without "refs/heads/", e.g., "codex/test2-delete-main-py")',
-      ),
-    commitMessage: z.string().describe('Commit message'),
-    changes: z
-      .array(
-        z
-          .object({
-            path: z
-              .string()
-              .optional()
-              .describe(
-                'File path. Optional for patch format (uses diff header), REQUIRED for search/replace format',
-              ),
-            patch: z
-              .string()
-              .optional()
-              .describe(
-                [
-                  'Unified git diff for a single file.',
-                  'MUST include `diff --git`, `--- a/...`, `+++ b/...`, and complete hunk headers.',
-                  'CRITICAL: Every hunk header must have line numbers in format: @@ -oldStart,oldLines +newStart,newLines @@',
-                  'Do NOT use @@ without the line range numbers - this will cause parsing failures.',
-                  'Include 3-5 context lines before and after changes for proper patch application.',
-                  'Use `/dev/null` with `---` for new files, or with `+++` for deleted files.',
-                  '',
-                  'Example modify patch:',
-                  '```diff',
-                  'diff --git a/charts/bcs-mcp-server/templates/service-api.yaml b/charts/bcs-mcp-server/templates/service-api.yaml',
-                  '--- a/charts/bcs-mcp-server/templates/service-api.yaml',
-                  '+++ b/charts/bcs-mcp-server/templates/service-api.yaml',
-                  '@@ -4,7 +4,7 @@ spec:',
-                  ' spec:',
-                  '   type: {{ .Values.service.type }}',
-                  '   ports:',
-                  '-    - port: 8080',
-                  '+    - port: 9090',
-                  '     targetPort: deployment-port',
-                  '     protocol: TCP',
-                  '     name: http',
-                  '```',
-                ].join('\n'),
-              ),
-            search: z
-              .string()
-              .optional()
-              .describe(
-                [
-                  'Alternative to patch: Exact text to search for in the file.',
-                  'Must be used with "replace" and "path" fields.',
-                  'The server will fetch the file, perform the replacement, and generate the patch automatically.',
-                  'This is MUCH EASIER than creating unified diffs manually - no line counting needed!',
-                  '',
-                  'Example:',
-                  '"search": "return axios.post(apiUrl, payload, requestConfig);"',
-                  '"replace": "return axios.post(apiUrl, payload, requestConfig).then(r => { /* process */ return r; });"',
-                ].join('\n'),
-              ),
-            replace: z
-              .string()
-              .optional()
-              .describe(
-                'Alternative to patch: Exact text to replace the "search" string with. Must be used together with "search" and "path".',
-              ),
-          })
-          .refine(
-            (data) => {
-              const hasPatch = !!data.patch;
-              const hasSearchReplace = !!data.search && !!data.replace;
-              return hasPatch || hasSearchReplace;
-            },
-            {
-              message:
-                'Either "patch" or both "search" and "replace" must be provided',
-            },
-          ),
-      )
-      .describe(
-        'List of file changes as either unified git diffs OR search/replace pairs',
-      ),
-  })
-  .describe(
-    [
-      'Create a commit on an existing branch using file changes.',
-      '- Provide plain branch names (no "refs/heads/").',
-      '',
-      '**RECOMMENDED: Use search/replace format (easier, no line counting needed!)**',
-      '',
-      'Option 1 - Search/Replace (Easiest):',
-      '```json',
-      '{',
-      '  "changes": [{',
-      '    "path": "src/file.ts",',
-      '    "search": "old code here",',
-      '    "replace": "new code here"',
-      '  }]',
-      '}',
-      '```',
-      '',
-      'Option 2 - Unified Diff (Advanced):',
-      '- Requires complete hunk headers: @@ -oldStart,oldLines +newStart,newLines @@',
-      '- Include 3-5 context lines before/after changes',
-      '- For deletions: --- a/file, +++ /dev/null',
-      '- For additions: --- /dev/null, +++ b/file',
-    ].join('\n'),
-  );
+export const CreateCommitSchema = z.object({
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
+  repositoryId: z.string().describe('The ID or name of the repository'),
+  branchName: z
+    .string()
+    .describe('Branch name to commit to (without "refs/heads/", e.g., "main")'),
+  commitMessage: z.string().describe('Commit message'),
+  changes: z
+    .array(
+      z
+        .object({
+          path: z
+            .string()
+            .optional()
+            .describe(
+              'File path (required for search/replace; optional for patch where the diff header specifies the path)',
+            ),
+          patch: z
+            .string()
+            .optional()
+            .describe(
+              'Unified git diff for a single file with `diff --git`, `---`/`+++` headers (`/dev/null` for add/delete), numbered `@@ -oldStart,oldLines +newStart,newLines @@` hunks, and 3-5 context lines',
+            ),
+          search: z
+            .string()
+            .optional()
+            .describe(
+              'Exact text to find in the file (must be paired with `replace` and `path`)',
+            ),
+          replace: z
+            .string()
+            .optional()
+            .describe(
+              'Exact replacement text for `search` (must be paired with `search` and `path`)',
+            ),
+        })
+        .refine(
+          (data) => {
+            const hasPatch = !!data.patch;
+            const hasSearchReplace = !!data.search && !!data.replace;
+            return hasPatch || hasSearchReplace;
+          },
+          {
+            message:
+              'Either "patch" or both "search" and "replace" must be provided',
+          },
+        ),
+    )
+    .describe(
+      'File changes as either search/replace entries or unified git diffs (one entry per file path)',
+    ),
+});
 
 /**
  * Schema for listing commits on a branch
@@ -293,3 +233,85 @@ export const ListCommitsSchema = z.object({
     .optional()
     .describe('Number of commits to skip from the newest'),
 });
+
+/**
+ * Schema for listing branches in a repository
+ */
+export const ListBranchesSchema = z
+  .object({
+    projectId: z.string().optional().describe(defaultProjectDesc),
+    organizationId: z.string().optional().describe(defaultOrgDesc),
+    repositoryId: z
+      .string()
+      .trim()
+      .min(1)
+      .describe('The ID or name of the repository'),
+    filter: z
+      .string()
+      .optional()
+      .describe(
+        'Optional branch name prefix filter (e.g., "feature/" or "heads/feature/"). Automatically scoped to heads/. Cannot be combined with includeMyBranches: true.',
+      ),
+    filterContains: z
+      .string()
+      .optional()
+      .describe('Optional substring filter for branch names'),
+    includeMyBranches: z
+      .boolean()
+      .optional()
+      .describe(
+        'Return only branches created by the authenticated caller. Cannot be combined with filter.',
+      ),
+    includeStatuses: z
+      .boolean()
+      .optional()
+      .describe('Include Git commit statuses on each branch'),
+    latestStatusesOnly: z
+      .boolean()
+      .optional()
+      .describe(
+        'Return only the latest status per context (requires includeStatuses: true)',
+      ),
+    includeStats: z
+      .boolean()
+      .optional()
+      .describe(
+        'Enrich branches with aheadCount, behindCount, isBaseVersion, and tip commit from stats/branches',
+      ),
+    top: z
+      .number()
+      .int()
+      .min(1)
+      .max(1000)
+      .optional()
+      .describe(
+        'Maximum number of branches to return per page (1–1000; supported on Azure DevOps Services and Server 2020+)',
+      ),
+    continuationToken: z
+      .string()
+      .optional()
+      .describe(
+        'Continuation token from a previous list_branches response (supported on Azure DevOps Services and Server 2020+)',
+      ),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.includeMyBranches === true &&
+      typeof data.filter === 'string' &&
+      data.filter.trim().length > 0
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'Cannot combine filter with includeMyBranches: true (mutually exclusive in Azure DevOps Git Refs API)',
+        path: ['filter'],
+      });
+    }
+    if (data.latestStatusesOnly === true && data.includeStatuses !== true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'latestStatusesOnly requires includeStatuses to be true',
+        path: ['latestStatusesOnly'],
+      });
+    }
+  });

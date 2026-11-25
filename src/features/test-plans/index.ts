@@ -1,12 +1,12 @@
-export * from './types';
-export * from './schemas';
-export * from './helpers';
-export * from './plans/feature';
-export * from './suites/feature';
-export * from './test-cases/feature';
+export * from './types.ts';
+export * from './schemas.ts';
+export * from './helpers.ts';
+export * from './plans/feature.ts';
+export * from './suites/feature.ts';
+export * from './test-cases/feature.ts';
 
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
 import {
   AddTestCasesToSuiteSchema,
   CreateTestCaseSchema,
@@ -18,19 +18,19 @@ import {
   ListTestPlansSchema,
   ListTestSuitesSchema,
   RemoveTestCasesFromSuiteSchema,
-} from './schemas';
-import { createTestPlan, getTestPlan, listTestPlans } from './plans/feature';
+} from './schemas.ts';
+import { createTestPlan, getTestPlan, listTestPlans } from './plans/feature.ts';
 import {
   createTestSuite,
   getTestSuite,
   listTestSuites,
-} from './suites/feature';
+} from './suites/feature.ts';
 import {
   addTestCasesToSuite,
   createTestCase,
   listSuiteTestCases,
   removeTestCasesFromSuite,
-} from './test-cases/feature';
+} from './test-cases/feature.ts';
 
 export const testPlansFeature: FeatureModule = {
   toolset: 'test-plans',
@@ -65,6 +65,8 @@ export const testPlansFeature: FeatureModule = {
         'Create a new test plan in a project (requires Basic + Test Plans license and Test Management write permission)',
       schema: CreateTestPlanSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: async (ctx, args) =>
         createTestPlan(await ctx.getWebApi(), {
           ...args,
@@ -101,6 +103,8 @@ export const testPlansFeature: FeatureModule = {
         'Create a static, requirement-based, or query-based test suite under a test plan',
       schema: CreateTestSuiteSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: async (ctx, args) =>
         createTestSuite(await ctx.getWebApi(), {
           ...args,
@@ -125,6 +129,8 @@ export const testPlansFeature: FeatureModule = {
         'Attach one or more existing Test Case work items to a static or requirement-based test suite',
       schema: AddTestCasesToSuiteSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: true,
       handler: async (ctx, args) =>
         addTestCasesToSuite(await ctx.getWebApi(), {
           ...args,
@@ -137,6 +143,8 @@ export const testPlansFeature: FeatureModule = {
         'Remove test cases from a static test suite (detaches from suite without deleting the Test Case work items)',
       schema: RemoveTestCasesFromSuiteSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: async (ctx, args) =>
         removeTestCasesFromSuite(await ctx.getWebApi(), {
           ...args,
@@ -149,6 +157,8 @@ export const testPlansFeature: FeatureModule = {
         'Create a Test Case work item with structured steps XML, optional TestedBy requirement link, and optional immediate attachment to a test suite',
       schema: CreateTestCaseSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: async (ctx, args) =>
         createTestCase(await ctx.getWebApi(), {
           ...args,

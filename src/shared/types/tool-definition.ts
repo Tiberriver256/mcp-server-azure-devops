@@ -1,4 +1,15 @@
 /**
+ * MCP ToolAnnotations describing tool behavior hints per the MCP specification.
+ */
+export interface ToolAnnotations {
+  readonly title: string;
+  readonly readOnlyHint: boolean;
+  readonly destructiveHint: boolean;
+  readonly idempotentHint: boolean;
+  readonly openWorldHint: boolean;
+}
+
+/**
  * Represents a tool that can be listed in the ListTools response
  */
 export interface ToolDefinition {
@@ -11,4 +22,5 @@ export interface ToolDefinition {
    * and excluded when read-only mode is enabled.
    */
   readOnly: boolean;
+  readonly annotations: ToolAnnotations;
 }

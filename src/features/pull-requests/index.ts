@@ -1,21 +1,27 @@
-export * from './schemas';
-export * from './types';
-export { createPullRequest } from './create-pull-request/feature';
-export { getPullRequest } from './get-pull-request/feature';
-export { listPullRequests } from './list-pull-requests/feature';
-export { getPullRequestComments } from './get-pull-request-comments/feature';
-export { addPullRequestComment } from './add-pull-request-comment/feature';
-export { updatePullRequest } from './update-pull-request/feature';
-export { getPullRequestChanges } from './get-pull-request-changes/feature';
+export * from './schemas.ts';
+export * from './types.ts';
+export { createPullRequest } from './create-pull-request/feature.ts';
+export { getPullRequest } from './get-pull-request/feature.ts';
+export { listPullRequests } from './list-pull-requests/feature.ts';
+export { getPullRequestComments } from './get-pull-request-comments/feature.ts';
+export { addPullRequestComment } from './add-pull-request-comment/feature.ts';
+export { updatePullRequest } from './update-pull-request/feature.ts';
+export { getPullRequestChanges } from './get-pull-request-changes/feature.ts';
 export {
   getPullRequestChecks,
   parseNumeric,
-} from './get-pull-request-checks/feature';
-export { updatePullRequestThreadStatus } from './update-pull-request-thread-status/feature';
-export { mergePullRequest } from './merge-pull-request/feature';
+} from './get-pull-request-checks/feature.ts';
+export { updatePullRequestThreadStatus } from './update-pull-request-thread-status/feature.ts';
+export { mergePullRequest } from './merge-pull-request/feature.ts';
+export {
+  votePullRequest,
+  normalizePullRequestVote,
+  getPullRequestVoteLabel,
+} from './vote-pull-request/feature.ts';
+export { managePullRequestReviewers } from './manage-pull-request-reviewers/feature.ts';
 
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
 import {
   AddPullRequestCommentSchema,
   CreatePullRequestSchema,
@@ -24,20 +30,24 @@ import {
   GetPullRequestCommentsSchema,
   GetPullRequestSchema,
   ListPullRequestsSchema,
+  ManagePullRequestReviewersSchema,
   MergePullRequestSchema,
   UpdatePullRequestSchema,
   UpdatePullRequestThreadStatusSchema,
-} from './schemas';
-import { createPullRequest } from './create-pull-request/feature';
-import { getPullRequest } from './get-pull-request/feature';
-import { listPullRequests } from './list-pull-requests/feature';
-import { getPullRequestComments } from './get-pull-request-comments/feature';
-import { addPullRequestComment } from './add-pull-request-comment/feature';
-import { updatePullRequest } from './update-pull-request/feature';
-import { getPullRequestChanges } from './get-pull-request-changes/feature';
-import { getPullRequestChecks } from './get-pull-request-checks/feature';
-import { updatePullRequestThreadStatus } from './update-pull-request-thread-status/feature';
-import { mergePullRequest } from './merge-pull-request/feature';
+  VotePullRequestSchema,
+} from './schemas.ts';
+import { createPullRequest } from './create-pull-request/feature.ts';
+import { getPullRequest } from './get-pull-request/feature.ts';
+import { listPullRequests } from './list-pull-requests/feature.ts';
+import { getPullRequestComments } from './get-pull-request-comments/feature.ts';
+import { addPullRequestComment } from './add-pull-request-comment/feature.ts';
+import { updatePullRequest } from './update-pull-request/feature.ts';
+import { getPullRequestChanges } from './get-pull-request-changes/feature.ts';
+import { getPullRequestChecks } from './get-pull-request-checks/feature.ts';
+import { updatePullRequestThreadStatus } from './update-pull-request-thread-status/feature.ts';
+import { mergePullRequest } from './merge-pull-request/feature.ts';
+import { votePullRequest } from './vote-pull-request/feature.ts';
+import { managePullRequestReviewers } from './manage-pull-request-reviewers/feature.ts';
 
 export const pullRequestsFeature: FeatureModule = {
   toolset: 'pull-requests',
@@ -48,6 +58,8 @@ export const pullRequestsFeature: FeatureModule = {
         'Create a new pull request, including reviewers, linked work items, and optional tags',
       schema: CreatePullRequestSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         return await createPullRequest(
@@ -128,6 +140,8 @@ export const pullRequestsFeature: FeatureModule = {
         'Add a comment to a pull request (repositoryId optional; derived from pullRequestId when omitted)',
       schema: AddPullRequestCommentSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         const projectId = ctx.resolveProjectId(args.projectId);
@@ -157,6 +171,8 @@ export const pullRequestsFeature: FeatureModule = {
         'Update an existing pull request with new properties, manage reviewers and work items, and add or remove tags',
       schema: UpdatePullRequestSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         return await updatePullRequest(
@@ -207,6 +223,8 @@ export const pullRequestsFeature: FeatureModule = {
         'Update the status of a comment thread in a pull request (repositoryId optional; derived from pullRequestId when omitted)',
       schema: UpdatePullRequestThreadStatusSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: true,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         return await updatePullRequestThreadStatus(
@@ -225,12 +243,38 @@ export const pullRequestsFeature: FeatureModule = {
         'Complete (merge) an active pull request immediately or enable/cancel auto-complete with merge strategy, source branch deletion, work item transitions, and policy bypass options (repositoryId optional; derived from pullRequestId when omitted; works on both Azure DevOps Services and Azure DevOps Server)',
       schema: MergePullRequestSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi();
         return await mergePullRequest(connection, {
           ...args,
           projectId: ctx.resolveOptionalProjectId(args.projectId),
         });
+      },
+    }),
+    defineTool({
+      name: 'vote_pull_request',
+      description:
+        'Cast or reset a reviewer vote on a pull request (10/approved, 5/approvedWithSuggestions, 0/noVote, -5/waitingForAuthor, -10/rejected). Auto-derives repositoryId and authenticated caller when omitted, and preserves existing isRequired status unless explicitly overridden.',
+      schema: VotePullRequestSchema,
+      readOnly: false,
+      destructive: false,
+      idempotent: true,
+      handler: async (ctx, args) => {
+        return await votePullRequest(ctx, args);
+      },
+    }),
+    defineTool({
+      name: 'manage_pull_request_reviewers',
+      description:
+        'List, add, update (required/optional), or remove reviewers on a pull request. Resolves reviewer emails/names to Azure DevOps GUIDs across Cloud and On-Prem Server and reports explicit per-reviewer results.',
+      schema: ManagePullRequestReviewersSchema,
+      readOnly: false,
+      destructive: true,
+      idempotent: true,
+      handler: async (ctx, args) => {
+        return await managePullRequestReviewers(ctx, args);
       },
     }),
   ],

@@ -4,7 +4,7 @@ Always reference these instructions first and fall back to search or shell comma
 
 ## Prerequisites
 
-- **Node.js `>=22.0.0`** and **npm** (the server relies on Node 22 built-ins: `fetch`, `process.loadEnvFile`, `path.posix.matchesGlob`, and `zlib`).
+- **Node.js `>=24.0.0`** and **npm** (Node 24/26 LTS; uses native TypeScript execution, `node:test` + V8 coverage, `node --watch`, `fetch`, `process.loadEnvFile`, `path.posix.matchesGlob`, and `zlib`).
 
 ## Building and Running
 
@@ -15,13 +15,16 @@ npm install  # NEVER CANCEL. Set timeout to 60+ seconds.
 
 ### 2. Build the Server
 ```bash
-npm run build  # Compiles TypeScript to `dist/` directory.
+npm run build  # Cleans `dist/` and compiles TypeScript to `dist/` directory.
 ```
 
 ### 3. Run Tests
 ```bash
-# Offline tests: unit + property-based + differential + coverage (no ADO credentials required)
+# Offline tests: unit + property-based + differential via node:test (no ADO credentials required; alias: npm test)
 npm run test:unit
+
+# Offline tests with native V8 coverage thresholds (lines >=70%, branches >=50%, functions >=60%)
+npm run test:coverage
 
 # Property-based tests only (fast-check)
 npm run test:prop
@@ -29,30 +32,32 @@ npm run test:prop
 # Differential oracle tests only
 npm run test:diff
 
+# Watch mode for offline tests (node --test --watch)
+npm run test:watch
+
 # Integration tests (requires Azure DevOps credentials)
 npm run test:int
 
 # E2E tests (requires Azure DevOps credentials)
 npm run test:e2e
-
-# All tests
-npm test
 ```
 
 ### 4. Code Quality
 ```bash
-npm run lint          # Runs Oxlint (type-aware; configured in oxlint.config.mts)
-npm run lint:fix      # Auto-fix linting issues
-npm run format        # Runs oxfmt for code formatting
-npm run format:check  # Checks formatting with oxfmt
+npm run typecheck       # Type-checks src/ and all test suites (tsconfig.test.json) with TypeScript 7
+npm run typecheck:tests # Type-checks all test suites (tsconfig.test.json)
+npm run lint            # Runs Oxlint (type-aware; configured in oxlint.config.mts)
+npm run lint:fix        # Auto-fix linting issues
+npm run format          # Runs oxfmt for code formatting
+npm run format:check    # Checks formatting with oxfmt
 ```
 
 ### 5. Run the Server
 ```bash
 # Always configure environment first using `.env` (copy from `.env.example`)
-npm run dev        # Development mode with auto-restart using tsx watch
+npm run dev        # Development mode with auto-restart using native node --watch
 npm run start      # Production mode - runs compiled version from `dist/index.js`
-npm run inspector  # Debug mode with MCP Inspector tool
+npm run inspector  # Debug mode with MCP Inspector (@modelcontextprotocol/inspector@2.16.0)
 ```
 
 ## Environment Setup
@@ -87,14 +92,14 @@ Before submitting a PR, ensure:
    npm run lint:fix && npm run format && npm run format:check
    ```
 
-2. **Build succeeds:**
+2. **Build and typecheck succeed:**
    ```bash
-   npm run build
+   npm run build && npm run typecheck
    ```
 
-3. **Offline test suites pass:**
+3. **Offline test suites & coverage pass:**
    ```bash
-   npm run test:unit
+   npm run test:coverage
    ```
 
 4. **Integration/E2E tests pass** (when Azure DevOps credentials are available):
@@ -109,8 +114,8 @@ Before submitting a PR, ensure:
 
 ## Project Architecture
 
-- **TypeScript** with strict configuration (`tsconfig.json`)
-- **Declarative Feature Modules (`src/features/*`)**: Each of the 10 toolsets (`users`, `organizations`, `projects`, `repositories`, `work-items`, `search`, `pull-requests`, `pipelines`, `wikis`, `test-plans`) exports a `FeatureModule` built with `defineTool(...)`.
+- **TypeScript 7** with strict, erasable configuration (`tsconfig.json` targeting `ES2024`, `erasableSyntaxOnly: true`, CJS `dist/` output; use explicit `.ts` / `/index.ts` relative imports, `.js` for `azure-devops-node-api` / `typed-rest-client` subpaths, and `as const` objects instead of `enum` — no `@/` path aliases)
+- **Declarative Feature Modules (`src/features/*`)**: Each of the 13 toolsets (`users`, `organizations`, `projects`, `repositories`, `work-items`, `search`, `pull-requests`, `pipelines`, `wikis`, `test-plans`, `work`, `analytics`, `events`) exports a `FeatureModule` built with `defineTool(...)`.
 - **Deep Shared Seams (`src/shared/*`)**:
   - `src/shared/session/azure-devops-session.ts` — Single cached `AzureDevOpsSession` (`ToolContext`) per server instance (caches `WebApi` connections, manages config/project resolution, provides `requestAzureDevOps`).
   - `src/shared/auth/auth-factory.ts` — Lazy-loads `@azure/identity` (only for non-PAT) and `azure-devops-node-api`, caches/refreshes Entra tokens, deduplicates in-flight token refreshes.
@@ -119,7 +124,7 @@ Before submitting a PR, ensure:
   - `src/shared/logging.ts` — Stdio-safe stderr logger (`no-console` enforced on `src/`).
   - `src/shared/resources/ado-resource-uri.ts` — `ado://` resource URI parser/builder.
   - `src/shared/utils/` — Stream helpers, bounded concurrency, zero-dep glob matcher, zero-dep ZIP reader, Zod-to-JSON-Schema helper.
-- **Test Strategy:** Testing Trophy + Property-Based & Differential Testing (see `docs/testing/README.md`):
+- **Test Strategy:** Native `node:test` + `node:assert/strict` with V8 coverage, following the Testing Trophy + Property-Based & Differential Testing (see `docs/testing/README.md`):
   - Unit tests: `*.spec.unit.ts`
   - Property-based tests: `*.spec.prop.ts` (`fast-check`)
   - Differential tests: `*.spec.diff.ts`
@@ -130,7 +135,7 @@ Before submitting a PR, ensure:
 - `src/index.ts` and `src/server.ts` — CLI entry point and MCP Server wiring
 - `src/features/<toolset>/` — Declarative feature modules (`schemas.ts`, `types.ts`, `index.ts`, `<tool>/feature.ts`)
 - `src/shared/` — Deep shared infrastructure modules
-- `tests/setup.ts` — Jest test setup
+- `tests/setup.ts` — Native Node test runner preload setup (`--import ./tests/setup.ts`) for integration and E2E tests
 - `docs/` — Documentation (authentication, testing, tools, important knowledge)
 
 ## Adding or Modifying a Tool
@@ -140,7 +145,7 @@ Before submitting a PR, ensure:
 3. Register the tool in `src/features/<toolset>/index.ts` via `defineTool({ name, description, schema, readOnly, handler })`
 4. Add/update co-located tests (`*.spec.unit.ts`, plus `*.spec.prop.ts` / `*.spec.diff.ts` for pure logic)
 5. Update `README.md` and `docs/tools/`
-6. Run `npm run format && npm run lint && npm run build && npm run test:unit`
+6. Run `npm run format && npm run lint && npm run build && npm run typecheck && npm run test:coverage`
 
 ## Runtime Dependencies
 
@@ -153,7 +158,7 @@ Minimal runtime dependency surface (5 packages):
 
 ## Troubleshooting
 
-- **Build fails:** Run `npm run build` and verify strict TypeScript errors and imports.
+- **Build fails:** Run `npm run build` and `npm run typecheck` to verify strict TypeScript errors and explicit `.ts` relative imports.
 - **Lint errors:** Run `npm run lint:fix` and inspect `oxlint.config.mts`. Never use `console.log` in `src/` (corrupts MCP stdio JSON-RPC; use `src/shared/logging.ts`).
 - **Tests fail:** Offline tests (`npm run test:unit`) must pass without Azure DevOps credentials. Integration/E2E tests require `.env`.
 - **Authentication issues:** See `docs/authentication.md`.

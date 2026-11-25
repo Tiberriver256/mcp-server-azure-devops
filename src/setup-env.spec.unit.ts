@@ -1,3 +1,5 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import {
   chmodSync,
   mkdirSync,
@@ -19,8 +21,8 @@ function withTempDir(fn: (tempDir: string) => void): void {
   }
 }
 
-describe('setup_env.sh', () => {
-  it('writes PAT and auth method in non-interactive mode', () => {
+void describe('setup_env.sh', () => {
+  void it('writes PAT and auth method in non-interactive mode', () => {
     withTempDir((tempDir) => {
       const scriptPath = join(process.cwd(), 'setup_env.sh');
 
@@ -36,18 +38,20 @@ describe('setup_env.sh', () => {
         encoding: 'utf8',
       });
 
-      expect(result.status).toBe(0);
+      assert.strictEqual(result.status, 0);
 
       const envFile = readFileSync(join(tempDir, '.env'), 'utf8');
-      expect(envFile).toContain('AZURE_DEVOPS_PAT=unit-test-pat');
-      expect(envFile).toContain('AZURE_DEVOPS_AUTH_METHOD=pat');
-      expect(envFile).toContain(
-        'AZURE_DEVOPS_ORG_URL=https://dev.azure.com/unit-test-org',
+      assert.ok(envFile.includes('AZURE_DEVOPS_PAT=unit-test-pat'));
+      assert.ok(envFile.includes('AZURE_DEVOPS_AUTH_METHOD=pat'));
+      assert.ok(
+        envFile.includes(
+          'AZURE_DEVOPS_ORG_URL=https://dev.azure.com/unit-test-org',
+        ),
       );
     });
   });
 
-  it('skips extension install when azure-devops is already present', () => {
+  void it('skips extension install when azure-devops is already present', () => {
     withTempDir((tempDir) => {
       const binDir = join(tempDir, 'bin');
       mkdirSync(binDir);
@@ -127,11 +131,11 @@ esac
         encoding: 'utf8',
       });
 
-      expect(result.status).toBe(0);
+      assert.strictEqual(result.status, 0);
     });
   });
 
-  it('extracts org name when user pastes a dev.azure.com URL', () => {
+  void it('extracts org name when user pastes a dev.azure.com URL', () => {
     withTempDir((tempDir) => {
       const binDir = join(tempDir, 'bin');
       mkdirSync(binDir);
@@ -188,12 +192,14 @@ exit 0
         encoding: 'utf8',
       });
 
-      expect(result.status).toBe(0);
+      assert.strictEqual(result.status, 0);
 
       const envFile = readFileSync(join(tempDir, '.env'), 'utf8');
-      expect(envFile).toContain('AZURE_DEVOPS_ORG=azure-devops-mcp-testing');
-      expect(envFile).toContain(
-        'AZURE_DEVOPS_ORG_URL=https://dev.azure.com/azure-devops-mcp-testing',
+      assert.ok(envFile.includes('AZURE_DEVOPS_ORG=azure-devops-mcp-testing'));
+      assert.ok(
+        envFile.includes(
+          'AZURE_DEVOPS_ORG_URL=https://dev.azure.com/azure-devops-mcp-testing',
+        ),
       );
     });
   });

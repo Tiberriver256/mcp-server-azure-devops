@@ -1,53 +1,64 @@
-export * from './types';
-export { listPipelines } from './list-pipelines/feature';
-export { ListPipelinesSchema } from './list-pipelines/schema';
-export { getPipeline } from './get-pipeline/feature';
-export { GetPipelineSchema } from './get-pipeline/schema';
+export * from './types.ts';
+export { listPipelines } from './list-pipelines/feature.ts';
+export { ListPipelinesSchema } from './list-pipelines/schema.ts';
+export { getPipeline } from './get-pipeline/feature.ts';
+export { GetPipelineSchema } from './get-pipeline/schema.ts';
 export {
   listPipelineRuns,
   normalizeBranch,
-} from './list-pipeline-runs/feature';
-export { ListPipelineRunsSchema } from './list-pipeline-runs/schema';
-export { getPipelineRun } from './get-pipeline-run/feature';
-export { GetPipelineRunSchema } from './get-pipeline-run/schema';
+} from './list-pipeline-runs/feature.ts';
+export { ListPipelineRunsSchema } from './list-pipeline-runs/schema.ts';
+export { getPipelineRun } from './get-pipeline-run/feature.ts';
+export { GetPipelineRunSchema } from './get-pipeline-run/schema.ts';
 export {
   downloadPipelineArtifact,
   normalizeArtifactPath,
   buildContainerPathCandidates,
   selectZipEntry,
-} from './download-pipeline-artifact/feature';
-export { DownloadPipelineArtifactSchema } from './download-pipeline-artifact/schema';
-export { getPipelineTimeline } from './pipeline-timeline/feature';
-export { GetPipelineTimelineSchema } from './pipeline-timeline/schema';
-export { getPipelineLog } from './get-pipeline-log/feature';
-export { GetPipelineLogSchema } from './get-pipeline-log/schema';
-export { triggerPipeline } from './trigger-pipeline/feature';
-export { TriggerPipelineSchema } from './trigger-pipeline/schema';
-export * from './run-reference';
+} from './download-pipeline-artifact/feature.ts';
+export { DownloadPipelineArtifactSchema } from './download-pipeline-artifact/schema.ts';
+export { getPipelineTimeline } from './pipeline-timeline/feature.ts';
+export { GetPipelineTimelineSchema } from './pipeline-timeline/schema.ts';
+export { getPipelineLog } from './get-pipeline-log/feature.ts';
+export { GetPipelineLogSchema } from './get-pipeline-log/schema.ts';
+export { triggerPipeline } from './trigger-pipeline/feature.ts';
+export { TriggerPipelineSchema } from './trigger-pipeline/schema.ts';
+export { getBuildTestResults } from './get-build-test-results/feature.ts';
+export { GetBuildTestResultsSchema } from './get-build-test-results/schema.ts';
+export { retryPipelineStage } from './retry-pipeline-stage/feature.ts';
+export { RetryPipelineStageSchema } from './retry-pipeline-stage/schema.ts';
+export * from './run-reference.ts';
 
 import type { WebApi } from 'azure-devops-node-api';
-import { AzureDevOpsValidationError } from '../../shared/errors';
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
-import type { ToolContext } from '../../shared/session/azure-devops-session';
-import { ListPipelinesSchema } from './list-pipelines/schema';
-import { GetPipelineSchema } from './get-pipeline/schema';
-import { ListPipelineRunsSchema } from './list-pipeline-runs/schema';
-import { GetPipelineRunSchema } from './get-pipeline-run/schema';
-import { DownloadPipelineArtifactSchema } from './download-pipeline-artifact/schema';
-import { GetPipelineTimelineSchema } from './pipeline-timeline/schema';
-import { GetPipelineLogSchema } from './get-pipeline-log/schema';
-import { TriggerPipelineSchema } from './trigger-pipeline/schema';
-import { listPipelines } from './list-pipelines/feature';
-import { getPipeline } from './get-pipeline/feature';
-import { listPipelineRuns } from './list-pipeline-runs/feature';
-import { getPipelineRun } from './get-pipeline-run/feature';
-import { downloadPipelineArtifact } from './download-pipeline-artifact/feature';
-import { getPipelineTimeline } from './pipeline-timeline/feature';
-import { getPipelineLog } from './get-pipeline-log/feature';
-import { triggerPipeline } from './trigger-pipeline/feature';
-import type { RunReferenceInput } from './run-reference';
-import { resolvePipelineReference, resolveRunReference } from './run-reference';
+import { AzureDevOpsValidationError } from '../../shared/errors/index.ts';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
+import type { ToolContext } from '../../shared/session/azure-devops-session.ts';
+import { ListPipelinesSchema } from './list-pipelines/schema.ts';
+import { GetPipelineSchema } from './get-pipeline/schema.ts';
+import { ListPipelineRunsSchema } from './list-pipeline-runs/schema.ts';
+import { GetPipelineRunSchema } from './get-pipeline-run/schema.ts';
+import { DownloadPipelineArtifactSchema } from './download-pipeline-artifact/schema.ts';
+import { GetPipelineTimelineSchema } from './pipeline-timeline/schema.ts';
+import { GetPipelineLogSchema } from './get-pipeline-log/schema.ts';
+import { TriggerPipelineSchema } from './trigger-pipeline/schema.ts';
+import { GetBuildTestResultsSchema } from './get-build-test-results/schema.ts';
+import { RetryPipelineStageSchema } from './retry-pipeline-stage/schema.ts';
+import { listPipelines } from './list-pipelines/feature.ts';
+import { getPipeline } from './get-pipeline/feature.ts';
+import { listPipelineRuns } from './list-pipeline-runs/feature.ts';
+import { getPipelineRun } from './get-pipeline-run/feature.ts';
+import { downloadPipelineArtifact } from './download-pipeline-artifact/feature.ts';
+import { getPipelineTimeline } from './pipeline-timeline/feature.ts';
+import { getPipelineLog } from './get-pipeline-log/feature.ts';
+import { triggerPipeline } from './trigger-pipeline/feature.ts';
+import { getBuildTestResults } from './get-build-test-results/feature.ts';
+import { retryPipelineStage } from './retry-pipeline-stage/feature.ts';
+import type { RunReferenceInput } from './run-reference.ts';
+import {
+  resolvePipelineReference,
+  resolveRunReference,
+} from './run-reference.ts';
 
 async function withResolvedRun<
   T extends RunReferenceInput & { projectId?: string },
@@ -214,11 +225,43 @@ export const pipelinesFeature: FeatureModule = {
         'Trigger a pipeline run. The pipeline can be identified by pipelineId or pipelineName.',
       schema: TriggerPipelineSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi();
         return await triggerPipeline(
           connection,
           await withResolvedPipeline(ctx, connection, args),
+        );
+      },
+    }),
+    defineTool({
+      name: 'get_build_test_results',
+      description:
+        'Retrieve test run summaries and test results (defaulting to failed/aborted/timeout/error tests with error messages and stack traces) for a pipeline run. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
+      schema: GetBuildTestResultsSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await getBuildTestResults(
+          connection,
+          await withResolvedRun(ctx, connection, args),
+        );
+      },
+    }),
+    defineTool({
+      name: 'retry_pipeline_stage',
+      description:
+        'Retry, cancel, or run a specific stage in a pipeline run. Requires Azure DevOps Server 2020+ or Azure DevOps Services. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
+      schema: RetryPipelineStageSchema,
+      readOnly: false,
+      destructive: true,
+      idempotent: false,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await retryPipelineStage(
+          connection,
+          await withResolvedRun(ctx, connection, args),
         );
       },
     }),

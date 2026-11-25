@@ -1,4 +1,7 @@
-import { AzureDevOpsResourceNotFoundError } from '../errors';
+import { AzureDevOpsResourceNotFoundError } from '../errors/index.ts';
+import { ADO_EVENT_RESOURCE_TEMPLATES } from '../events/event-uri.ts';
+
+export { ADO_EVENT_RESOURCE_TEMPLATES };
 
 export type AdoResourceRef =
   | { kind: 'default' }
@@ -19,6 +22,19 @@ export interface AdoResourceTemplate {
   readonly uriTemplate: string;
   readonly name: string;
   readonly description: string;
+  readonly mimeType?: string;
+}
+
+export type AdoEventResourceRef =
+  | { kind: 'pull-request'; pullRequestId: number }
+  | { kind: 'pipeline'; runId: number }
+  | { kind: 'work-item'; workItemId: number }
+  | { kind: 'feed' };
+
+export interface ParsedAdoEventResourceUri {
+  readonly organization: string;
+  readonly project: string;
+  readonly target: AdoEventResourceRef;
 }
 
 export const ADO_RESOURCE_TEMPLATES: readonly AdoResourceTemplate[] = [
@@ -51,6 +67,7 @@ export const ADO_RESOURCE_TEMPLATES: readonly AdoResourceTemplate[] = [
     name: 'Pull Request Content',
     description: 'Content from a specific pull request in a repository',
   },
+  ...ADO_EVENT_RESOURCE_TEMPLATES,
 ];
 
 function safeDecode(segment: string): string {
@@ -292,4 +309,146 @@ export function getMimeType(filePath: string): string {
   }
   const extension = lastSegment.slice(dotIndex + 1).toLowerCase();
   return MIME_TYPES.get(extension) ?? 'text/plain';
+}
+
+function parsePositiveIntSegment(
+  raw: string,
+  label: string,
+  uriString: string,
+): number {
+  if (!/^\d+$/.test(raw)) {
+    throw new AzureDevOpsResourceNotFoundError(
+      `Invalid ${label} '${raw}' in event resource URI: ${uriString}`,
+    );
+  }
+  const num = Number.parseInt(raw, 10);
+  if (!Number.isSafeInteger(num) || num <= 0) {
+    throw new AzureDevOpsResourceNotFoundError(
+      `Invalid ${label} '${raw}' in event resource URI: ${uriString}`,
+    );
+  }
+  return num;
+}
+
+/**
+ * Return true iff the URI is an `ado://` event resource URI (`/{org}/{project}/events/...`).
+ */
+export function isAdoEventResourceUri(uriString: string): boolean {
+  try {
+    const uri = new URL(uriString);
+    if (uri.protocol !== 'ado:') {
+      return false;
+    }
+    const pathSegments = uri.pathname
+      .split('/')
+      .filter(Boolean)
+      .map((segment) => safeDecode(segment));
+    const hostOrg = uri.host ? safeDecode(uri.host) : undefined;
+    const allSegments = hostOrg ? [hostOrg, ...pathSegments] : pathSegments;
+    return allSegments.length >= 4 && allSegments[2] === 'events';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Parse an `ado://{organization}/{project}/events/...` MCP resource URI.
+ */
+export function parseAdoEventResourceUri(
+  uriString: string,
+): ParsedAdoEventResourceUri {
+  let uri: URL;
+  try {
+    uri = new URL(uriString);
+  } catch {
+    throw new AzureDevOpsResourceNotFoundError(
+      `Invalid event resource URI: ${uriString}`,
+    );
+  }
+
+  if (uri.protocol !== 'ado:') {
+    throw new AzureDevOpsResourceNotFoundError(
+      `Unsupported protocol: ${uri.protocol}`,
+    );
+  }
+
+  const pathSegments = uri.pathname
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => safeDecode(segment));
+  const hostOrg = uri.host ? safeDecode(uri.host) : undefined;
+  const allSegments = hostOrg ? [hostOrg, ...pathSegments] : pathSegments;
+
+  if (allSegments.length < 4 || allSegments[2] !== 'events') {
+    throw new AzureDevOpsResourceNotFoundError(
+      `Invalid event resource URI '${uriString}'. Expected ado://{org}/{project}/events/(pull-requests/{prId}|pipelines/{runId}|work-items/{workItemId}|feed)`,
+    );
+  }
+
+  const [organization, project, , kind, rawId, ...extra] = allSegments;
+  if (extra.length > 0) {
+    throw new AzureDevOpsResourceNotFoundError(
+      `Unexpected trailing path segments in event resource URI: ${uriString}`,
+    );
+  }
+
+  switch (kind) {
+    case 'feed':
+      if (rawId !== undefined) {
+        throw new AzureDevOpsResourceNotFoundError(
+          `Unexpected path segment after 'feed' in event resource URI: ${uriString}`,
+        );
+      }
+      return { organization, project, target: { kind: 'feed' } };
+    case 'pull-requests':
+      if (rawId === undefined) {
+        throw new AzureDevOpsResourceNotFoundError(
+          `Missing pullRequestId in event resource URI: ${uriString}`,
+        );
+      }
+      return {
+        organization,
+        project,
+        target: {
+          kind: 'pull-request',
+          pullRequestId: parsePositiveIntSegment(
+            rawId,
+            'pullRequestId',
+            uriString,
+          ),
+        },
+      };
+    case 'pipelines':
+      if (rawId === undefined) {
+        throw new AzureDevOpsResourceNotFoundError(
+          `Missing runId in event resource URI: ${uriString}`,
+        );
+      }
+      return {
+        organization,
+        project,
+        target: {
+          kind: 'pipeline',
+          runId: parsePositiveIntSegment(rawId, 'runId', uriString),
+        },
+      };
+    case 'work-items':
+      if (rawId === undefined) {
+        throw new AzureDevOpsResourceNotFoundError(
+          `Missing workItemId in event resource URI: ${uriString}`,
+        );
+      }
+      return {
+        organization,
+        project,
+        target: {
+          kind: 'work-item',
+          workItemId: parsePositiveIntSegment(rawId, 'workItemId', uriString),
+        },
+      };
+    default:
+      throw new AzureDevOpsResourceNotFoundError(
+        `Unsupported event resource type '${kind}' in URI: ${uriString}`,
+      );
+  }
 }

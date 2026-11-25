@@ -3,7 +3,7 @@ import {
   buildNumberField,
   pipelineNameField,
   refineRunReference,
-} from '../run-reference';
+} from '../run-reference.ts';
 
 export const GetPipelineRunSchema = z
   .object({

@@ -1,4 +1,4 @@
-import { AzureDevOpsValidationError } from './errors';
+import { AzureDevOpsValidationError } from './errors/index.ts';
 
 export type AzureDevOpsUrlType = 'services' | 'server';
 
@@ -9,6 +9,8 @@ export interface AzureDevOpsBaseUrls {
   instanceBaseUrl?: string;
   coreBaseUrl: string;
   searchBaseUrl: string;
+  identityBaseUrl: string;
+  analyticsBaseUrl: string;
   projectFromUrl?: string;
 }
 
@@ -19,6 +21,8 @@ export interface AzureDevOpsUrlOptions {
 
 const DEV_AZURE_HOST = 'dev.azure.com';
 const SEARCH_HOST = 'almsearch.dev.azure.com';
+const IDENTITY_HOST = 'vssps.dev.azure.com';
+const ANALYTICS_HOST = 'analytics.dev.azure.com';
 const VSTS_HOST_SUFFIX = '.visualstudio.com';
 
 export function resolveAzureDevOpsBaseUrls(
@@ -45,11 +49,13 @@ export function resolveAzureDevOpsBaseUrls(
       organization,
       coreBaseUrl: `https://${DEV_AZURE_HOST}/${encodedOrg}`,
       searchBaseUrl: `https://${SEARCH_HOST}/${encodedOrg}`,
+      identityBaseUrl: `https://${IDENTITY_HOST}/${encodedOrg}`,
+      analyticsBaseUrl: `https://${ANALYTICS_HOST}/${encodedOrg}`,
     };
   }
 
   const serverInfo = extractServerInfo(url, options.projectId);
-  const collection = serverInfo.collection ?? options.organizationId;
+  const collection = options.organizationId ?? serverInfo.collection;
 
   if (!collection) {
     throw new AzureDevOpsValidationError(
@@ -66,6 +72,8 @@ export function resolveAzureDevOpsBaseUrls(
     instanceBaseUrl,
     coreBaseUrl,
     searchBaseUrl: coreBaseUrl,
+    identityBaseUrl: coreBaseUrl,
+    analyticsBaseUrl: coreBaseUrl,
     projectFromUrl: serverInfo.projectFromUrl,
   };
 }

@@ -2,8 +2,8 @@ import type { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
-import type { PullRequest } from '../types';
+} from '../../../shared/errors/index.ts';
+import type { PullRequest } from '../types.ts';
 
 export async function getPullRequest(
   connection: WebApi,

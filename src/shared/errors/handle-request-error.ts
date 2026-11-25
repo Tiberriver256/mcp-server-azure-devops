@@ -1,4 +1,4 @@
-import type { AzureDevOpsError } from './azure-devops-errors';
+import type { AzureDevOpsError } from './azure-devops-errors.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsPermissionError,
@@ -6,9 +6,9 @@ import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
   isAzureDevOpsError,
-} from './azure-devops-errors';
-import { mapHttpErrorToAzureDevOpsError } from '../http/http-client';
-import { logError } from '../logging';
+} from './azure-devops-errors.ts';
+import { mapHttpErrorToAzureDevOpsError } from '../http/http-client.ts';
+import { logError } from '../logging.ts';
 
 /**
  * Scrub Authorization header values and URL-embedded credentials from any
@@ -72,7 +72,7 @@ function looksLikeLocationLookupFailure(text: string): boolean {
  * error response with secret redaction applied to both logs and response text.
  */
 export function handleResponseError(error: unknown): {
-  content: Array<{ type: string; text: string }>;
+  content: Array<{ type: 'text'; text: string }>;
   isError: true;
 } {
   const rawMessage = error instanceof Error ? error.message : String(error);

@@ -1,4 +1,4 @@
-import type { ApiErrorResponse } from '../errors';
+import type { ApiErrorResponse } from '../errors/index.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
@@ -6,7 +6,7 @@ import {
   AzureDevOpsRateLimitError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../errors';
+} from '../errors/index.ts';
 
 export const DEFAULT_HTTP_TIMEOUT_MS = 30_000;
 export const DEFAULT_MAX_HTTP_RESPONSE_BYTES = 25 * 1024 * 1024; // 25 MiB
@@ -40,6 +40,32 @@ export function sanitizeUrlForError(rawUrl: string): string {
     return `${parsed.protocol}//${parsed.host}${parsed.pathname}`;
   } catch {
     return '(invalid url)';
+  }
+}
+
+/**
+ * Return true iff both URLs are valid http/https URLs sharing the exact same
+ * scheme, hostname, and effective port (RFC 6454 origin equality).
+ * Guards pagination tokens, @odata.nextLink, and attachment downloads against SSRF
+ * or Authorization header forwarding to untrusted hosts.
+ */
+export function isSameOrigin(targetUrl: string, baseUrl: string): boolean {
+  try {
+    const target = new URL(targetUrl);
+    const base = new URL(baseUrl);
+    if (
+      (target.protocol !== 'http:' && target.protocol !== 'https:') ||
+      (base.protocol !== 'http:' && base.protocol !== 'https:') ||
+      target.username !== '' ||
+      target.password !== '' ||
+      base.username !== '' ||
+      base.password !== ''
+    ) {
+      return false;
+    }
+    return target.origin === base.origin;
+  } catch {
+    return false;
   }
 }
 

@@ -1,12 +1,14 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import fc from 'fast-check';
-import { AzureDevOpsValidationError } from '../errors';
+import { AzureDevOpsValidationError } from '../errors/index.ts';
 import {
   normalizeToolsetName,
   parseCliToolFilterArgs,
   resolveEnabledTools,
   TOOLSET_NAMES,
-} from './tool-filter';
-import type { ToolLike, ToolsetName } from './tool-filter';
+} from './tool-filter.ts';
+import type { ToolLike, ToolsetName } from './tool-filter.ts';
 
 const sampleRegistry: Record<ToolsetName, readonly ToolLike[]> = {
   users: [{ name: 'u_read', readOnly: true }],
@@ -40,6 +42,9 @@ const sampleRegistry: Record<ToolsetName, readonly ToolLike[]> = {
     { name: 'tp_read', readOnly: true },
     { name: 'tp_write', readOnly: false },
   ],
+  work: [{ name: 'wk_iter_read', readOnly: true }],
+  analytics: [{ name: 'an_read', readOnly: true }],
+  events: [{ name: 'ev_read', readOnly: true }],
 };
 
 const ALL_TOOL_NAMES = TOOLSET_NAMES.flatMap((ts) =>
@@ -61,8 +66,8 @@ const toolNameSubsetArb = fc.option(
   { nil: undefined },
 );
 
-describe('tool-filter properties', () => {
-  it('SECURITY INVARIANT: readOnly=true is strictly fail-closed regardless of toolsets/enabledTools/disabledTools', () => {
+void describe('tool-filter properties', () => {
+  void it('SECURITY INVARIANT: readOnly=true is strictly fail-closed regardless of toolsets/enabledTools/disabledTools', () => {
     fc.assert(
       fc.property(
         toolsetSubsetArb,
@@ -78,23 +83,23 @@ describe('tool-filter properties', () => {
 
           // Every surviving tool MUST explicitly declare readOnly === true
           for (const tool of catalog.tools) {
-            expect(tool.readOnly).toBe(true);
+            assert.strictEqual(tool.readOnly, true);
           }
 
           // No overlap between enabled and readOnlyBlocked sets
           for (const name of catalog.enabledToolNames) {
-            expect(catalog.readOnlyBlockedNames.has(name)).toBe(false);
+            assert.strictEqual(catalog.readOnlyBlockedNames.has(name), false);
           }
 
           // Unknown-readOnly tool ('p_unknown') is NEVER admitted in read-only mode
-          expect(catalog.enabledToolNames.has('p_unknown')).toBe(false);
+          assert.strictEqual(catalog.enabledToolNames.has('p_unknown'), false);
         },
       ),
       { numRuns: 200 },
     );
   });
 
-  it('Set algebra & monotonicity laws: disabledTools always removes, enabledTools is a subset, canonical order is preserved', () => {
+  void it('Set algebra & monotonicity laws: disabledTools always removes, enabledTools is a subset, canonical order is preserved', () => {
     fc.assert(
       fc.property(
         toolsetSubsetArb,
@@ -111,14 +116,14 @@ describe('tool-filter properties', () => {
 
           // disabledTools are never present
           for (const blocked of disabledTools ?? []) {
-            expect(catalog.enabledToolNames.has(blocked)).toBe(false);
+            assert.strictEqual(catalog.enabledToolNames.has(blocked), false);
           }
 
           // If enabledTools is specified, every resulting tool is in enabledTools
           if (enabledTools) {
             const allowed = new Set(enabledTools);
             for (const name of catalog.enabledToolNames) {
-              expect(allowed.has(name)).toBe(true);
+              assert.strictEqual(allowed.has(name), true);
             }
           }
 
@@ -130,26 +135,29 @@ describe('tool-filter properties', () => {
             readOnly: false,
           });
           for (const name of catalog.enabledToolNames) {
-            expect(fullCatalog.enabledToolNames.has(name)).toBe(true);
+            assert.strictEqual(fullCatalog.enabledToolNames.has(name), true);
           }
 
           // Canonical TOOLSET_NAMES ordering is always preserved
           let prevIdx = -1;
           for (const tool of catalog.tools) {
             const idx = TOOLSET_INDEX.get(tool.name) ?? -1;
-            expect(idx).toBeGreaterThanOrEqual(prevIdx);
+            assert.ok(idx >= prevIdx);
             prevIdx = idx;
           }
 
           // No duplicate tool names
-          expect(catalog.enabledToolNames.size).toBe(catalog.tools.length);
+          assert.strictEqual(
+            catalog.enabledToolNames.size,
+            catalog.tools.length,
+          );
         },
       ),
       { numRuns: 200 },
     );
   });
 
-  it('CLI flag equivalence: `--flag value` and `--flag=value` produce identical parsed options', () => {
+  void it('CLI flag equivalence: `--flag value` and `--flag=value` produce identical parsed options', () => {
     fc.assert(
       fc.property(
         fc.subarray([...TOOLSET_NAMES], { minLength: 1 }),
@@ -174,7 +182,8 @@ describe('tool-filter properties', () => {
             `--read-only=${String(readOnly)}`,
           ];
 
-          expect(parseCliToolFilterArgs(spaceArgs)).toEqual(
+          assert.deepStrictEqual(
+            parseCliToolFilterArgs(spaceArgs),
             parseCliToolFilterArgs(equalsArgs),
           );
         },
@@ -183,7 +192,7 @@ describe('tool-filter properties', () => {
     );
   });
 
-  it('SECURITY INVARIANT: Object.prototype property names are rejected as unknown toolsets', () => {
+  void it('SECURITY INVARIANT: Object.prototype property names are rejected as unknown toolsets', () => {
     fc.assert(
       fc.property(
         fc.constantFrom(
@@ -196,12 +205,14 @@ describe('tool-filter properties', () => {
           'toLocaleString',
         ),
         (protoKey) => {
-          expect(() => normalizeToolsetName(protoKey)).toThrow(
+          assert.throws(
+            () => normalizeToolsetName(protoKey),
             AzureDevOpsValidationError,
           );
-          expect(() =>
-            resolveEnabledTools(sampleRegistry, { toolsets: [protoKey] }),
-          ).toThrow(AzureDevOpsValidationError);
+          assert.throws(
+            () => resolveEnabledTools(sampleRegistry, { toolsets: [protoKey] }),
+            AzureDevOpsValidationError,
+          );
         },
       ),
       { numRuns: 50 },

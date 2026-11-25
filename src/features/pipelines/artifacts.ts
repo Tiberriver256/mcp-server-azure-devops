@@ -2,17 +2,17 @@ import type { WebApi } from 'azure-devops-node-api';
 import type {
   BuildArtifact,
   ArtifactResource,
-} from 'azure-devops-node-api/interfaces/BuildInterfaces';
-import type { FileContainerItem } from 'azure-devops-node-api/interfaces/FileContainerInterfaces';
-import { ContainerItemType } from 'azure-devops-node-api/interfaces/FileContainerInterfaces';
-import { GetArtifactExpandOptions } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
-import { createHttpClient } from '../../shared/http/http-client';
-import type { HttpClient } from '../../shared/http/http-client';
-import type { ToolContext } from '../../shared/session/azure-devops-session';
-import { mapWithConcurrency } from '../../shared/utils/concurrency';
-import { readZipArchive } from '../../shared/utils/zip-reader';
-import { isSameOrigin } from './helpers';
-import type { PipelineArtifactItem, PipelineRunArtifact } from './types';
+} from 'azure-devops-node-api/interfaces/BuildInterfaces.js';
+import type { FileContainerItem } from 'azure-devops-node-api/interfaces/FileContainerInterfaces.js';
+import { ContainerItemType } from 'azure-devops-node-api/interfaces/FileContainerInterfaces.js';
+import { GetArtifactExpandOptions } from 'azure-devops-node-api/interfaces/PipelinesInterfaces.js';
+import { createHttpClient } from '../../shared/http/http-client.ts';
+import type { HttpClient } from '../../shared/http/http-client.ts';
+import type { ToolContext } from '../../shared/session/azure-devops-session.ts';
+import { mapWithConcurrency } from '../../shared/utils/concurrency.ts';
+import { readZipArchive } from '../../shared/utils/zip-reader.ts';
+import { isSameOrigin } from './helpers.ts';
+import type { PipelineArtifactItem, PipelineRunArtifact } from './types.ts';
 
 export interface ArtifactContainerInfo {
   containerId?: number;

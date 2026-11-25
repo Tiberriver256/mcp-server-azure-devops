@@ -2,12 +2,12 @@ import type { WebApi } from 'azure-devops-node-api';
 import {
   CommentExpandOptions,
   CommentSortOrder,
-} from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+} from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
-} from '../../../shared/errors';
-import type { GetWorkItemCommentsOptions, CommentList } from '../types';
+} from '../../../shared/errors/index.ts';
+import type { GetWorkItemCommentsOptions, CommentList } from '../types.ts';
 
 /**
  * Maps string-based expansion options to the CommentExpandOptions enum

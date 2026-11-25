@@ -1,17 +1,17 @@
-import type { AzureDevOpsConfig } from '../../../shared/types';
+import type { AzureDevOpsConfig } from '../../../shared/types/index.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsValidationError,
-} from '../../../shared/errors';
-import { isAzureDevOpsServicesUrl } from '../../../shared/azure-devops-url';
+} from '../../../shared/errors/index.ts';
+import { isAzureDevOpsServicesUrl } from '../../../shared/azure-devops-url.ts';
 import {
   isHttpError,
   mapHttpErrorToAzureDevOpsError,
-} from '../../../shared/http/http-client';
-import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
-import type { Organization } from '../types';
+} from '../../../shared/http/http-client.ts';
+import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import type { Organization } from '../types.ts';
 
 interface AzureDevOpsAccountRecord {
   accountId: string;

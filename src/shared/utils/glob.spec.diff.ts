@@ -1,5 +1,7 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import fc from 'fast-check';
-import { compileGlobMatcher, matchesGlob } from './glob';
+import { compileGlobMatcher, matchesGlob } from './glob.ts';
 
 function matchSingleSegment(segment: string, patternSegment: string): boolean {
   if (segment.startsWith('.') && !patternSegment.startsWith('.')) {
@@ -131,24 +133,25 @@ const singleStarGlobPatternArb = globPatternArb.filter(
   (p) => !p.includes('**'),
 );
 
-describe('glob differential tests vs independent RegExp oracle', () => {
-  it('matchesGlob and compileGlobMatcher agree identically with independent RegExp oracle across randomized patterns & paths', () => {
+void describe('glob differential tests vs independent RegExp oracle', () => {
+  void it('matchesGlob and compileGlobMatcher agree identically with independent RegExp oracle across randomized patterns & paths', () => {
     fc.assert(
       fc.property(singleStarGlobPatternArb, repoNameArb, (pattern, value) => {
         const expected = referenceGlobMatch(value, pattern);
         const compiled = compileGlobMatcher(pattern);
 
-        expect(matchesGlob(value, pattern)).toBe(expected);
-        expect(compiled(value)).toBe(expected);
+        assert.strictEqual(matchesGlob(value, pattern), expected);
+        assert.strictEqual(compiled(value), expected);
       }),
       { numRuns: 300 },
     );
   });
 
-  it('compileGlobMatcher and matchesGlob agree identically even on globstar (**) and multi-segment slash paths', () => {
+  void it('compileGlobMatcher and matchesGlob agree identically even on globstar (**) and multi-segment slash paths', () => {
     fc.assert(
       fc.property(globPatternArb, repoNameArb, (pattern, value) => {
-        expect(compileGlobMatcher(pattern)(value)).toBe(
+        assert.strictEqual(
+          compileGlobMatcher(pattern)(value),
           matchesGlob(value, pattern),
         );
       }),
@@ -156,12 +159,12 @@ describe('glob differential tests vs independent RegExp oracle', () => {
     );
   });
 
-  it('handles empty pattern, multi-segment slash paths, and empty value edge cases identically to oracle', () => {
+  void it('handles empty pattern, multi-segment slash paths, and empty value edge cases identically to oracle', () => {
     for (const pattern of ['', '!', '!!', '*', '!*', '*/*']) {
       for (const value of ['', 'a', '.dot', 'a/b', 'src/app.ts', '/leading']) {
         const expected = referenceGlobMatch(value, pattern);
-        expect(matchesGlob(value, pattern)).toBe(expected);
-        expect(compileGlobMatcher(pattern)(value)).toBe(expected);
+        assert.strictEqual(matchesGlob(value, pattern), expected);
+        assert.strictEqual(compileGlobMatcher(pattern)(value), expected);
       }
     }
   });

@@ -1,22 +1,30 @@
-import { getRepositoryTree } from './feature';
-import { AzureDevOpsError } from '../../../shared/errors';
+import assert from 'node:assert/strict';
+import { describe, mock, test } from 'node:test';
+import { getRepositoryTree } from './feature.ts';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
 
-describe('getRepositoryTree unit', () => {
-  test('should build tree structure from root', async () => {
+void describe('getRepositoryTree unit', () => {
+  void test('should build tree structure from root', async () => {
     const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getRepository: jest.fn().mockResolvedValue({
-          id: '1',
-          name: 'test-repo',
-          defaultBranch: 'refs/heads/main',
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getRepository: mock.fn(() =>
+            Promise.resolve({
+              id: '1',
+              name: 'test-repo',
+              defaultBranch: 'refs/heads/main',
+            }),
+          ),
+          getItems: mock.fn(() =>
+            Promise.resolve([
+              { path: '/', isFolder: true },
+              { path: '/README.md', isFolder: false },
+              { path: '/src', isFolder: true },
+              { path: '/src/index.ts', isFolder: false },
+            ]),
+          ),
         }),
-        getItems: jest.fn().mockResolvedValue([
-          { path: '/', isFolder: true },
-          { path: '/README.md', isFolder: false },
-          { path: '/src', isFolder: true },
-          { path: '/src/index.ts', isFolder: false },
-        ]),
-      }),
+      ),
     };
 
     const result = await getRepositoryTree(mockConnection, {
@@ -24,27 +32,33 @@ describe('getRepositoryTree unit', () => {
       repositoryId: '1',
     });
 
-    expect(result.name).toBe('test-repo');
-    expect(result.stats.files).toBe(2);
-    expect(result.stats.directories).toBe(1);
-    expect(result.tree.length).toBe(3);
+    assert.strictEqual(result.name, 'test-repo');
+    assert.strictEqual(result.stats.files, 2);
+    assert.strictEqual(result.stats.directories, 1);
+    assert.strictEqual(result.tree.length, 3);
   });
 
-  test('should respect depth when provided', async () => {
+  void test('should respect depth when provided', async () => {
     const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getRepository: jest.fn().mockResolvedValue({
-          id: '1',
-          name: 'test-repo',
-          defaultBranch: 'refs/heads/main',
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getRepository: mock.fn(() =>
+            Promise.resolve({
+              id: '1',
+              name: 'test-repo',
+              defaultBranch: 'refs/heads/main',
+            }),
+          ),
+          getItems: mock.fn(() =>
+            Promise.resolve([
+              { path: '/src', isFolder: true },
+              { path: '/src/index.ts', isFolder: false },
+              { path: '/src/utils', isFolder: true },
+              { path: '/src/utils/helper.ts', isFolder: false },
+            ]),
+          ),
         }),
-        getItems: jest.fn().mockResolvedValue([
-          { path: '/src', isFolder: true },
-          { path: '/src/index.ts', isFolder: false },
-          { path: '/src/utils', isFolder: true },
-          { path: '/src/utils/helper.ts', isFolder: false },
-        ]),
-      }),
+      ),
     };
 
     const result = await getRepositoryTree(mockConnection, {
@@ -54,23 +68,27 @@ describe('getRepositoryTree unit', () => {
       depth: 1,
     });
 
-    expect(result.tree).toHaveLength(2);
-    expect(result.stats.files).toBe(1);
-    expect(result.stats.directories).toBe(1);
+    assert.strictEqual(result.tree.length, 2);
+    assert.strictEqual(result.stats.files, 1);
+    assert.strictEqual(result.stats.directories, 1);
   });
 
-  test('should throw AzureDevOpsError when repository not found', async () => {
+  void test('should throw AzureDevOpsError when repository not found', async () => {
     const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getRepository: jest.fn().mockResolvedValue(null),
-      }),
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getRepository: mock.fn(() => Promise.resolve(null)),
+        }),
+      ),
     };
 
-    await expect(
-      getRepositoryTree(mockConnection, {
-        projectId: 'p',
-        repositoryId: 'missing',
-      }),
-    ).rejects.toThrow(AzureDevOpsError);
+    await assert.rejects(
+      () =>
+        getRepositoryTree(mockConnection, {
+          projectId: 'p',
+          repositoryId: 'missing',
+        }),
+      AzureDevOpsError,
+    );
   });
 });

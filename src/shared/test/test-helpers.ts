@@ -1,7 +1,7 @@
 import { WebApi } from 'azure-devops-node-api';
 import { getPersonalAccessTokenHandler } from 'azure-devops-node-api';
-import type { AzureDevOpsConfig } from '../types';
-import { AuthenticationMethod } from '../auth';
+import type { AzureDevOpsConfig } from '../types/index.ts';
+import { AuthenticationMethod } from '../auth/index.ts';
 
 /**
  * Creates a WebApi connection for tests with real credentials

@@ -3,17 +3,19 @@ import { z } from 'zod';
 /**
  * Wiki types for creating wiki
  */
-export enum WikiType {
+export const WikiType = {
   /**
    * The wiki is published from a git repository
    */
-  CodeWiki = 'codeWiki',
+  CodeWiki: 'codeWiki',
 
   /**
    * The wiki is provisioned for the team project
    */
-  ProjectWiki = 'projectWiki',
-}
+  ProjectWiki: 'projectWiki',
+} as const;
+
+export type WikiType = (typeof WikiType)[keyof typeof WikiType];
 
 const orgIdField = z
   .string()

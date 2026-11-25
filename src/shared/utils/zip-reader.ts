@@ -1,5 +1,5 @@
 import { inflateRawSync } from 'zlib';
-import { AzureDevOpsError } from '../errors';
+import { AzureDevOpsError } from '../errors/index.ts';
 
 const EOCD_SIGNATURE = 0x06054b50;
 const ZIP64_EOCD_LOCATOR_SIGNATURE = 0x07064b50;

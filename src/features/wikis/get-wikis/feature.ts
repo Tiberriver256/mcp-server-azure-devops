@@ -1,9 +1,9 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { WikiV2 } from 'azure-devops-node-api/interfaces/WikiInterfaces';
+import type { WikiV2 } from 'azure-devops-node-api/interfaces/WikiInterfaces.js';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
+} from '../../../shared/errors/index.ts';
 
 /**
  * Options for getting wikis

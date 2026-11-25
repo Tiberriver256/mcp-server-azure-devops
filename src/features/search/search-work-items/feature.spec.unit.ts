@@ -1,14 +1,17 @@
-import { AuthenticationMethod } from '../../../shared/auth';
+import assert from 'node:assert/strict';
+import { afterEach, beforeEach, describe, it, mock } from 'node:test';
+import { AuthenticationMethod } from '../../../shared/auth/index.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsPermissionError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../../../shared/errors';
-import { HttpError } from '../../../shared/http/http-client';
-import type { HttpRequestOptions } from '../../../shared/http/http-client';
-import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session';
-import { searchWorkItems } from './feature';
+} from '../../../shared/errors/index.ts';
+import { HttpError } from '../../../shared/http/http-client.ts';
+import type { HttpRequestOptions } from '../../../shared/http/http-client.ts';
+import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session.ts';
+import { clearSearchApiVersionCache } from '../api-version.ts';
+import { searchWorkItems } from './feature.ts';
 
 function makeContext(
   handler: (
@@ -49,8 +52,20 @@ function makeContext(
   );
 }
 
-describe('searchWorkItems', () => {
-  it('constructs project-scoped and org-wide search requests accurately', async () => {
+void describe('searchWorkItems', () => {
+  beforeEach(() => {
+    clearSearchApiVersionCache();
+    mock.method(globalThis, 'fetch', () =>
+      Promise.reject(new Error('offline unit test')),
+    );
+  });
+
+  afterEach(() => {
+    mock.restoreAll();
+    clearSearchApiVersionCache();
+  });
+
+  void it('constructs project-scoped and org-wide search requests accurately', async () => {
     let captured: HttpRequestOptions | undefined;
     const ctx = makeContext(async (req) => {
       captured = req;
@@ -64,10 +79,11 @@ describe('searchWorkItems', () => {
       top: 25,
     });
 
-    expect(captured?.url).toBe(
+    assert.strictEqual(
+      captured?.url,
       'https://almsearch.dev.azure.com/test-org/MyProj/_apis/search/workitemsearchresults',
     );
-    expect(captured?.body).toMatchObject({
+    assert.partialDeepStrictEqual(captured?.body, {
       searchText: 'crash',
       $top: 25,
       filters: {
@@ -77,17 +93,18 @@ describe('searchWorkItems', () => {
     });
   });
 
-  it('requires projectId on Azure DevOps Server when no defaultProject is configured', async () => {
+  void it('requires projectId on Azure DevOps Server when no defaultProject is configured', async () => {
     const ctx = makeContext(
       async () => ({ status: 200, data: {} }),
       'https://ado.local/tfs/DefaultCollection',
     );
-    await expect(searchWorkItems(ctx, { searchText: 'bug' })).rejects.toThrow(
+    await assert.rejects(
+      () => searchWorkItems(ctx, { searchText: 'bug' }),
       AzureDevOpsValidationError,
     );
   });
 
-  it('falls back to defaultProject on Azure DevOps Server without duplicating project segment on project-suffixed URLs', async () => {
+  void it('falls back to defaultProject on Azure DevOps Server without duplicating project segment on project-suffixed URLs', async () => {
     const urls: string[] = [];
     const collectionCtx = makeContext(
       async (req) => {
@@ -109,20 +126,21 @@ describe('searchWorkItems', () => {
     );
     await searchWorkItems(projectSuffixedCtx, { searchText: 'bug' });
 
-    expect(urls).toEqual([
+    assert.deepStrictEqual(urls, [
       'https://ado.local/tfs/DefaultCollection/My%20Project/_apis/search/workitemsearchresults',
       'https://ado.local/tfs/DefaultCollection/MyProject/_apis/search/workitemsearchresults',
     ]);
   });
 
-  it.each([
+  const errorStatusCases = [
     [400, AzureDevOpsValidationError],
     [401, AzureDevOpsAuthenticationError],
     [403, AzureDevOpsPermissionError],
     [404, AzureDevOpsResourceNotFoundError],
-  ] as const)(
-    'maps actual HTTP %d responses to %p (not mocked AzureDevOpsError)',
-    async (status, ErrorClass) => {
+  ] as const;
+
+  for (const [status, ExpectedError] of errorStatusCases) {
+    void it(`maps actual HTTP ${status} responses to ${ExpectedError.name} (not mocked AzureDevOpsError)`, async () => {
       const ctx = makeContext(async (req) => {
         throw new HttpError({
           message: `HTTP ${status}`,
@@ -132,9 +150,10 @@ describe('searchWorkItems', () => {
         });
       });
 
-      await expect(
-        searchWorkItems(ctx, { searchText: 'x', projectId: 'MyProj' }),
-      ).rejects.toThrow(ErrorClass);
-    },
-  );
+      await assert.rejects(
+        () => searchWorkItems(ctx, { searchText: 'x', projectId: 'MyProj' }),
+        ExpectedError,
+      );
+    });
+  }
 });

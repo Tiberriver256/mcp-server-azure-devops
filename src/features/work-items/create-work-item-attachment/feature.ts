@@ -1,10 +1,10 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
 import * as fs from 'fs';
 import * as fsp from 'fs/promises';
 import * as path from 'path';
-import { AzureDevOpsError } from '../../../shared/errors';
-import type { CreateWorkItemAttachmentOptions, WorkItem } from '../types';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import type { CreateWorkItemAttachmentOptions, WorkItem } from '../types.ts';
 
 /**
  * Create an attachment on a work item by streaming directly from disk

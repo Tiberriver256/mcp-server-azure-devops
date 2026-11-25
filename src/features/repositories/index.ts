@@ -1,25 +1,30 @@
-export * from './schemas';
-export * from './types';
-export { getRepository } from './get-repository/feature';
-export { getRepositoryDetails } from './get-repository-details/feature';
-export { listRepositories } from './list-repositories/feature';
-export { getFileContent } from './get-file-content/feature';
+export * from './schemas.ts';
+export * from './types.ts';
+export { getRepository } from './get-repository/feature.ts';
+export { getRepositoryDetails } from './get-repository-details/feature.ts';
+export { listRepositories } from './list-repositories/feature.ts';
+export { getFileContent } from './get-file-content/feature.ts';
 export {
   getAllRepositoriesTree,
   formatRepositoryTree,
-} from './get-all-repositories-tree/feature';
-export { getRepositoryTree } from './get-repository-tree/feature';
-export { createBranch } from './create-branch/feature';
+} from './get-all-repositories-tree/feature.ts';
+export { getRepositoryTree } from './get-repository-tree/feature.ts';
+export { createBranch } from './create-branch/feature.ts';
 export {
   createCommit,
   applyLiteralSearchReplace,
   normalizeGitDiffPath,
-} from './create-commit/feature';
-export { listCommits } from './list-commits/feature';
+} from './create-commit/feature.ts';
+export { listCommits } from './list-commits/feature.ts';
+export {
+  listBranches,
+  normalizeBranchFilter,
+  isLegacyRefsApiVersion,
+} from './list-branches/feature.ts';
 
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
-import { gitVersionTypeMapper } from '../../shared/enums';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
+import { gitVersionTypeMapper } from '../../shared/enums/index.ts';
 import {
   CreateBranchSchema,
   CreateCommitSchema,
@@ -28,21 +33,23 @@ import {
   GetRepositoryDetailsSchema,
   GetRepositorySchema,
   GetRepositoryTreeSchema,
+  ListBranchesSchema,
   ListCommitsSchema,
   ListRepositoriesSchema,
-} from './schemas';
-import { getRepository } from './get-repository/feature';
-import { getRepositoryDetails } from './get-repository-details/feature';
-import { listRepositories } from './list-repositories/feature';
-import { getFileContent } from './get-file-content/feature';
+} from './schemas.ts';
+import { getRepository } from './get-repository/feature.ts';
+import { getRepositoryDetails } from './get-repository-details/feature.ts';
+import { listRepositories } from './list-repositories/feature.ts';
+import { getFileContent } from './get-file-content/feature.ts';
 import {
   getAllRepositoriesTree,
   formatRepositoryTree,
-} from './get-all-repositories-tree/feature';
-import { getRepositoryTree } from './get-repository-tree/feature';
-import { createBranch } from './create-branch/feature';
-import { createCommit } from './create-commit/feature';
-import { listCommits } from './list-commits/feature';
+} from './get-all-repositories-tree/feature.ts';
+import { getRepositoryTree } from './get-repository-tree/feature.ts';
+import { createBranch } from './create-branch/feature.ts';
+import { createCommit } from './create-commit/feature.ts';
+import { listCommits } from './list-commits/feature.ts';
+import { listBranches } from './list-branches/feature.ts';
 
 export const repositoriesFeature: FeatureModule = {
   toolset: 'repositories',
@@ -158,6 +165,8 @@ export const repositoriesFeature: FeatureModule = {
       description: 'Create a new branch from an existing one',
       schema: CreateBranchSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         await createBranch(connection, {
@@ -170,46 +179,13 @@ export const repositoriesFeature: FeatureModule = {
     defineTool({
       name: 'create_commit',
       description: [
-        'Create a commit on an existing branch using file changes.',
-        '- Provide plain branch names (no "refs/heads/").',
-        '- ⚠️ Each file path may appear only once per commit request—combine all edits to a file into a single change entry.',
-        '- Prefer multiple commits when you have sparse or unrelated edits; smaller focused commits keep review context clear.',
-        '',
-        '🎯 RECOMMENDED: Use the SEARCH/REPLACE format (much easier, no line counting!).',
-        '',
-        '**Option 1: SEARCH/REPLACE format (EASIEST)**',
-        'Simply provide the exact text to find and replace:',
-        '```json',
-        '{',
-        '  "changes": [{',
-        '    "path": "src/api/services/function-call.ts",',
-        '    "search": "return fetch(apiUrl, requestConfig);",',
-        '    "replace": "return fetch(apiUrl, requestConfig).then(r => { processResponse(r); return r; });"',
-        '  }]',
-        '}',
-        '```',
-        'The server fetches the file and performs the exact replacement automatically.',
-        'No line counting, no hunk headers, no context lines needed!',
-        '',
-        '**Option 2: UNIFIED DIFF format (Advanced)**',
-        'If you prefer full control, provide complete unified diffs:',
-        '- Each patch MUST have complete hunk headers: @@ -oldStart,oldLines +newStart,newLines @@',
-        '- CRITICAL: Every @@ marker MUST include line numbers. Do NOT use @@ without line ranges.',
-        '- Include 3-5 context lines before and after changes.',
-        '- For deletions: `--- a/filepath` and `+++ /dev/null`',
-        '- For additions: `--- /dev/null` and `+++ b/filepath`',
-        '',
-        'Example unified diff:',
-        '```json',
-        '{',
-        '  "changes": [{',
-        '    "patch": "diff --git a/file.yaml b/file.yaml\\n--- a/file.yaml\\n+++ b/file.yaml\\n@@ -4,7 +4,7 @@ spec:\\n spec:\\n   type: ClusterIP\\n   ports:\\n-    - port: 8080\\n+    - port: 9090\\n       targetPort: http\\n"',
-        '  }]',
-        '}',
-        '```',
-      ].join('\n'),
+        'Create a commit on an existing branch with one change entry per file path (pass plain branch names without "refs/heads/").',
+        'Prefer search/replace (`path`, `search`, `replace`) for targeted edits; use unified git `patch` with numbered `@@ -old,len +new,len @@` hunks (and `/dev/null` headers) for file additions, deletions, or multi-hunk diffs.',
+      ].join(' '),
       schema: CreateCommitSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: false,
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         await createCommit(connection, {
@@ -228,6 +204,20 @@ export const repositoriesFeature: FeatureModule = {
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         return await listCommits(connection, {
+          ...args,
+          projectId: ctx.resolveProjectId(args.projectId),
+        });
+      },
+    }),
+    defineTool({
+      name: 'list_branches',
+      description:
+        'List branches in a Git repository with optional prefix/substring filters, includeMyBranches, commit statuses, continuation-token pagination, and ahead/behind branch statistics',
+      schema: ListBranchesSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await listBranches(connection, {
           ...args,
           projectId: ctx.resolveProjectId(args.projectId),
         });

@@ -2,11 +2,11 @@ import type { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsError,
   AzureDevOpsValidationError,
-} from '../../../shared/errors';
-import { createSessionFromEnv } from '../../../shared/session/azure-devops-session';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
-import { WikiType } from '../schemas';
-import { createWikiClient } from '../wiki-client';
+} from '../../../shared/errors/index.ts';
+import { createSessionFromEnv } from '../../../shared/session/azure-devops-session.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import { WikiType } from '../schemas.ts';
+import { createWikiClient } from '../wiki-client.ts';
 
 export interface CreateWikiOptions {
   organizationId?: string;

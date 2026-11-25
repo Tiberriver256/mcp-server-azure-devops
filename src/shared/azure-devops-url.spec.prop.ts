@@ -1,11 +1,13 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import fc from 'fast-check';
 import {
   formatOrgUrlForLog,
   getOrgNameFromUrl,
   isAzureDevOpsServicesUrl,
   resolveAzureDevOpsBaseUrls,
-} from './azure-devops-url';
-import { AzureDevOpsValidationError } from './errors';
+} from './azure-devops-url.ts';
+import { AzureDevOpsValidationError } from './errors/index.ts';
 
 const slugArb = fc.stringMatching(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,18}$/);
 const hostnameLabelArb = fc.stringMatching(/^[a-z0-9][a-z0-9-]{0,12}[a-z0-9]$/);
@@ -13,8 +15,8 @@ const serverHostArb = fc
   .tuple(hostnameLabelArb, fc.constantFrom('local', 'corp', 'internal', 'lan'))
   .map(([label, tld]) => `${label}.${tld}`);
 
-describe('azure-devops-url properties', () => {
-  it('Services dev.azure.com & *.visualstudio.com URLs resolve idempotently with almsearch host', () => {
+void describe('azure-devops-url properties', () => {
+  void it('Services dev.azure.com & *.visualstudio.com URLs resolve idempotently with almsearch host', () => {
     fc.assert(
       fc.property(
         slugArb,
@@ -26,18 +28,21 @@ describe('azure-devops-url properties', () => {
             : `https://dev.azure.com/${org}${project ? `/${project}` : ''}`;
 
           const resolved = resolveAzureDevOpsBaseUrls(rawUrl);
-          expect(resolved.type).toBe('services');
-          expect(isAzureDevOpsServicesUrl(rawUrl)).toBe(true);
-          expect(resolved.coreBaseUrl).toBe(
+          assert.strictEqual(resolved.type, 'services');
+          assert.strictEqual(isAzureDevOpsServicesUrl(rawUrl), true);
+          assert.strictEqual(
+            resolved.coreBaseUrl,
             `https://dev.azure.com/${resolved.organization}`,
           );
-          expect(resolved.searchBaseUrl).toBe(
+          assert.strictEqual(
+            resolved.searchBaseUrl,
             `https://almsearch.dev.azure.com/${resolved.organization}`,
           );
-          expect(getOrgNameFromUrl(rawUrl)).toBe(resolved.organization);
+          assert.strictEqual(getOrgNameFromUrl(rawUrl), resolved.organization);
 
           // Idempotence: resolving the canonical coreBaseUrl yields the exact same result
-          expect(resolveAzureDevOpsBaseUrls(resolved.coreBaseUrl)).toEqual(
+          assert.deepStrictEqual(
+            resolveAzureDevOpsBaseUrls(resolved.coreBaseUrl),
             resolved,
           );
         },
@@ -46,7 +51,7 @@ describe('azure-devops-url properties', () => {
     );
   });
 
-  it('On-premises Azure DevOps Server URLs keep coreBaseUrl === searchBaseUrl and resolve idempotently', () => {
+  void it('On-premises Azure DevOps Server URLs keep coreBaseUrl === searchBaseUrl and resolve idempotently', () => {
     fc.assert(
       fc.property(
         fc.constantFrom('http', 'https'),
@@ -60,15 +65,19 @@ describe('azure-devops-url properties', () => {
           const rawUrl = `${origin}/${path}`;
 
           const resolved = resolveAzureDevOpsBaseUrls(rawUrl);
-          expect(resolved.type).toBe('server');
-          expect(isAzureDevOpsServicesUrl(rawUrl)).toBe(false);
-          expect(resolved.collection).toBe(collection);
-          expect(resolved.coreBaseUrl).toBe(resolved.searchBaseUrl);
-          expect(resolved.coreBaseUrl.endsWith(`/${collection}`)).toBe(true);
-          expect(getOrgNameFromUrl(rawUrl)).toBe(collection);
+          assert.strictEqual(resolved.type, 'server');
+          assert.strictEqual(isAzureDevOpsServicesUrl(rawUrl), false);
+          assert.strictEqual(resolved.collection, collection);
+          assert.strictEqual(resolved.coreBaseUrl, resolved.searchBaseUrl);
+          assert.strictEqual(
+            resolved.coreBaseUrl.endsWith(`/${collection}`),
+            true,
+          );
+          assert.strictEqual(getOrgNameFromUrl(rawUrl), collection);
 
           // Idempotence on coreBaseUrl
-          expect(resolveAzureDevOpsBaseUrls(resolved.coreBaseUrl)).toEqual(
+          assert.deepStrictEqual(
+            resolveAzureDevOpsBaseUrls(resolved.coreBaseUrl),
             resolved,
           );
         },
@@ -77,7 +86,7 @@ describe('azure-devops-url properties', () => {
     );
   });
 
-  it('Project suffix in Server URL is stripped into projectFromUrl when matching options.projectId', () => {
+  void it('Project suffix in Server URL is stripped into projectFromUrl when matching options.projectId', () => {
     fc.assert(
       fc.property(
         serverHostArb,
@@ -88,10 +97,11 @@ describe('azure-devops-url properties', () => {
           const resolved = resolveAzureDevOpsBaseUrls(urlWithProject, {
             projectId: project.toUpperCase(),
           });
-          expect(resolved.type).toBe('server');
-          expect(resolved.collection).toBe(collection);
-          expect(resolved.projectFromUrl).toBe(project);
-          expect(resolved.coreBaseUrl).toBe(
+          assert.strictEqual(resolved.type, 'server');
+          assert.strictEqual(resolved.collection, collection);
+          assert.strictEqual(resolved.projectFromUrl, project);
+          assert.strictEqual(
+            resolved.coreBaseUrl,
             `https://${host}/tfs/${collection}`,
           );
         },
@@ -100,24 +110,25 @@ describe('azure-devops-url properties', () => {
     );
   });
 
-  it('Malformed percent-encoding always throws AzureDevOpsValidationError (never URIError)', () => {
+  void it('Malformed percent-encoding always throws AzureDevOpsValidationError (never URIError)', () => {
     fc.assert(
       fc.property(
         slugArb,
         fc.constantFrom('%E0%A4%A', '%ZZ', '%2', '%', '%C0%AF'),
         (prefix, badPercent) => {
           const url = `https://dev.azure.com/${prefix}${badPercent}`;
-          expect(() => resolveAzureDevOpsBaseUrls(url)).toThrow(
+          assert.throws(
+            () => resolveAzureDevOpsBaseUrls(url),
             AzureDevOpsValidationError,
           );
-          expect(getOrgNameFromUrl(url)).toBeUndefined();
+          assert.strictEqual(getOrgNameFromUrl(url), undefined);
         },
       ),
       { numRuns: 50 },
     );
   });
 
-  it('formatOrgUrlForLog never leaks embedded userinfo credentials, query params, or fragments', () => {
+  void it('formatOrgUrlForLog never leaks embedded userinfo credentials, query params, or fragments', () => {
     fc.assert(
       fc.property(
         slugArb.filter((s) => s.length >= 6),
@@ -127,12 +138,12 @@ describe('azure-devops-url properties', () => {
         (user, secretPass, org, queryToken) => {
           const raw = `https://${user}:${secretPass}@dev.azure.com/${org}/?token=${queryToken}#frag_${secretPass}`;
           const formatted = formatOrgUrlForLog(raw);
-          expect(formatted).toBe(`dev.azure.com/${org}`);
-          expect(formatted).not.toContain(secretPass);
-          expect(formatted).not.toContain(queryToken);
-          expect(formatted).not.toContain('@');
-          expect(formatted).not.toContain('?');
-          expect(formatted).not.toContain('#');
+          assert.strictEqual(formatted, `dev.azure.com/${org}`);
+          assert.ok(!formatted.includes(secretPass));
+          assert.ok(!formatted.includes(queryToken));
+          assert.ok(!formatted.includes('@'));
+          assert.ok(!formatted.includes('?'));
+          assert.ok(!formatted.includes('#'));
         },
       ),
       { numRuns: 150 },

@@ -8,7 +8,6 @@ export default defineConfig({
     builtin: true,
     node: true,
     es6: true,
-    jest: true,
   },
   ignorePatterns: [
     ...(cloudflare.ignorePatterns ?? []),
@@ -78,6 +77,19 @@ export default defineConfig({
         'typescript/no-unsafe-type-assertion': 'off',
         'typescript/only-throw-error': 'off',
         'typescript/unbound-method': 'off',
+      },
+    },
+    {
+      // Native node:test E2E suite in .mjs (test() / describe() return Promise<void>)
+      files: ['tests/e2e-suite/**/*.mjs'],
+      rules: {
+        'no-console': 'off',
+        'typescript/no-floating-promises': 'off',
+        'typescript/no-unsafe-argument': 'off',
+        'typescript/no-unsafe-assignment': 'off',
+        'typescript/no-unsafe-call': 'off',
+        'typescript/no-unsafe-member-access': 'off',
+        'typescript/no-unsafe-return': 'off',
       },
     },
   ],

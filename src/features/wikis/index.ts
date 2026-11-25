@@ -1,14 +1,14 @@
-export * from './schemas';
-export * from './wiki-client';
-export { getWikis } from './get-wikis/feature';
-export { getWikiPage } from './get-wiki-page/feature';
-export { createWiki } from './create-wiki/feature';
-export { updateWikiPage } from './update-wiki-page/feature';
-export { listWikiPages } from './list-wiki-pages/feature';
-export { createWikiPage } from './create-wiki-page/feature';
+export * from './schemas.ts';
+export * from './wiki-client.ts';
+export { getWikis } from './get-wikis/feature.ts';
+export { getWikiPage } from './get-wiki-page/feature.ts';
+export { createWiki } from './create-wiki/feature.ts';
+export { updateWikiPage } from './update-wiki-page/feature.ts';
+export { listWikiPages } from './list-wiki-pages/feature.ts';
+export { createWikiPage } from './create-wiki-page/feature.ts';
 
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
 import {
   CreateWikiPageSchema,
   CreateWikiSchema,
@@ -16,13 +16,13 @@ import {
   GetWikisSchema,
   ListWikiPagesSchema,
   UpdateWikiPageSchema,
-} from './schemas';
-import { getWikis } from './get-wikis/feature';
-import { getWikiPage } from './get-wiki-page/feature';
-import { createWiki } from './create-wiki/feature';
-import { updateWikiPage } from './update-wiki-page/feature';
-import { listWikiPages } from './list-wiki-pages/feature';
-import { createWikiPage } from './create-wiki-page/feature';
+} from './schemas.ts';
+import { getWikis } from './get-wikis/feature.ts';
+import { getWikiPage } from './get-wiki-page/feature.ts';
+import { createWiki } from './create-wiki/feature.ts';
+import { updateWikiPage } from './update-wiki-page/feature.ts';
+import { listWikiPages } from './list-wiki-pages/feature.ts';
+import { createWikiPage } from './create-wiki-page/feature.ts';
 
 export const wikisFeature: FeatureModule = {
   toolset: 'wikis',
@@ -62,6 +62,8 @@ export const wikisFeature: FeatureModule = {
       description: 'Create a new wiki in the project',
       schema: CreateWikiSchema,
       readOnly: false,
+      destructive: false,
+      idempotent: false,
       handler: (ctx, args) =>
         createWiki(ctx, {
           organizationId: args.organizationId ?? undefined,
@@ -77,6 +79,8 @@ export const wikisFeature: FeatureModule = {
       description: 'Update content of a wiki page',
       schema: UpdateWikiPageSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: (ctx, args) => updateWikiPage(args, ctx),
     }),
     defineTool({
@@ -92,6 +96,8 @@ export const wikisFeature: FeatureModule = {
         'Create a new page in a wiki. If the page already exists at the specified path, it will be updated.',
       schema: CreateWikiPageSchema,
       readOnly: false,
+      destructive: true,
+      idempotent: true,
       handler: (ctx, args) => createWikiPage(args, ctx),
     }),
   ],

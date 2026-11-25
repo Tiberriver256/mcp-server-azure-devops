@@ -194,8 +194,80 @@ export const GetWorkItemCommentsSchema = z.object({
     .describe('The order in which to sort the comments (Default: "asc")'),
 });
 
+/**
+ * Schema for adding a comment to a work item
+ */
+export const AddWorkItemCommentSchema = z.object({
+  workItemId: z
+    .number()
+    .int()
+    .positive()
+    .describe('The ID of the work item to add a comment to'),
+  text: z
+    .string()
+    .trim()
+    .min(1, 'Comment text must not be empty')
+    .describe(
+      'The comment text to post (must not be empty or whitespace-only)',
+    ),
+  projectId: z.string().optional().describe(projectIdDescription),
+  organizationId: z.string().optional().describe(organizationIdDescription),
+  format: z
+    .enum(['markdown', 'html'])
+    .optional()
+    .describe(
+      'Comment text format: "markdown" or "html". Transmitted as a query parameter when supported by the server (Azure DevOps Services / API version >= 7.1-preview.4) and omitted automatically on older servers that only support HTML comments.',
+    ),
+});
+
+/**
+ * Schema for getting work item revision history or a single revision
+ */
+export const GetWorkItemRevisionsSchema = z.object({
+  workItemId: z
+    .number()
+    .int()
+    .positive()
+    .describe('The ID of the work item to retrieve revisions for'),
+  projectId: z.string().optional().describe(projectIdDescription),
+  organizationId: z.string().optional().describe(organizationIdDescription),
+  revisionNumber: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      'Specific revision number to fetch. When provided, returns only that single revision.',
+    ),
+  top: z
+    .number()
+    .int()
+    .min(1)
+    .max(200)
+    .optional()
+    .default(50)
+    .describe(
+      'Maximum number of revisions to return (1-200, default: 50). Ignored when revisionNumber is provided.',
+    ),
+  skip: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe(
+      'Number of revisions to skip (non-negative integer). Ignored when revisionNumber is provided.',
+    ),
+  expand: z
+    .enum(['none', 'relations', 'fields', 'links', 'all'])
+    .optional()
+    .default('none')
+    .describe(
+      'The level of detail to include in the revision response (default: "none")',
+    ),
+});
+
 export {
   CreateWorkItemAttachmentSchema,
   GetWorkItemAttachmentSchema,
   DeleteWorkItemAttachmentSchema,
-} from './attachment-schemas';
+} from './attachment-schemas.ts';

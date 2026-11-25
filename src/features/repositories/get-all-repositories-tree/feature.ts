@@ -1,22 +1,22 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { IGitApi } from 'azure-devops-node-api/GitApi';
-import type { GitItem } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { IGitApi } from 'azure-devops-node-api/GitApi.js';
+import type { GitItem } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import {
   GitVersionType,
   VersionControlRecursionType,
   GitObjectType,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { AzureDevOpsError } from '../../../shared/errors';
-import { logError } from '../../../shared/logging';
-import { mapWithConcurrency } from '../../../shared/utils/concurrency';
-import { compileGlobMatcher } from '../../../shared/utils/glob';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import { logError } from '../../../shared/logging.ts';
+import { mapWithConcurrency } from '../../../shared/utils/concurrency.ts';
+import { compileGlobMatcher } from '../../../shared/utils/glob.ts';
 import type {
   GetAllRepositoriesTreeOptions,
   AllRepositoriesTreeResponse,
   RepositoryTreeResponse,
   RepositoryTreeItem,
   GitRepository,
-} from '../types';
+} from '../types.ts';
 
 const FOLDER_TRAVERSAL_CONCURRENCY = 6;
 
