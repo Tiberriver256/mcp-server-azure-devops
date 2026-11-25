@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.2.0](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.56...mcp-server-azure-devops-v0.2.0) (2026-11-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* Minimum Node.js runtime raised to >=24.0.0 (Node 24 LTS & Node 26 LTS).
+
+### Features
+
+* v0.2.0 — Node 24/26 native runtime, Spotlighting, ToolAnnotations, Tier 2 tools, OData Analytics, Streamable HTTP & MCP Events ([#424](https://github.com/Tiberriver256/mcp-server-azure-devops/issues/424)) ([5739eeb](https://github.com/Tiberriver256/mcp-server-azure-devops/commit/5739eeb1cadbf6ba25f54517782f1b75acbacb3e))
+
 ## [0.1.56](https://github.com/Tiberriver256/mcp-server-azure-devops/compare/mcp-server-azure-devops-v0.1.55...mcp-server-azure-devops-v0.1.56) (2026-11-22)
 
 
