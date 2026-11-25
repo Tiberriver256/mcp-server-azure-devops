@@ -1,11 +1,16 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import fc from 'fast-check';
 import {
   buildAdoResourceUri,
   getMimeType,
   parseAdoResourceUri,
-} from './ado-resource-uri';
-import type { AdoResourceRef, ParsedAdoResourceUri } from './ado-resource-uri';
-import { AzureDevOpsResourceNotFoundError } from '../errors';
+} from './ado-resource-uri.ts';
+import type {
+  AdoResourceRef,
+  ParsedAdoResourceUri,
+} from './ado-resource-uri.ts';
+import { AzureDevOpsResourceNotFoundError } from '../errors/index.ts';
 
 // Note: URL hostnames are lowercased by WHATWG URL parser, so org uses lowercase DNS-safe slugs
 const orgArb = fc.stringMatching(/^[a-z0-9][a-z0-9-]{0,16}$/);
@@ -40,21 +45,21 @@ const parsedUriArb: fc.Arbitrary<ParsedAdoResourceUri> = fc.record({
   ref: refArb,
 });
 
-describe('ado-resource-uri properties', () => {
-  it('round-trips parseAdoResourceUri(buildAdoResourceUri(x)) === x across all 5 ref kinds including slashed branches/tags', () => {
+void describe('ado-resource-uri properties', () => {
+  void it('round-trips parseAdoResourceUri(buildAdoResourceUri(x)) === x across all 5 ref kinds including slashed branches/tags', () => {
     fc.assert(
       fc.property(parsedUriArb, (input) => {
         const uri = buildAdoResourceUri(input);
         const reparsed = parseAdoResourceUri(uri);
-        expect(reparsed).toEqual(input);
+        assert.deepStrictEqual(reparsed, { ...input });
         // Canonical formatting is idempotent
-        expect(buildAdoResourceUri(reparsed)).toBe(uri);
+        assert.strictEqual(buildAdoResourceUri(reparsed), uri);
       }),
       { numRuns: 200 },
     );
   });
 
-  it('rejects any non-ado: protocol with AzureDevOpsResourceNotFoundError', () => {
+  void it('rejects any non-ado: protocol with AzureDevOpsResourceNotFoundError', () => {
     fc.assert(
       fc.property(
         fc.constantFrom('http', 'https', 'file', 'ftp', 'git', 'ssh'),
@@ -62,18 +67,20 @@ describe('ado-resource-uri properties', () => {
         segmentArb,
         segmentArb,
         (proto, org, proj, repo) => {
-          expect(() =>
-            parseAdoResourceUri(
-              `${proto}://${org}/${proj}/${repo}/contents/a.ts`,
-            ),
-          ).toThrow(AzureDevOpsResourceNotFoundError);
+          assert.throws(
+            () =>
+              parseAdoResourceUri(
+                `${proto}://${org}/${proj}/${repo}/contents/a.ts`,
+              ),
+            AzureDevOpsResourceNotFoundError,
+          );
         },
       ),
       { numRuns: 60 },
     );
   });
 
-  it('getMimeType always returns a valid type/subtype string and is case-insensitive on extension', () => {
+  void it('getMimeType always returns a valid type/subtype string and is case-insensitive on extension', () => {
     fc.assert(
       fc.property(
         filePathArb,
@@ -90,8 +97,8 @@ describe('ado-resource-uri properties', () => {
         (dir, ext) => {
           const full = dir === '/' ? `/file.${ext}` : `${dir}/file.${ext}`;
           const mime = getMimeType(full);
-          expect(mime).toMatch(/^[a-z]+\/[a-z0-9.+-]+$/);
-          expect(mime).toBe(getMimeType(full.toLowerCase()));
+          assert.match(mime, /^[a-z]+\/[a-z0-9.+-]+$/);
+          assert.strictEqual(mime, getMimeType(full.toLowerCase()));
         },
       ),
       { numRuns: 100 },

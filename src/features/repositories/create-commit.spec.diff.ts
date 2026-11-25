@@ -1,13 +1,15 @@
+import assert from 'node:assert/strict';
+import { describe, it, mock } from 'node:test';
 import { Readable } from 'stream';
 import fc from 'fast-check';
 import { createTwoFilesPatch } from 'diff';
 import type { WebApi } from 'azure-devops-node-api';
-import { createCommit } from './create-commit/feature';
+import { createCommit } from './create-commit/feature.ts';
 
 const lineArb = fc.stringMatching(/^[a-zA-Z0-9 _.,:;()=+\-*/'"$]{1,40}$/);
 
-describe('createCommit differential test: search/replace fast path vs unified-patch path', () => {
-  it('produces identical GitChange payloads between search/replace fast path and createTwoFilesPatch patch path', async () => {
+void describe('createCommit differential test: search/replace fast path vs unified-patch path', () => {
+  void it('produces identical GitChange payloads between search/replace fast path and createTwoFilesPatch patch path', async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.array(lineArb, { minLength: 1, maxLength: 6 }),
@@ -29,20 +31,22 @@ describe('createCommit differential test: search/replace fast path vs unified-pa
             changes: Parameters<typeof createCommit>[1]['changes'],
           ) => {
             let pushed: unknown;
-            const getItemContent = jest
-              .fn()
-              .mockImplementation(() => Readable.from([originalContent]));
+            const getItemContent = mock.fn(() =>
+              Readable.from([originalContent]),
+            );
             const mockConn = {
-              getGitApi: jest.fn().mockResolvedValue({
-                getBranch: jest
-                  .fn()
-                  .mockResolvedValue({ commit: { commitId: 'base-sha' } }),
-                getItemContent,
-                createPush: jest.fn().mockImplementation(async (payload) => {
-                  pushed = payload;
-                  return {};
+              getGitApi: mock.fn(() =>
+                Promise.resolve({
+                  getBranch: mock.fn(() =>
+                    Promise.resolve({ commit: { commitId: 'base-sha' } }),
+                  ),
+                  getItemContent,
+                  createPush: mock.fn((payload: unknown) => {
+                    pushed = payload;
+                    return Promise.resolve({});
+                  }),
                 }),
-              }),
+              ),
             } as unknown as WebApi;
 
             await createCommit(mockConn, {
@@ -52,7 +56,7 @@ describe('createCommit differential test: search/replace fast path vs unified-pa
               commitMessage: 'diff check',
               changes,
             });
-            return { pushed, fetchCount: getItemContent.mock.calls.length };
+            return { pushed, fetchCount: getItemContent.mock.callCount() };
           };
 
           // Path A: fast-path literal search/replace
@@ -79,9 +83,9 @@ describe('createCommit differential test: search/replace fast path vs unified-pa
           ]);
 
           // Both paths must emit byte-for-byte identical push payloads
-          expect(fastPath.pushed).toEqual(patchPath.pushed);
+          assert.deepStrictEqual(fastPath.pushed, patchPath.pushed);
           // Fast path must also strictly do only 1 fetch
-          expect(fastPath.fetchCount).toBe(1);
+          assert.strictEqual(fastPath.fetchCount, 1);
         },
       ),
       { numRuns: 60 },

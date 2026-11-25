@@ -3,8 +3,8 @@ import {
   AzureDevOpsError,
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
-import type { GetPipelineOptions, Pipeline } from '../types';
+} from '../../../shared/errors/index.ts';
+import type { GetPipelineOptions, Pipeline } from '../types.ts';
 
 /**
  * Get a specific pipeline by ID

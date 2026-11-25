@@ -1,4 +1,4 @@
-import type { TeamProject } from 'azure-devops-node-api/interfaces/CoreInterfaces';
+import type { TeamProject } from 'azure-devops-node-api/interfaces/CoreInterfaces.js';
 
 /**
  * Options for listing projects

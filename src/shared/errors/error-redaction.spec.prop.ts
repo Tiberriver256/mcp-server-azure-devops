@@ -1,30 +1,29 @@
+import assert from 'node:assert/strict';
+import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 import fc from 'fast-check';
-import { handleResponseError, redactSecrets } from './handle-request-error';
-import { HttpError, sanitizeUrlForError } from '../http/http-client';
-import { formatOrgUrlForLog } from '../azure-devops-url';
+import { handleResponseError, redactSecrets } from './handle-request-error.ts';
+import { HttpError, sanitizeUrlForError } from '../http/http-client.ts';
+import { formatOrgUrlForLog } from '../azure-devops-url.ts';
 
 const tokenArb = fc.stringMatching(/^[A-Za-z0-9+/=._-]{16,48}$/);
 const patArb = fc.stringMatching(/^[a-z0-9]{20,52}$/);
 
-describe('error & log secret-redaction security properties', () => {
+void describe('error & log secret-redaction security properties', () => {
   let stderrChunks: string[];
-  let stderrSpy: jest.SpyInstance;
 
   beforeEach(() => {
     stderrChunks = [];
-    stderrSpy = jest
-      .spyOn(process.stderr, 'write')
-      .mockImplementation((chunk: unknown) => {
-        stderrChunks.push(String(chunk));
-        return true;
-      });
+    mock.method(process.stderr, 'write', (chunk: unknown) => {
+      stderrChunks.push(String(chunk));
+      return true;
+    });
   });
 
   afterEach(() => {
-    stderrSpy.mockRestore();
+    mock.restoreAll();
   });
 
-  it('SECURITY INVARIANT: arbitrary Basic/Bearer tokens (any casing) and URL userinfo never survive redactSecrets or handleResponseError (neither response nor stderr)', () => {
+  void it('SECURITY INVARIANT: arbitrary Basic/Bearer tokens (any casing) and URL userinfo never survive redactSecrets or handleResponseError (neither response nor stderr)', () => {
     fc.assert(
       fc.property(
         fc.constantFrom('Basic', 'Bearer', 'basic', 'bearer', 'BEARER'),
@@ -38,31 +37,34 @@ describe('error & log secret-redaction security properties', () => {
             `to https://${userPrefix}${pat}@dev.azure.com/org/_apis/git`;
 
           const redacted = redactSecrets(leakyMessage);
-          expect(redacted).not.toContain(token);
-          expect(redacted).not.toContain(`${pat}@`);
+          assert.ok(!redacted.includes(token));
+          assert.ok(!redacted.includes(`${pat}@`));
 
           const response = handleResponseError(new Error(leakyMessage));
-          expect(response.isError).toBe(true);
-          expect(response.content[0].text).not.toContain(token);
-          expect(response.content[0].text).not.toContain(`${pat}@`);
+          assert.strictEqual(response.isError, true);
+          assert.ok(!response.content[0].text.includes(token));
+          assert.ok(!response.content[0].text.includes(`${pat}@`));
 
           const stderrText = stderrChunks.join('');
-          expect(stderrText).not.toContain(token);
-          expect(stderrText).not.toContain(`${pat}@`);
+          assert.ok(!stderrText.includes(token));
+          assert.ok(!stderrText.includes(`${pat}@`));
         },
       ),
       { numRuns: 150 },
     );
   });
 
-  it('HttpError and sanitizeUrlForError strip credentials and query tokens from URLs', () => {
+  void it('HttpError and sanitizeUrlForError strip credentials and query tokens from URLs', () => {
     fc.assert(
       fc.property(patArb, patArb, (pass, sasSig) => {
         const rawUrl = `https://pat:${pass}@dev.azure.com/myorg/_apis/projects?sig=${sasSig}&api-version=7.1`;
         const sanitized = sanitizeUrlForError(rawUrl);
-        expect(sanitized).toBe('https://dev.azure.com/myorg/_apis/projects');
-        expect(sanitized).not.toContain(pass);
-        expect(sanitized).not.toContain(sasSig);
+        assert.strictEqual(
+          sanitized,
+          'https://dev.azure.com/myorg/_apis/projects',
+        );
+        assert.ok(!sanitized.includes(pass));
+        assert.ok(!sanitized.includes(sasSig));
 
         const err = new HttpError({
           message: 'HTTP 401',
@@ -70,20 +72,22 @@ describe('error & log secret-redaction security properties', () => {
           statusText: 'Unauthorized',
           url: rawUrl,
         });
-        expect(err.url).not.toContain(pass);
-        expect(err.url).not.toContain(sasSig);
-        expect(formatOrgUrlForLog(rawUrl)).not.toContain(pass);
-        expect(formatOrgUrlForLog(rawUrl)).not.toContain(sasSig);
+        assert.ok(!err.url.includes(pass));
+        assert.ok(!err.url.includes(sasSig));
+        assert.ok(!formatOrgUrlForLog(rawUrl).includes(pass));
+        assert.ok(!formatOrgUrlForLog(rawUrl).includes(sasSig));
       }),
       { numRuns: 100 },
     );
   });
 
-  it('preserves ordinary English diagnostics containing Basic/Bearer words without false-positive redaction', () => {
-    expect(redactSecrets('Basic authentication failed for request')).toBe(
+  void it('preserves ordinary English diagnostics containing Basic/Bearer words without false-positive redaction', () => {
+    assert.strictEqual(
+      redactSecrets('Basic authentication failed for request'),
       'Basic authentication failed for request',
     );
-    expect(redactSecrets('Invalid basic credentials supplied')).toBe(
+    assert.strictEqual(
+      redactSecrets('Invalid basic credentials supplied'),
       'Invalid basic credentials supplied',
     );
   });

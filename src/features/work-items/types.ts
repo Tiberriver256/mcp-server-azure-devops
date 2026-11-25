@@ -2,7 +2,7 @@ import type {
   WorkItem,
   WorkItemReference,
   CommentList,
-} from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+} from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
 
 /**
  * Options for listing work items

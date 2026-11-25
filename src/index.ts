@@ -3,19 +3,28 @@
  * Entry point for the Azure DevOps MCP Server
  */
 
+import { realpathSync } from 'fs';
+import { resolve } from 'path';
+import { fileURLToPath } from 'url';
+import { getCallSites } from 'util';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { createAzureDevOpsServer } from './server';
-import type { AzureDevOpsConfig } from './shared/types';
-import { normalizeAuthMethod } from './shared/auth';
-import { formatOrgUrlForLog } from './shared/azure-devops-url';
+import { createAzureDevOpsServer } from './server.ts';
+import type { AzureDevOpsConfig } from './shared/types/index.ts';
+import { normalizeAuthMethod } from './shared/auth/index.ts';
+import { formatOrgUrlForLog } from './shared/azure-devops-url.ts';
 import {
   loadEnvFile,
   parseBooleanOption,
   parseCliToolFilterArgs,
   parseCsvList,
-} from './shared/config';
-import { redactSecrets } from './shared/errors';
-import { logDebug, logError, logInfo, resolveLogLevel } from './shared/logging';
+} from './shared/config/index.ts';
+import { redactSecrets } from './shared/errors/index.ts';
+import {
+  logDebug,
+  logError,
+  logInfo,
+  resolveLogLevel,
+} from './shared/logging.ts';
 
 export { normalizeAuthMethod };
 
@@ -96,7 +105,40 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+function isMainEntrypoint(): boolean {
+  const globalRequire: unknown = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'require',
+  )?.value;
+  const globalModule: unknown = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'module',
+  )?.value;
+  if (
+    typeof require === 'function' &&
+    typeof module === 'object' &&
+    module !== null &&
+    require !== globalRequire &&
+    module !== globalModule
+  ) {
+    return require.main === module;
+  }
+  const entry = process.argv[1];
+  const scriptName = getCallSites(1)[0]?.scriptName;
+  if (!entry || !scriptName) {
+    return false;
+  }
+  const currentPath = scriptName.startsWith('file://')
+    ? fileURLToPath(scriptName)
+    : scriptName;
+  try {
+    return realpathSync(entry) === realpathSync(currentPath);
+  } catch {
+    return resolve(entry) === resolve(currentPath);
+  }
+}
+
+if (isMainEntrypoint()) {
   main().catch((error: unknown) => {
     const safeMessage = redactSecrets(
       error instanceof Error ? error.message : String(error),

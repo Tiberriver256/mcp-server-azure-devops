@@ -1,40 +1,71 @@
+import assert from 'node:assert/strict';
+import { beforeEach, describe, it, mock } from 'node:test';
+import type { Mock } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { getPipelineLog } from './feature';
+import { getPipelineLog } from './feature.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
+} from '../../../shared/errors/index.ts';
 
-describe('getPipelineLog unit', () => {
+type RestGetFn = (
+  url: string,
+  options?: unknown,
+) => Promise<{
+  statusCode: number;
+  result: unknown;
+  headers: Record<string, string>;
+}>;
+type CreateRequestOptionsFn = (
+  acceptHeader: string,
+  apiVersion: string,
+) => { acceptHeader: string };
+type GetBuildLogLinesFn = (
+  projectId: string,
+  runId: number,
+  logId: number,
+  startLine?: number,
+  endLine?: number,
+) => Promise<string[] | undefined>;
+
+void describe('getPipelineLog unit', () => {
   let mockConnection: WebApi;
-  let mockBuildApi: any;
-  let mockRestGet: jest.Mock;
+  let mockRestGet: Mock<RestGetFn>;
+  let mockCreateRequestOptions: Mock<CreateRequestOptionsFn>;
+  let mockGetBuildLogLines: Mock<GetBuildLogLinesFn>;
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    mockRestGet = mock.fn<RestGetFn>(() =>
+      Promise.reject(new Error('Unexpected rest.get call')),
+    );
+    mockCreateRequestOptions = mock.fn<CreateRequestOptionsFn>(() => ({
+      acceptHeader: 'application/json',
+    }));
+    mockGetBuildLogLines = mock.fn<GetBuildLogLinesFn>(() =>
+      Promise.reject(new Error('Unexpected getBuildLogLines call')),
+    );
 
-    mockRestGet = jest.fn();
-    mockBuildApi = {
+    const mockBuildApi = {
       rest: { get: mockRestGet },
-      createRequestOptions: jest
-        .fn()
-        .mockReturnValue({ acceptHeader: 'application/json' }),
-      getBuildLogLines: jest.fn(),
+      createRequestOptions: mockCreateRequestOptions,
+      getBuildLogLines: mockGetBuildLogLines,
     };
 
     mockConnection = {
       serverUrl: 'https://dev.azure.com/testorg',
-      getBuildApi: jest.fn().mockResolvedValue(mockBuildApi),
+      getBuildApi: mock.fn(() => Promise.resolve(mockBuildApi)),
     } as unknown as WebApi;
   });
 
-  it('retrieves the pipeline log with query parameters', async () => {
-    mockRestGet.mockResolvedValue({
-      statusCode: 200,
-      result: 'log content',
-      headers: {},
-    });
+  void it('retrieves the pipeline log with query parameters', async () => {
+    mockRestGet.mock.mockImplementation(() =>
+      Promise.resolve({
+        statusCode: 200,
+        result: 'log content',
+        headers: {},
+      }),
+    );
 
     const result = await getPipelineLog(mockConnection, {
       projectId: 'test-project',
@@ -45,21 +76,26 @@ describe('getPipelineLog unit', () => {
       endLine: 20,
     });
 
-    expect(result).toEqual('log content');
-    expect(mockBuildApi.createRequestOptions).toHaveBeenCalledWith(
+    assert.strictEqual(result, 'log content');
+    assert.strictEqual(mockCreateRequestOptions.mock.callCount(), 1);
+    assert.deepStrictEqual(mockCreateRequestOptions.mock.calls[0]?.arguments, [
       'application/json',
       '7.1',
-    );
-    const [requestUrl] = mockRestGet.mock.calls[0];
+    ]);
+    assert.strictEqual(mockRestGet.mock.callCount(), 1);
+    const requestUrl = mockRestGet.mock.calls[0]?.arguments[0];
+    assert.ok(requestUrl);
     const url = new URL(requestUrl);
-    expect(url.pathname).toContain('/build/builds/101/logs/7');
-    expect(url.searchParams.get('format')).toBe('json');
-    expect(url.searchParams.get('startLine')).toBe('10');
-    expect(url.searchParams.get('endLine')).toBe('20');
+    assert.ok(url.pathname.includes('/build/builds/101/logs/7'));
+    assert.strictEqual(url.searchParams.get('format'), 'json');
+    assert.strictEqual(url.searchParams.get('startLine'), '10');
+    assert.strictEqual(url.searchParams.get('endLine'), '20');
   });
 
-  it('defaults to plain text when format not provided', async () => {
-    mockBuildApi.getBuildLogLines.mockResolvedValue(['line1', 'line2']);
+  void it('defaults to plain text when format not provided', async () => {
+    mockGetBuildLogLines.mock.mockImplementation(() =>
+      Promise.resolve(['line1', 'line2']),
+    );
 
     await getPipelineLog(mockConnection, {
       projectId: 'test-project',
@@ -67,50 +103,61 @@ describe('getPipelineLog unit', () => {
       logId: 7,
     });
 
-    expect(mockBuildApi.getBuildLogLines).toHaveBeenCalledWith(
+    assert.strictEqual(mockGetBuildLogLines.mock.callCount(), 1);
+    assert.deepStrictEqual(mockGetBuildLogLines.mock.calls[0]?.arguments, [
       'test-project',
       101,
       7,
       undefined,
       undefined,
+    ]);
+  });
+
+  void it('throws resource not found when API returns 404', async () => {
+    mockGetBuildLogLines.mock.mockImplementation(() =>
+      Promise.resolve(undefined),
+    );
+
+    await assert.rejects(
+      () =>
+        getPipelineLog(mockConnection, {
+          projectId: 'test-project',
+          runId: 101,
+          logId: 7,
+        }),
+      AzureDevOpsResourceNotFoundError,
     );
   });
 
-  it('throws resource not found when API returns 404', async () => {
-    mockBuildApi.getBuildLogLines.mockResolvedValue(undefined);
-
-    await expect(
-      getPipelineLog(mockConnection, {
-        projectId: 'test-project',
-        runId: 101,
-        logId: 7,
-      }),
-    ).rejects.toBeInstanceOf(AzureDevOpsResourceNotFoundError);
-  });
-
-  it('maps authentication errors', async () => {
-    mockBuildApi.getBuildLogLines.mockRejectedValue(
-      new Error('401 Unauthorized'),
+  void it('maps authentication errors', async () => {
+    mockGetBuildLogLines.mock.mockImplementation(() =>
+      Promise.reject(new Error('401 Unauthorized')),
     );
 
-    await expect(
-      getPipelineLog(mockConnection, {
-        projectId: 'test-project',
-        runId: 101,
-        logId: 7,
-      }),
-    ).rejects.toBeInstanceOf(AzureDevOpsAuthenticationError);
+    await assert.rejects(
+      () =>
+        getPipelineLog(mockConnection, {
+          projectId: 'test-project',
+          runId: 101,
+          logId: 7,
+        }),
+      AzureDevOpsAuthenticationError,
+    );
   });
 
-  it('wraps unexpected errors', async () => {
-    mockBuildApi.getBuildLogLines.mockRejectedValue(new Error('Boom'));
+  void it('wraps unexpected errors', async () => {
+    mockGetBuildLogLines.mock.mockImplementation(() =>
+      Promise.reject(new Error('Boom')),
+    );
 
-    await expect(
-      getPipelineLog(mockConnection, {
-        projectId: 'test-project',
-        runId: 101,
-        logId: 7,
-      }),
-    ).rejects.toBeInstanceOf(AzureDevOpsError);
+    await assert.rejects(
+      () =>
+        getPipelineLog(mockConnection, {
+          projectId: 'test-project',
+          runId: 101,
+          logId: 7,
+        }),
+      AzureDevOpsError,
+    );
   });
 });

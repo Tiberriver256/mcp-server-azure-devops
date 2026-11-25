@@ -1,13 +1,11 @@
+import assert from 'node:assert/strict';
+import { describe, mock, test } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { listPullRequests } from './feature';
-import { PullRequestStatus } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { listPullRequests } from './feature.ts';
+import { PullRequestStatus } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 
-describe('listPullRequests', () => {
-  afterEach(() => {
-    jest.resetAllMocks();
-  });
-
-  test('should return pull requests successfully with pagination metadata', async () => {
+void describe('listPullRequests', () => {
+  void test('should return pull requests successfully with pagination metadata', async () => {
     // Mock data
     const mockPullRequests = [
       {
@@ -24,11 +22,13 @@ describe('listPullRequests', () => {
 
     // Setup mock connection
     const mockGitApi = {
-      getPullRequests: jest.fn().mockResolvedValue(mockPullRequests),
+      getPullRequests: mock.fn((..._args: unknown[]) =>
+        Promise.resolve(mockPullRequests),
+      ),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call the function with test parameters
@@ -42,39 +42,42 @@ describe('listPullRequests', () => {
     };
 
     const result = await listPullRequests(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       repositoryId,
       options,
     );
 
     // Verify results
-    expect(result).toEqual({
+    assert.deepStrictEqual(result, {
       count: 2,
       value: mockPullRequests,
       hasMoreResults: false,
       warning: undefined,
     });
-    expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.getPullRequests).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.getPullRequests).toHaveBeenCalledWith(
-      repositoryId,
-      { status: PullRequestStatus.Active },
-      projectId,
-      undefined, // maxCommentLength
-      0, // skip
-      10, // top
+    assert.strictEqual(mockConnection.getGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockGitApi.getPullRequests.mock.callCount(), 1);
+    assert.deepStrictEqual(
+      mockGitApi.getPullRequests.mock.calls[0]?.arguments,
+      [
+        repositoryId,
+        { status: PullRequestStatus.Active },
+        projectId,
+        undefined, // maxCommentLength
+        0, // skip
+        10, // top
+      ],
     );
   });
 
-  test('should return empty array when no pull requests exist', async () => {
+  void test('should return empty array when no pull requests exist', async () => {
     // Setup mock connection
     const mockGitApi = {
-      getPullRequests: jest.fn().mockResolvedValue(null),
+      getPullRequests: mock.fn(() => Promise.resolve(null)),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call the function with test parameters
@@ -83,31 +86,31 @@ describe('listPullRequests', () => {
     const options = { projectId, repositoryId };
 
     const result = await listPullRequests(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       repositoryId,
       options,
     );
 
     // Verify results
-    expect(result).toEqual({
+    assert.deepStrictEqual(result, {
       count: 0,
       value: [],
       hasMoreResults: false,
       warning: undefined,
     });
-    expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.getPullRequests).toHaveBeenCalledTimes(1);
+    assert.strictEqual(mockConnection.getGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockGitApi.getPullRequests.mock.callCount(), 1);
   });
 
-  test('should handle all filter options correctly', async () => {
+  void test('should handle all filter options correctly', async () => {
     // Setup mock connection
     const mockGitApi = {
-      getPullRequests: jest.fn().mockResolvedValue([]),
+      getPullRequests: mock.fn((..._args: unknown[]) => Promise.resolve([])),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call with all options
@@ -126,35 +129,39 @@ describe('listPullRequests', () => {
     };
 
     await listPullRequests(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       repositoryId,
       options,
     );
 
     // Verify the search criteria was constructed correctly
-    expect(mockGitApi.getPullRequests).toHaveBeenCalledWith(
-      repositoryId,
-      {
-        status: PullRequestStatus.Completed,
-        creatorId: 'a8a8a8a8-a8a8-a8a8-a8a8-a8a8a8a8a8a8',
-        reviewerId: 'b9b9b9b9-b9b9-b9b9-b9b9-b9b9b9b9b9b9',
-        sourceRefName: 'refs/heads/source-branch',
-        targetRefName: 'refs/heads/target-branch',
-      },
-      projectId,
-      undefined, // maxCommentLength
-      10, // skip
-      5, // top
+    assert.strictEqual(mockGitApi.getPullRequests.mock.callCount(), 1);
+    assert.deepStrictEqual(
+      mockGitApi.getPullRequests.mock.calls[0]?.arguments,
+      [
+        repositoryId,
+        {
+          status: PullRequestStatus.Completed,
+          creatorId: 'a8a8a8a8-a8a8-a8a8-a8a8-a8a8a8a8a8a8',
+          reviewerId: 'b9b9b9b9-b9b9-b9b9-b9b9-b9b9b9b9b9b9',
+          sourceRefName: 'refs/heads/source-branch',
+          targetRefName: 'refs/heads/target-branch',
+        },
+        projectId,
+        undefined, // maxCommentLength
+        10, // skip
+        5, // top
+      ],
     );
   });
 
-  test('should throw error when API call fails', async () => {
+  void test('should throw error when API call fails', async () => {
     // Setup mock connection
     const errorMessage = 'API error';
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => ({
-        getPullRequests: jest.fn().mockRejectedValue(new Error(errorMessage)),
+    const mockConnection = {
+      getGitApi: mock.fn(() => ({
+        getPullRequests: mock.fn(() => Promise.reject(new Error(errorMessage))),
       })),
     };
 
@@ -164,17 +171,25 @@ describe('listPullRequests', () => {
     const options = { projectId, repositoryId };
 
     // Verify error handling
-    await expect(
-      listPullRequests(
-        mockConnection as WebApi,
-        projectId,
-        repositoryId,
-        options,
-      ),
-    ).rejects.toThrow(`Failed to list pull requests: ${errorMessage}`);
+    await assert.rejects(
+      () =>
+        listPullRequests(
+          mockConnection as unknown as WebApi,
+          projectId,
+          repositoryId,
+          options,
+        ),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(
+          err.message.includes(`Failed to list pull requests: ${errorMessage}`),
+        );
+        return true;
+      },
+    );
   });
 
-  test('should use default pagination values when not provided', async () => {
+  void test('should use default pagination values when not provided', async () => {
     // Mock data
     const mockPullRequests = [
       { pullRequestId: 1, title: 'Test PR 1' },
@@ -183,11 +198,13 @@ describe('listPullRequests', () => {
 
     // Setup mock connection
     const mockGitApi = {
-      getPullRequests: jest.fn().mockResolvedValue(mockPullRequests),
+      getPullRequests: mock.fn((..._args: unknown[]) =>
+        Promise.resolve(mockPullRequests),
+      ),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call the function with minimal parameters (no top or skip)
@@ -196,27 +213,31 @@ describe('listPullRequests', () => {
     const options = { projectId, repositoryId };
 
     const result = await listPullRequests(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       repositoryId,
       options,
     );
 
     // Verify default values were used
-    expect(mockGitApi.getPullRequests).toHaveBeenCalledWith(
-      repositoryId,
-      {},
-      projectId,
-      undefined, // maxCommentLength
-      0, // default skip
-      10, // default top
+    assert.strictEqual(mockGitApi.getPullRequests.mock.callCount(), 1);
+    assert.deepStrictEqual(
+      mockGitApi.getPullRequests.mock.calls[0]?.arguments,
+      [
+        repositoryId,
+        {},
+        projectId,
+        undefined, // maxCommentLength
+        0, // default skip
+        10, // default top
+      ],
     );
 
-    expect(result.count).toBe(2);
-    expect(result.value).toEqual(mockPullRequests);
+    assert.strictEqual(result.count, 2);
+    assert.deepStrictEqual(result.value, mockPullRequests);
   });
 
-  test('should add warning when hasMoreResults is true', async () => {
+  void test('should add warning when hasMoreResults is true', async () => {
     // Create exactly 10 mock pull requests to trigger hasMoreResults
     const mockPullRequests = Array(10)
       .fill(0)
@@ -227,11 +248,11 @@ describe('listPullRequests', () => {
 
     // Setup mock connection
     const mockGitApi = {
-      getPullRequests: jest.fn().mockResolvedValue(mockPullRequests),
+      getPullRequests: mock.fn(() => Promise.resolve(mockPullRequests)),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call with top=10 to match the number of results
@@ -245,15 +266,16 @@ describe('listPullRequests', () => {
     };
 
     const result = await listPullRequests(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       repositoryId,
       options,
     );
 
     // Verify hasMoreResults is true and warning is set
-    expect(result.hasMoreResults).toBe(true);
-    expect(result.warning).toBe(
+    assert.strictEqual(result.hasMoreResults, true);
+    assert.strictEqual(
+      result.warning,
       "Results limited to 10 items. Use 'skip: 15' to get the next page.",
     );
   });

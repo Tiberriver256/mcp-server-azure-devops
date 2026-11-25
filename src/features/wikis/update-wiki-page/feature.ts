@@ -1,7 +1,7 @@
 import type { z } from 'zod';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
-import { UpdateWikiPageSchema } from '../schemas';
-import { createWikiClient } from '../wiki-client';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import { UpdateWikiPageSchema } from '../schemas.ts';
+import { createWikiClient } from '../wiki-client.ts';
 
 export type UpdateWikiPageOptions = z.infer<typeof UpdateWikiPageSchema>;
 

@@ -1,4 +1,4 @@
-import { AzureDevOpsValidationError } from './errors';
+import { AzureDevOpsValidationError } from './errors/index.ts';
 
 export type AzureDevOpsUrlType = 'services' | 'server';
 

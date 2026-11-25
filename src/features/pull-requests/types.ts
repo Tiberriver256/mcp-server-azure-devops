@@ -3,7 +3,7 @@ import type {
   Comment,
   GitPullRequestCommentThread,
   CommentPosition,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 
 export type PullRequest = GitPullRequest;
 export type PullRequestComment = Comment;

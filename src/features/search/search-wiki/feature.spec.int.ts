@@ -1,80 +1,88 @@
+import assert from 'node:assert/strict';
+import { before, describe, test } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { searchWiki } from './feature';
+import { searchWiki } from './feature.ts';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,
-} from '@/shared/test/test-helpers';
+} from '../../../shared/test/test-helpers.ts';
 
 const shouldSkip = shouldSkipIntegrationTest();
-const describeOrSkip = shouldSkip ? describe.skip : describe;
 
-describeOrSkip('searchWiki integration', () => {
-  let connection: WebApi;
-  let projectName: string;
+void describe(
+  'searchWiki integration',
+  {
+    skip: shouldSkip ? 'No real Azure DevOps connection available' : false,
+  },
+  () => {
+    let connection: WebApi;
+    let projectName: string;
 
-  beforeAll(async () => {
-    // Get a real connection using environment variables
-    const testConnection = await getTestConnection();
-    if (!testConnection) {
-      throw new Error(
-        'Connection should be available when integration tests are enabled',
-      );
-    }
-    connection = testConnection;
-    projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
-  });
-
-  test('should search wiki content', async () => {
-    // Search the wiki
-    const result = await searchWiki(connection, {
-      searchText: 'test',
-      projectId: projectName,
-      top: 10,
+    before(async () => {
+      // Get a real connection using environment variables
+      const testConnection = await getTestConnection();
+      if (!testConnection) {
+        throw new Error(
+          'Connection should be available when integration tests are enabled',
+        );
+      }
+      connection = testConnection;
+      projectName =
+        process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';
     });
 
-    // Verify the result
-    expect(result).toBeDefined();
-    expect(result.count).toBeDefined();
-    expect(Array.isArray(result.results)).toBe(true);
-    if (result.results.length > 0) {
-      expect(result.results[0].fileName).toBeDefined();
-      expect(result.results[0].path).toBeDefined();
-      expect(result.results[0].project).toBeDefined();
-    }
-  });
+    void test('should search wiki content', async () => {
+      // Search the wiki
+      const result = await searchWiki(connection, {
+        searchText: 'test',
+        projectId: projectName,
+        top: 10,
+      });
 
-  test('should handle pagination correctly', async () => {
-    // Get first page of results
-    const page1 = await searchWiki(connection, {
-      searchText: 'test', // Common word likely to have many results
-      projectId: projectName,
-      top: 5,
-      skip: 0,
+      // Verify the result
+      assert.notStrictEqual(result, undefined);
+      assert.notStrictEqual(result.count, undefined);
+      assert.strictEqual(Array.isArray(result.results), true);
+      if (result.results.length > 0) {
+        assert.notStrictEqual(result.results[0].fileName, undefined);
+        assert.notStrictEqual(result.results[0].path, undefined);
+        assert.notStrictEqual(result.results[0].project, undefined);
+      }
     });
 
-    // Get second page of results
-    const page2 = await searchWiki(connection, {
-      searchText: 'test',
-      projectId: projectName,
-      top: 5,
-      skip: 5,
+    void test('should handle pagination correctly', async () => {
+      // Get first page of results
+      const page1 = await searchWiki(connection, {
+        searchText: 'test', // Common word likely to have many results
+        projectId: projectName,
+        top: 5,
+        skip: 0,
+      });
+
+      // Get second page of results
+      const page2 = await searchWiki(connection, {
+        searchText: 'test',
+        projectId: projectName,
+        top: 5,
+        skip: 5,
+      });
+
+      // Verify pagination
+      assert.notDeepStrictEqual(page1.results, page2.results);
     });
 
-    // Verify pagination
-    expect(page1.results).not.toEqual(page2.results);
-  });
+    void test('should handle filters correctly', async () => {
+      // This test is more of a smoke test since we can't guarantee specific projects
+      const result = await searchWiki(connection, {
+        searchText: 'test',
+        filters: {
+          Project: [projectName],
+        },
+        includeFacets: true,
+      });
 
-  test('should handle filters correctly', async () => {
-    // This test is more of a smoke test since we can't guarantee specific projects
-    const result = await searchWiki(connection, {
-      searchText: 'test',
-      filters: {
-        Project: [projectName],
-      },
-      includeFacets: true,
+      assert.notStrictEqual(result, undefined);
+      assert.notStrictEqual(result.facets, undefined);
     });
-
-    expect(result).toBeDefined();
-    expect(result.facets).toBeDefined();
-  });
-});
+  },
+);

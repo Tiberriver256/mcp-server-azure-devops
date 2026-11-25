@@ -4,7 +4,7 @@ import {
   GitPullRequestMergeStrategy,
   GitVersionType,
   PullRequestStatus,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 
 export interface EnumMapper {
   readonly keys: readonly string[];

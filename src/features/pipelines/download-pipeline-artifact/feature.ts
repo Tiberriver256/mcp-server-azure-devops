@@ -1,33 +1,36 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { BuildArtifact } from 'azure-devops-node-api/interfaces/BuildInterfaces';
-import { GetArtifactExpandOptions } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
+import type { BuildArtifact } from 'azure-devops-node-api/interfaces/BuildInterfaces.js';
+import { GetArtifactExpandOptions } from 'azure-devops-node-api/interfaces/PipelinesInterfaces.js';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
+} from '../../../shared/errors/index.ts';
 import {
   createHttpClient,
   isHttpError,
   mapHttpErrorToAzureDevOpsError,
-} from '../../../shared/http/http-client';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
-import { streamToBuffer } from '../../../shared/utils/stream';
-import { readZipArchive } from '../../../shared/utils/zip-reader';
+} from '../../../shared/http/http-client.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import { streamToBuffer } from '../../../shared/utils/stream.ts';
+import { readZipArchive } from '../../../shared/utils/zip-reader.ts';
 import type {
   ZipArchive,
   ZipEntryMeta,
-} from '../../../shared/utils/zip-reader';
-import { MAX_ARTIFACT_ZIP_BYTES, parseArtifactContainer } from '../artifacts';
+} from '../../../shared/utils/zip-reader.ts';
+import {
+  MAX_ARTIFACT_ZIP_BYTES,
+  parseArtifactContainer,
+} from '../artifacts.ts';
 import {
   isSameOrigin,
   resolvePipelineId,
   resolvePipelineProjectId,
-} from '../helpers';
+} from '../helpers.ts';
 import type {
   DownloadPipelineArtifactOptions,
   PipelineArtifactContent,
-} from '../types';
+} from '../types.ts';
 
 export function normalizeArtifactPath(artifactPath: string): {
   artifactName: string;

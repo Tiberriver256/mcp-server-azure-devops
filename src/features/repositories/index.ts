@@ -1,25 +1,25 @@
-export * from './schemas';
-export * from './types';
-export { getRepository } from './get-repository/feature';
-export { getRepositoryDetails } from './get-repository-details/feature';
-export { listRepositories } from './list-repositories/feature';
-export { getFileContent } from './get-file-content/feature';
+export * from './schemas.ts';
+export * from './types.ts';
+export { getRepository } from './get-repository/feature.ts';
+export { getRepositoryDetails } from './get-repository-details/feature.ts';
+export { listRepositories } from './list-repositories/feature.ts';
+export { getFileContent } from './get-file-content/feature.ts';
 export {
   getAllRepositoriesTree,
   formatRepositoryTree,
-} from './get-all-repositories-tree/feature';
-export { getRepositoryTree } from './get-repository-tree/feature';
-export { createBranch } from './create-branch/feature';
+} from './get-all-repositories-tree/feature.ts';
+export { getRepositoryTree } from './get-repository-tree/feature.ts';
+export { createBranch } from './create-branch/feature.ts';
 export {
   createCommit,
   applyLiteralSearchReplace,
   normalizeGitDiffPath,
-} from './create-commit/feature';
-export { listCommits } from './list-commits/feature';
+} from './create-commit/feature.ts';
+export { listCommits } from './list-commits/feature.ts';
 
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
-import { gitVersionTypeMapper } from '../../shared/enums';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
+import { gitVersionTypeMapper } from '../../shared/enums/index.ts';
 import {
   CreateBranchSchema,
   CreateCommitSchema,
@@ -30,19 +30,19 @@ import {
   GetRepositoryTreeSchema,
   ListCommitsSchema,
   ListRepositoriesSchema,
-} from './schemas';
-import { getRepository } from './get-repository/feature';
-import { getRepositoryDetails } from './get-repository-details/feature';
-import { listRepositories } from './list-repositories/feature';
-import { getFileContent } from './get-file-content/feature';
+} from './schemas.ts';
+import { getRepository } from './get-repository/feature.ts';
+import { getRepositoryDetails } from './get-repository-details/feature.ts';
+import { listRepositories } from './list-repositories/feature.ts';
+import { getFileContent } from './get-file-content/feature.ts';
 import {
   getAllRepositoriesTree,
   formatRepositoryTree,
-} from './get-all-repositories-tree/feature';
-import { getRepositoryTree } from './get-repository-tree/feature';
-import { createBranch } from './create-branch/feature';
-import { createCommit } from './create-commit/feature';
-import { listCommits } from './list-commits/feature';
+} from './get-all-repositories-tree/feature.ts';
+import { getRepositoryTree } from './get-repository-tree/feature.ts';
+import { createBranch } from './create-branch/feature.ts';
+import { createCommit } from './create-commit/feature.ts';
+import { listCommits } from './list-commits/feature.ts';
 
 export const repositoriesFeature: FeatureModule = {
   toolset: 'repositories',

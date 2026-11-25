@@ -1,7 +1,7 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
-import { AzureDevOpsError } from '../../../shared/errors';
-import type { DeleteWorkItemAttachmentOptions, WorkItem } from '../types';
+import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import type { DeleteWorkItemAttachmentOptions, WorkItem } from '../types.ts';
 
 /**
  * Delete an attachment from a work item

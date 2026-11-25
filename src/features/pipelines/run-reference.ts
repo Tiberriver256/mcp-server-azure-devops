@@ -2,13 +2,13 @@ import type { WebApi } from 'azure-devops-node-api';
 import type {
   Build,
   BuildDefinitionReference,
-} from 'azure-devops-node-api/interfaces/BuildInterfaces';
-import { BuildQueryOrder } from 'azure-devops-node-api/interfaces/BuildInterfaces';
+} from 'azure-devops-node-api/interfaces/BuildInterfaces.js';
+import { BuildQueryOrder } from 'azure-devops-node-api/interfaces/BuildInterfaces.js';
 import { z } from 'zod';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../../shared/errors';
+} from '../../shared/errors/index.ts';
 
 /**
  * Human-friendly ways to reference a pipeline and one of its runs.

@@ -1,11 +1,14 @@
-import { getPullRequestChecks } from './feature';
-import { GitStatusState } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { PolicyEvaluationStatus } from 'azure-devops-node-api/interfaces/PolicyInterfaces';
-import { AzureDevOpsError } from '../../../shared/errors';
+import assert from 'node:assert/strict';
+import { describe, it, mock } from 'node:test';
+import type { WebApi } from 'azure-devops-node-api';
+import { getPullRequestChecks } from './feature.ts';
+import { GitStatusState } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { PolicyEvaluationStatus } from 'azure-devops-node-api/interfaces/PolicyInterfaces.js';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
 
-describe('getPullRequestChecks', () => {
-  it('returns status checks and policy evaluations with pipeline references', async () => {
-    const statusRecords: any[] = [
+void describe('getPullRequestChecks', () => {
+  void it('returns status checks and policy evaluations with pipeline references', async () => {
+    const statusRecords: unknown[] = [
       {
         id: 10,
         state: GitStatusState.Failed,
@@ -28,7 +31,7 @@ describe('getPullRequestChecks', () => {
       },
     ];
 
-    const evaluationRecords: any[] = [
+    const evaluationRecords: unknown[] = [
       {
         evaluationId: 'eval-1',
         status: PolicyEvaluationStatus.Rejected,
@@ -56,20 +59,24 @@ describe('getPullRequestChecks', () => {
     ];
 
     const gitApi = {
-      getPullRequestStatuses: jest.fn().mockResolvedValue(statusRecords),
+      getPullRequestStatuses: mock.fn((..._args: unknown[]) =>
+        Promise.resolve(statusRecords),
+      ),
     };
     const policyApi = {
-      getPolicyEvaluations: jest.fn().mockResolvedValue(evaluationRecords),
+      getPolicyEvaluations: mock.fn((..._args: unknown[]) =>
+        Promise.resolve(evaluationRecords),
+      ),
     };
-    const getProject = jest
-      .fn()
-      .mockResolvedValue({ id: 'project-guid', name: 'project' });
+    const getProject = mock.fn((..._args: unknown[]) =>
+      Promise.resolve({ id: 'project-guid', name: 'project' }),
+    );
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(gitApi),
-      getPolicyApi: jest.fn().mockResolvedValue(policyApi),
-      getCoreApi: jest.fn().mockResolvedValue({ getProject }),
-    };
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(gitApi)),
+      getPolicyApi: mock.fn(() => Promise.resolve(policyApi)),
+      getCoreApi: mock.fn(() => Promise.resolve({ getProject })),
+    } as unknown as WebApi;
 
     const result = await getPullRequestChecks(mockConnection, {
       projectId: 'project',
@@ -77,90 +84,109 @@ describe('getPullRequestChecks', () => {
       pullRequestId: 42,
     });
 
-    expect(result.statuses).toHaveLength(2);
-    expect(result.statuses[0].state).toBe('failed');
-    expect(result.statuses[0].pipeline?.pipelineId).toBe(55);
-    expect(result.statuses[0].pipeline?.runId).toBe(123);
-    expect(result.statuses[1].pipeline?.buildId).toBe(456);
-    expect(result.statuses[1].pipeline?.definitionId).toBe(789);
+    assert.strictEqual(result.statuses.length, 2);
+    assert.strictEqual(result.statuses[0].state, 'failed');
+    assert.strictEqual(result.statuses[0].pipeline?.pipelineId, 55);
+    assert.strictEqual(result.statuses[0].pipeline?.runId, 123);
+    assert.strictEqual(result.statuses[1].pipeline?.buildId, 456);
+    assert.strictEqual(result.statuses[1].pipeline?.definitionId, 789);
 
-    expect(result.policyEvaluations).toHaveLength(1);
-    expect(result.policyEvaluations[0].status).toBe('rejected');
-    expect(result.policyEvaluations[0].pipeline?.definitionId).toBe(987);
-    expect(result.policyEvaluations[0].pipeline?.buildId).toBe(456);
-    expect(result.policyEvaluations[0].targetUrl).toContain('buildId=456');
+    assert.strictEqual(result.policyEvaluations.length, 1);
+    assert.strictEqual(result.policyEvaluations[0].status, 'rejected');
+    assert.strictEqual(result.policyEvaluations[0].pipeline?.definitionId, 987);
+    assert.strictEqual(result.policyEvaluations[0].pipeline?.buildId, 456);
+    assert.ok(result.policyEvaluations[0].targetUrl?.includes('buildId=456'));
 
-    expect(getProject).toHaveBeenCalledWith('project');
-    expect(gitApi.getPullRequestStatuses).toHaveBeenCalledWith(
-      'repo',
-      42,
-      'project-guid',
+    assert.strictEqual(getProject.mock.callCount(), 1);
+    assert.deepStrictEqual(getProject.mock.calls[0]?.arguments, ['project']);
+    assert.strictEqual(gitApi.getPullRequestStatuses.mock.callCount(), 1);
+    assert.deepStrictEqual(
+      gitApi.getPullRequestStatuses.mock.calls[0]?.arguments,
+      ['repo', 42, 'project-guid'],
     );
-    expect(policyApi.getPolicyEvaluations).toHaveBeenCalledWith(
-      'project-guid',
-      'vstfs:///CodeReview/CodeReviewId/project-guid/42',
+    assert.strictEqual(policyApi.getPolicyEvaluations.mock.callCount(), 1);
+    assert.deepStrictEqual(
+      policyApi.getPolicyEvaluations.mock.calls[0]?.arguments,
+      ['project-guid', 'vstfs:///CodeReview/CodeReviewId/project-guid/42'],
     );
   });
 
-  it('re-throws Azure DevOps errors', async () => {
+  void it('re-throws Azure DevOps errors', async () => {
     const azureError = new AzureDevOpsError('Azure failure');
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockRejectedValue(azureError),
-      getPolicyApi: jest.fn(),
-      getCoreApi: jest.fn().mockResolvedValue({
-        getProject: jest.fn().mockResolvedValue({ id: 'project-guid' }),
-      }),
-    };
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.reject(azureError)),
+      getPolicyApi: mock.fn(),
+      getCoreApi: mock.fn(() =>
+        Promise.resolve({
+          getProject: mock.fn(() => Promise.resolve({ id: 'project-guid' })),
+        }),
+      ),
+    } as unknown as WebApi;
 
-    await expect(
-      getPullRequestChecks(mockConnection, {
-        projectId: 'project',
-        repositoryId: 'repo',
-        pullRequestId: 1,
-      }),
-    ).rejects.toBe(azureError);
+    await assert.rejects(
+      () =>
+        getPullRequestChecks(mockConnection, {
+          projectId: 'project',
+          repositoryId: 'repo',
+          pullRequestId: 1,
+        }),
+      (err: unknown) => {
+        assert.strictEqual(err, azureError);
+        return true;
+      },
+    );
   });
 
-  it('wraps unexpected errors', async () => {
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockRejectedValue(new Error('boom')),
-      getPolicyApi: jest.fn(),
-      getCoreApi: jest.fn().mockResolvedValue({
-        getProject: jest.fn().mockResolvedValue({ id: 'project-guid' }),
-      }),
-    };
+  void it('wraps unexpected errors', async () => {
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.reject(new Error('boom'))),
+      getPolicyApi: mock.fn(),
+      getCoreApi: mock.fn(() =>
+        Promise.resolve({
+          getProject: mock.fn(() => Promise.resolve({ id: 'project-guid' })),
+        }),
+      ),
+    } as unknown as WebApi;
 
-    await expect(
-      getPullRequestChecks(mockConnection, {
-        projectId: 'project',
-        repositoryId: 'repo',
-        pullRequestId: 1,
-      }),
-    ).rejects.toThrow('Failed to get pull request checks: boom');
+    await assert.rejects(
+      () =>
+        getPullRequestChecks(mockConnection, {
+          projectId: 'project',
+          repositoryId: 'repo',
+          pullRequestId: 1,
+        }),
+      /Failed to get pull request checks: boom/,
+    );
   });
 
-  it('uses the provided project GUID without fetching project metadata', async () => {
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getPullRequestStatuses: jest.fn().mockResolvedValue([]),
-      }),
-      getPolicyApi: jest.fn().mockResolvedValue({
-        getPolicyEvaluations: jest.fn().mockResolvedValue([]),
-      }),
-      getCoreApi: jest.fn(() => {
+  void it('uses the provided project GUID without fetching project metadata', async () => {
+    const mockConnection = {
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getPullRequestStatuses: mock.fn(() => Promise.resolve([])),
+        }),
+      ),
+      getPolicyApi: mock.fn(() =>
+        Promise.resolve({
+          getPolicyEvaluations: mock.fn(() => Promise.resolve([])),
+        }),
+      ),
+      getCoreApi: mock.fn(() => {
         throw new Error('should not fetch project');
       }),
     };
 
-    await expect(
-      getPullRequestChecks(mockConnection, {
+    const result = await getPullRequestChecks(
+      mockConnection as unknown as WebApi,
+      {
         projectId: '12345678-1234-1234-1234-1234567890ab',
         repositoryId: 'repo',
         pullRequestId: 1,
-      }),
-    ).resolves.toEqual({ statuses: [], policyEvaluations: [] });
+      },
+    );
 
-    expect(mockConnection.getGitApi).toHaveBeenCalled();
-    expect(mockConnection.getPolicyApi).toHaveBeenCalled();
+    assert.deepStrictEqual(result, { statuses: [], policyEvaluations: [] });
+    assert.strictEqual(mockConnection.getGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockConnection.getPolicyApi.mock.callCount(), 1);
   });
 });

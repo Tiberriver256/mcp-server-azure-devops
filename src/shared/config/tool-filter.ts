@@ -1,5 +1,5 @@
-import { AzureDevOpsValidationError } from '../errors';
-import { logWarn } from '../logging';
+import { AzureDevOpsValidationError } from '../errors/index.ts';
+import { logWarn } from '../logging.ts';
 
 export const TOOLSET_NAMES = [
   'users',

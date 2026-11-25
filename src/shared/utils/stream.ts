@@ -1,4 +1,4 @@
-import { AzureDevOpsError } from '../errors';
+import { AzureDevOpsError } from '../errors/index.ts';
 
 export const DEFAULT_MAX_STREAM_BYTES = 25 * 1024 * 1024; // 25 MiB
 

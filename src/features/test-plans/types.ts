@@ -2,8 +2,8 @@ import type {
   TestCase,
   TestPlan,
   TestSuite,
-} from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
-import type { WorkItem } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+} from 'azure-devops-node-api/interfaces/TestPlanInterfaces.js';
+import type { WorkItem } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
 
 export type SuiteExpandOption = 'none' | 'children' | 'defaultTesters';
 

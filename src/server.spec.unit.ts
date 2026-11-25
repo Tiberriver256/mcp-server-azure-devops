@@ -1,3 +1,5 @@
+import assert from 'node:assert/strict';
+import { describe, it, mock } from 'node:test';
 import { Readable } from 'stream';
 import {
   CallToolRequestSchema,
@@ -8,13 +10,13 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type { WebApi } from 'azure-devops-node-api';
-import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { createAzureDevOpsServer, getToolRegistry } from './server';
-import { AuthenticationMethod } from './shared/auth';
-import { AzureDevOpsValidationError } from './shared/errors';
-import { TOOLSET_NAMES } from './shared/config';
+import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { createAzureDevOpsServer, getToolRegistry } from './server.ts';
+import { AuthenticationMethod } from './shared/auth/index.ts';
+import { AzureDevOpsValidationError } from './shared/errors/index.ts';
+import { TOOLSET_NAMES } from './shared/config/index.ts';
 
-describe('createAzureDevOpsServer deep seam tests', () => {
+void describe('createAzureDevOpsServer deep seam tests', () => {
   const baseConfig = {
     organizationUrl: 'https://dev.azure.com/test-org',
     authMethod: AuthenticationMethod.PersonalAccessToken,
@@ -41,20 +43,20 @@ describe('createAzureDevOpsServer deep seam tests', () => {
     return handler;
   }
 
-  it('registers all 60 tools across 10 toolsets with explicit boolean readOnly', () => {
+  void it('registers all 60 tools across 10 toolsets with explicit boolean readOnly', () => {
     const registry = getToolRegistry();
     let total = 0;
     for (const toolset of TOOLSET_NAMES) {
-      expect(registry[toolset].length).toBeGreaterThan(0);
+      assert.ok(registry[toolset].length > 0);
       for (const tool of registry[toolset]) {
-        expect(typeof tool.readOnly).toBe('boolean');
+        assert.strictEqual(typeof tool.readOnly, 'boolean');
         total += 1;
       }
     }
-    expect(total).toBe(60);
+    assert.strictEqual(total, 60);
   });
 
-  it('filters ListTools by toolsets and disabledTools and emits spec-compliant MCP tools', async () => {
+  void it('filters ListTools by toolsets and disabledTools and emits spec-compliant MCP tools', async () => {
     const server = createAzureDevOpsServer({
       ...baseConfig,
       toolsets: ['projects', 'users'],
@@ -73,20 +75,21 @@ describe('createAzureDevOpsServer deep seam tests', () => {
     };
 
     const parsed = ListToolsResultSchema.parse(result);
-    expect(parsed.tools.map((t) => t.name)).toEqual([
-      'get_me',
-      'list_projects',
-      'get_project',
-    ]);
+    assert.deepStrictEqual(
+      parsed.tools.map((t) => t.name),
+      ['get_me', 'list_projects', 'get_project'],
+    );
     for (const tool of result.tools) {
-      expect(tool).not.toHaveProperty('readOnly');
-      expect(tool).not.toHaveProperty('mcp_enabled');
-      expect(tool.annotations).toEqual({ readOnlyHint: true });
+      assert.strictEqual(Object.hasOwn(tool, 'readOnly'), false);
+      assert.strictEqual(Object.hasOwn(tool, 'mcp_enabled'), false);
+      assert.deepStrictEqual(tool.annotations, { readOnlyHint: true });
     }
   });
 
-  it('excludes all write tools in read-only mode and blocks CallTool before connecting', async () => {
-    const webApiFactory = jest.fn();
+  void it('excludes all write tools in read-only mode and blocks CallTool before connecting', async () => {
+    const webApiFactory = mock.fn((): Promise<WebApi> =>
+      Promise.reject(new Error('webApiFactory should not be called')),
+    );
     const server = createAzureDevOpsServer(
       { ...baseConfig, readOnly: true },
       { webApiFactory },
@@ -99,11 +102,15 @@ describe('createAzureDevOpsServer deep seam tests', () => {
     const listed = await listHandler({ method: 'tools/list', params: {} }, {});
     const parsed = ListToolsResultSchema.parse(listed);
 
-    expect(parsed.tools.length).toBeGreaterThan(0);
-    expect(
+    assert.ok(parsed.tools.length > 0);
+    assert.strictEqual(
       parsed.tools.every((t) => t.annotations?.readOnlyHint === true),
-    ).toBe(true);
-    expect(parsed.tools.some((t) => t.name === 'create_work_item')).toBe(false);
+      true,
+    );
+    assert.strictEqual(
+      parsed.tools.some((t) => t.name === 'create_work_item'),
+      false,
+    );
 
     const callHandler = getHandler(
       server,
@@ -117,14 +124,16 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       {},
     )) as { isError: boolean; content: Array<{ text: string }> };
 
-    expect(response.isError).toBe(true);
-    expect(response.content[0].text).toContain(
-      "Tool 'create_work_item' is disabled in read-only mode",
+    assert.strictEqual(response.isError, true);
+    assert.ok(
+      response.content[0].text.includes(
+        "Tool 'create_work_item' is disabled in read-only mode",
+      ),
     );
-    expect(webApiFactory).not.toHaveBeenCalled();
+    assert.strictEqual(webApiFactory.mock.callCount(), 0);
   });
 
-  it('rejects tools disabled by toolsets, disabledTools, or unknown names on CallTool', async () => {
+  void it('rejects tools disabled by toolsets, disabledTools, or unknown names on CallTool', async () => {
     const server = createAzureDevOpsServer({
       ...baseConfig,
       toolsets: ['projects'],
@@ -143,9 +152,11 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       },
       {},
     )) as { isError: boolean; content: Array<{ text: string }> };
-    expect(excludedByToolset.isError).toBe(true);
-    expect(excludedByToolset.content[0].text).toContain(
-      "Tool 'get_work_item' is disabled by server configuration",
+    assert.strictEqual(excludedByToolset.isError, true);
+    assert.ok(
+      excludedByToolset.content[0].text.includes(
+        "Tool 'get_work_item' is disabled by server configuration",
+      ),
     );
 
     const excludedByDenylist = (await callHandler(
@@ -155,9 +166,11 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       },
       {},
     )) as { isError: boolean; content: Array<{ text: string }> };
-    expect(excludedByDenylist.isError).toBe(true);
-    expect(excludedByDenylist.content[0].text).toContain(
-      "Tool 'get_project' is disabled by server configuration",
+    assert.strictEqual(excludedByDenylist.isError, true);
+    assert.ok(
+      excludedByDenylist.content[0].text.includes(
+        "Tool 'get_project' is disabled by server configuration",
+      ),
     );
 
     const unknownTool = (await callHandler(
@@ -167,25 +180,34 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       },
       {},
     )) as { isError: boolean; content: Array<{ text: string }> };
-    expect(unknownTool.isError).toBe(true);
-    expect(unknownTool.content[0].text).toContain(
-      'Unknown tool: totally_unknown_tool',
+    assert.strictEqual(unknownTool.isError, true);
+    assert.ok(
+      unknownTool.content[0].text.includes(
+        'Unknown tool: totally_unknown_tool',
+      ),
     );
   });
 
-  it('caches a single WebApi instance across multiple tool calls and redacts secrets in errors', async () => {
-    const getProjects = jest
-      .fn()
-      .mockResolvedValueOnce([{ id: 'p1', name: 'Alpha' }])
-      .mockRejectedValueOnce(
-        new Error(
-          'Upstream failure with Authorization: Basic c2VjcmV0OnRva2Vu and Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig',
+  void it('caches a single WebApi instance across multiple tool calls and redacts secrets in errors', async () => {
+    const getProjects =
+      mock.fn<() => Promise<Array<{ id: string; name: string }>>>();
+    getProjects.mock.mockImplementationOnce(
+      () => Promise.resolve([{ id: 'p1', name: 'Alpha' }]),
+      0,
+    );
+    getProjects.mock.mockImplementationOnce(
+      () =>
+        Promise.reject(
+          new Error(
+            'Upstream failure with Authorization: Basic c2VjcmV0OnRva2Vu and Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig',
+          ),
         ),
-      );
+      1,
+    );
     const mockWebApi = {
-      getCoreApi: jest.fn().mockResolvedValue({ getProjects }),
+      getCoreApi: mock.fn(() => Promise.resolve({ getProjects })),
     } as unknown as WebApi;
-    const webApiFactory = jest.fn().mockResolvedValue(mockWebApi);
+    const webApiFactory = mock.fn(() => Promise.resolve(mockWebApi));
 
     const server = createAzureDevOpsServer(baseConfig, { webApiFactory });
     const callHandler = getHandler(
@@ -200,8 +222,8 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       },
       {},
     )) as { isError?: boolean; content: Array<{ text: string }> };
-    expect(first.isError).toBeUndefined();
-    expect(JSON.parse(first.content[0].text)).toEqual([
+    assert.strictEqual(first.isError, undefined);
+    assert.deepStrictEqual(JSON.parse(first.content[0].text), [
       { id: 'p1', name: 'Alpha' },
     ]);
 
@@ -212,31 +234,35 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       },
       {},
     )) as { isError: boolean; content: Array<{ text: string }> };
-    expect(second.isError).toBe(true);
-    expect(second.content[0].text).not.toContain('c2VjcmV0OnRva2Vu');
-    expect(second.content[0].text).not.toContain('eyJhbGciOiJIUzI1NiJ9');
-    expect(second.content[0].text).toContain('[REDACTED]');
+    assert.strictEqual(second.isError, true);
+    assert.ok(!second.content[0].text.includes('c2VjcmV0OnRva2Vu'));
+    assert.ok(!second.content[0].text.includes('eyJhbGciOiJIUzI1NiJ9'));
+    assert.ok(second.content[0].text.includes('[REDACTED]'));
 
     // Both calls reused the cached WebApi connection
-    expect(webApiFactory).toHaveBeenCalledTimes(1);
+    assert.strictEqual(webApiFactory.mock.callCount(), 1);
   });
 
-  it('serves ListResources, ListResourceTemplates, and ReadResource for all 5 ado:// URI templates', async () => {
-    const getItemContent = jest
-      .fn()
-      .mockImplementation(() => Readable.from(['export const ok = true;\n']));
-    const getPullRequestById = jest.fn().mockResolvedValue({
-      pullRequestId: 77,
-      lastMergeSourceCommit: { commitId: 'deadbeef1234' },
-    });
-    const mockWebApi = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getItemContent,
-        getItems: jest.fn().mockResolvedValue([]),
-        getPullRequestById,
+  void it('serves ListResources, ListResourceTemplates, and ReadResource for all 5 ado:// URI templates', async () => {
+    const getItemContent = mock.fn((..._args: unknown[]) =>
+      Readable.from(['export const ok = true;\n']),
+    );
+    const getPullRequestById = mock.fn((..._args: unknown[]) =>
+      Promise.resolve({
+        pullRequestId: 77,
+        lastMergeSourceCommit: { commitId: 'deadbeef1234' },
       }),
+    );
+    const mockWebApi = {
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getItemContent,
+          getItems: mock.fn(() => Promise.resolve([])),
+          getPullRequestById,
+        }),
+      ),
     } as unknown as WebApi;
-    const webApiFactory = jest.fn().mockResolvedValue(mockWebApi);
+    const webApiFactory = mock.fn(() => Promise.resolve(mockWebApi));
 
     const server = createAzureDevOpsServer(baseConfig, { webApiFactory });
 
@@ -244,11 +270,12 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       server,
       ListResourcesRequestSchema.shape.method.value,
     );
-    expect(
+    assert.deepStrictEqual(
       await listResources({ method: 'resources/list', params: {} }, {}),
-    ).toEqual({
-      resources: [],
-    });
+      {
+        resources: [],
+      },
+    );
 
     const listTemplates = getHandler(
       server,
@@ -258,7 +285,7 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       { method: 'resources/templates/list', params: {} },
       {},
     )) as { resourceTemplates: Array<{ uriTemplate: string }> };
-    expect(templates.resourceTemplates).toHaveLength(5);
+    assert.strictEqual(templates.resourceTemplates.length, 5);
 
     const readResource = getHandler(
       server,
@@ -275,8 +302,14 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       },
       {},
     )) as { contents: Array<{ mimeType: string; text: string }> };
-    expect(defaultRes.contents[0].mimeType).toBe('application/typescript');
-    expect(defaultRes.contents[0].text).toBe('export const ok = true;\n');
+    assert.strictEqual(
+      defaultRes.contents[0].mimeType,
+      'application/typescript',
+    );
+    assert.strictEqual(
+      defaultRes.contents[0].text,
+      'export const ok = true;\n',
+    );
 
     // 2. Branch with slash (verifies GitVersionType.Branch === 0 is NOT dropped!)
     await readResource(
@@ -288,7 +321,7 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       },
       {},
     );
-    expect(getItemContent).toHaveBeenLastCalledWith(
+    assert.deepStrictEqual(getItemContent.mock.calls.at(-1)?.arguments, [
       'my-repo',
       '/src/app.ts',
       'demo-project',
@@ -297,9 +330,13 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       undefined,
       undefined,
       false,
-      { versionType: GitVersionType.Branch, version: 'feature/foo' },
+      {
+        versionType: GitVersionType.Branch,
+        version: 'feature/foo',
+        versionOptions: undefined,
+      },
       true,
-    );
+    ]);
 
     // 3. Commit
     await readResource(
@@ -311,7 +348,7 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       },
       {},
     );
-    expect(getItemContent).toHaveBeenLastCalledWith(
+    assert.deepStrictEqual(getItemContent.mock.calls.at(-1)?.arguments, [
       'my-repo',
       '/src/app.ts',
       'demo-project',
@@ -320,9 +357,13 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       undefined,
       undefined,
       false,
-      { versionType: GitVersionType.Commit, version: 'abc123' },
+      {
+        versionType: GitVersionType.Commit,
+        version: 'abc123',
+        versionOptions: undefined,
+      },
       true,
-    );
+    ]);
 
     // 4. Tag
     await readResource(
@@ -334,7 +375,7 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       },
       {},
     );
-    expect(getItemContent).toHaveBeenLastCalledWith(
+    assert.deepStrictEqual(getItemContent.mock.calls.at(-1)?.arguments, [
       'my-repo',
       '/src/app.ts',
       'demo-project',
@@ -343,9 +384,13 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       undefined,
       undefined,
       false,
-      { versionType: GitVersionType.Tag, version: 'v1.0.0' },
+      {
+        versionType: GitVersionType.Tag,
+        version: 'v1.0.0',
+        versionOptions: undefined,
+      },
       true,
-    );
+    ]);
 
     // 5. Pull request (resolves lastMergeSourceCommit)
     await readResource(
@@ -357,8 +402,12 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       },
       {},
     );
-    expect(getPullRequestById).toHaveBeenCalledWith(77, 'demo-project');
-    expect(getItemContent).toHaveBeenLastCalledWith(
+    assert.strictEqual(getPullRequestById.mock.callCount(), 1);
+    assert.deepStrictEqual(getPullRequestById.mock.calls[0]?.arguments, [
+      77,
+      'demo-project',
+    ]);
+    assert.deepStrictEqual(getItemContent.mock.calls.at(-1)?.arguments, [
       'my-repo',
       '/src/app.ts',
       'demo-project',
@@ -367,32 +416,34 @@ describe('createAzureDevOpsServer deep seam tests', () => {
       undefined,
       undefined,
       false,
-      { versionType: GitVersionType.Commit, version: 'deadbeef1234' },
+      {
+        versionType: GitVersionType.Commit,
+        version: 'deadbeef1234',
+        versionOptions: undefined,
+      },
       true,
-    );
+    ]);
   });
 
-  it('redacts secrets in ReadResource error logs and thrown messages', async () => {
+  void it('redacts secrets in ReadResource error logs and thrown messages', async () => {
     const stderrChunks: string[] = [];
-    const stderrSpy = jest
-      .spyOn(process.stderr, 'write')
-      .mockImplementation((chunk: unknown) => {
-        stderrChunks.push(String(chunk));
-        return true;
-      });
+    const stderrSpy = mock.method(process.stderr, 'write', (chunk: unknown) => {
+      stderrChunks.push(String(chunk));
+      return true;
+    });
 
     try {
       const mockWebApi = {
-        getGitApi: jest
-          .fn()
-          .mockRejectedValue(
+        getGitApi: mock.fn(() =>
+          Promise.reject(
             new Error(
               'Fetch failed with bearer superSecretBearerToken999 at https://:patSecretValue12345@dev.azure.com/org',
             ),
           ),
+        ),
       } as unknown as WebApi;
       const server = createAzureDevOpsServer(baseConfig, {
-        webApiFactory: jest.fn().mockResolvedValue(mockWebApi),
+        webApiFactory: mock.fn(() => Promise.resolve(mockWebApi)),
       });
 
       const readResource = getHandler(
@@ -410,22 +461,24 @@ describe('createAzureDevOpsServer deep seam tests', () => {
         {},
       ).catch((e: unknown) => e);
 
-      expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).not.toContain('superSecretBearerToken999');
-      expect((err as Error).message).not.toContain('patSecretValue12345');
-      expect(stderrChunks.join('')).not.toContain('superSecretBearerToken999');
-      expect(stderrChunks.join('')).not.toContain('patSecretValue12345');
+      assert.ok(err instanceof Error);
+      assert.ok(!err.message.includes('superSecretBearerToken999'));
+      assert.ok(!err.message.includes('patSecretValue12345'));
+      assert.ok(!stderrChunks.join('').includes('superSecretBearerToken999'));
+      assert.ok(!stderrChunks.join('').includes('patSecretValue12345'));
     } finally {
-      stderrSpy.mockRestore();
+      stderrSpy.mock.restore();
     }
   });
 
-  it('fails fast on unknown toolset during server creation', () => {
-    expect(() =>
-      createAzureDevOpsServer({
-        ...baseConfig,
-        toolsets: ['not-a-toolset'],
-      }),
-    ).toThrow(AzureDevOpsValidationError);
+  void it('fails fast on unknown toolset during server creation', () => {
+    assert.throws(
+      () =>
+        createAzureDevOpsServer({
+          ...baseConfig,
+          toolsets: ['not-a-toolset'],
+        }),
+      AzureDevOpsValidationError,
+    );
   });
 });

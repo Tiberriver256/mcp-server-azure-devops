@@ -1,21 +1,26 @@
+import assert from 'node:assert/strict';
+import { before, describe, test } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { getPipeline } from './feature';
-import { listPipelines } from '../list-pipelines/feature';
+import { getPipeline } from './feature.ts';
+import { listPipelines } from '../list-pipelines/feature.ts';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,
-} from '../../../shared/test/test-helpers';
+} from '../../../shared/test/test-helpers.ts';
 
 const shouldSkip = shouldSkipIntegrationTest();
 const projectId = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '';
-const hasProjectId = Boolean(projectId);
-const describeOrSkip = !shouldSkip && hasProjectId ? describe : describe.skip;
+const skipReason = shouldSkip
+  ? 'No real Azure DevOps connection available'
+  : !projectId
+    ? 'AZURE_DEVOPS_DEFAULT_PROJECT is not set'
+    : false;
 
-describeOrSkip('getPipeline integration', () => {
+void describe('getPipeline integration', { skip: skipReason }, () => {
   let connection: WebApi;
   let existingPipelineId: number;
 
-  beforeAll(async () => {
+  before(async () => {
     // Get a real connection using environment variables
     const testConnection = await getTestConnection();
     if (!testConnection) {
@@ -34,7 +39,7 @@ describeOrSkip('getPipeline integration', () => {
     existingPipelineId = pipelineId;
   });
 
-  test('should get a pipeline by ID', async () => {
+  void test('should get a pipeline by ID', async () => {
     // Act - make an API call to Azure DevOps
     const pipeline = await getPipeline(connection, {
       projectId,
@@ -42,26 +47,28 @@ describeOrSkip('getPipeline integration', () => {
     });
 
     // Assert
-    expect(pipeline).toBeDefined();
-    expect(pipeline.id).toBe(existingPipelineId);
-    expect(pipeline.name).toBeDefined();
-    expect(typeof pipeline.name).toBe('string');
-    expect(pipeline.folder).toBeDefined();
-    expect(pipeline.revision).toBeDefined();
-    expect(pipeline.url).toBeDefined();
-    expect(pipeline.url).toContain('_apis/pipelines');
+    assert.notStrictEqual(pipeline, undefined);
+    assert.strictEqual(pipeline.id, existingPipelineId);
+    assert.notStrictEqual(pipeline.name, undefined);
+    assert.strictEqual(typeof pipeline.name, 'string');
+    assert.notStrictEqual(pipeline.folder, undefined);
+    assert.notStrictEqual(pipeline.revision, undefined);
+    assert.notStrictEqual(pipeline.url, undefined);
+    assert.ok(pipeline.url?.includes('_apis/pipelines'));
   });
 
-  test('should throw ResourceNotFoundError for non-existent pipeline', async () => {
+  void test('should throw ResourceNotFoundError for non-existent pipeline', async () => {
     // Use a very high ID that is unlikely to exist
     const nonExistentPipelineId = 999999;
 
     // Act & Assert - should throw a not found error
-    await expect(
-      getPipeline(connection, {
-        projectId,
-        pipelineId: nonExistentPipelineId,
-      }),
-    ).rejects.toThrow(/not found/);
+    await assert.rejects(
+      () =>
+        getPipeline(connection, {
+          projectId,
+          pipelineId: nonExistentPipelineId,
+        }),
+      /not found/,
+    );
   });
 });

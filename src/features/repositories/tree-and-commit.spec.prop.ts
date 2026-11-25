@@ -1,10 +1,12 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import fc from 'fast-check';
-import { formatRepositoryTree } from './get-all-repositories-tree/feature';
+import { formatRepositoryTree } from './get-all-repositories-tree/feature.ts';
 import {
   applyLiteralSearchReplace,
   normalizeGitDiffPath,
-} from './create-commit/feature';
-import type { RepositoryTreeItem } from './types';
+} from './create-commit/feature.ts';
+import type { RepositoryTreeItem } from './types.ts';
 
 const segArb = fc.stringMatching(/^[a-zA-Z0-9._-]{1,12}$/);
 
@@ -57,8 +59,8 @@ const treeItemsArb = fc
     return Array.from(items.values());
   });
 
-describe('repositories tree & commit properties', () => {
-  it('formatRepositoryTree is permutation-invariant on input order and emits exact item lines and summary counts', () => {
+void describe('repositories tree & commit properties', () => {
+  void it('formatRepositoryTree is permutation-invariant on input order and emits exact item lines and summary counts', () => {
     fc.assert(
       fc.property(segArb, treeItemsArb, (repoName, items) => {
         const stats = {
@@ -71,21 +73,22 @@ describe('repositories tree & commit properties', () => {
         const outB = formatRepositoryTree(repoName, reversed, stats);
 
         // Permutation invariance replaces brittle snapshot tests
-        expect(outA).toBe(outB);
+        assert.strictEqual(outA, outB);
 
         const lines = outA.trimEnd().split('\n');
-        expect(lines[0]).toBe(`${repoName}/`);
-        expect(lines[lines.length - 1]).toBe(
+        assert.strictEqual(lines[0], `${repoName}/`);
+        assert.strictEqual(
+          lines[lines.length - 1],
           `${stats.directories} directories, ${stats.files} files`,
         );
         // Header + one line per tree item + summary footer
-        expect(lines).toHaveLength(items.length + 2);
+        assert.strictEqual(lines.length, items.length + 2);
       }),
       { numRuns: 100 },
     );
   });
 
-  it("applyLiteralSearchReplace treats replacement literally even with $&, $$, $`, $' metacharacters", () => {
+  void it("applyLiteralSearchReplace treats replacement literally even with $&, $$, $`, $' metacharacters", () => {
     fc.assert(
       fc.property(
         fc.string({ maxLength: 30 }),
@@ -105,8 +108,9 @@ describe('repositories tree & commit properties', () => {
             replacement,
             '/test.ts',
           );
-          expect(updated).toBe(prefix + replacement + suffix);
-          expect(updated.length).toBe(
+          assert.strictEqual(updated, prefix + replacement + suffix);
+          assert.strictEqual(
+            updated.length,
             original.length - target.length + replacement.length,
           );
         },
@@ -115,7 +119,7 @@ describe('repositories tree & commit properties', () => {
     );
   });
 
-  it('normalizeGitDiffPath strips at most one leading git a/ or b/ prefix and preserves nested a/ or b/ directories', () => {
+  void it('normalizeGitDiffPath strips at most one leading git a/ or b/ prefix and preserves nested a/ or b/ directories', () => {
     fc.assert(
       fc.property(
         fc.constantFrom('a/', 'b/'),
@@ -125,11 +129,15 @@ describe('repositories tree & commit properties', () => {
         }),
         (gitPrefix, pathParts) => {
           const innerPath = pathParts.join('/');
-          expect(normalizeGitDiffPath(`${gitPrefix}${innerPath}`)).toBe(
+          assert.strictEqual(
+            normalizeGitDiffPath(`${gitPrefix}${innerPath}`),
             innerPath,
           );
           // Absolute paths starting with / are never stripped
-          expect(normalizeGitDiffPath(`/${innerPath}`)).toBe(`/${innerPath}`);
+          assert.strictEqual(
+            normalizeGitDiffPath(`/${innerPath}`),
+            `/${innerPath}`,
+          );
         },
       ),
       { numRuns: 150 },

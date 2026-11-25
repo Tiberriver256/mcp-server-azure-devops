@@ -1,21 +1,21 @@
-export * from './schemas';
-export * from './types';
-export { createPullRequest } from './create-pull-request/feature';
-export { getPullRequest } from './get-pull-request/feature';
-export { listPullRequests } from './list-pull-requests/feature';
-export { getPullRequestComments } from './get-pull-request-comments/feature';
-export { addPullRequestComment } from './add-pull-request-comment/feature';
-export { updatePullRequest } from './update-pull-request/feature';
-export { getPullRequestChanges } from './get-pull-request-changes/feature';
+export * from './schemas.ts';
+export * from './types.ts';
+export { createPullRequest } from './create-pull-request/feature.ts';
+export { getPullRequest } from './get-pull-request/feature.ts';
+export { listPullRequests } from './list-pull-requests/feature.ts';
+export { getPullRequestComments } from './get-pull-request-comments/feature.ts';
+export { addPullRequestComment } from './add-pull-request-comment/feature.ts';
+export { updatePullRequest } from './update-pull-request/feature.ts';
+export { getPullRequestChanges } from './get-pull-request-changes/feature.ts';
 export {
   getPullRequestChecks,
   parseNumeric,
-} from './get-pull-request-checks/feature';
-export { updatePullRequestThreadStatus } from './update-pull-request-thread-status/feature';
-export { mergePullRequest } from './merge-pull-request/feature';
+} from './get-pull-request-checks/feature.ts';
+export { updatePullRequestThreadStatus } from './update-pull-request-thread-status/feature.ts';
+export { mergePullRequest } from './merge-pull-request/feature.ts';
 
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
 import {
   AddPullRequestCommentSchema,
   CreatePullRequestSchema,
@@ -27,17 +27,17 @@ import {
   MergePullRequestSchema,
   UpdatePullRequestSchema,
   UpdatePullRequestThreadStatusSchema,
-} from './schemas';
-import { createPullRequest } from './create-pull-request/feature';
-import { getPullRequest } from './get-pull-request/feature';
-import { listPullRequests } from './list-pull-requests/feature';
-import { getPullRequestComments } from './get-pull-request-comments/feature';
-import { addPullRequestComment } from './add-pull-request-comment/feature';
-import { updatePullRequest } from './update-pull-request/feature';
-import { getPullRequestChanges } from './get-pull-request-changes/feature';
-import { getPullRequestChecks } from './get-pull-request-checks/feature';
-import { updatePullRequestThreadStatus } from './update-pull-request-thread-status/feature';
-import { mergePullRequest } from './merge-pull-request/feature';
+} from './schemas.ts';
+import { createPullRequest } from './create-pull-request/feature.ts';
+import { getPullRequest } from './get-pull-request/feature.ts';
+import { listPullRequests } from './list-pull-requests/feature.ts';
+import { getPullRequestComments } from './get-pull-request-comments/feature.ts';
+import { addPullRequestComment } from './add-pull-request-comment/feature.ts';
+import { updatePullRequest } from './update-pull-request/feature.ts';
+import { getPullRequestChanges } from './get-pull-request-changes/feature.ts';
+import { getPullRequestChecks } from './get-pull-request-checks/feature.ts';
+import { updatePullRequestThreadStatus } from './update-pull-request-thread-status/feature.ts';
+import { mergePullRequest } from './merge-pull-request/feature.ts';
 
 export const pullRequestsFeature: FeatureModule = {
   toolset: 'pull-requests',

@@ -3,9 +3,9 @@ import {
   AzureDevOpsError,
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
-import { normalizeBranch, resolvePipelineProjectId } from '../helpers';
-import type { Run, TriggerPipelineOptions } from '../types';
+} from '../../../shared/errors/index.ts';
+import { normalizeBranch, resolvePipelineProjectId } from '../helpers.ts';
+import type { Run, TriggerPipelineOptions } from '../types.ts';
 
 /**
  * Trigger a pipeline run

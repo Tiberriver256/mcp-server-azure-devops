@@ -2,12 +2,12 @@ import type { WebApi } from 'azure-devops-node-api';
 import type {
   TestSuite,
   TestSuiteCreateParams,
-} from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
-import { TypeInfo } from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
+} from 'azure-devops-node-api/interfaces/TestPlanInterfaces.js';
+import { TypeInfo } from 'azure-devops-node-api/interfaces/TestPlanInterfaces.js';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../../../shared/errors';
+} from '../../../shared/errors/index.ts';
 import {
   fetchPagedTestPlanCollection,
   mapSuiteExpand,
@@ -15,13 +15,13 @@ import {
   mapTestPlanError,
   resolveProjectId,
   TEST_SUITES_LOCATION_ID,
-} from '../helpers';
+} from '../helpers.ts';
 import type {
   CreateTestSuiteOptions,
   GetTestSuiteOptions,
   ListTestSuitesOptions,
   ListTestSuitesResponse,
-} from '../types';
+} from '../types.ts';
 
 /**
  * List test suites for a test plan (flat or tree view) with continuation token pagination.

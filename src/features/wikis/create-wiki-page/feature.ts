@@ -1,8 +1,8 @@
 import type { z } from 'zod';
-import { handleRequestError } from '../../../shared/errors';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
-import type { CreateWikiPageSchema } from '../schemas';
-import { createWikiClient } from '../wiki-client';
+import { handleRequestError } from '../../../shared/errors/index.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import type { CreateWikiPageSchema } from '../schemas.ts';
+import { createWikiClient } from '../wiki-client.ts';
 
 /**
  * Creates a new wiki page in Azure DevOps (or updates it if it already exists).

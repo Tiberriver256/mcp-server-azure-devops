@@ -1,30 +1,34 @@
+import assert from 'node:assert/strict';
+import { describe, mock, test } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { listWorkItems } from './feature';
+import { listWorkItems } from './feature.ts';
 import {
   AzureDevOpsError,
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
+} from '../../../shared/errors/index.ts';
 
-describe('listWorkItems unit', () => {
-  test('returns empty array without calling getWorkItems when WIQL matches nothing', async () => {
-    const getWorkItems = jest.fn();
+void describe('listWorkItems unit', () => {
+  void test('returns empty array without calling getWorkItems when WIQL matches nothing', async () => {
+    const getWorkItems = mock.fn();
     const mockConnection = {
-      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
-        queryByWiql: jest.fn().mockResolvedValue({ workItems: [] }),
-        getWorkItems,
-      }),
+      getWorkItemTrackingApi: mock.fn(() =>
+        Promise.resolve({
+          queryByWiql: mock.fn(() => Promise.resolve({ workItems: [] })),
+          getWorkItems,
+        }),
+      ),
     } as unknown as WebApi;
 
     const result = await listWorkItems(mockConnection, {
       projectId: 'test-project',
     });
 
-    expect(result).toEqual([]);
-    expect(getWorkItems).not.toHaveBeenCalled();
+    assert.deepStrictEqual(result, []);
+    assert.strictEqual(getWorkItems.mock.callCount(), 0);
   });
 
-  test('applies skip and top pagination to the IDs requested from getWorkItems', async () => {
+  void test('applies skip and top pagination to the IDs requested from getWorkItems', async () => {
     const mockWorkItemRefs = [
       { id: 1 },
       { id: 2 },
@@ -32,19 +36,21 @@ describe('listWorkItems unit', () => {
       { id: 4 },
       { id: 5 },
     ];
-    const getWorkItems = jest
-      .fn()
-      .mockImplementation(async (ids: number[]) =>
+    const getWorkItems = mock.fn((ids: number[]) =>
+      Promise.resolve(
         ids.map((id) => ({ id, fields: { 'System.Title': `Item ${id}` } })),
-      );
+      ),
+    );
 
     const mockConnection = {
-      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
-        queryByWiql: jest
-          .fn()
-          .mockResolvedValue({ workItems: mockWorkItemRefs }),
-        getWorkItems,
-      }),
+      getWorkItemTrackingApi: mock.fn(() =>
+        Promise.resolve({
+          queryByWiql: mock.fn(() =>
+            Promise.resolve({ workItems: mockWorkItemRefs }),
+          ),
+          getWorkItems,
+        }),
+      ),
     } as unknown as WebApi;
 
     const result = await listWorkItems(mockConnection, {
@@ -53,31 +59,33 @@ describe('listWorkItems unit', () => {
       top: 2,
     });
 
-    expect(getWorkItems).toHaveBeenCalledTimes(1);
-    expect(getWorkItems.mock.calls[0][0]).toEqual([3, 4]);
-    expect(result).toEqual([
+    assert.strictEqual(getWorkItems.mock.callCount(), 1);
+    assert.deepStrictEqual(getWorkItems.mock.calls[0]?.arguments[0], [3, 4]);
+    assert.deepStrictEqual(result, [
       { id: 3, fields: { 'System.Title': 'Item 3' } },
       { id: 4, fields: { 'System.Title': 'Item 4' } },
     ]);
   });
 
-  test('chunks getWorkItems requests into batches of at most 200 IDs', async () => {
+  void test('chunks getWorkItems requests into batches of at most 200 IDs', async () => {
     const mockWorkItemRefs = Array.from({ length: 450 }, (_, i) => ({
       id: i + 1,
     }));
-    const getWorkItems = jest
-      .fn()
-      .mockImplementation(async (ids: number[]) =>
+    const getWorkItems = mock.fn((ids: number[]) =>
+      Promise.resolve(
         ids.map((id) => ({ id, fields: { 'System.Title': `Item ${id}` } })),
-      );
+      ),
+    );
 
     const mockConnection = {
-      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
-        queryByWiql: jest
-          .fn()
-          .mockResolvedValue({ workItems: mockWorkItemRefs }),
-        getWorkItems,
-      }),
+      getWorkItemTrackingApi: mock.fn(() =>
+        Promise.resolve({
+          queryByWiql: mock.fn(() =>
+            Promise.resolve({ workItems: mockWorkItemRefs }),
+          ),
+          getWorkItems,
+        }),
+      ),
     } as unknown as WebApi;
 
     const result = await listWorkItems(mockConnection, {
@@ -85,24 +93,28 @@ describe('listWorkItems unit', () => {
       top: 450,
     });
 
-    expect(getWorkItems).toHaveBeenCalledTimes(3);
-    expect(getWorkItems.mock.calls[0][0]).toHaveLength(200);
-    expect(getWorkItems.mock.calls[1][0]).toHaveLength(200);
-    expect(getWorkItems.mock.calls[2][0]).toHaveLength(50);
-    expect(result).toHaveLength(450);
-    expect(result[0].id).toBe(1);
-    expect(result[449].id).toBe(450);
+    assert.strictEqual(getWorkItems.mock.callCount(), 3);
+    assert.strictEqual(getWorkItems.mock.calls[0]?.arguments[0].length, 200);
+    assert.strictEqual(getWorkItems.mock.calls[1]?.arguments[0].length, 200);
+    assert.strictEqual(getWorkItems.mock.calls[2]?.arguments[0].length, 50);
+    assert.strictEqual(result.length, 450);
+    assert.strictEqual(result[0].id, 1);
+    assert.strictEqual(result[449].id, 450);
   });
 
-  test('merges and deduplicates requested fields with default fields', async () => {
-    const getWorkItems = jest
-      .fn()
-      .mockResolvedValue([{ id: 1, fields: { 'System.Title': 'Item 1' } }]);
+  void test('merges and deduplicates requested fields with default fields', async () => {
+    const getWorkItems = mock.fn((..._args: unknown[]) =>
+      Promise.resolve([{ id: 1, fields: { 'System.Title': 'Item 1' } }]),
+    );
     const mockConnection = {
-      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
-        queryByWiql: jest.fn().mockResolvedValue({ workItems: [{ id: 1 }] }),
-        getWorkItems,
-      }),
+      getWorkItemTrackingApi: mock.fn(() =>
+        Promise.resolve({
+          queryByWiql: mock.fn(() =>
+            Promise.resolve({ workItems: [{ id: 1 }] }),
+          ),
+          getWorkItems,
+        }),
+      ),
     } as unknown as WebApi;
 
     await listWorkItems(mockConnection, {
@@ -110,7 +122,8 @@ describe('listWorkItems unit', () => {
       fields: ['System.Title', 'Microsoft.VSTS.Scheduling.StoryPoints'],
     });
 
-    expect(getWorkItems.mock.calls[0][1]).toEqual([
+    assert.strictEqual(getWorkItems.mock.callCount(), 1);
+    assert.deepStrictEqual(getWorkItems.mock.calls[0]?.arguments[1], [
       'System.Id',
       'System.Title',
       'System.State',
@@ -119,31 +132,39 @@ describe('listWorkItems unit', () => {
     ]);
   });
 
-  test('maps authentication, not-found, and generic errors to typed AzureDevOpsError subclasses', async () => {
+  void test('maps authentication, not-found, and generic errors to typed AzureDevOpsError subclasses', async () => {
     const makeFailingConn = (message: string) =>
       ({
-        getWorkItemTrackingApi: jest.fn().mockResolvedValue({
-          queryByWiql: jest.fn().mockRejectedValue(new Error(message)),
-        }),
+        getWorkItemTrackingApi: mock.fn(() =>
+          Promise.resolve({
+            queryByWiql: mock.fn(() => Promise.reject(new Error(message))),
+          }),
+        ),
       }) as unknown as WebApi;
 
-    await expect(
-      listWorkItems(
-        makeFailingConn('Authentication failed: Invalid credentials'),
-        {
+    await assert.rejects(
+      () =>
+        listWorkItems(
+          makeFailingConn('Authentication failed: Invalid credentials'),
+          {
+            projectId: 'p',
+          },
+        ),
+      AzureDevOpsAuthenticationError,
+    );
+
+    await assert.rejects(
+      () =>
+        listWorkItems(makeFailingConn('Project does not exist'), {
           projectId: 'p',
-        },
-      ),
-    ).rejects.toThrow(AzureDevOpsAuthenticationError);
+        }),
+      AzureDevOpsResourceNotFoundError,
+    );
 
-    await expect(
-      listWorkItems(makeFailingConn('Project does not exist'), {
-        projectId: 'p',
-      }),
-    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
-
-    await expect(
-      listWorkItems(makeFailingConn('Unexpected error'), { projectId: 'p' }),
-    ).rejects.toThrow(AzureDevOpsError);
+    await assert.rejects(
+      () =>
+        listWorkItems(makeFailingConn('Unexpected error'), { projectId: 'p' }),
+      AzureDevOpsError,
+    );
   });
 });

@@ -1,12 +1,12 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { AzureDevOpsError } from '../../../shared/errors';
-import { buildGitChangesDiffs } from '../../../shared/utils/git-diff';
+import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import { buildGitChangesDiffs } from '../../../shared/utils/git-diff.ts';
 import type {
   CommitWithContent,
   ListCommitsOptions,
   ListCommitsResponse,
-} from '../types';
+} from '../types.ts';
 
 /**
  * List commits on a branch including their file-level diffs with bounded

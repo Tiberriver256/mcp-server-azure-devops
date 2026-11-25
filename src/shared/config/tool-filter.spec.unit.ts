@@ -1,4 +1,6 @@
-import type { ToolLike, ToolsetName } from './tool-filter';
+import assert from 'node:assert/strict';
+import { describe, it, mock } from 'node:test';
+import type { ToolLike, ToolsetName } from './tool-filter.ts';
 import {
   normalizeToolsetName,
   parseBooleanOption,
@@ -6,8 +8,8 @@ import {
   parseCsvList,
   resolveEnabledTools,
   TOOLSET_NAMES,
-} from './tool-filter';
-import { AzureDevOpsValidationError } from '../errors';
+} from './tool-filter.ts';
+import { AzureDevOpsValidationError } from '../errors/index.ts';
 
 function makeTool(name: string, readOnly?: boolean): ToolLike {
   return {
@@ -47,44 +49,45 @@ function makeRegistry(): Record<ToolsetName, ToolLike[]> {
   };
 }
 
-describe('tool-filter', () => {
-  describe('parseCsvList', () => {
-    it('returns undefined for undefined or blank strings', () => {
-      expect(parseCsvList(undefined)).toBeUndefined();
-      expect(parseCsvList('')).toBeUndefined();
-      expect(parseCsvList(' , , ')).toBeUndefined();
+void describe('tool-filter', () => {
+  void describe('parseCsvList', () => {
+    void it('returns undefined for undefined or blank strings', () => {
+      assert.strictEqual(parseCsvList(undefined), undefined);
+      assert.strictEqual(parseCsvList(''), undefined);
+      assert.strictEqual(parseCsvList(' , , '), undefined);
     });
 
-    it('trims, skips empties, and deduplicates values', () => {
-      expect(parseCsvList(' projects, work-items , projects, ')).toEqual([
-        'projects',
-        'work-items',
-      ]);
+    void it('trims, skips empties, and deduplicates values', () => {
+      assert.deepStrictEqual(
+        parseCsvList(' projects, work-items , projects, '),
+        ['projects', 'work-items'],
+      );
     });
   });
 
-  describe('parseBooleanOption', () => {
-    it('parses truthy and falsy values case-insensitively', () => {
+  void describe('parseBooleanOption', () => {
+    void it('parses truthy and falsy values case-insensitively', () => {
       for (const v of ['true', 'TRUE', '1', 'yes', 'on']) {
-        expect(parseBooleanOption(v)).toBe(true);
+        assert.strictEqual(parseBooleanOption(v), true);
       }
       for (const v of ['false', 'FALSE', '0', 'no', 'off']) {
-        expect(parseBooleanOption(v)).toBe(false);
+        assert.strictEqual(parseBooleanOption(v), false);
       }
-      expect(parseBooleanOption(undefined)).toBeUndefined();
-      expect(parseBooleanOption('   ')).toBeUndefined();
+      assert.strictEqual(parseBooleanOption(undefined), undefined);
+      assert.strictEqual(parseBooleanOption('   '), undefined);
     });
 
-    it('throws AzureDevOpsValidationError on invalid boolean', () => {
-      expect(() =>
-        parseBooleanOption('maybe', 'AZURE_DEVOPS_READ_ONLY'),
-      ).toThrow(AzureDevOpsValidationError);
+    void it('throws AzureDevOpsValidationError on invalid boolean', () => {
+      assert.throws(
+        () => parseBooleanOption('maybe', 'AZURE_DEVOPS_READ_ONLY'),
+        AzureDevOpsValidationError,
+      );
     });
   });
 
-  describe('parseCliToolFilterArgs', () => {
-    it('parses space-separated and equals-separated flags', () => {
-      expect(
+  void describe('parseCliToolFilterArgs', () => {
+    void it('parses space-separated and equals-separated flags', () => {
+      assert.deepStrictEqual(
         parseCliToolFilterArgs([
           '--toolsets',
           'projects,work-items',
@@ -93,24 +96,25 @@ describe('tool-filter', () => {
           'create_work_item',
           '--read-only',
         ]),
-      ).toEqual({
-        toolsets: ['projects', 'work-items'],
-        enabledTools: ['get_project', 'get_work_item'],
-        disabledTools: ['create_work_item'],
-        readOnly: true,
+        {
+          toolsets: ['projects', 'work-items'],
+          enabledTools: ['get_project', 'get_work_item'],
+          disabledTools: ['create_work_item'],
+          readOnly: true,
+        },
+      );
+    });
+
+    void it('parses explicit --read-only=false and --read-only false', () => {
+      assert.deepStrictEqual(parseCliToolFilterArgs(['--read-only=false']), {
+        readOnly: false,
+      });
+      assert.deepStrictEqual(parseCliToolFilterArgs(['--read-only', 'false']), {
+        readOnly: false,
       });
     });
 
-    it('parses explicit --read-only=false and --read-only false', () => {
-      expect(parseCliToolFilterArgs(['--read-only=false'])).toEqual({
-        readOnly: false,
-      });
-      expect(parseCliToolFilterArgs(['--read-only', 'false'])).toEqual({
-        readOnly: false,
-      });
-    });
-
-    it('throws on missing, empty, comma-only, or invalid flag values and unknown flags', () => {
+    void it('throws on missing, empty, comma-only, or invalid flag values and unknown flags', () => {
       for (const badArgs of [
         ['--toolsets'],
         ['--toolsets', '--read-only'],
@@ -130,99 +134,118 @@ describe('tool-filter', () => {
         ['--toolset', 'projects'],
         ['positional'],
       ]) {
-        expect(() => parseCliToolFilterArgs(badArgs)).toThrow(
+        assert.throws(
+          () => parseCliToolFilterArgs(badArgs),
           AzureDevOpsValidationError,
         );
       }
     });
   });
 
-  describe('normalizeToolsetName', () => {
-    it('normalizes canonical names, underscores, and common aliases', () => {
-      expect(normalizeToolsetName('ALL')).toBe('all');
-      expect(normalizeToolsetName('work_items')).toBe('work-items');
-      expect(normalizeToolsetName('workitems')).toBe('work-items');
-      expect(normalizeToolsetName('pull_requests')).toBe('pull-requests');
-      expect(normalizeToolsetName('prs')).toBe('pull-requests');
-      expect(normalizeToolsetName('repos')).toBe('repositories');
-      expect(normalizeToolsetName('test_plans')).toBe('test-plans');
-      expect(normalizeToolsetName('testplans')).toBe('test-plans');
+  void describe('normalizeToolsetName', () => {
+    void it('normalizes canonical names, underscores, and common aliases', () => {
+      assert.strictEqual(normalizeToolsetName('ALL'), 'all');
+      assert.strictEqual(normalizeToolsetName('work_items'), 'work-items');
+      assert.strictEqual(normalizeToolsetName('workitems'), 'work-items');
+      assert.strictEqual(
+        normalizeToolsetName('pull_requests'),
+        'pull-requests',
+      );
+      assert.strictEqual(normalizeToolsetName('prs'), 'pull-requests');
+      assert.strictEqual(normalizeToolsetName('repos'), 'repositories');
+      assert.strictEqual(normalizeToolsetName('test_plans'), 'test-plans');
+      assert.strictEqual(normalizeToolsetName('testplans'), 'test-plans');
       for (const name of TOOLSET_NAMES) {
-        expect(normalizeToolsetName(name)).toBe(name);
+        assert.strictEqual(normalizeToolsetName(name), name);
       }
     });
 
-    it('throws AzureDevOpsValidationError for unknown toolsets', () => {
-      expect(() => normalizeToolsetName('nonexistent')).toThrow(
+    void it('throws AzureDevOpsValidationError for unknown toolsets', () => {
+      assert.throws(
+        () => normalizeToolsetName('nonexistent'),
         AzureDevOpsValidationError,
       );
     });
   });
 
-  describe('resolveEnabledTools', () => {
-    it('enables all tools by default', () => {
+  void describe('resolveEnabledTools', () => {
+    void it('enables all tools by default', () => {
       const registry = makeRegistry();
       const result = resolveEnabledTools(registry);
-      expect(result.tools.length).toBe(result.allToolNames.size);
-      expect(result.readOnlyBlockedNames.size).toBe(0);
+      assert.strictEqual(result.tools.length, result.allToolNames.size);
+      assert.strictEqual(result.readOnlyBlockedNames.size, 0);
     });
 
-    it('filters by toolsets (including aliases and all)', () => {
+    void it('filters by toolsets (including aliases and all)', () => {
       const registry = makeRegistry();
       const subset = resolveEnabledTools(registry, {
         toolsets: ['projects', 'prs'],
       });
-      expect(subset.tools.map((t) => t.name)).toEqual([
-        'list_projects',
-        'get_project',
-        'list_pull_requests',
-        'create_pull_request',
-      ]);
+      assert.deepStrictEqual(
+        subset.tools.map((t) => t.name),
+        [
+          'list_projects',
+          'get_project',
+          'list_pull_requests',
+          'create_pull_request',
+        ],
+      );
 
       const all = resolveEnabledTools(registry, { toolsets: ['all'] });
-      expect(all.tools.length).toBe(all.allToolNames.size);
+      assert.strictEqual(all.tools.length, all.allToolNames.size);
     });
 
-    it('filters by enabledTools and intersects with toolsets', () => {
+    void it('filters by enabledTools and intersects with toolsets', () => {
       const registry = makeRegistry();
       const result = resolveEnabledTools(registry, {
         toolsets: ['projects', 'work-items'],
         enabledTools: ['get_project', 'get_work_item', 'list_pipelines'],
       });
-      expect(result.tools.map((t) => t.name)).toEqual([
-        'get_project',
-        'get_work_item',
-      ]);
+      assert.deepStrictEqual(
+        result.tools.map((t) => t.name),
+        ['get_project', 'get_work_item'],
+      );
     });
 
-    it('throws on unknown tool in enabledTools', () => {
-      expect(() =>
-        resolveEnabledTools(makeRegistry(), {
-          enabledTools: ['does_not_exist'],
-        }),
-      ).toThrow(AzureDevOpsValidationError);
+    void it('throws on unknown tool in enabledTools', () => {
+      assert.throws(
+        () =>
+          resolveEnabledTools(makeRegistry(), {
+            enabledTools: ['does_not_exist'],
+          }),
+        AzureDevOpsValidationError,
+      );
     });
 
-    it('removes disabledTools and warns on unknown disabled tool names', () => {
-      const originalStderr = process.stderr.write;
-      const stderrMock = jest.fn();
-      process.stderr.write = stderrMock;
+    void it('removes disabledTools and warns on unknown disabled tool names', () => {
+      const stderrChunks: string[] = [];
+      const stderrMock = mock.method(
+        process.stderr,
+        'write',
+        (chunk: unknown) => {
+          stderrChunks.push(String(chunk));
+          return true;
+        },
+      );
 
       try {
         const result = resolveEnabledTools(makeRegistry(), {
           toolsets: ['projects'],
           disabledTools: ['get_project', 'unknown_legacy_tool'],
         });
-        expect(result.tools.map((t) => t.name)).toEqual(['list_projects']);
-        expect(stderrMock).toHaveBeenCalledWith(
-          expect.stringContaining('unknown_legacy_tool'),
+        assert.deepStrictEqual(
+          result.tools.map((t) => t.name),
+          ['list_projects'],
+        );
+        assert.ok(
+          stderrChunks.some((chunk) => chunk.includes('unknown_legacy_tool')),
         );
       } finally {
-        process.stderr.write = originalStderr;
+        stderrMock.mock.restore();
       }
     });
 
-    it('enforces fail-closed read-only mode even when write tools are in enabledTools', () => {
+    void it('enforces fail-closed read-only mode even when write tools are in enabledTools', () => {
       const result = resolveEnabledTools(makeRegistry(), {
         enabledTools: [
           'get_work_item',
@@ -232,9 +255,18 @@ describe('tool-filter', () => {
         readOnly: true,
       });
 
-      expect(result.tools.map((t) => t.name)).toEqual(['get_work_item']);
-      expect(result.readOnlyBlockedNames.has('create_work_item')).toBe(true);
-      expect(result.readOnlyBlockedNames.has('unmarked_write_tool')).toBe(true);
+      assert.deepStrictEqual(
+        result.tools.map((t) => t.name),
+        ['get_work_item'],
+      );
+      assert.strictEqual(
+        result.readOnlyBlockedNames.has('create_work_item'),
+        true,
+      );
+      assert.strictEqual(
+        result.readOnlyBlockedNames.has('unmarked_write_tool'),
+        true,
+      );
     });
   });
 });

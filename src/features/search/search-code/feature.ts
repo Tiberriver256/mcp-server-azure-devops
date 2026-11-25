@@ -1,18 +1,18 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { AzureDevOpsValidationError } from '../../../shared/errors';
-import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url';
-import { logError } from '../../../shared/logging';
-import { mapWithConcurrency } from '../../../shared/utils/concurrency';
-import { streamToString } from '../../../shared/utils/stream';
-import { createSessionFromEnv } from '../../../shared/session/azure-devops-session';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
+import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { AzureDevOpsValidationError } from '../../../shared/errors/index.ts';
+import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url.ts';
+import { logError } from '../../../shared/logging.ts';
+import { mapWithConcurrency } from '../../../shared/utils/concurrency.ts';
+import { streamToString } from '../../../shared/utils/stream.ts';
+import { createSessionFromEnv } from '../../../shared/session/azure-devops-session.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
 import type {
   CodeSearchRequest,
   CodeSearchResponse,
   CodeSearchResult,
   SearchCodeOptions,
-} from '../types';
+} from '../types.ts';
 
 const MAX_ENRICHED_FILE_BYTES = 1024 * 1024; // 1 MiB per file when enriching code search
 

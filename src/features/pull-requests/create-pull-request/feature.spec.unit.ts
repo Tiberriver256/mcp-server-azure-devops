@@ -1,118 +1,133 @@
-import { createPullRequest } from './feature';
-import { AzureDevOpsError } from '../../../shared/errors';
+import assert from 'node:assert/strict';
+import { describe, mock, test } from 'node:test';
+import type { WebApi } from 'azure-devops-node-api';
+import { createPullRequest } from './feature.ts';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
 
-describe('createPullRequest unit', () => {
+void describe('createPullRequest unit', () => {
   // Test for required fields validation
-  test('should throw error when title is not provided', async () => {
+  void test('should throw error when title is not provided', async () => {
     // Arrange - mock connection, never used due to validation error
-    const mockConnection: any = {
-      getGitApi: jest.fn(),
-    };
+    const mockConnection = {
+      getGitApi: mock.fn(),
+    } as unknown as WebApi;
 
     // Act & Assert
-    await expect(
-      createPullRequest(mockConnection, 'TestProject', 'TestRepo', {
-        title: '',
-        sourceRefName: 'refs/heads/feature-branch',
-        targetRefName: 'refs/heads/main',
-      }),
-    ).rejects.toThrow('Title is required');
+    await assert.rejects(
+      () =>
+        createPullRequest(mockConnection, 'TestProject', 'TestRepo', {
+          title: '',
+          sourceRefName: 'refs/heads/feature-branch',
+          targetRefName: 'refs/heads/main',
+        }),
+      /Title is required/,
+    );
   });
 
-  test('should throw error when source branch is not provided', async () => {
+  void test('should throw error when source branch is not provided', async () => {
     // Arrange - mock connection, never used due to validation error
-    const mockConnection: any = {
-      getGitApi: jest.fn(),
-    };
+    const mockConnection = {
+      getGitApi: mock.fn(),
+    } as unknown as WebApi;
 
     // Act & Assert
-    await expect(
-      createPullRequest(mockConnection, 'TestProject', 'TestRepo', {
-        title: 'Test PR',
-        sourceRefName: '',
-        targetRefName: 'refs/heads/main',
-      }),
-    ).rejects.toThrow('Source branch is required');
+    await assert.rejects(
+      () =>
+        createPullRequest(mockConnection, 'TestProject', 'TestRepo', {
+          title: 'Test PR',
+          sourceRefName: '',
+          targetRefName: 'refs/heads/main',
+        }),
+      /Source branch is required/,
+    );
   });
 
-  test('should throw error when target branch is not provided', async () => {
+  void test('should throw error when target branch is not provided', async () => {
     // Arrange - mock connection, never used due to validation error
-    const mockConnection: any = {
-      getGitApi: jest.fn(),
-    };
+    const mockConnection = {
+      getGitApi: mock.fn(),
+    } as unknown as WebApi;
 
     // Act & Assert
-    await expect(
-      createPullRequest(mockConnection, 'TestProject', 'TestRepo', {
-        title: 'Test PR',
-        sourceRefName: 'refs/heads/feature-branch',
-        targetRefName: '',
-      }),
-    ).rejects.toThrow('Target branch is required');
+    await assert.rejects(
+      () =>
+        createPullRequest(mockConnection, 'TestProject', 'TestRepo', {
+          title: 'Test PR',
+          sourceRefName: 'refs/heads/feature-branch',
+          targetRefName: '',
+        }),
+      /Target branch is required/,
+    );
   });
 
   // Test for error propagation
-  test('should propagate custom errors when thrown internally', async () => {
+  void test('should propagate custom errors when thrown internally', async () => {
     // Arrange
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => {
+    const mockConnection = {
+      getGitApi: mock.fn(() => {
         throw new AzureDevOpsError('Custom error');
       }),
-    };
+    } as unknown as WebApi;
 
     // Act & Assert
-    await expect(
-      createPullRequest(mockConnection, 'TestProject', 'TestRepo', {
-        title: 'Test PR',
-        sourceRefName: 'refs/heads/feature-branch',
-        targetRefName: 'refs/heads/main',
-      }),
-    ).rejects.toThrow(AzureDevOpsError);
-
-    await expect(
-      createPullRequest(mockConnection, 'TestProject', 'TestRepo', {
-        title: 'Test PR',
-        sourceRefName: 'refs/heads/feature-branch',
-        targetRefName: 'refs/heads/main',
-      }),
-    ).rejects.toThrow('Custom error');
+    await assert.rejects(
+      () =>
+        createPullRequest(mockConnection, 'TestProject', 'TestRepo', {
+          title: 'Test PR',
+          sourceRefName: 'refs/heads/feature-branch',
+          targetRefName: 'refs/heads/main',
+        }),
+      (err: unknown) => {
+        assert.ok(err instanceof AzureDevOpsError);
+        assert.strictEqual(err.message, 'Custom error');
+        return true;
+      },
+    );
   });
 
-  test('should wrap unexpected errors in a friendly error message', async () => {
+  void test('should wrap unexpected errors in a friendly error message', async () => {
     // Arrange
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockImplementation(() => {
+    const mockConnection = {
+      getGitApi: mock.fn(() => {
         throw new Error('Unexpected error');
       }),
-    };
+    } as unknown as WebApi;
 
     // Act & Assert
-    await expect(
-      createPullRequest(mockConnection, 'TestProject', 'TestRepo', {
-        title: 'Test PR',
-        sourceRefName: 'refs/heads/feature-branch',
-        targetRefName: 'refs/heads/main',
-      }),
-    ).rejects.toThrow('Failed to create pull request: Unexpected error');
+    await assert.rejects(
+      () =>
+        createPullRequest(mockConnection, 'TestProject', 'TestRepo', {
+          title: 'Test PR',
+          sourceRefName: 'refs/heads/feature-branch',
+          targetRefName: 'refs/heads/main',
+        }),
+      /Failed to create pull request: Unexpected error/,
+    );
   });
 
-  test('should apply unique trimmed tags to the pull request', async () => {
-    const createPullRequestMock = jest.fn().mockResolvedValue({
-      pullRequestId: 99,
-      labels: [{ name: 'existing' }],
-    });
-    const createPullRequestLabelMock = jest
-      .fn()
-      .mockImplementation(async (label: { name: string }) => ({
-        name: label.name,
-      }));
+  void test('should apply unique trimmed tags to the pull request', async () => {
+    const createPullRequestMock = mock.fn(
+      (_pr: { labels?: Array<{ name?: string }> }, ..._rest: unknown[]) =>
+        Promise.resolve({
+          pullRequestId: 99,
+          labels: [{ name: 'existing' }],
+        }),
+    );
+    const createPullRequestLabelMock = mock.fn(
+      (label: { name: string }, ..._rest: unknown[]) =>
+        Promise.resolve({
+          name: label.name,
+        }),
+    );
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue({
-        createPullRequest: createPullRequestMock,
-        createPullRequestLabel: createPullRequestLabelMock,
-      }),
-    };
+    const mockConnection = {
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          createPullRequest: createPullRequestMock,
+          createPullRequestLabel: createPullRequestLabelMock,
+        }),
+      ),
+    } as unknown as WebApi;
 
     const result = await createPullRequest(
       mockConnection,
@@ -126,27 +141,26 @@ describe('createPullRequest unit', () => {
       },
     );
 
-    expect(createPullRequestMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        labels: [{ name: 'Tag-One' }, { name: 'Tag-Two' }],
-      }),
-      'TestRepo',
-      'TestProject',
-    );
-    expect(createPullRequestLabelMock).toHaveBeenCalledTimes(2);
-    expect(createPullRequestLabelMock).toHaveBeenCalledWith(
+    assert.strictEqual(createPullRequestMock.mock.callCount(), 1);
+    const createPrArgs = createPullRequestMock.mock.calls[0]?.arguments;
+    assert.ok(createPrArgs);
+    assert.strictEqual(createPrArgs.length, 3);
+    assert.deepStrictEqual(createPrArgs[0].labels, [
       { name: 'Tag-One' },
-      'TestRepo',
-      99,
-      'TestProject',
-    );
-    expect(createPullRequestLabelMock).toHaveBeenCalledWith(
       { name: 'Tag-Two' },
-      'TestRepo',
-      99,
-      'TestProject',
+    ]);
+    assert.deepStrictEqual(createPrArgs.slice(1), ['TestRepo', 'TestProject']);
+
+    assert.strictEqual(createPullRequestLabelMock.mock.callCount(), 2);
+    assert.deepStrictEqual(
+      createPullRequestLabelMock.mock.calls[0]?.arguments,
+      [{ name: 'Tag-One' }, 'TestRepo', 99, 'TestProject'],
     );
-    expect(result.labels).toEqual([
+    assert.deepStrictEqual(
+      createPullRequestLabelMock.mock.calls[1]?.arguments,
+      [{ name: 'Tag-Two' }, 'TestRepo', 99, 'TestProject'],
+    );
+    assert.deepStrictEqual(result.labels, [
       { name: 'existing' },
       { name: 'Tag-One' },
       { name: 'Tag-Two' },

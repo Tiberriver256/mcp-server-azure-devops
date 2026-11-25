@@ -1,14 +1,14 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { AzureDevOpsError } from '../../../shared/errors';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
 import type {
   GetPullRequestCommentsOptions,
   CommentThreadWithStringEnums,
-} from '../types';
-import type { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
+} from '../types.ts';
+import type { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import {
   transformCommentThreadStatus,
   transformCommentType,
-} from '../../../shared/enums';
+} from '../../../shared/enums/index.ts';
 
 /**
  * Get comments from a pull request

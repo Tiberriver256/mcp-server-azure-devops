@@ -1,28 +1,29 @@
+import assert from 'node:assert/strict';
+import { describe, mock, test } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { updatePullRequestThreadStatus } from './feature';
-import type { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { updatePullRequestThreadStatus } from './feature.ts';
+import type {
+  Comment,
+  GitPullRequestCommentThread,
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import {
   CommentThreadStatus,
   CommentType,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 
-describe('updatePullRequestThreadStatus', () => {
-  afterEach(() => {
-    jest.resetAllMocks();
-  });
+void describe('updatePullRequestThreadStatus', () => {
+  void test('should update pull request thread status successfully', async () => {
+    const mockComment: Comment = {
+      id: 101,
+      content: 'Some comment',
+      commentType: CommentType.Text,
+      author: { displayName: 'User' },
+    };
 
-  test('should update pull request thread status successfully', async () => {
     const mockThread: GitPullRequestCommentThread = {
       id: 456,
       status: CommentThreadStatus.Fixed,
-      comments: [
-        {
-          id: 101,
-          content: 'Some comment',
-          commentType: CommentType.Text,
-          author: { displayName: 'User' },
-        },
-      ],
+      comments: [mockComment],
       threadContext: {
         filePath: '/src/app.ts',
         rightFileStart: { line: 10, offset: 1 },
@@ -30,12 +31,14 @@ describe('updatePullRequestThreadStatus', () => {
     };
 
     const mockGitApi = {
-      updateThread: jest.fn().mockResolvedValue(mockThread),
-      getPullRequestById: jest.fn(),
+      updateThread: mock.fn((..._args: unknown[]) =>
+        Promise.resolve(mockThread),
+      ),
+      getPullRequestById: mock.fn(),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     const projectId = 'test-project';
@@ -51,7 +54,7 @@ describe('updatePullRequestThreadStatus', () => {
     };
 
     const result = await updatePullRequestThreadStatus(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       repositoryId,
       pullRequestId,
@@ -59,13 +62,13 @@ describe('updatePullRequestThreadStatus', () => {
       options,
     );
 
-    expect(result).toEqual({
+    assert.deepStrictEqual(result, {
       thread: {
         ...mockThread,
         status: 'fixed',
         comments: [
           {
-            ...mockThread.comments![0],
+            ...mockComment,
             filePath: '/src/app.ts',
             leftFileStart: undefined,
             leftFileEnd: undefined,
@@ -77,18 +80,18 @@ describe('updatePullRequestThreadStatus', () => {
       },
     });
 
-    expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.updateThread).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.updateThread).toHaveBeenCalledWith(
+    assert.strictEqual(mockConnection.getGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockGitApi.updateThread.mock.callCount(), 1);
+    assert.deepStrictEqual(mockGitApi.updateThread.mock.calls[0]?.arguments, [
       { status: CommentThreadStatus.Fixed },
       repositoryId,
       pullRequestId,
       threadId,
       projectId,
-    );
+    ]);
   });
 
-  test('should derive repositoryId from pullRequestId when repositoryId is omitted', async () => {
+  void test('should derive repositoryId from pullRequestId when repositoryId is omitted', async () => {
     const mockThread: GitPullRequestCommentThread = {
       id: 456,
       status: CommentThreadStatus.Closed,
@@ -96,14 +99,18 @@ describe('updatePullRequestThreadStatus', () => {
     };
 
     const mockGitApi = {
-      getPullRequestById: jest.fn().mockResolvedValue({
-        repository: { id: 'derived-repo' },
-      }),
-      updateThread: jest.fn().mockResolvedValue(mockThread),
+      getPullRequestById: mock.fn((..._args: unknown[]) =>
+        Promise.resolve({
+          repository: { id: 'derived-repo' },
+        }),
+      ),
+      updateThread: mock.fn((..._args: unknown[]) =>
+        Promise.resolve(mockThread),
+      ),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     const projectId = 'test-project';
@@ -117,7 +124,7 @@ describe('updatePullRequestThreadStatus', () => {
     };
 
     const result = await updatePullRequestThreadStatus(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       undefined,
       pullRequestId,
@@ -125,28 +132,30 @@ describe('updatePullRequestThreadStatus', () => {
       options,
     );
 
-    expect(result.thread.status).toBe('closed');
-    expect(mockGitApi.getPullRequestById).toHaveBeenCalledWith(
-      pullRequestId,
-      projectId,
+    assert.strictEqual(result.thread.status, 'closed');
+    assert.strictEqual(mockGitApi.getPullRequestById.mock.callCount(), 1);
+    assert.deepStrictEqual(
+      mockGitApi.getPullRequestById.mock.calls[0]?.arguments,
+      [pullRequestId, projectId],
     );
-    expect(mockGitApi.updateThread).toHaveBeenCalledWith(
+    assert.strictEqual(mockGitApi.updateThread.mock.callCount(), 1);
+    assert.deepStrictEqual(mockGitApi.updateThread.mock.calls[0]?.arguments, [
       { status: CommentThreadStatus.Closed },
       'derived-repo',
       pullRequestId,
       threadId,
       projectId,
-    );
+    ]);
   });
 
-  test('should throw error when repositoryId cannot be derived', async () => {
+  void test('should throw error when repositoryId cannot be derived', async () => {
     const mockGitApi = {
-      getPullRequestById: jest.fn().mockResolvedValue(null),
-      updateThread: jest.fn(),
+      getPullRequestById: mock.fn(() => Promise.resolve(null)),
+      updateThread: mock.fn(),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     const options = {
@@ -155,52 +164,56 @@ describe('updatePullRequestThreadStatus', () => {
       status: 'closed' as const,
     };
 
-    await expect(
-      updatePullRequestThreadStatus(
-        mockConnection as WebApi,
-        undefined,
-        undefined,
-        123,
-        456,
-        options,
-      ),
-    ).rejects.toThrow('repositoryId is required');
+    await assert.rejects(
+      () =>
+        updatePullRequestThreadStatus(
+          mockConnection as unknown as WebApi,
+          undefined,
+          undefined,
+          123,
+          456,
+          options,
+        ),
+      /repositoryId is required/,
+    );
   });
 
-  test('should throw error when status is invalid', async () => {
+  void test('should throw error when status is invalid', async () => {
     const mockGitApi = {
-      updateThread: jest.fn(),
+      updateThread: mock.fn(),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     const options = {
       pullRequestId: 123,
       threadId: 456,
-      status: 'invalid-status' as any,
+      status: 'invalid-status' as never,
     };
 
-    await expect(
-      updatePullRequestThreadStatus(
-        mockConnection as WebApi,
-        'test-project',
-        'test-repo',
-        123,
-        456,
-        options,
-      ),
-    ).rejects.toThrow('Invalid status value: invalid-status');
+    await assert.rejects(
+      () =>
+        updatePullRequestThreadStatus(
+          mockConnection as unknown as WebApi,
+          'test-project',
+          'test-repo',
+          123,
+          456,
+          options,
+        ),
+      /Invalid status value: invalid-status/,
+    );
   });
 
-  test('should handle API errors correctly', async () => {
+  void test('should handle API errors correctly', async () => {
     const mockGitApi = {
-      updateThread: jest.fn().mockRejectedValue(new Error('API Error')),
+      updateThread: mock.fn(() => Promise.reject(new Error('API Error'))),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     const options = {
@@ -209,15 +222,17 @@ describe('updatePullRequestThreadStatus', () => {
       status: 'fixed' as const,
     };
 
-    await expect(
-      updatePullRequestThreadStatus(
-        mockConnection as WebApi,
-        'test-project',
-        'test-repo',
-        123,
-        456,
-        options,
-      ),
-    ).rejects.toThrow('Failed to update pull request thread status: API Error');
+    await assert.rejects(
+      () =>
+        updatePullRequestThreadStatus(
+          mockConnection as unknown as WebApi,
+          'test-project',
+          'test-repo',
+          123,
+          456,
+          options,
+        ),
+      /Failed to update pull request thread status: API Error/,
+    );
   });
 });

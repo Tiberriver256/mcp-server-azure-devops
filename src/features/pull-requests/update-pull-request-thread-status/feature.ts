@@ -1,15 +1,15 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { AzureDevOpsError } from '../../../shared/errors';
+import type { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
 import type {
   UpdatePullRequestThreadStatusOptions,
   UpdatePullRequestThreadStatusResponse,
-} from '../types';
+} from '../types.ts';
 import {
   commentThreadStatusMapper,
   transformCommentThreadStatus,
   transformCommentType,
-} from '../../../shared/enums';
+} from '../../../shared/enums/index.ts';
 
 /**
  * Update the status of a pull request comment thread

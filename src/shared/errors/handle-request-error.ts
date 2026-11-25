@@ -1,4 +1,4 @@
-import type { AzureDevOpsError } from './azure-devops-errors';
+import type { AzureDevOpsError } from './azure-devops-errors.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsPermissionError,
@@ -6,9 +6,9 @@ import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
   isAzureDevOpsError,
-} from './azure-devops-errors';
-import { mapHttpErrorToAzureDevOpsError } from '../http/http-client';
-import { logError } from '../logging';
+} from './azure-devops-errors.ts';
+import { mapHttpErrorToAzureDevOpsError } from '../http/http-client.ts';
+import { logError } from '../logging.ts';
 
 /**
  * Scrub Authorization header values and URL-embedded credentials from any

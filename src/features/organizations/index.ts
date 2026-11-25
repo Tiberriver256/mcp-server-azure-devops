@@ -1,11 +1,11 @@
-export * from './schemas';
-export * from './types';
-export { listOrganizations } from './list-organizations/feature';
+export * from './schemas.ts';
+export * from './types.ts';
+export { listOrganizations } from './list-organizations/feature.ts';
 
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
-import { ListOrganizationsSchema } from './schemas';
-import { listOrganizations } from './list-organizations/feature';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
+import { ListOrganizationsSchema } from './schemas.ts';
+import { listOrganizations } from './list-organizations/feature.ts';
 
 export const organizationsFeature: FeatureModule = {
   toolset: 'organizations',

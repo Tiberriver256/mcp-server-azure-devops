@@ -1,12 +1,12 @@
-export * from './types';
-export * from './schemas';
-export * from './helpers';
-export * from './plans/feature';
-export * from './suites/feature';
-export * from './test-cases/feature';
+export * from './types.ts';
+export * from './schemas.ts';
+export * from './helpers.ts';
+export * from './plans/feature.ts';
+export * from './suites/feature.ts';
+export * from './test-cases/feature.ts';
 
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
 import {
   AddTestCasesToSuiteSchema,
   CreateTestCaseSchema,
@@ -18,19 +18,19 @@ import {
   ListTestPlansSchema,
   ListTestSuitesSchema,
   RemoveTestCasesFromSuiteSchema,
-} from './schemas';
-import { createTestPlan, getTestPlan, listTestPlans } from './plans/feature';
+} from './schemas.ts';
+import { createTestPlan, getTestPlan, listTestPlans } from './plans/feature.ts';
 import {
   createTestSuite,
   getTestSuite,
   listTestSuites,
-} from './suites/feature';
+} from './suites/feature.ts';
 import {
   addTestCasesToSuite,
   createTestCase,
   listSuiteTestCases,
   removeTestCasesFromSuite,
-} from './test-cases/feature';
+} from './test-cases/feature.ts';
 
 export const testPlansFeature: FeatureModule = {
   toolset: 'test-plans',

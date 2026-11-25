@@ -3,10 +3,10 @@ import type {
   GitVersionDescriptor,
   GitItem,
   GitVersionType,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { VersionControlRecursionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
-import { streamToString } from '../../../shared/utils/stream';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { VersionControlRecursionType } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors/index.ts';
+import { streamToString } from '../../../shared/utils/stream.ts';
 
 /**
  * Response format for file content

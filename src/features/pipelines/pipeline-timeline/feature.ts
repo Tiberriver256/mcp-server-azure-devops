@@ -1,20 +1,20 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { TimelineRecord } from 'azure-devops-node-api/interfaces/BuildInterfaces';
+import type { TimelineRecord } from 'azure-devops-node-api/interfaces/BuildInterfaces.js';
 import {
   TimelineRecordState,
   TaskResult,
-} from 'azure-devops-node-api/interfaces/BuildInterfaces';
+} from 'azure-devops-node-api/interfaces/BuildInterfaces.js';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
+} from '../../../shared/errors/index.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
 import {
   resolvePipelineApiVersion,
   resolvePipelineProjectId,
-} from '../helpers';
-import type { GetPipelineTimelineOptions, PipelineTimeline } from '../types';
+} from '../helpers.ts';
+import type { GetPipelineTimelineOptions, PipelineTimeline } from '../types.ts';
 
 export async function getPipelineTimeline(
   connection: WebApi,

@@ -1,4 +1,4 @@
-import type { ApiErrorResponse } from '../errors';
+import type { ApiErrorResponse } from '../errors/index.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
@@ -6,7 +6,7 @@ import {
   AzureDevOpsRateLimitError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../errors';
+} from '../errors/index.ts';
 
 export const DEFAULT_HTTP_TIMEOUT_MS = 30_000;
 export const DEFAULT_MAX_HTTP_RESPONSE_BYTES = 25 * 1024 * 1024; // 25 MiB

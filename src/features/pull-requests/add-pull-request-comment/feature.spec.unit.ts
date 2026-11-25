@@ -1,21 +1,20 @@
+import assert from 'node:assert/strict';
+import { describe, mock, test } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { addPullRequestComment } from './feature';
+import { addPullRequestComment } from './feature.ts';
 import type {
   Comment,
+  GitPullRequest,
   GitPullRequestCommentThread,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import {
   CommentThreadStatus,
   CommentType,
   GitVersionType,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 
-describe('addPullRequestComment', () => {
-  afterEach(() => {
-    jest.resetAllMocks();
-  });
-
-  test('should add a comment to an existing thread successfully', async () => {
+void describe('addPullRequestComment', () => {
+  void test('should add a comment to an existing thread successfully', async () => {
     // Mock data for a new comment
     const mockComment: Comment = {
       id: 101,
@@ -30,12 +29,14 @@ describe('addPullRequestComment', () => {
 
     // Setup mock connection
     const mockGitApi = {
-      createComment: jest.fn().mockResolvedValue(mockComment),
-      createThread: jest.fn(),
+      createComment: mock.fn((..._args: unknown[]) =>
+        Promise.resolve(mockComment),
+      ),
+      createThread: mock.fn(),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call the function with test parameters
@@ -52,7 +53,7 @@ describe('addPullRequestComment', () => {
     };
 
     const result = await addPullRequestComment(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       repositoryId,
       pullRequestId,
@@ -60,25 +61,30 @@ describe('addPullRequestComment', () => {
     );
 
     // Verify results (with transformed commentType)
-    expect(result).toEqual({
+    assert.deepStrictEqual(result, {
       comment: {
         ...mockComment,
         commentType: 'text', // Transform enum to string
       },
     });
-    expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.createComment).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.createComment).toHaveBeenCalledWith(
-      expect.objectContaining({ content: 'This is a reply comment' }),
+    assert.strictEqual(mockConnection.getGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockGitApi.createComment.mock.callCount(), 1);
+    const createCommentArgs = mockGitApi.createComment.mock.calls[0]?.arguments;
+    assert.ok(createCommentArgs);
+    assert.strictEqual(createCommentArgs.length, 5);
+    assert.partialDeepStrictEqual(createCommentArgs[0], {
+      content: 'This is a reply comment',
+    });
+    assert.deepStrictEqual(createCommentArgs.slice(1), [
       repositoryId,
       pullRequestId,
       threadId,
       projectId,
-    );
-    expect(mockGitApi.createThread).not.toHaveBeenCalled();
+    ]);
+    assert.strictEqual(mockGitApi.createThread.mock.callCount(), 0);
   });
 
-  test('should create a new thread with a comment successfully', async () => {
+  void test('should create a new thread with a comment successfully', async () => {
     // Mock data for a new thread with comment
     const mockComment: Comment = {
       id: 100,
@@ -99,12 +105,15 @@ describe('addPullRequestComment', () => {
 
     // Setup mock connection
     const mockGitApi = {
-      createComment: jest.fn(),
-      createThread: jest.fn().mockResolvedValue(mockThread),
+      createComment: mock.fn(),
+      createThread: mock.fn(
+        (_thread: GitPullRequestCommentThread, ..._rest: unknown[]) =>
+          Promise.resolve(mockThread),
+      ),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call the function with test parameters
@@ -120,7 +129,7 @@ describe('addPullRequestComment', () => {
     };
 
     const result = await addPullRequestComment(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       repositoryId,
       pullRequestId,
@@ -128,7 +137,7 @@ describe('addPullRequestComment', () => {
     );
 
     // Verify results
-    expect(result).toEqual({
+    assert.deepStrictEqual(result, {
       comment: {
         ...mockComment,
         commentType: 'text',
@@ -142,23 +151,23 @@ describe('addPullRequestComment', () => {
         })),
       },
     });
-    expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.createThread).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.createThread).toHaveBeenCalledWith(
-      expect.objectContaining({
-        comments: [
-          expect.objectContaining({ content: 'This is a new comment' }),
-        ],
-        status: CommentThreadStatus.Active,
-      }),
-      repositoryId,
-      pullRequestId,
-      projectId,
-    );
-    expect(mockGitApi.createComment).not.toHaveBeenCalled();
+    assert.strictEqual(mockConnection.getGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockGitApi.createThread.mock.callCount(), 1);
+    const createThreadArgs = mockGitApi.createThread.mock.calls[0]?.arguments;
+    assert.ok(createThreadArgs);
+    assert.strictEqual(createThreadArgs.length, 4);
+    const [threadArg, ...restArgs] = createThreadArgs;
+    assert.deepStrictEqual(restArgs, [repositoryId, pullRequestId, projectId]);
+    assert.strictEqual(threadArg.status, CommentThreadStatus.Active);
+    assert.ok(Array.isArray(threadArg.comments));
+    assert.strictEqual(threadArg.comments.length, 1);
+    assert.partialDeepStrictEqual(threadArg.comments[0], {
+      content: 'This is a new comment',
+    });
+    assert.strictEqual(mockGitApi.createComment.mock.callCount(), 0);
   });
 
-  test('should create a new thread on a file with line number', async () => {
+  void test('should create a new thread on a file with line number', async () => {
     // Mock data for a new thread with comment on file
     const mockComment: Comment = {
       id: 100,
@@ -196,16 +205,21 @@ describe('addPullRequestComment', () => {
 
     // Setup mock connection
     const mockGitApi = {
-      createComment: jest.fn(),
-      createThread: jest.fn().mockResolvedValue(mockThread),
-      getPullRequestById: jest.fn().mockResolvedValue({
-        lastMergeSourceCommit: { commitId: 'abc123' },
-      }),
-      getItem: jest.fn().mockResolvedValue({ content: fileContent }),
+      createComment: mock.fn(),
+      createThread: mock.fn(
+        (_thread: GitPullRequestCommentThread, ..._rest: unknown[]) =>
+          Promise.resolve(mockThread),
+      ),
+      getPullRequestById: mock.fn((..._args: unknown[]) =>
+        Promise.resolve({
+          lastMergeSourceCommit: { commitId: 'abc123' },
+        }),
+      ),
+      getItem: mock.fn(() => Promise.resolve({ content: fileContent })),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call the function with test parameters
@@ -222,7 +236,7 @@ describe('addPullRequestComment', () => {
     };
 
     const result = await addPullRequestComment(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       repositoryId,
       pullRequestId,
@@ -230,7 +244,7 @@ describe('addPullRequestComment', () => {
     );
 
     // Verify results
-    expect(result).toEqual({
+    assert.deepStrictEqual(result, {
       comment: {
         ...mockComment,
         commentType: 'text',
@@ -244,49 +258,65 @@ describe('addPullRequestComment', () => {
         })),
       },
     });
-    expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.createThread).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.createThread).toHaveBeenCalledWith(
-      expect.objectContaining({
-        comments: [
-          expect.objectContaining({ content: 'This code needs improvement' }),
-        ],
-        threadContext: {
-          filePath: '/src/app.ts',
-          rightFileStart: { line: 42, offset: 1 },
-          rightFileEnd: { line: 42, offset: 8 },
-        },
-      }),
-      repositoryId,
-      pullRequestId,
-      projectId,
+    assert.strictEqual(mockConnection.getGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockGitApi.createThread.mock.callCount(), 1);
+    const createThreadArgs = mockGitApi.createThread.mock.calls[0]?.arguments;
+    assert.ok(createThreadArgs);
+    assert.strictEqual(createThreadArgs.length, 4);
+    const [threadArg, ...restArgs] = createThreadArgs;
+    assert.deepStrictEqual(restArgs, [repositoryId, pullRequestId, projectId]);
+    assert.ok(Array.isArray(threadArg.comments));
+    assert.strictEqual(threadArg.comments.length, 1);
+    assert.partialDeepStrictEqual(threadArg.comments[0], {
+      content: 'This code needs improvement',
+    });
+    assert.deepStrictEqual(threadArg.threadContext, {
+      filePath: '/src/app.ts',
+      rightFileStart: { line: 42, offset: 1 },
+      rightFileEnd: { line: 42, offset: 8 },
+    });
+    assert.strictEqual(mockGitApi.getPullRequestById.mock.callCount(), 1);
+    assert.deepStrictEqual(
+      mockGitApi.getPullRequestById.mock.calls[0]?.arguments,
+      [pullRequestId, projectId],
     );
-    expect(mockGitApi.getPullRequestById).toHaveBeenCalledWith(
-      pullRequestId,
-      projectId,
-    );
-    expect(mockGitApi.createComment).not.toHaveBeenCalled();
+    assert.strictEqual(mockGitApi.createComment.mock.callCount(), 0);
   });
 
-  describe('file comment anchor', () => {
+  void describe('file comment anchor', () => {
     const fileContent = 'line one\r\nsecond line\r\nthe third line\r\n';
 
     const createMockGitApi = () => ({
-      createComment: jest.fn(),
-      createThread: jest.fn().mockResolvedValue({
-        id: 789,
-        status: CommentThreadStatus.Active,
-        comments: [{ id: 100, content: 'c', commentType: CommentType.Text }],
-      }),
-      getPullRequestById: jest.fn().mockResolvedValue({
-        lastMergeSourceCommit: { commitId: 'abc123' },
-      }),
-      getItem: jest.fn().mockResolvedValue({ content: fileContent }),
+      createComment: mock.fn(),
+      createThread: mock.fn(
+        (_thread: GitPullRequestCommentThread, ..._rest: unknown[]) =>
+          Promise.resolve<GitPullRequestCommentThread>({
+            id: 789,
+            status: CommentThreadStatus.Active,
+            comments: [
+              { id: 100, content: 'c', commentType: CommentType.Text },
+            ],
+          }),
+      ),
+      getPullRequestById: mock.fn(
+        (..._args: unknown[]): Promise<Partial<GitPullRequest>> =>
+          Promise.resolve({
+            lastMergeSourceCommit: { commitId: 'abc123' },
+          }),
+      ),
+      getItem: mock.fn((..._args: unknown[]): Promise<{ content?: string }> =>
+        Promise.resolve({ content: fileContent }),
+      ),
     });
 
-    const addComment = (mockGitApi: any, lineOptions: object) =>
+    const addComment = (
+      mockGitApi: ReturnType<typeof createMockGitApi>,
+      lineOptions: object,
+    ) =>
       addPullRequestComment(
-        { getGitApi: jest.fn().mockResolvedValue(mockGitApi) } as any,
+        {
+          getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
+        } as unknown as WebApi,
         'test-project',
         'test-repo',
         123,
@@ -300,12 +330,13 @@ describe('addPullRequestComment', () => {
         },
       );
 
-    test('should cover the whole line so that a suggestion replaces it', async () => {
+    void test('should cover the whole line so that a suggestion replaces it', async () => {
       const mockGitApi = createMockGitApi();
 
       await addComment(mockGitApi, { lineNumber: 2 });
 
-      expect(mockGitApi.getItem).toHaveBeenCalledWith(
+      assert.strictEqual(mockGitApi.getItem.mock.callCount(), 1);
+      assert.deepStrictEqual(mockGitApi.getItem.mock.calls[0]?.arguments, [
         'test-repo',
         '/src/app.ts',
         'test-project',
@@ -317,129 +348,174 @@ describe('addPullRequestComment', () => {
         { version: 'abc123', versionType: GitVersionType.Commit },
         true, // includeContent
         true, // resolveLfs
+      ]);
+      assert.deepStrictEqual(
+        mockGitApi.createThread.mock.calls[0]?.arguments[0]?.threadContext,
+        {
+          filePath: '/src/app.ts',
+          rightFileStart: { line: 2, offset: 1 },
+          rightFileEnd: { line: 2, offset: 12 },
+        },
       );
-      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
-        filePath: '/src/app.ts',
-        rightFileStart: { line: 2, offset: 1 },
-        rightFileEnd: { line: 2, offset: 12 },
-      });
     });
 
-    test('should cover a range of lines up to the end of endLineNumber', async () => {
+    void test('should cover a range of lines up to the end of endLineNumber', async () => {
       const mockGitApi = createMockGitApi();
 
       await addComment(mockGitApi, { lineNumber: 1, endLineNumber: 3 });
 
-      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
-        filePath: '/src/app.ts',
-        rightFileStart: { line: 1, offset: 1 },
-        rightFileEnd: { line: 3, offset: 15 },
-      });
+      assert.deepStrictEqual(
+        mockGitApi.createThread.mock.calls[0]?.arguments[0]?.threadContext,
+        {
+          filePath: '/src/app.ts',
+          rightFileStart: { line: 1, offset: 1 },
+          rightFileEnd: { line: 3, offset: 15 },
+        },
+      );
     });
 
-    test.each([
+    const lineBreakCases = [
       ['LF', 'line one\nsecond line\nthe third line'],
       ['CR', 'line one\rsecond line\rthe third line'],
       ['mixed', 'line one\rsecond line\nthe third line'],
-    ])('should count %s line breaks like the diff view', async (_, content) => {
-      const mockGitApi = createMockGitApi();
-      mockGitApi.getItem.mockResolvedValue({ content });
+    ] as const;
 
-      await addComment(mockGitApi, { lineNumber: 2, endLineNumber: 3 });
+    for (const [label, content] of lineBreakCases) {
+      void test(`should count ${label} line breaks like the diff view`, async () => {
+        const mockGitApi = createMockGitApi();
+        mockGitApi.getItem.mock.mockImplementation(() =>
+          Promise.resolve({ content }),
+        );
 
-      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
-        filePath: '/src/app.ts',
-        rightFileStart: { line: 2, offset: 1 },
-        rightFileEnd: { line: 3, offset: 15 },
+        await addComment(mockGitApi, { lineNumber: 2, endLineNumber: 3 });
+
+        assert.deepStrictEqual(
+          mockGitApi.createThread.mock.calls[0]?.arguments[0]?.threadContext,
+          {
+            filePath: '/src/app.ts',
+            rightFileStart: { line: 2, offset: 1 },
+            rightFileEnd: { line: 3, offset: 15 },
+          },
+        );
       });
-    });
+    }
 
-    test('should not count a byte order mark as part of the first line', async () => {
+    void test('should not count a byte order mark as part of the first line', async () => {
       const mockGitApi = createMockGitApi();
-      mockGitApi.getItem.mockResolvedValue({ content: `\uFEFF${fileContent}` });
+      mockGitApi.getItem.mock.mockImplementation(() =>
+        Promise.resolve({ content: `\uFEFF${fileContent}` }),
+      );
 
       await addComment(mockGitApi, { lineNumber: 1 });
 
-      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
-        filePath: '/src/app.ts',
-        rightFileStart: { line: 1, offset: 1 },
-        rightFileEnd: { line: 1, offset: 9 },
-      });
+      assert.deepStrictEqual(
+        mockGitApi.createThread.mock.calls[0]?.arguments[0]?.threadContext,
+        {
+          filePath: '/src/app.ts',
+          rightFileStart: { line: 1, offset: 1 },
+          rightFileEnd: { line: 1, offset: 9 },
+        },
+      );
     });
 
-    test('should fall back to the start of the line when the file cannot be read', async () => {
+    void test('should fall back to the start of the line when the file cannot be read', async () => {
       const mockGitApi = createMockGitApi();
-      mockGitApi.getItem.mockRejectedValue(new Error('not found'));
+      mockGitApi.getItem.mock.mockImplementation(() =>
+        Promise.reject(new Error('not found')),
+      );
 
       await addComment(mockGitApi, { lineNumber: 2 });
 
-      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
-        filePath: '/src/app.ts',
-        rightFileStart: { line: 2, offset: 1 },
-        rightFileEnd: { line: 2, offset: 1 },
-      });
+      assert.deepStrictEqual(
+        mockGitApi.createThread.mock.calls[0]?.arguments[0]?.threadContext,
+        {
+          filePath: '/src/app.ts',
+          rightFileStart: { line: 2, offset: 1 },
+          rightFileEnd: { line: 2, offset: 1 },
+        },
+      );
     });
 
-    test('should fall back to a single-line anchor at lineNumber when the file of a range cannot be read', async () => {
+    void test('should fall back to a single-line anchor at lineNumber when the file of a range cannot be read', async () => {
       const mockGitApi = createMockGitApi();
-      mockGitApi.getItem.mockRejectedValue(new Error('not found'));
+      mockGitApi.getItem.mock.mockImplementation(() =>
+        Promise.reject(new Error('not found')),
+      );
 
       await addComment(mockGitApi, { lineNumber: 1, endLineNumber: 3 });
 
-      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
-        filePath: '/src/app.ts',
-        rightFileStart: { line: 1, offset: 1 },
-        rightFileEnd: { line: 1, offset: 1 },
-      });
+      assert.deepStrictEqual(
+        mockGitApi.createThread.mock.calls[0]?.arguments[0]?.threadContext,
+        {
+          filePath: '/src/app.ts',
+          rightFileStart: { line: 1, offset: 1 },
+          rightFileEnd: { line: 1, offset: 1 },
+        },
+      );
     });
 
-    test('should fall back to the start of the line when the pull request has no source commit', async () => {
+    void test('should fall back to the start of the line when the pull request has no source commit', async () => {
       const mockGitApi = createMockGitApi();
-      mockGitApi.getPullRequestById.mockResolvedValue({});
+      mockGitApi.getPullRequestById.mock.mockImplementation(() =>
+        Promise.resolve({}),
+      );
 
       await addComment(mockGitApi, { lineNumber: 2 });
 
-      expect(mockGitApi.getItem).not.toHaveBeenCalled();
-      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
-        filePath: '/src/app.ts',
-        rightFileStart: { line: 2, offset: 1 },
-        rightFileEnd: { line: 2, offset: 1 },
-      });
+      assert.strictEqual(mockGitApi.getItem.mock.callCount(), 0);
+      assert.deepStrictEqual(
+        mockGitApi.createThread.mock.calls[0]?.arguments[0]?.threadContext,
+        {
+          filePath: '/src/app.ts',
+          rightFileStart: { line: 2, offset: 1 },
+          rightFileEnd: { line: 2, offset: 1 },
+        },
+      );
     });
 
-    test('should fall back to a single-line anchor at lineNumber when endLineNumber is beyond the end of the file', async () => {
+    void test('should fall back to a single-line anchor at lineNumber when endLineNumber is beyond the end of the file', async () => {
       const mockGitApi = createMockGitApi();
 
       await addComment(mockGitApi, { lineNumber: 2, endLineNumber: 10 });
 
-      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
-        filePath: '/src/app.ts',
-        rightFileStart: { line: 2, offset: 1 },
-        rightFileEnd: { line: 2, offset: 1 },
-      });
+      assert.deepStrictEqual(
+        mockGitApi.createThread.mock.calls[0]?.arguments[0]?.threadContext,
+        {
+          filePath: '/src/app.ts',
+          rightFileStart: { line: 2, offset: 1 },
+          rightFileEnd: { line: 2, offset: 1 },
+        },
+      );
     });
 
-    test('should comment on the whole file without looking it up when lineNumber is omitted', async () => {
+    void test('should comment on the whole file without looking it up when lineNumber is omitted', async () => {
       const mockGitApi = createMockGitApi();
 
       await addComment(mockGitApi, {});
 
-      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
-        filePath: '/src/app.ts',
-      });
-      expect(mockGitApi.getPullRequestById).not.toHaveBeenCalled();
-      expect(mockGitApi.getItem).not.toHaveBeenCalled();
+      assert.deepStrictEqual(
+        mockGitApi.createThread.mock.calls[0]?.arguments[0]?.threadContext,
+        {
+          filePath: '/src/app.ts',
+        },
+      );
+      assert.strictEqual(mockGitApi.getPullRequestById.mock.callCount(), 0);
+      assert.strictEqual(mockGitApi.getItem.mock.callCount(), 0);
     });
 
-    test('should reuse the pull request fetched to derive repositoryId', async () => {
+    void test('should reuse the pull request fetched to derive repositoryId', async () => {
       const mockGitApi = createMockGitApi();
-      mockGitApi.getPullRequestById.mockResolvedValue({
-        repository: { id: 'derived-repo' },
-        lastMergeSourceCommit: { commitId: 'abc123' },
-      });
+      mockGitApi.getPullRequestById.mock.mockImplementation(() =>
+        Promise.resolve({
+          repository: { id: 'derived-repo' },
+          lastMergeSourceCommit: { commitId: 'abc123' },
+        }),
+      );
 
       await addPullRequestComment(
-        { getGitApi: jest.fn().mockResolvedValue(mockGitApi) } as any,
+        {
+          getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
+        } as unknown as WebApi,
         'test-project',
         undefined,
         123,
@@ -452,8 +528,9 @@ describe('addPullRequestComment', () => {
         },
       );
 
-      expect(mockGitApi.getPullRequestById).toHaveBeenCalledTimes(1);
-      expect(mockGitApi.getItem).toHaveBeenCalledWith(
+      assert.strictEqual(mockGitApi.getPullRequestById.mock.callCount(), 1);
+      assert.strictEqual(mockGitApi.getItem.mock.callCount(), 1);
+      assert.deepStrictEqual(mockGitApi.getItem.mock.calls[0]?.arguments, [
         'derived-repo',
         '/src/app.ts',
         'test-project',
@@ -465,25 +542,28 @@ describe('addPullRequestComment', () => {
         { version: 'abc123', versionType: GitVersionType.Commit },
         true,
         true,
+      ]);
+      assert.deepStrictEqual(
+        mockGitApi.createThread.mock.calls[0]?.arguments[0]?.threadContext,
+        {
+          filePath: '/src/app.ts',
+          rightFileStart: { line: 2, offset: 1 },
+          rightFileEnd: { line: 2, offset: 12 },
+        },
       );
-      expect(mockGitApi.createThread.mock.calls[0][0].threadContext).toEqual({
-        filePath: '/src/app.ts',
-        rightFileStart: { line: 2, offset: 1 },
-        rightFileEnd: { line: 2, offset: 12 },
-      });
     });
   });
 
-  test('should handle error when API call fails', async () => {
+  void test('should handle error when API call fails', async () => {
     // Setup mock connection with error
     const errorMessage = 'API error';
     const mockGitApi = {
-      createComment: jest.fn().mockRejectedValue(new Error(errorMessage)),
-      createThread: jest.fn(),
+      createComment: mock.fn(() => Promise.reject(new Error(errorMessage))),
+      createThread: mock.fn(),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call the function with test parameters
@@ -500,18 +580,28 @@ describe('addPullRequestComment', () => {
     };
 
     // Verify error handling
-    await expect(
-      addPullRequestComment(
-        mockConnection as WebApi,
-        projectId,
-        repositoryId,
-        pullRequestId,
-        options,
-      ),
-    ).rejects.toThrow(`Failed to add pull request comment: ${errorMessage}`);
+    await assert.rejects(
+      () =>
+        addPullRequestComment(
+          mockConnection as unknown as WebApi,
+          projectId,
+          repositoryId,
+          pullRequestId,
+          options,
+        ),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(
+          err.message.includes(
+            `Failed to add pull request comment: ${errorMessage}`,
+          ),
+        );
+        return true;
+      },
+    );
   });
 
-  test('should derive repositoryId from pullRequestId when repositoryId is omitted', async () => {
+  void test('should derive repositoryId from pullRequestId when repositoryId is omitted', async () => {
     // Arrange
     const mockComment: Comment = {
       id: 100,
@@ -531,20 +621,24 @@ describe('addPullRequestComment', () => {
     };
 
     const mockGitApi = {
-      getPullRequestById: jest.fn().mockResolvedValue({
-        repository: { id: 'derived-repo' },
-      }),
-      createComment: jest.fn(),
-      createThread: jest.fn().mockResolvedValue(mockThread),
+      getPullRequestById: mock.fn((..._args: unknown[]) =>
+        Promise.resolve({
+          repository: { id: 'derived-repo' },
+        }),
+      ),
+      createComment: mock.fn(),
+      createThread: mock.fn((..._args: unknown[]) =>
+        Promise.resolve(mockThread),
+      ),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Act
     const result = await addPullRequestComment(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       'test-project',
       undefined,
       123,
@@ -557,16 +651,22 @@ describe('addPullRequestComment', () => {
     );
 
     // Assert
-    expect(result.thread?.id).toBe(789);
-    expect(mockGitApi.getPullRequestById).toHaveBeenCalledWith(
-      123,
-      'test-project',
+    assert.strictEqual(result.thread?.id, 789);
+    assert.strictEqual(mockGitApi.getPullRequestById.mock.callCount(), 1);
+    assert.deepStrictEqual(
+      mockGitApi.getPullRequestById.mock.calls[0]?.arguments,
+      [123, 'test-project'],
     );
-    expect(mockGitApi.createThread).toHaveBeenCalledWith(
-      expect.any(Object),
+    assert.strictEqual(mockGitApi.createThread.mock.callCount(), 1);
+    const createThreadArgs = mockGitApi.createThread.mock.calls[0]?.arguments;
+    assert.ok(createThreadArgs);
+    assert.strictEqual(createThreadArgs.length, 4);
+    assert.strictEqual(typeof createThreadArgs[0], 'object');
+    assert.notStrictEqual(createThreadArgs[0], null);
+    assert.deepStrictEqual(createThreadArgs.slice(1), [
       'derived-repo',
       123,
       'test-project',
-    );
+    ]);
   });
 });

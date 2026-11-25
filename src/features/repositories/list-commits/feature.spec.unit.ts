@@ -1,8 +1,10 @@
+import assert from 'node:assert/strict';
+import { describe, it, mock } from 'node:test';
 import { Readable } from 'stream';
-import { listCommits } from './feature';
+import { listCommits } from './feature.ts';
 
-describe('listCommits', () => {
-  it('should return commits with file patches', async () => {
+void describe('listCommits', () => {
+  void it('should return commits with file patches', async () => {
     const mockCommits = [
       {
         commitId: '123',
@@ -14,35 +16,37 @@ describe('listCommits', () => {
       },
     ];
 
-    const getCommits = jest.fn().mockResolvedValue(mockCommits);
-    const getChanges = jest.fn().mockResolvedValue({
-      changes: [
-        {
-          item: {
-            path: '/file.ts',
-            objectId: 'new',
-            originalObjectId: 'old',
+    const getCommits = mock.fn((..._args: unknown[]) =>
+      Promise.resolve(mockCommits),
+    );
+    const getChanges = mock.fn((..._args: unknown[]) =>
+      Promise.resolve({
+        changes: [
+          {
+            item: {
+              path: '/file.ts',
+              objectId: 'new',
+              originalObjectId: 'old',
+            },
+            originalPath: '/file.ts',
           },
-          originalPath: '/file.ts',
-        },
-      ],
+        ],
+      }),
+    );
+    const getBlobContent = mock.fn((_repo: string, objectId: string) => {
+      const content =
+        objectId === 'old' ? 'console.log("old");\n' : 'console.log("new");\n';
+      return Readable.from([content]);
     });
-    const getBlobContent = jest
-      .fn()
-      .mockImplementation((_repo: string, objectId: string) => {
-        const content =
-          objectId === 'old'
-            ? 'console.log("old");\n'
-            : 'console.log("new");\n';
-        return Readable.from([content]);
-      });
 
     const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getCommits,
-        getChanges,
-        getBlobContent,
-      }),
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getCommits,
+          getChanges,
+          getBlobContent,
+        }),
+      ),
     };
 
     const result = await listCommits(mockConnection, {
@@ -51,11 +55,20 @@ describe('listCommits', () => {
       branchName: 'main',
     });
 
-    expect(result.commits).toHaveLength(1);
-    expect(result.commits[0].files).toHaveLength(1);
-    expect(result.commits[0].files[0].patch).toContain('-console.log("old");');
-    expect(result.commits[0].files[0].patch).toContain('+console.log("new");');
-    expect(getCommits).toHaveBeenCalled();
-    expect(getChanges).toHaveBeenCalledWith('123', 'r', 'p');
+    assert.strictEqual(result.commits.length, 1);
+    assert.strictEqual(result.commits[0].files.length, 1);
+    assert.ok(
+      result.commits[0].files[0].patch.includes('-console.log("old");'),
+    );
+    assert.ok(
+      result.commits[0].files[0].patch.includes('+console.log("new");'),
+    );
+    assert.strictEqual(getCommits.mock.callCount(), 1);
+    assert.strictEqual(getChanges.mock.callCount(), 1);
+    assert.deepStrictEqual(getChanges.mock.calls[0]?.arguments, [
+      '123',
+      'r',
+      'p',
+    ]);
   });
 });

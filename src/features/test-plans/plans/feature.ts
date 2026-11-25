@@ -2,25 +2,25 @@ import type { WebApi } from 'azure-devops-node-api';
 import type {
   TestPlan,
   TestPlanCreateParams,
-} from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
-import { TypeInfo } from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
+} from 'azure-devops-node-api/interfaces/TestPlanInterfaces.js';
+import { TypeInfo } from 'azure-devops-node-api/interfaces/TestPlanInterfaces.js';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../../../shared/errors';
+} from '../../../shared/errors/index.ts';
 import {
   fetchPagedTestPlanCollection,
   mapTestPlanError,
   parseStrictIsoDate,
   resolveProjectId,
   TEST_PLANS_LOCATION_ID,
-} from '../helpers';
+} from '../helpers.ts';
 import type {
   CreateTestPlanOptions,
   GetTestPlanOptions,
   ListTestPlansOptions,
   ListTestPlansResponse,
-} from '../types';
+} from '../types.ts';
 
 /**
  * List test plans in a project with optional filters and continuation token pagination.

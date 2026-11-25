@@ -2,14 +2,14 @@ import type { WebApi } from 'azure-devops-node-api';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
-} from '../../../shared/errors';
-import { logError } from '../../../shared/logging';
-import { mapWithConcurrency } from '../../../shared/utils/concurrency';
+} from '../../../shared/errors/index.ts';
+import { logError } from '../../../shared/logging.ts';
+import { mapWithConcurrency } from '../../../shared/utils/concurrency.ts';
 import type {
   TeamProject,
   WebApiTeam,
-} from 'azure-devops-node-api/interfaces/CoreInterfaces';
-import type { WorkItemField } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+} from 'azure-devops-node-api/interfaces/CoreInterfaces.js';
+import type { WorkItemField } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
 
 // Type for work item type field with additional properties
 interface WorkItemTypeField extends WorkItemField {

@@ -1,38 +1,46 @@
+import assert from 'node:assert/strict';
+import { beforeEach, describe, mock, test } from 'node:test';
+import type { Mock } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { triggerPipeline } from './feature';
+import { triggerPipeline } from './feature.ts';
 import {
   AzureDevOpsError,
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
+} from '../../../shared/errors/index.ts';
+
+type RunPipelineFn = (
+  runParameters: Record<string, unknown>,
+  projectId: string,
+  pipelineId: number,
+) => Promise<unknown>;
 
 // Unit tests should only focus on isolated logic
-describe('triggerPipeline unit', () => {
+void describe('triggerPipeline unit', () => {
   let mockConnection: WebApi;
-  let mockPipelinesApi: any;
+  let mockGetPipelinesApi: Mock<() => Promise<unknown>>;
+  let mockRunPipeline: Mock<RunPipelineFn>;
 
   beforeEach(() => {
-    // Reset mocks
-    jest.resetAllMocks();
+    mockRunPipeline = mock.fn<RunPipelineFn>(() =>
+      Promise.reject(new Error('Unexpected runPipeline call')),
+    );
+    const mockPipelinesApi = {
+      runPipeline: mockRunPipeline,
+    };
+    mockGetPipelinesApi = mock.fn(() => Promise.resolve(mockPipelinesApi));
 
     // Mock WebApi with a server URL
     mockConnection = {
       serverUrl: 'https://dev.azure.com/testorg',
-    } as WebApi;
-
-    // Mock the getPipelinesApi method
-    mockPipelinesApi = {
-      runPipeline: jest.fn(),
-    };
-    mockConnection.getPipelinesApi = jest
-      .fn()
-      .mockResolvedValue(mockPipelinesApi);
+      getPipelinesApi: mockGetPipelinesApi,
+    } as unknown as WebApi;
   });
 
-  test('should trigger a pipeline with basic options', async () => {
+  void test('should trigger a pipeline with basic options', async () => {
     // Arrange
     const mockRun = { id: 123, name: 'Run 123' };
-    mockPipelinesApi.runPipeline.mockResolvedValue(mockRun);
+    mockRunPipeline.mock.mockImplementation(() => Promise.resolve(mockRun));
 
     // Act
     const result = await triggerPipeline(mockConnection, {
@@ -42,27 +50,27 @@ describe('triggerPipeline unit', () => {
     });
 
     // Assert
-    expect(mockConnection.getPipelinesApi).toHaveBeenCalled();
-    expect(mockPipelinesApi.runPipeline).toHaveBeenCalledWith(
-      expect.objectContaining({
-        resources: {
-          repositories: {
-            self: {
-              refName: 'refs/heads/main',
-            },
-          },
+    assert.strictEqual(mockGetPipelinesApi.mock.callCount(), 1);
+    assert.strictEqual(mockRunPipeline.mock.callCount(), 1);
+    const callArgs = mockRunPipeline.mock.calls[0]?.arguments;
+    assert.ok(callArgs);
+    assert.strictEqual(callArgs.length, 3);
+    assert.deepStrictEqual(callArgs[0].resources, {
+      repositories: {
+        self: {
+          refName: 'refs/heads/main',
         },
-      }),
-      'testproject',
-      4,
-    );
-    expect(result).toBe(mockRun);
+      },
+    });
+    assert.strictEqual(callArgs[1], 'testproject');
+    assert.strictEqual(callArgs[2], 4);
+    assert.strictEqual(result, mockRun);
   });
 
-  test('should trigger a pipeline with variables', async () => {
+  void test('should trigger a pipeline with variables', async () => {
     // Arrange
     const mockRun = { id: 123, name: 'Run 123' };
-    mockPipelinesApi.runPipeline.mockResolvedValue(mockRun);
+    mockRunPipeline.mock.mockImplementation(() => Promise.resolve(mockRun));
 
     // Act
     const result = await triggerPipeline(mockConnection, {
@@ -75,71 +83,75 @@ describe('triggerPipeline unit', () => {
     });
 
     // Assert
-    expect(mockPipelinesApi.runPipeline).toHaveBeenCalledWith(
-      expect.objectContaining({
-        variables: {
-          var1: { value: 'value1' },
-          var2: { value: 'value2', isSecret: true },
-        },
-      }),
-      'testproject',
-      4,
-    );
-    expect(result).toBe(mockRun);
+    assert.strictEqual(mockRunPipeline.mock.callCount(), 1);
+    const callArgs = mockRunPipeline.mock.calls[0]?.arguments;
+    assert.ok(callArgs);
+    assert.strictEqual(callArgs.length, 3);
+    assert.deepStrictEqual(callArgs[0].variables, {
+      var1: { value: 'value1' },
+      var2: { value: 'value2', isSecret: true },
+    });
+    assert.strictEqual(callArgs[1], 'testproject');
+    assert.strictEqual(callArgs[2], 4);
+    assert.strictEqual(result, mockRun);
   });
 
-  test('should handle authentication errors', async () => {
+  void test('should handle authentication errors', async () => {
     // Arrange
     const authError = new Error('Authentication failed');
-    mockPipelinesApi.runPipeline.mockRejectedValue(authError);
+    mockRunPipeline.mock.mockImplementation(() => Promise.reject(authError));
 
     // Act & Assert
-    await expect(
-      triggerPipeline(mockConnection, {
-        projectId: 'testproject',
-        pipelineId: 4,
-      }),
-    ).rejects.toThrow(AzureDevOpsAuthenticationError);
-    await expect(
-      triggerPipeline(mockConnection, {
-        projectId: 'testproject',
-        pipelineId: 4,
-      }),
-    ).rejects.toThrow('Failed to authenticate');
+    await assert.rejects(
+      () =>
+        triggerPipeline(mockConnection, {
+          projectId: 'testproject',
+          pipelineId: 4,
+        }),
+      (err: unknown) => {
+        assert.ok(err instanceof AzureDevOpsAuthenticationError);
+        assert.match(err.message, /Failed to authenticate/);
+        return true;
+      },
+    );
   });
 
-  test('should handle resource not found errors and null 404 responses', async () => {
+  void test('should handle resource not found errors and null 404 responses', async () => {
     // Arrange
     const notFoundError = new Error('Pipeline not found');
-    mockPipelinesApi.runPipeline.mockRejectedValue(notFoundError);
+    mockRunPipeline.mock.mockImplementation(() =>
+      Promise.reject(notFoundError),
+    );
 
     // Act & Assert
-    await expect(
-      triggerPipeline(mockConnection, {
-        projectId: 'testproject',
-        pipelineId: 999,
-      }),
-    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
-    await expect(
-      triggerPipeline(mockConnection, {
-        projectId: 'testproject',
-        pipelineId: 999,
-      }),
-    ).rejects.toThrow('Pipeline or project not found');
+    await assert.rejects(
+      () =>
+        triggerPipeline(mockConnection, {
+          projectId: 'testproject',
+          pipelineId: 999,
+        }),
+      (err: unknown) => {
+        assert.ok(err instanceof AzureDevOpsResourceNotFoundError);
+        assert.match(err.message, /Pipeline or project not found/);
+        return true;
+      },
+    );
 
     // typed-rest-client resolves HTTP 404 to null instead of rejecting
-    mockPipelinesApi.runPipeline.mockResolvedValue(null);
-    await expect(
-      triggerPipeline(mockConnection, {
-        projectId: 'testproject',
-        pipelineId: 999999,
-      }),
-    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+    mockRunPipeline.mock.mockImplementation(() => Promise.resolve(null));
+    await assert.rejects(
+      () =>
+        triggerPipeline(mockConnection, {
+          projectId: 'testproject',
+          pipelineId: 999999,
+        }),
+      AzureDevOpsResourceNotFoundError,
+    );
   });
 
-  test('does not double-prefix refs/heads/ branch values', async () => {
+  void test('does not double-prefix refs/heads/ branch values', async () => {
     const mockRun = { id: 124, name: 'Run 124' };
-    mockPipelinesApi.runPipeline.mockResolvedValue(mockRun);
+    mockRunPipeline.mock.mockImplementation(() => Promise.resolve(mockRun));
 
     await triggerPipeline(mockConnection, {
       projectId: 'testproject',
@@ -147,38 +159,38 @@ describe('triggerPipeline unit', () => {
       branch: 'refs/heads/release/1.0',
     });
 
-    expect(mockPipelinesApi.runPipeline).toHaveBeenCalledWith(
-      expect.objectContaining({
-        resources: {
-          repositories: {
-            self: {
-              refName: 'refs/heads/release/1.0',
-            },
-          },
+    assert.strictEqual(mockRunPipeline.mock.callCount(), 1);
+    const callArgs = mockRunPipeline.mock.calls[0]?.arguments;
+    assert.ok(callArgs);
+    assert.strictEqual(callArgs.length, 3);
+    assert.deepStrictEqual(callArgs[0].resources, {
+      repositories: {
+        self: {
+          refName: 'refs/heads/release/1.0',
         },
-      }),
-      'testproject',
-      4,
-    );
+      },
+    });
+    assert.strictEqual(callArgs[1], 'testproject');
+    assert.strictEqual(callArgs[2], 4);
   });
 
-  test('should wrap other errors', async () => {
+  void test('should wrap other errors', async () => {
     // Arrange
     const testError = new Error('Some other error');
-    mockPipelinesApi.runPipeline.mockRejectedValue(testError);
+    mockRunPipeline.mock.mockImplementation(() => Promise.reject(testError));
 
     // Act & Assert
-    await expect(
-      triggerPipeline(mockConnection, {
-        projectId: 'testproject',
-        pipelineId: 4,
-      }),
-    ).rejects.toThrow(AzureDevOpsError);
-    await expect(
-      triggerPipeline(mockConnection, {
-        projectId: 'testproject',
-        pipelineId: 4,
-      }),
-    ).rejects.toThrow('Failed to trigger pipeline');
+    await assert.rejects(
+      () =>
+        triggerPipeline(mockConnection, {
+          projectId: 'testproject',
+          pipelineId: 4,
+        }),
+      (err: unknown) => {
+        assert.ok(err instanceof AzureDevOpsError);
+        assert.match(err.message, /Failed to trigger pipeline/);
+        return true;
+      },
+    );
   });
 });

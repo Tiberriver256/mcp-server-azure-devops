@@ -1,13 +1,13 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { AzureDevOpsValidationError } from '../../../shared/errors';
-import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url';
-import { createSessionFromEnv } from '../../../shared/session/azure-devops-session';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
+import { AzureDevOpsValidationError } from '../../../shared/errors/index.ts';
+import { resolveAzureDevOpsBaseUrls } from '../../../shared/azure-devops-url.ts';
+import { createSessionFromEnv } from '../../../shared/session/azure-devops-session.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
 import type {
   SearchWikiOptions,
   WikiSearchRequest,
   WikiSearchResponse,
-} from '../types';
+} from '../types.ts';
 
 /**
  * Search for wiki pages in Azure DevOps projects.

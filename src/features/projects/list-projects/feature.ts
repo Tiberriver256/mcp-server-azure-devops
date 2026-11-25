@@ -1,6 +1,6 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { AzureDevOpsError } from '../../../shared/errors';
-import type { ListProjectsOptions, TeamProject } from '../types';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import type { ListProjectsOptions, TeamProject } from '../types.ts';
 
 /**
  * List all projects in the organization

@@ -1,14 +1,16 @@
-import { AuthenticationMethod } from '../../../shared/auth';
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { AuthenticationMethod } from '../../../shared/auth/index.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsPermissionError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../../../shared/errors';
-import { HttpError } from '../../../shared/http/http-client';
-import type { HttpRequestOptions } from '../../../shared/http/http-client';
-import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session';
-import { searchWiki } from './feature';
+} from '../../../shared/errors/index.ts';
+import { HttpError } from '../../../shared/http/http-client.ts';
+import type { HttpRequestOptions } from '../../../shared/http/http-client.ts';
+import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session.ts';
+import { searchWiki } from './feature.ts';
 
 function makeContext(
   handler: (
@@ -49,8 +51,8 @@ function makeContext(
   );
 }
 
-describe('searchWiki', () => {
-  it('supports org-wide search on Services and merges project filters', async () => {
+void describe('searchWiki', () => {
+  void it('supports org-wide search on Services and merges project filters', async () => {
     let captured: HttpRequestOptions | undefined;
     const ctx = makeContext(async (req) => {
       captured = req;
@@ -65,29 +67,32 @@ describe('searchWiki', () => {
       filters: { Project: ['ExtraProj'] },
     });
 
-    expect(captured?.url).toBe(
+    assert.strictEqual(
+      captured?.url,
       'https://almsearch.dev.azure.com/test-org/_apis/search/wikisearchresults',
     );
-    expect(
+    assert.deepStrictEqual(
       (captured?.body as { filters?: { Project: string[] } } | undefined)
         ?.filters,
-    ).toEqual({
-      Project: ['ExtraProj'],
-    });
+      {
+        Project: ['ExtraProj'],
+      },
+    );
   });
 
-  it('requires projectId for Azure DevOps Server on-prem wiki search when no defaultProject is configured', async () => {
+  void it('requires projectId for Azure DevOps Server on-prem wiki search when no defaultProject is configured', async () => {
     const ctx = makeContext(
       async () => ({ status: 200, data: {} }),
       'https://ado.local/tfs/DefaultCollection',
     );
 
-    await expect(searchWiki(ctx, { searchText: 'onboarding' })).rejects.toThrow(
+    await assert.rejects(
+      () => searchWiki(ctx, { searchText: 'onboarding' }),
       AzureDevOpsValidationError,
     );
   });
 
-  it('falls back to defaultProject on Azure DevOps Server without duplicating project segment on project-suffixed URLs', async () => {
+  void it('falls back to defaultProject on Azure DevOps Server without duplicating project segment on project-suffixed URLs', async () => {
     const urls: string[] = [];
     const collectionCtx = makeContext(
       async (req) => {
@@ -109,29 +114,34 @@ describe('searchWiki', () => {
     );
     await searchWiki(projectSuffixedCtx, { searchText: 'onboarding' });
 
-    expect(urls).toEqual([
+    assert.deepStrictEqual(urls, [
       'https://ado.local/tfs/DefaultCollection/My%20Project/_apis/search/wikisearchresults',
       'https://ado.local/tfs/DefaultCollection/MyProject/_apis/search/wikisearchresults',
     ]);
   });
 
-  it.each([
+  const errorStatusCases = [
     [400, AzureDevOpsValidationError],
     [401, AzureDevOpsAuthenticationError],
     [403, AzureDevOpsPermissionError],
     [404, AzureDevOpsResourceNotFoundError],
-  ] as const)('maps HTTP %d to %p', async (status, ErrorClass) => {
-    const ctx = makeContext(async (req) => {
-      throw new HttpError({
-        message: `HTTP ${status}`,
-        status,
-        statusText: 'Error',
-        url: req.url,
-      });
-    });
+  ] as const;
 
-    await expect(
-      searchWiki(ctx, { searchText: 'x', projectId: 'proj1' }),
-    ).rejects.toThrow(ErrorClass);
-  });
+  for (const [status, ExpectedError] of errorStatusCases) {
+    void it(`maps HTTP ${status} to ${ExpectedError.name}`, async () => {
+      const ctx = makeContext(async (req) => {
+        throw new HttpError({
+          message: `HTTP ${status}`,
+          status,
+          statusText: 'Error',
+          url: req.url,
+        });
+      });
+
+      await assert.rejects(
+        () => searchWiki(ctx, { searchText: 'x', projectId: 'proj1' }),
+        ExpectedError,
+      );
+    });
+  }
 });

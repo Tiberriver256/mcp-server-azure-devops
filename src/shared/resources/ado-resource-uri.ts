@@ -1,4 +1,4 @@
-import { AzureDevOpsResourceNotFoundError } from '../errors';
+import { AzureDevOpsResourceNotFoundError } from '../errors/index.ts';
 
 export type AdoResourceRef =
   | { kind: 'default' }

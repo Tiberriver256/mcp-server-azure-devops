@@ -1,4 +1,4 @@
-import type { AuthenticationMethod } from '../auth/auth-factory';
+import type { AuthenticationMethod } from '../auth/auth-factory.ts';
 
 /**
  * Azure DevOps configuration type definition

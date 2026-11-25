@@ -1,19 +1,19 @@
-export * from './schemas';
-export * from './types';
-export { getProject } from './get-project/feature';
-export { getProjectDetails } from './get-project-details/feature';
-export { listProjects } from './list-projects/feature';
+export * from './schemas.ts';
+export * from './types.ts';
+export { getProject } from './get-project/feature.ts';
+export { getProjectDetails } from './get-project-details/feature.ts';
+export { listProjects } from './list-projects/feature.ts';
 
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
 import {
   GetProjectSchema,
   GetProjectDetailsSchema,
   ListProjectsSchema,
-} from './schemas';
-import { getProject } from './get-project/feature';
-import { getProjectDetails } from './get-project-details/feature';
-import { listProjects } from './list-projects/feature';
+} from './schemas.ts';
+import { getProject } from './get-project/feature.ts';
+import { getProjectDetails } from './get-project-details/feature.ts';
+import { listProjects } from './list-projects/feature.ts';
 
 export const projectsFeature: FeatureModule = {
   toolset: 'projects',

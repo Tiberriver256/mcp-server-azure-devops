@@ -3,7 +3,7 @@ import type {
   GitBranchStats,
   GitRef,
   GitItem,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 
 /**
  * Options for listing repositories

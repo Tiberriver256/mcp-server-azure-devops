@@ -9,5 +9,5 @@ export {
   isCredentialAuthFailure,
   isLocationLookupFailure,
   normalizeAuthMethod,
-} from './auth-factory';
-export type { AuthConfig, AuthProvider } from './auth-factory';
+} from './auth-factory.ts';
+export type { AuthConfig, AuthProvider } from './auth-factory.ts';

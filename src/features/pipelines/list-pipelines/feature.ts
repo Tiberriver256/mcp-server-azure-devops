@@ -3,8 +3,8 @@ import {
   AzureDevOpsError,
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
-import type { ListPipelinesOptions, Pipeline } from '../types';
+} from '../../../shared/errors/index.ts';
+import type { ListPipelinesOptions, Pipeline } from '../types.ts';
 
 /**
  * List pipelines in a project

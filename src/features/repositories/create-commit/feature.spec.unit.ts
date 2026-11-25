@@ -1,27 +1,31 @@
+import assert from 'node:assert/strict';
+import { describe, mock, test } from 'node:test';
 import { Readable } from 'stream';
 import type { WebApi } from 'azure-devops-node-api';
 import { createTwoFilesPatch } from 'diff';
-import { VersionControlChangeType } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { VersionControlChangeType } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import {
   applyLiteralSearchReplace,
   createCommit,
   normalizeGitDiffPath,
-} from './feature';
-import { AzureDevOpsError } from '../../../shared/errors';
+} from './feature.ts';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
 
-describe('createCommit unit', () => {
-  test('creates push with Edit and Add changes from unified patches', async () => {
-    const createPush = jest.fn().mockResolvedValue({});
+void describe('createCommit unit', () => {
+  void test('creates push with Edit and Add changes from unified patches', async () => {
+    const createPush = mock.fn((..._args: any[]) => Promise.resolve({}));
     const mockConnection = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getBranch: jest
-          .fn()
-          .mockResolvedValue({ commit: { commitId: 'base' } }),
-        getItemContent: jest
-          .fn()
-          .mockResolvedValue(Readable.from(['console.log("hello");\n'])),
-        createPush,
-      }),
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getBranch: mock.fn(() =>
+            Promise.resolve({ commit: { commitId: 'base' } }),
+          ),
+          getItemContent: mock.fn(() =>
+            Promise.resolve(Readable.from(['console.log("hello");\n'])),
+          ),
+          createPush,
+        }),
+      ),
     } as unknown as WebApi;
 
     await createCommit(mockConnection, {
@@ -46,28 +50,32 @@ describe('createCommit unit', () => {
       ],
     });
 
-    const payload = createPush.mock.calls[0][0];
-    expect(payload.commits[0].changes).toHaveLength(2);
-    expect(payload.commits[0].changes[0].changeType).toBe(
+    const payload = createPush.mock.calls[0]?.arguments[0];
+    assert.strictEqual(payload.commits[0].changes.length, 2);
+    assert.strictEqual(
+      payload.commits[0].changes[0].changeType,
       VersionControlChangeType.Edit,
     );
-    expect(payload.commits[0].changes[1].changeType).toBe(
+    assert.strictEqual(
+      payload.commits[0].changes[1].changeType,
       VersionControlChangeType.Add,
     );
   });
 
-  test('creates Delete change when patch removes a file', async () => {
-    const createPush = jest.fn().mockResolvedValue({});
+  void test('creates Delete change when patch removes a file', async () => {
+    const createPush = mock.fn((..._args: any[]) => Promise.resolve({}));
     const mockConnection = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getBranch: jest
-          .fn()
-          .mockResolvedValue({ commit: { commitId: 'base' } }),
-        getItemContent: jest
-          .fn()
-          .mockResolvedValue(Readable.from(['goodbye\n'])),
-        createPush,
-      }),
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getBranch: mock.fn(() =>
+            Promise.resolve({ commit: { commitId: 'base' } }),
+          ),
+          getItemContent: mock.fn(() =>
+            Promise.resolve(Readable.from(['goodbye\n'])),
+          ),
+          createPush,
+        }),
+      ),
     } as unknown as WebApi;
 
     await createCommit(mockConnection, {
@@ -82,27 +90,27 @@ describe('createCommit unit', () => {
       ],
     });
 
-    const change = createPush.mock.calls[0][0].commits[0].changes[0];
-    expect(change.changeType).toBe(VersionControlChangeType.Delete);
-    expect(change.item).toEqual({ path: '/old.txt' });
-    expect(change.newContent).toBeUndefined();
+    const change = createPush.mock.calls[0]?.arguments[0].commits[0].changes[0];
+    assert.strictEqual(change.changeType, VersionControlChangeType.Delete);
+    assert.deepStrictEqual(change.item, { path: '/old.txt' });
+    assert.strictEqual(change.newContent, undefined);
   });
 
-  test('uses single-fetch fast path for search/replace and treats replacement literally', async () => {
-    const createPush = jest.fn().mockResolvedValue({});
-    const getItemContent = jest
-      .fn()
-      .mockImplementation(() =>
-        Readable.from(['const price = "OLD";\nconsole.log(price);\n']),
-      );
+  void test('uses single-fetch fast path for search/replace and treats replacement literally', async () => {
+    const createPush = mock.fn((..._args: any[]) => Promise.resolve({}));
+    const getItemContent = mock.fn(() =>
+      Readable.from(['const price = "OLD";\nconsole.log(price);\n']),
+    );
     const mockConnection = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getBranch: jest
-          .fn()
-          .mockResolvedValue({ commit: { commitId: 'base' } }),
-        getItemContent,
-        createPush,
-      }),
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getBranch: mock.fn(() =>
+            Promise.resolve({ commit: { commitId: 'base' } }),
+          ),
+          getItemContent,
+          createPush,
+        }),
+      ),
     } as unknown as WebApi;
 
     await createCommit(mockConnection, {
@@ -120,63 +128,69 @@ describe('createCommit unit', () => {
     });
 
     // Fast path must fetch file content only once (not twice via diff round-trip)
-    expect(getItemContent).toHaveBeenCalledTimes(1);
-    const change = createPush.mock.calls[0][0].commits[0].changes[0];
-    expect(change.changeType).toBe(VersionControlChangeType.Edit);
-    expect(change.newContent?.content).toBe(
+    assert.strictEqual(getItemContent.mock.callCount(), 1);
+    const change = createPush.mock.calls[0]?.arguments[0].commits[0].changes[0];
+    assert.strictEqual(change.changeType, VersionControlChangeType.Edit);
+    assert.strictEqual(
+      change.newContent?.content,
       'const price = "$& $$ $1";\nconsole.log(price);\n',
     );
   });
 
-  test('throws when patch or search snippet does not match', async () => {
+  void test('throws when patch or search snippet does not match', async () => {
     const mockConnection = {
-      getGitApi: jest.fn().mockResolvedValue({
-        getBranch: jest
-          .fn()
-          .mockResolvedValue({ commit: { commitId: 'base' } }),
-        getItemContent: jest
-          .fn()
-          .mockImplementation(() => Readable.from(['const x = 1;\n'])),
-      }),
+      getGitApi: mock.fn(() =>
+        Promise.resolve({
+          getBranch: mock.fn(() =>
+            Promise.resolve({ commit: { commitId: 'base' } }),
+          ),
+          getItemContent: mock.fn(() => Readable.from(['const x = 1;\n'])),
+        }),
+      ),
     } as unknown as WebApi;
 
-    await expect(
-      createCommit(mockConnection, {
-        projectId: 'p',
-        repositoryId: 'r',
-        branchName: 'main',
-        commitMessage: 'msg',
-        changes: [{ path: '/file.ts', search: 'MISSING', replace: 'x' }],
-      }),
-    ).rejects.toThrow(AzureDevOpsError);
+    await assert.rejects(
+      () =>
+        createCommit(mockConnection, {
+          projectId: 'p',
+          repositoryId: 'r',
+          branchName: 'main',
+          commitMessage: 'msg',
+          changes: [{ path: '/file.ts', search: 'MISSING', replace: 'x' }],
+        }),
+      AzureDevOpsError,
+    );
 
-    await expect(
-      createCommit(mockConnection, {
-        projectId: 'p',
-        repositoryId: 'r',
-        branchName: 'main',
-        commitMessage: 'msg',
-        changes: [
-          {
-            path: '/file.ts',
-            patch: createTwoFilesPatch(
-              '/file.ts',
-              '/file.ts',
-              'nope\n',
-              'yes\n',
-            ),
-          },
-        ],
-      }),
-    ).rejects.toThrow(AzureDevOpsError);
+    await assert.rejects(
+      () =>
+        createCommit(mockConnection, {
+          projectId: 'p',
+          repositoryId: 'r',
+          branchName: 'main',
+          commitMessage: 'msg',
+          changes: [
+            {
+              path: '/file.ts',
+              patch: createTwoFilesPatch(
+                '/file.ts',
+                '/file.ts',
+                'nope\n',
+                'yes\n',
+              ),
+            },
+          ],
+        }),
+      AzureDevOpsError,
+    );
   });
 
-  test('normalizeGitDiffPath strips only a single git a/ or b/ prefix and preserves nested a/b/ dirs', () => {
-    expect(normalizeGitDiffPath('a/src/app.ts')).toBe('src/app.ts');
-    expect(normalizeGitDiffPath('b/a/b/file.ts')).toBe('a/b/file.ts');
-    expect(normalizeGitDiffPath('/a/b/file.ts')).toBe('/a/b/file.ts');
-    expect(
+  void test('normalizeGitDiffPath strips only a single git a/ or b/ prefix and preserves nested a/b/ dirs', () => {
+    assert.strictEqual(normalizeGitDiffPath('a/src/app.ts'), 'src/app.ts');
+    assert.strictEqual(normalizeGitDiffPath('b/a/b/file.ts'), 'a/b/file.ts');
+    assert.strictEqual(normalizeGitDiffPath('/a/b/file.ts'), '/a/b/file.ts');
+    assert.strictEqual(
       applyLiteralSearchReplace('hello world', 'world', '$&!', '/file.ts'),
-    ).toBe('hello $&!');
+      'hello $&!',
+    );
   });
 });

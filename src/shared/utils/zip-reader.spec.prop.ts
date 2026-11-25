@@ -1,7 +1,9 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import fc from 'fast-check';
-import { readZipArchive } from './zip-reader';
-import { buildTestZip } from '../test/zip-builder';
-import { AzureDevOpsError } from '../errors';
+import { readZipArchive } from './zip-reader.ts';
+import { buildTestZip } from '../test/zip-builder.ts';
+import { AzureDevOpsError } from '../errors/index.ts';
 
 const fileNameSegmentArb = fc.stringMatching(/^[a-zA-Z0-9._-]{1,12}$/);
 const unicodeSegmentArb = fc.constantFrom(
@@ -21,8 +23,8 @@ const entryNameArb = fc
   })
   .map((parts) => parts.join('/'));
 
-describe('zip-reader properties', () => {
-  it('losslessly round-trips arbitrary Stored (0) and Deflate (8) file maps including UTF-8 names and empty files', () => {
+void describe('zip-reader properties', () => {
+  void it('losslessly round-trips arbitrary Stored (0) and Deflate (8) file maps including UTF-8 names and empty files', () => {
     fc.assert(
       fc.property(
         fc.uniqueArray(
@@ -44,15 +46,16 @@ describe('zip-reader properties', () => {
           );
 
           const archive = readZipArchive(zipBuf);
-          expect(archive.entries).toHaveLength(entries.length);
+          assert.strictEqual(archive.entries.length, entries.length);
 
           for (const expected of entries) {
             const meta = archive.findEntry(expected.name);
-            expect(meta).toBeDefined();
-            expect(meta?.isDirectory).toBe(false);
-            expect(meta?.uncompressedSize).toBe(expected.content.length);
-            expect(meta?.compressionMethod).toBe(expected.method);
-            expect(archive.readEntryBuffer(meta!)).toEqual(
+            assert.ok(meta !== undefined);
+            assert.strictEqual(meta.isDirectory, false);
+            assert.strictEqual(meta.uncompressedSize, expected.content.length);
+            assert.strictEqual(meta.compressionMethod, expected.method);
+            assert.deepStrictEqual(
+              archive.readEntryBuffer(meta),
               Buffer.from(expected.content),
             );
           }
@@ -62,7 +65,7 @@ describe('zip-reader properties', () => {
     );
   });
 
-  it('enforces maxEntries and maxEntryBytes zip-bomb caps for both Stored and Deflate entries', () => {
+  void it('enforces maxEntries and maxEntryBytes zip-bomb caps for both Stored and Deflate entries', () => {
     fc.assert(
       fc.property(
         fc.constantFrom<0 | 8>(0, 8),
@@ -75,7 +78,8 @@ describe('zip-reader properties', () => {
           ]);
 
           const archive = readZipArchive(zipBuf, { maxEntryBytes: maxBytes });
-          expect(() => archive.readEntryBuffer(archive.entries[0])).toThrow(
+          assert.throws(
+            () => archive.readEntryBuffer(archive.entries[0]),
             AzureDevOpsError,
           );
         },
@@ -88,12 +92,13 @@ describe('zip-reader properties', () => {
       { name: 'b.txt', content: '2' },
       { name: 'c.txt', content: '3' },
     ]);
-    expect(() => readZipArchive(manyZip, { maxEntries: 2 })).toThrow(
+    assert.throws(
+      () => readZipArchive(manyZip, { maxEntries: 2 }),
       AzureDevOpsError,
     );
   });
 
-  it('fuzzing arbitrary random byte buffers never hangs or throws anything other than AzureDevOpsError', () => {
+  void it('fuzzing arbitrary random byte buffers never hangs or throws anything other than AzureDevOpsError', () => {
     fc.assert(
       fc.property(fc.uint8Array({ minLength: 0, maxLength: 512 }), (bytes) => {
         try {
@@ -105,7 +110,7 @@ describe('zip-reader properties', () => {
             archive.readEntryBuffer(entry);
           }
         } catch (err) {
-          expect(err).toBeInstanceOf(AzureDevOpsError);
+          assert.ok(err instanceof AzureDevOpsError);
         }
       }),
       { numRuns: 200 },

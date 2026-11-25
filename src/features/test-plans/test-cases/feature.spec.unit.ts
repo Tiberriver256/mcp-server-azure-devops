@@ -1,38 +1,63 @@
+import assert from 'node:assert/strict';
+import { beforeEach, describe, it, mock } from 'node:test';
+import type { Mock } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { AzureDevOpsValidationError } from '../../../shared/errors';
+import {
+  AzureDevOpsPermissionError,
+  AzureDevOpsValidationError,
+} from '../../../shared/errors/index.ts';
 import {
   addTestCasesToSuite,
   createTestCase,
   listSuiteTestCases,
   removeTestCasesFromSuite,
-} from './feature';
+} from './feature.ts';
 
-describe('test-plans/test-cases feature unit', () => {
-  const getTestCaseList = jest.fn();
-  const addTestCasesToSuiteApi = jest.fn();
-  const removeTestCasesFromSuiteApi = jest.fn();
-  const createWorkItemApi = jest.fn();
-  const connection = {
-    serverUrl: 'https://dev.azure.com/my-org/',
-    getTestPlanApi: jest.fn().mockResolvedValue({
-      getTestCaseList,
-      addTestCasesToSuite: addTestCasesToSuiteApi,
-      removeTestCasesFromSuite: removeTestCasesFromSuiteApi,
-    }),
-    getWorkItemTrackingApi: jest.fn().mockResolvedValue({
-      createWorkItem: createWorkItemApi,
-    }),
-  } as unknown as WebApi;
+type AsyncMockFn = (...args: unknown[]) => Promise<unknown>;
+
+interface JsonPatchEntry {
+  op: string;
+  path: string;
+  value: unknown;
+}
+
+void describe('test-plans/test-cases feature unit', () => {
+  let getTestCaseList: Mock<AsyncMockFn>;
+  let addTestCasesToSuiteApi: Mock<AsyncMockFn>;
+  let removeTestCasesFromSuiteApi: Mock<AsyncMockFn>;
+  let createWorkItemApi: Mock<AsyncMockFn>;
+  let connection: WebApi;
 
   beforeEach(() => {
-    getTestCaseList.mockReset();
-    addTestCasesToSuiteApi.mockReset();
-    removeTestCasesFromSuiteApi.mockReset();
-    createWorkItemApi.mockReset();
+    getTestCaseList = mock.fn<AsyncMockFn>(() => Promise.resolve(undefined));
+    addTestCasesToSuiteApi = mock.fn<AsyncMockFn>(() =>
+      Promise.resolve(undefined),
+    );
+    removeTestCasesFromSuiteApi = mock.fn<AsyncMockFn>(() =>
+      Promise.resolve(undefined),
+    );
+    createWorkItemApi = mock.fn<AsyncMockFn>(() => Promise.resolve(undefined));
+    connection = {
+      serverUrl: 'https://dev.azure.com/my-org/',
+      getTestPlanApi: mock.fn(() =>
+        Promise.resolve({
+          getTestCaseList,
+          addTestCasesToSuite: addTestCasesToSuiteApi,
+          removeTestCasesFromSuite: removeTestCasesFromSuiteApi,
+        }),
+      ),
+      getWorkItemTrackingApi: mock.fn(() =>
+        Promise.resolve({
+          createWorkItem: createWorkItemApi,
+        }),
+      ),
+    } as unknown as WebApi;
   });
 
-  it('lists suite test cases and omits isRecursive unless explicitly true', async () => {
-    getTestCaseList.mockResolvedValue([{ workItem: { id: 201 } }]);
+  void it('lists suite test cases and omits isRecursive unless explicitly true', async () => {
+    getTestCaseList.mock.mockImplementation(() =>
+      Promise.resolve([{ workItem: { id: 201 } }]),
+    );
 
     const result = await listSuiteTestCases(connection, {
       projectId: 'MyProject',
@@ -43,8 +68,9 @@ describe('test-plans/test-cases feature unit', () => {
       isRecursive: false,
     });
 
-    expect(result).toEqual({ testCases: [{ workItem: { id: 201 } }] });
-    expect(getTestCaseList).toHaveBeenCalledWith(
+    assert.deepStrictEqual(result, { testCases: [{ workItem: { id: 201 } }] });
+    assert.strictEqual(getTestCaseList.mock.callCount(), 1);
+    assert.deepStrictEqual(getTestCaseList.mock.calls[0]?.arguments, [
       'MyProject',
       5,
       10,
@@ -56,14 +82,13 @@ describe('test-plans/test-cases feature unit', () => {
       undefined,
       undefined,
       undefined,
-    );
+    ]);
   });
 
-  it('adds deduplicated test cases to a suite with optional configurationIds', async () => {
-    addTestCasesToSuiteApi.mockResolvedValue([
-      { workItem: { id: 201 } },
-      { workItem: { id: 202 } },
-    ]);
+  void it('adds deduplicated test cases to a suite with optional configurationIds', async () => {
+    addTestCasesToSuiteApi.mock.mockImplementation(() =>
+      Promise.resolve([{ workItem: { id: 201 } }, { workItem: { id: 202 } }]),
+    );
 
     const added = await addTestCasesToSuite(connection, {
       projectId: 'MyProject',
@@ -73,8 +98,9 @@ describe('test-plans/test-cases feature unit', () => {
       configurationIds: [1, 2, 1],
     });
 
-    expect(added).toHaveLength(2);
-    expect(addTestCasesToSuiteApi).toHaveBeenCalledWith(
+    assert.strictEqual(added.length, 2);
+    assert.strictEqual(addTestCasesToSuiteApi.mock.callCount(), 1);
+    assert.deepStrictEqual(addTestCasesToSuiteApi.mock.calls[0]?.arguments, [
       [
         {
           workItem: { id: 201 },
@@ -88,11 +114,13 @@ describe('test-plans/test-cases feature unit', () => {
       'MyProject',
       5,
       10,
-    );
+    ]);
   });
 
-  it('removes deduplicated test cases from a suite', async () => {
-    removeTestCasesFromSuiteApi.mockResolvedValue(undefined);
+  void it('removes deduplicated test cases from a suite', async () => {
+    removeTestCasesFromSuiteApi.mock.mockImplementation(() =>
+      Promise.resolve(undefined),
+    );
 
     const res = await removeTestCasesFromSuite(connection, {
       projectId: 'MyProject',
@@ -101,25 +129,28 @@ describe('test-plans/test-cases feature unit', () => {
       testCaseIds: [301, 302, 301],
     });
 
-    expect(res).toEqual({
+    assert.deepStrictEqual(res, {
       planId: 5,
       suiteId: 10,
       removedTestCaseIds: [301, 302],
     });
-    expect(removeTestCasesFromSuiteApi).toHaveBeenCalledWith(
-      'MyProject',
-      5,
-      10,
-      '301,302',
+    assert.strictEqual(removeTestCasesFromSuiteApi.mock.callCount(), 1);
+    assert.deepStrictEqual(
+      removeTestCasesFromSuiteApi.mock.calls[0]?.arguments,
+      ['MyProject', 5, 10, '301,302'],
     );
   });
 
-  it('creates a Test Case with steps XML, TestedBy link, and immediate suite attachment', async () => {
-    createWorkItemApi.mockResolvedValue({
-      id: 777,
-      fields: { 'System.Title': 'Verify login' },
-    });
-    addTestCasesToSuiteApi.mockResolvedValue([{ workItem: { id: 777 } }]);
+  void it('creates a Test Case with steps XML, TestedBy link, and immediate suite attachment', async () => {
+    createWorkItemApi.mock.mockImplementation(() =>
+      Promise.resolve({
+        id: 777,
+        fields: { 'System.Title': 'Verify login' },
+      }),
+    );
+    addTestCasesToSuiteApi.mock.mockImplementation(() =>
+      Promise.resolve([{ workItem: { id: 777 } }]),
+    );
 
     const res = await createTestCase(connection, {
       projectId: 'MyProject',
@@ -139,105 +170,155 @@ describe('test-plans/test-cases feature unit', () => {
       configurationIds: [1],
     });
 
-    expect(res.workItem.id).toBe(777);
-    expect(res.suiteAssignment).toEqual([{ workItem: { id: 777 } }]);
+    assert.strictEqual(res.workItem.id, 777);
+    assert.deepStrictEqual(res.suiteAssignment, [{ workItem: { id: 777 } }]);
 
-    const patchDoc = createWorkItemApi.mock.calls[0][1];
-    expect(patchDoc).toEqual(
-      expect.arrayContaining([
-        { op: 'add', path: '/fields/System.Title', value: 'Verify login' },
-        { op: 'add', path: '/fields/System.Tags', value: 'smoke; auth' },
-        {
-          op: 'add',
-          path: '/relations/-',
-          value: {
-            rel: 'Microsoft.VSTS.Common.TestedBy-Reverse',
-            url: 'https://dev.azure.com/my-org/_apis/wit/workItems/500',
-          },
+    assert.strictEqual(createWorkItemApi.mock.callCount(), 1);
+    const patchDoc = createWorkItemApi.mock.calls[0]?.arguments[1] as
+      | JsonPatchEntry[]
+      | undefined;
+    assert.ok(Array.isArray(patchDoc));
+    assert.deepStrictEqual(
+      patchDoc.find((p) => p.path === '/fields/System.Title'),
+      { op: 'add', path: '/fields/System.Title', value: 'Verify login' },
+    );
+    assert.deepStrictEqual(
+      patchDoc.find((p) => p.path === '/fields/System.Tags'),
+      { op: 'add', path: '/fields/System.Tags', value: 'smoke; auth' },
+    );
+    assert.deepStrictEqual(
+      patchDoc.find((p) => p.path === '/relations/-'),
+      {
+        op: 'add',
+        path: '/relations/-',
+        value: {
+          rel: 'Microsoft.VSTS.Common.TestedBy-Reverse',
+          url: 'https://dev.azure.com/my-org/_apis/wit/workItems/500',
         },
-      ]),
+      },
     );
     const stepsPatch = patchDoc.find(
-      (p: { path: string }) => p.path === '/fields/Microsoft.VSTS.TCM.Steps',
+      (p) => p.path === '/fields/Microsoft.VSTS.TCM.Steps',
     );
-    expect(stepsPatch.value).toContain('<step id="2" type="ValidateStep">');
-    expect(addTestCasesToSuiteApi).toHaveBeenCalledWith(
+    assert.ok(stepsPatch && typeof stepsPatch.value === 'string');
+    assert.ok(stepsPatch.value.includes('<step id="2" type="ValidateStep">'));
+
+    assert.strictEqual(addTestCasesToSuiteApi.mock.callCount(), 1);
+    assert.deepStrictEqual(addTestCasesToSuiteApi.mock.calls[0]?.arguments, [
       [{ workItem: { id: 777 }, pointAssignments: [{ configurationId: 1 }] }],
       'MyProject',
       5,
       10,
+    ]);
+  });
+
+  void it('rejects createTestCase when only one of planId/suiteId is provided or configurationIds is orphaned', async () => {
+    await assert.rejects(
+      () =>
+        createTestCase(connection, {
+          projectId: 'MyProject',
+          title: 'Orphan plan',
+          planId: 5,
+        }),
+      AzureDevOpsValidationError,
+    );
+
+    await assert.rejects(
+      () =>
+        createTestCase(connection, {
+          projectId: 'MyProject',
+          title: 'Orphan configs',
+          configurationIds: [1],
+        }),
+      AzureDevOpsValidationError,
     );
   });
 
-  it('rejects createTestCase when only one of planId/suiteId is provided or configurationIds is orphaned', async () => {
-    await expect(
-      createTestCase(connection, {
-        projectId: 'MyProject',
-        title: 'Orphan plan',
-        planId: 5,
+  void it('includes created workItem.id and preserves error type when suite attachment fails', async () => {
+    createWorkItemApi.mock.mockImplementation(() =>
+      Promise.resolve({
+        id: 888,
+        fields: { 'System.Title': 'Created Test Case' },
       }),
-    ).rejects.toThrow(AzureDevOpsValidationError);
+    );
+    addTestCasesToSuiteApi.mock.mockImplementation(() =>
+      Promise.reject(
+        Object.assign(new Error('Cannot add to dynamic suite'), {
+          statusCode: 400,
+        }),
+      ),
+    );
 
-    await expect(
-      createTestCase(connection, {
-        projectId: 'MyProject',
-        title: 'Orphan configs',
-        configurationIds: [1],
-      }),
-    ).rejects.toThrow(AzureDevOpsValidationError);
+    await assert.rejects(
+      () =>
+        createTestCase(connection, {
+          projectId: 'MyProject',
+          title: 'Created Test Case',
+          planId: 5,
+          suiteId: 10,
+        }),
+      (err: unknown) => {
+        assert.ok(err instanceof AzureDevOpsValidationError);
+        assert.match(err.message, /Test Case work item 888 was created/);
+        assert.match(err.message, /add_test_cases_to_suite/);
+        return true;
+      },
+    );
   });
 
-  it('includes created workItem.id and preserves error type when suite attachment fails', async () => {
-    createWorkItemApi.mockResolvedValue({
-      id: 888,
-      fields: { 'System.Title': 'Created Test Case' },
-    });
-    addTestCasesToSuiteApi.mockRejectedValue(
-      Object.assign(new Error('Cannot add to dynamic suite'), {
-        statusCode: 400,
-      }),
+  void it('recommends vso.work_write when createWorkItem fails with 403 and vso.test_write when suite attachment fails with 403', async () => {
+    createWorkItemApi.mock.mockImplementationOnce(
+      () =>
+        Promise.reject(
+          Object.assign(new Error('Forbidden'), { statusCode: 403 }),
+        ),
+      0,
+    );
+    await assert.rejects(
+      () =>
+        createTestCase(connection, {
+          projectId: 'MyProject',
+          title: 'No WIT Write Scope',
+        }),
+      (err: unknown) => {
+        assert.ok(err instanceof AzureDevOpsPermissionError);
+        assert.match(err.message, /vso\.work_write/);
+        assert.doesNotMatch(err.message, /Basic \+ Test Plans/);
+        return true;
+      },
     );
 
-    const promise = createTestCase(connection, {
-      projectId: 'MyProject',
-      title: 'Created Test Case',
-      planId: 5,
-      suiteId: 10,
-    });
-
-    await expect(promise).rejects.toThrow(AzureDevOpsValidationError);
-    await expect(promise).rejects.toThrow(
-      /Test Case work item 888 was created/,
+    createWorkItemApi.mock.mockImplementationOnce(
+      () =>
+        Promise.resolve({
+          id: 999,
+          fields: { 'System.Title': 'Created Without Test Write' },
+        }),
+      1,
     );
-    await expect(promise).rejects.toThrow(/add_test_cases_to_suite/);
-  });
-
-  it('recommends vso.work_write when createWorkItem fails with 403 and vso.test_write when suite attachment fails with 403', async () => {
-    createWorkItemApi.mockRejectedValueOnce(
-      Object.assign(new Error('Forbidden'), { statusCode: 403 }),
+    addTestCasesToSuiteApi.mock.mockImplementationOnce(
+      () =>
+        Promise.reject(
+          Object.assign(new Error('Forbidden'), { statusCode: 403 }),
+        ),
+      0,
     );
-    const witPromise = createTestCase(connection, {
-      projectId: 'MyProject',
-      title: 'No WIT Write Scope',
-    });
-    await expect(witPromise).rejects.toThrow(/vso\.work_write/);
-    await expect(witPromise).rejects.not.toThrow(/Basic \+ Test Plans/);
-
-    createWorkItemApi.mockResolvedValueOnce({
-      id: 999,
-      fields: { 'System.Title': 'Created Without Test Write' },
-    });
-    addTestCasesToSuiteApi.mockRejectedValueOnce(
-      Object.assign(new Error('Forbidden'), { statusCode: 403 }),
-    );
-    const suitePromise = createTestCase(connection, {
-      projectId: 'MyProject',
-      title: 'Created Without Test Write',
-      planId: 5,
-      suiteId: 10,
-    });
-    await expect(suitePromise).rejects.toThrow(
-      /Test Case work item 999 was created.*vso\.test_write.*Basic \+ Test Plans/,
+    await assert.rejects(
+      () =>
+        createTestCase(connection, {
+          projectId: 'MyProject',
+          title: 'Created Without Test Write',
+          planId: 5,
+          suiteId: 10,
+        }),
+      (err: unknown) => {
+        assert.ok(err instanceof AzureDevOpsPermissionError);
+        assert.match(
+          err.message,
+          /Test Case work item 999 was created.*vso\.test_write.*Basic \+ Test Plans/,
+        );
+        return true;
+      },
     );
   });
 });

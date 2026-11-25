@@ -2,13 +2,13 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../../shared/errors';
+} from '../../shared/errors/index.ts';
 import {
   extractContinuationToken,
   extractETag,
-} from '../../shared/http/http-client';
-import { createSessionFromEnv } from '../../shared/session/azure-devops-session';
-import type { ToolContext } from '../../shared/session/azure-devops-session';
+} from '../../shared/http/http-client.ts';
+import { createSessionFromEnv } from '../../shared/session/azure-devops-session.ts';
+import type { ToolContext } from '../../shared/session/azure-devops-session.ts';
 
 const MAX_WIKI_BATCH_PAGES = 100;
 

@@ -1,13 +1,22 @@
+import assert from 'node:assert/strict';
+import { beforeEach, describe, it, mock } from 'node:test';
+import type { Mock } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import type { IGitApi } from 'azure-devops-node-api/GitApi';
-import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
-import { getFileContent } from './feature';
+import type { IGitApi } from 'azure-devops-node-api/GitApi.js';
+import {
+  GitVersionType,
+  VersionControlRecursionType,
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors/index.ts';
+import { getFileContent } from './feature.ts';
 import { Readable } from 'stream';
 
-describe('getFileContent', () => {
+void describe('getFileContent', () => {
   let mockConnection: WebApi;
   let mockGitApi: IGitApi;
+  let mockGetGitApi: Mock<() => Promise<IGitApi>>;
+  let mockGetItemContent: Mock<(...args: unknown[]) => Promise<Readable>>;
+  let mockGetItems: Mock<(...args: unknown[]) => Promise<unknown[]>>;
   const mockRepositoryId = 'test-repo';
   const mockProjectId = 'test-project';
   const mockFilePath = '/path/to/file.txt';
@@ -28,19 +37,24 @@ describe('getFileContent', () => {
   }
 
   beforeEach(() => {
+    mockGetItemContent = mock.fn((..._args: unknown[]) =>
+      Promise.resolve(createReadableStream(mockFileContent)),
+    );
+    mockGetItems = mock.fn((..._args: unknown[]) =>
+      Promise.resolve([mockItem]),
+    );
     mockGitApi = {
-      getItemContent: jest
-        .fn()
-        .mockResolvedValue(createReadableStream(mockFileContent)),
-      getItems: jest.fn().mockResolvedValue([mockItem]),
+      getItemContent: mockGetItemContent,
+      getItems: mockGetItems,
     } as unknown as IGitApi;
 
+    mockGetGitApi = mock.fn(() => Promise.resolve(mockGitApi));
     mockConnection = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+      getGitApi: mockGetGitApi,
     } as unknown as WebApi;
   });
 
-  it('should get file content for a file in the default branch', async () => {
+  void it('should get file content for a file in the default branch', async () => {
     const result = await getFileContent(
       mockConnection,
       mockProjectId,
@@ -48,20 +62,22 @@ describe('getFileContent', () => {
       mockFilePath,
     );
 
-    expect(mockConnection.getGitApi).toHaveBeenCalled();
-    expect(mockGitApi.getItems).toHaveBeenCalledWith(
+    assert.strictEqual(mockGetGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockGetItems.mock.callCount(), 1);
+    assert.deepStrictEqual(mockGetItems.mock.calls[0]?.arguments, [
       mockRepositoryId,
       mockProjectId,
       mockFilePath,
-      expect.any(Number), // VersionControlRecursionType.OneLevel
+      VersionControlRecursionType.OneLevel,
       undefined,
       undefined,
       undefined,
       undefined,
       undefined,
-    );
+    ]);
 
-    expect(mockGitApi.getItemContent).toHaveBeenCalledWith(
+    assert.strictEqual(mockGetItemContent.mock.callCount(), 1);
+    assert.deepStrictEqual(mockGetItemContent.mock.calls[0]?.arguments, [
       mockRepositoryId,
       mockFilePath,
       mockProjectId,
@@ -72,15 +88,15 @@ describe('getFileContent', () => {
       false,
       undefined,
       true,
-    );
+    ]);
 
-    expect(result).toEqual({
+    assert.deepStrictEqual(result, {
       content: mockFileContent,
       isDirectory: false,
     });
   });
 
-  it('should get file content for a file in a specific branch', async () => {
+  void it('should get file content for a file in a specific branch', async () => {
     const branchName = 'test-branch';
     const versionDescriptor = {
       versionType: GitVersionType.Branch,
@@ -99,20 +115,22 @@ describe('getFileContent', () => {
       },
     );
 
-    expect(mockConnection.getGitApi).toHaveBeenCalled();
-    expect(mockGitApi.getItems).toHaveBeenCalledWith(
+    assert.strictEqual(mockGetGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockGetItems.mock.callCount(), 1);
+    assert.deepStrictEqual(mockGetItems.mock.calls[0]?.arguments, [
       mockRepositoryId,
       mockProjectId,
       mockFilePath,
-      expect.any(Number), // VersionControlRecursionType.OneLevel
+      VersionControlRecursionType.OneLevel,
       undefined,
       undefined,
       undefined,
       undefined,
       versionDescriptor,
-    );
+    ]);
 
-    expect(mockGitApi.getItemContent).toHaveBeenCalledWith(
+    assert.strictEqual(mockGetItemContent.mock.callCount(), 1);
+    assert.deepStrictEqual(mockGetItemContent.mock.calls[0]?.arguments, [
       mockRepositoryId,
       mockFilePath,
       mockProjectId,
@@ -123,36 +141,38 @@ describe('getFileContent', () => {
       false,
       versionDescriptor,
       true,
-    );
+    ]);
 
-    expect(result).toEqual({
+    assert.deepStrictEqual(result, {
       content: mockFileContent,
       isDirectory: false,
     });
   });
 
-  it('should throw an error if the file is not found', async () => {
+  void it('should throw an error if the file is not found', async () => {
     // Mock getItems to throw an error
-    mockGitApi.getItems = jest
-      .fn()
-      .mockRejectedValue(new Error('Item not found'));
+    mockGetItems.mock.mockImplementation(() =>
+      Promise.reject(new Error('Item not found')),
+    );
 
     // Mock getItemContent to throw a specific error indicating not found
-    mockGitApi.getItemContent = jest
-      .fn()
-      .mockRejectedValue(new Error('Item not found'));
+    mockGetItemContent.mock.mockImplementation(() =>
+      Promise.reject(new Error('Item not found')),
+    );
 
-    await expect(
-      getFileContent(
-        mockConnection,
-        mockProjectId,
-        mockRepositoryId,
-        '/invalid/path',
-      ),
-    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+    await assert.rejects(
+      () =>
+        getFileContent(
+          mockConnection,
+          mockProjectId,
+          mockRepositoryId,
+          '/invalid/path',
+        ),
+      AzureDevOpsResourceNotFoundError,
+    );
   });
 
-  it('should get directory content if the path is a directory', async () => {
+  void it('should get directory content if the path is a directory', async () => {
     const dirPath = '/path/to/dir';
     const mockDirectoryItems = [
       {
@@ -173,7 +193,9 @@ describe('getFileContent', () => {
     ];
 
     // Mock getItems to return multiple items, indicating a directory
-    mockGitApi.getItems = jest.fn().mockResolvedValue(mockDirectoryItems);
+    mockGetItems.mock.mockImplementation(() =>
+      Promise.resolve(mockDirectoryItems),
+    );
 
     const result = await getFileContent(
       mockConnection,
@@ -182,29 +204,30 @@ describe('getFileContent', () => {
       dirPath,
     );
 
-    expect(mockConnection.getGitApi).toHaveBeenCalled();
-    expect(mockGitApi.getItems).toHaveBeenCalledWith(
+    assert.strictEqual(mockGetGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockGetItems.mock.callCount(), 1);
+    assert.deepStrictEqual(mockGetItems.mock.calls[0]?.arguments, [
       mockRepositoryId,
       mockProjectId,
       dirPath,
-      expect.any(Number), // VersionControlRecursionType.OneLevel
+      VersionControlRecursionType.OneLevel,
       undefined,
       undefined,
       undefined,
       undefined,
       undefined,
-    );
+    ]);
 
     // Should not attempt to get file content for a directory
-    expect(mockGitApi.getItemContent).not.toHaveBeenCalled();
+    assert.strictEqual(mockGetItemContent.mock.callCount(), 0);
 
-    expect(result).toEqual({
+    assert.deepStrictEqual(result, {
       content: JSON.stringify(mockDirectoryItems, null, 2),
       isDirectory: true,
     });
   });
 
-  it('should handle a directory path with trailing slash', async () => {
+  void it('should handle a directory path with trailing slash', async () => {
     const dirPath = '/path/to/dir/';
     const mockDirectoryItems = [
       {
@@ -215,7 +238,9 @@ describe('getFileContent', () => {
     ];
 
     // Even with one item, it should be treated as a directory due to trailing slash
-    mockGitApi.getItems = jest.fn().mockResolvedValue(mockDirectoryItems);
+    mockGetItems.mock.mockImplementation(() =>
+      Promise.resolve(mockDirectoryItems),
+    );
 
     const result = await getFileContent(
       mockConnection,
@@ -224,7 +249,10 @@ describe('getFileContent', () => {
       dirPath,
     );
 
-    expect(result.isDirectory).toBe(true);
-    expect(result.content).toBe(JSON.stringify(mockDirectoryItems, null, 2));
+    assert.strictEqual(result.isDirectory, true);
+    assert.strictEqual(
+      result.content,
+      JSON.stringify(mockDirectoryItems, null, 2),
+    );
   });
 });

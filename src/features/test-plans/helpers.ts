@@ -1,20 +1,20 @@
 import {
   SuiteExpand,
   TestSuiteType,
-} from 'azure-devops-node-api/interfaces/TestPlanInterfaces';
+} from 'azure-devops-node-api/interfaces/TestPlanInterfaces.js';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsPermissionError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-} from '../../shared/errors';
-import { extractContinuationToken } from '../../shared/http/http-client';
+} from '../../shared/errors/index.ts';
+import { extractContinuationToken } from '../../shared/http/http-client.ts';
 import type {
   SuiteExpandOption,
   TestCaseStepInput,
   TestSuiteTypeOption,
-} from './types';
+} from './types.ts';
 
 export { extractContinuationToken };
 

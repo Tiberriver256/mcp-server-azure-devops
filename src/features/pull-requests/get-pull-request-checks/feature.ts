@@ -1,12 +1,12 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { GitPullRequestStatus } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { GitStatusState } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import type { PolicyEvaluationRecord } from 'azure-devops-node-api/interfaces/PolicyInterfaces';
-import { PolicyEvaluationStatus } from 'azure-devops-node-api/interfaces/PolicyInterfaces';
+import type { GitPullRequestStatus } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { GitStatusState } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import type { PolicyEvaluationRecord } from 'azure-devops-node-api/interfaces/PolicyInterfaces.js';
+import { PolicyEvaluationStatus } from 'azure-devops-node-api/interfaces/PolicyInterfaces.js';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
+} from '../../../shared/errors/index.ts';
 
 export interface PullRequestChecksOptions {
   projectId: string;

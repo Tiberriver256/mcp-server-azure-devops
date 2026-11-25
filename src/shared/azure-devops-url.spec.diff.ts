@@ -1,8 +1,10 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import fc from 'fast-check';
 import {
   getOrgNameFromUrl,
   resolveAzureDevOpsBaseUrls,
-} from './azure-devops-url';
+} from './azure-devops-url.ts';
 
 /**
  * Independent RFC-3986 regex grammar oracle for Azure DevOps URLs (does NOT
@@ -83,8 +85,8 @@ const serverHostArb = fc
   .tuple(vstsSlugArb, fc.constantFrom('corp.local', 'ado.internal', 'tfs.lan'))
   .map(([sub, dom]) => `${sub}.${dom}`);
 
-describe('azure-devops-url differential tests vs independent RFC-3986 grammar oracle', () => {
-  it('agrees with RFC-3986 grammar oracle across cloud, legacy visualstudio.com, and on-prem URLs', () => {
+void describe('azure-devops-url differential tests vs independent RFC-3986 grammar oracle', () => {
+  void it('agrees with RFC-3986 grammar oracle across cloud, legacy visualstudio.com, and on-prem URLs', () => {
     const scenarioArb = fc.oneof(
       // dev.azure.com
       fc
@@ -119,18 +121,19 @@ describe('azure-devops-url differential tests vs independent RFC-3986 grammar or
     fc.assert(
       fc.property(scenarioArb, ({ url, projectId }) => {
         const expected = oracleResolveUrl(url, projectId);
-        expect(expected).not.toBeNull();
+        assert.ok(expected !== null);
 
         const actual = resolveAzureDevOpsBaseUrls(url, { projectId });
-        expect(actual.type).toBe(expected!.type);
-        expect(actual.organization ?? actual.collection).toBe(
-          expected!.orgOrCollection,
+        assert.strictEqual(actual.type, expected.type);
+        assert.strictEqual(
+          actual.organization ?? actual.collection,
+          expected.orgOrCollection,
         );
-        expect(actual.coreBaseUrl).toBe(expected!.coreBaseUrl);
-        expect(actual.searchBaseUrl).toBe(expected!.searchBaseUrl);
+        assert.strictEqual(actual.coreBaseUrl, expected.coreBaseUrl);
+        assert.strictEqual(actual.searchBaseUrl, expected.searchBaseUrl);
 
         if (!projectId) {
-          expect(getOrgNameFromUrl(url)).toBe(expected!.orgOrCollection);
+          assert.strictEqual(getOrgNameFromUrl(url), expected.orgOrCollection);
         }
       }),
       { numRuns: 200 },

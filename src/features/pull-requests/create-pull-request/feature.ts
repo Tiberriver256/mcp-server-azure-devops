@@ -1,6 +1,6 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { AzureDevOpsError } from '../../../shared/errors';
-import type { CreatePullRequestOptions, PullRequest } from '../types';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import type { CreatePullRequestOptions, PullRequest } from '../types.ts';
 
 function normalizeTags(tags?: string[]): string[] {
   if (!tags) {

@@ -1,3 +1,5 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import fc from 'fast-check';
 import {
   deduplicateIds,
@@ -5,7 +7,7 @@ import {
   formatTestStepsXml,
   isValidIsoDateString,
   parseStrictIsoDate,
-} from './helpers';
+} from './helpers.ts';
 
 const stepArb = fc.record({
   action: fc.string({ minLength: 1, maxLength: 80 }),
@@ -14,30 +16,32 @@ const stepArb = fc.record({
   }),
 });
 
-describe('test-plans helpers properties', () => {
-  it('formatTestStepsXml produces sequential IDs 2..n+1, exact last=n+1, balanced tags, and escapes raw special chars inside inner content', () => {
+void describe('test-plans helpers properties', () => {
+  void it('formatTestStepsXml produces sequential IDs 2..n+1, exact last=n+1, balanced tags, and escapes raw special chars inside inner content', () => {
     fc.assert(
       fc.property(
         fc.array(stepArb, { minLength: 0, maxLength: 15 }),
         (steps) => {
           const xml = formatTestStepsXml(steps);
 
-          expect(
+          assert.strictEqual(
             xml.startsWith(`<steps id="0" last="${steps.length + 1}">`),
-          ).toBe(true);
-          expect(xml.endsWith('</steps>')).toBe(true);
+            true,
+          );
+          assert.strictEqual(xml.endsWith('</steps>'), true);
 
           const stepOpenTags = [
             ...xml.matchAll(
               /<step id="(\d+)" type="(ActionStep|ValidateStep)">/g,
             ),
           ];
-          expect(stepOpenTags).toHaveLength(steps.length);
+          assert.strictEqual(stepOpenTags.length, steps.length);
 
           stepOpenTags.forEach((match, idx) => {
-            expect(Number(match[1])).toBe(idx + 2);
+            assert.strictEqual(Number(match[1]), idx + 2);
             const expectedTrimmed = steps[idx].expectedResult?.trim() ?? '';
-            expect(match[2]).toBe(
+            assert.strictEqual(
+              match[2],
               expectedTrimmed.length > 0 ? 'ValidateStep' : 'ActionStep',
             );
           });
@@ -48,10 +52,10 @@ describe('test-plans helpers properties', () => {
               /<parameterizedString isformatted="true">([\s\S]*?)<\/parameterizedString>/g,
             ),
           ];
-          expect(paramBodies).toHaveLength(steps.length * 2);
+          assert.strictEqual(paramBodies.length, steps.length * 2);
           for (const [, body] of paramBodies) {
-            expect(body).not.toContain('<');
-            expect(body).not.toContain('>');
+            assert.strictEqual(body.includes('<'), false);
+            assert.strictEqual(body.includes('>'), false);
           }
         },
       ),
@@ -59,7 +63,7 @@ describe('test-plans helpers properties', () => {
     );
   });
 
-  it('parseStrictIsoDate accepts every valid Gregorian calendar date and rejects every impossible day (including non-leap Feb 29)', () => {
+  void it('parseStrictIsoDate accepts every valid Gregorian calendar date and rejects every impossible day (including non-leap Feb 29)', () => {
     const isLeap = (y: number) =>
       (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
     const daysInMonth = (y: number, m: number) => {
@@ -80,14 +84,14 @@ describe('test-plans helpers properties', () => {
           const valid = day <= daysInMonth(year, month);
           const parsed = parseStrictIsoDate(iso);
 
-          expect(isValidIsoDateString(iso)).toBe(valid);
+          assert.strictEqual(isValidIsoDateString(iso), valid);
           if (valid) {
-            expect(parsed).not.toBeNull();
-            expect(parsed?.getUTCFullYear()).toBe(year);
-            expect(parsed?.getUTCMonth()).toBe(month - 1);
-            expect(parsed?.getUTCDate()).toBe(day);
+            assert.notStrictEqual(parsed, null);
+            assert.strictEqual(parsed?.getUTCFullYear(), year);
+            assert.strictEqual(parsed?.getUTCMonth(), month - 1);
+            assert.strictEqual(parsed?.getUTCDate(), day);
           } else {
-            expect(parsed).toBeNull();
+            assert.strictEqual(parsed, null);
           }
         },
       ),
@@ -95,19 +99,17 @@ describe('test-plans helpers properties', () => {
     );
   });
 
-  it('deduplicateIds is idempotent, preserves first-appearance order, and contains no duplicates', () => {
+  void it('deduplicateIds is idempotent, preserves first-appearance order, and contains no duplicates', () => {
     fc.assert(
       fc.property(
         fc.array(fc.integer({ min: 1, max: 50 }), { maxLength: 40 }),
         (ids) => {
           const deduped = deduplicateIds(ids);
-          expect(deduplicateIds(deduped)).toEqual(deduped);
-          expect(new Set(deduped).size).toBe(deduped.length);
+          assert.deepStrictEqual(deduplicateIds(deduped), deduped);
+          assert.strictEqual(new Set(deduped).size, deduped.length);
           // Every element's order matches first occurrence in input
           for (let i = 1; i < deduped.length; i++) {
-            expect(ids.indexOf(deduped[i - 1])).toBeLessThan(
-              ids.indexOf(deduped[i]),
-            );
+            assert.ok(ids.indexOf(deduped[i - 1]) < ids.indexOf(deduped[i]));
           }
         },
       ),
@@ -115,7 +117,7 @@ describe('test-plans helpers properties', () => {
     );
   });
 
-  it('extractContinuationToken is header-name case-insensitive and trims whitespace', () => {
+  void it('extractContinuationToken is header-name case-insensitive and trims whitespace', () => {
     const baseName = 'x-ms-continuationtoken';
     fc.assert(
       fc.property(
@@ -129,9 +131,10 @@ describe('test-plans helpers properties', () => {
             .split('')
             .map((ch, i) => (caseBits[i] ? ch.toUpperCase() : ch.toLowerCase()))
             .join('');
-          expect(
+          assert.strictEqual(
             extractContinuationToken({ [casedHeader]: `  ${token}  ` }),
-          ).toBe(token);
+            token,
+          );
         },
       ),
       { numRuns: 100 },

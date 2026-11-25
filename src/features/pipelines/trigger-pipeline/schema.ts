@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { pipelineNameField, refinePipelineReference } from '../run-reference';
+import {
+  pipelineNameField,
+  refinePipelineReference,
+} from '../run-reference.ts';
 
 /**
  * Schema for the triggerPipeline function

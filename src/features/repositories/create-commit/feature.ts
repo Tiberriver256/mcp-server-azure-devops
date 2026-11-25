@@ -2,16 +2,16 @@ import type { WebApi } from 'azure-devops-node-api';
 import type {
   GitRefUpdate,
   GitChange,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import {
   GitVersionType,
   VersionControlChangeType,
   ItemContentType,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import { applyPatch, parsePatch } from 'diff';
-import { AzureDevOpsError } from '../../../shared/errors';
-import { streamToString } from '../../../shared/utils/stream';
-import type { CreateCommitOptions } from '../types';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import { streamToString } from '../../../shared/utils/stream.ts';
+import type { CreateCommitOptions } from '../types.ts';
 
 /**
  * Strip a single leading git diff `a/` or `b/` prefix without mangling

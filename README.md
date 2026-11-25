@@ -42,7 +42,7 @@ The server is structured around the Model Context Protocol (MCP) for communicati
 
 ### Prerequisites
 
-- Node.js (`>=22.0.0`)
+- Node.js (`>=24.0.0`)
 - npm or yarn
 - Azure DevOps account with appropriate access
 - Authentication credentials (see [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md) for details):
@@ -72,7 +72,7 @@ npm start              # runs: node dist/index.js
 For iterative development (auto-reload):
 
 ```bash
-npm run dev            # runs src/index.ts via tsx watch
+npm run dev            # runs src/index.ts via native node --watch
 ```
 
 ### Usage with Claude Desktop/Cursor AI

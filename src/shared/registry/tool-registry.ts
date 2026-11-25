@@ -1,8 +1,8 @@
 import type { z } from 'zod';
-import type { ToolsetName } from '../config/tool-filter';
-import type { ToolDefinition } from '../types/tool-definition';
-import type { ToolContext } from '../session/azure-devops-session';
-import { toJsonSchema } from '../utils/to-json-schema';
+import type { ToolsetName } from '../config/tool-filter.ts';
+import type { ToolDefinition } from '../types/tool-definition.ts';
+import type { ToolContext } from '../session/azure-devops-session.ts';
+import { toJsonSchema } from '../utils/to-json-schema.ts';
 
 export type McpToolResult = {
   content: Array<{ type: 'text'; text: string }>;

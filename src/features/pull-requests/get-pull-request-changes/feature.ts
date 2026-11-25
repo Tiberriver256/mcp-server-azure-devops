@@ -1,8 +1,8 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { GitPullRequestIterationChanges } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import type { PolicyEvaluationRecord } from 'azure-devops-node-api/interfaces/PolicyInterfaces';
-import { AzureDevOpsError } from '../../../shared/errors';
-import { buildGitChangesDiffs } from '../../../shared/utils/git-diff';
+import type { GitPullRequestIterationChanges } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import type { PolicyEvaluationRecord } from 'azure-devops-node-api/interfaces/PolicyInterfaces.js';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
+import { buildGitChangesDiffs } from '../../../shared/utils/git-diff.ts';
 
 export interface PullRequestChangesOptions {
   projectId: string;

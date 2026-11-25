@@ -1,17 +1,17 @@
-export * from './schemas';
-export * from './types';
-export { listWorkItems } from './list-work-items/feature';
-export { getWorkItem } from './get-work-item/feature';
-export { createWorkItem } from './create-work-item/feature';
-export { updateWorkItem } from './update-work-item/feature';
-export { manageWorkItemLink } from './manage-work-item-link/feature';
-export { getWorkItemComments } from './get-work-item-comments/feature';
-export { createWorkItemAttachment } from './create-work-item-attachment/feature';
-export { getWorkItemAttachment } from './get-work-item-attachment/feature';
-export { deleteWorkItemAttachment } from './delete-work-item-attachment/feature';
+export * from './schemas.ts';
+export * from './types.ts';
+export { listWorkItems } from './list-work-items/feature.ts';
+export { getWorkItem } from './get-work-item/feature.ts';
+export { createWorkItem } from './create-work-item/feature.ts';
+export { updateWorkItem } from './update-work-item/feature.ts';
+export { manageWorkItemLink } from './manage-work-item-link/feature.ts';
+export { getWorkItemComments } from './get-work-item-comments/feature.ts';
+export { createWorkItemAttachment } from './create-work-item-attachment/feature.ts';
+export { getWorkItemAttachment } from './get-work-item-attachment/feature.ts';
+export { deleteWorkItemAttachment } from './delete-work-item-attachment/feature.ts';
 
-import { defineTool } from '../../shared/registry/tool-registry';
-import type { FeatureModule } from '../../shared/registry/tool-registry';
+import { defineTool } from '../../shared/registry/tool-registry.ts';
+import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
 import {
   CreateWorkItemAttachmentSchema,
   CreateWorkItemSchema,
@@ -22,16 +22,16 @@ import {
   ListWorkItemsSchema,
   ManageWorkItemLinkSchema,
   UpdateWorkItemSchema,
-} from './schemas';
-import { listWorkItems } from './list-work-items/feature';
-import { getWorkItem } from './get-work-item/feature';
-import { createWorkItem } from './create-work-item/feature';
-import { updateWorkItem } from './update-work-item/feature';
-import { manageWorkItemLink } from './manage-work-item-link/feature';
-import { getWorkItemComments } from './get-work-item-comments/feature';
-import { createWorkItemAttachment } from './create-work-item-attachment/feature';
-import { getWorkItemAttachment } from './get-work-item-attachment/feature';
-import { deleteWorkItemAttachment } from './delete-work-item-attachment/feature';
+} from './schemas.ts';
+import { listWorkItems } from './list-work-items/feature.ts';
+import { getWorkItem } from './get-work-item/feature.ts';
+import { createWorkItem } from './create-work-item/feature.ts';
+import { updateWorkItem } from './update-work-item/feature.ts';
+import { manageWorkItemLink } from './manage-work-item-link/feature.ts';
+import { getWorkItemComments } from './get-work-item-comments/feature.ts';
+import { createWorkItemAttachment } from './create-work-item-attachment/feature.ts';
+import { getWorkItemAttachment } from './get-work-item-attachment/feature.ts';
+import { deleteWorkItemAttachment } from './delete-work-item-attachment/feature.ts';
 
 export const workItemsFeature: FeatureModule = {
   toolset: 'work-items',

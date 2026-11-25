@@ -32,6 +32,39 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true' && !github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['24', '26']
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Use Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - name: Install Dependencies
+        run: npm ci
+      - name: Security Audit
+        run: npm audit --audit-level=moderate
+      - name: Format Check
+        run: npm run format:check
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+      - name: Typecheck Tests
+        run: npm run typecheck:tests
+      - name: Unit Tests & Coverage
+        run: npm run test:coverage
+
+  integration:
+    needs: [changes, test]
+    if: needs.changes.outputs.code == 'true' && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
     environment: external-pr-check
     concurrency:
       group: ado-integration-tests
@@ -41,25 +74,15 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Use Node 22
+      - name: Use Node 24
         uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
       - name: Install Dependencies
         run: npm ci
-      - name: Security Audit
-        run: npm audit --audit-level=high
-      - name: Format Check
-        run: npm run format:check
-      - name: Lint
-        run: npm run lint
       - name: Build
         run: npm run build
-      - name: Typecheck Tests
-        run: npm run typecheck:tests
-      - name: Unit Tests
-        run: npm run test:unit
       - name: Integration Tests
         run: npm run test:int
         env:
@@ -80,12 +103,16 @@ jobs:
           AZURE_DEVOPS_AUTH_METHOD: pat
 
   build:
-    needs: [changes, test]
+    needs: [changes, test, integration]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Pass or skip CI
         run: |
+          if [[ "${{ needs.changes.result }}" != "success" ]]; then
+            echo "CI failed (changes: ${{ needs.changes.result }})"
+            exit 1
+          fi
           if [[ "${{ needs.changes.outputs.code }}" != "true" ]]; then
             echo "Markdown-only change; skipping CI."
             exit 0
@@ -94,8 +121,8 @@ jobs:
             echo "Fork pull request; skipping trusted-context tests."
             exit 0
           fi
-          if [[ "${{ needs.test.result }}" == "success" ]]; then
+          if [[ "${{ needs.test.result }}" == "success" && "${{ needs.integration.result }}" == "success" ]]; then
             exit 0
           fi
-          echo "CI failed (test result: ${{ needs.test.result }})"
+          echo "CI failed (test: ${{ needs.test.result }}, integration: ${{ needs.integration.result }})"
           exit 1

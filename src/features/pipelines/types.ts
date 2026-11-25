@@ -2,7 +2,7 @@
 import type {
   Pipeline,
   Run,
-} from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
+} from 'azure-devops-node-api/interfaces/PipelinesInterfaces.js';
 
 /**
  * Options for listing pipelines

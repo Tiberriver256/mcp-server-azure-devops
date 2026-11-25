@@ -1,10 +1,10 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
+import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
 import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
-} from '../../../shared/errors';
-import type { WorkItem } from '../types';
+} from '../../../shared/errors/index.ts';
+import type { WorkItem } from '../types.ts';
 
 /**
  * Options for managing work item link

@@ -1,19 +1,19 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { TypeInfo } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
+import { TypeInfo } from 'azure-devops-node-api/interfaces/PipelinesInterfaces.js';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
-import { fetchRunArtifacts } from '../artifacts';
+} from '../../../shared/errors/index.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
+import { fetchRunArtifacts } from '../artifacts.ts';
 import {
   coercePipelineId,
   resolvePipelineApiVersion,
   resolvePipelineId,
   resolvePipelineProjectId,
-} from '../helpers';
-import type { GetPipelineRunOptions, PipelineRunDetails } from '../types';
+} from '../helpers.ts';
+import type { GetPipelineRunOptions, PipelineRunDetails } from '../types.ts';
 
 function isPipelineRunDetails(value: unknown): value is PipelineRunDetails {
   return typeof value === 'object' && value !== null;

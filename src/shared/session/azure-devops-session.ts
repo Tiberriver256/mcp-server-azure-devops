@@ -1,28 +1,28 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { AzureDevOpsConfig } from '../types/config';
+import type { AzureDevOpsConfig } from '../types/config.ts';
 import {
   AuthenticationMethod,
   createAuthClient,
   createAuthProvider,
   normalizeAuthMethod,
-} from '../auth/auth-factory';
-import type { AuthProvider } from '../auth/auth-factory';
-import { resolveAzureDevOpsBaseUrls } from '../azure-devops-url';
+} from '../auth/auth-factory.ts';
+import type { AuthProvider } from '../auth/auth-factory.ts';
+import { resolveAzureDevOpsBaseUrls } from '../azure-devops-url.ts';
 import type {
   AzureDevOpsBaseUrls,
   AzureDevOpsUrlOptions,
-} from '../azure-devops-url';
+} from '../azure-devops-url.ts';
 import {
   createHttpClient,
   mapHttpErrorToAzureDevOpsError,
-} from '../http/http-client';
+} from '../http/http-client.ts';
 import type {
   HttpClient,
   HttpRequestOptions,
   HttpResponse,
-} from '../http/http-client';
-import { AzureDevOpsValidationError } from '../errors';
-import { logInfo } from '../logging';
+} from '../http/http-client.ts';
+import { AzureDevOpsValidationError } from '../errors/index.ts';
+import { logInfo } from '../logging.ts';
 
 export const DEFAULT_API_VERSION = '7.1';
 

@@ -1,13 +1,11 @@
+import assert from 'node:assert/strict';
+import { describe, mock, test } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { getPullRequestComments } from './feature';
-import type { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { getPullRequestComments } from './feature.ts';
+import type { GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 
-describe('getPullRequestComments', () => {
-  afterEach(() => {
-    jest.resetAllMocks();
-  });
-
-  test('should return pull request comment threads with file path and line number', async () => {
+void describe('getPullRequestComments', () => {
+  void test('should return pull request comment threads with file path and line number', async () => {
     // Mock data for a comment thread
     const mockCommentThreads: GitPullRequestCommentThread[] = [
       {
@@ -52,12 +50,14 @@ describe('getPullRequestComments', () => {
 
     // Setup mock connection
     const mockGitApi = {
-      getThreads: jest.fn().mockResolvedValue(mockCommentThreads),
-      getPullRequestThread: jest.fn(),
+      getThreads: mock.fn((..._args: unknown[]) =>
+        Promise.resolve(mockCommentThreads),
+      ),
+      getPullRequestThread: mock.fn(),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call the function with test parameters
@@ -71,7 +71,7 @@ describe('getPullRequestComments', () => {
     };
 
     const result = await getPullRequestComments(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       repositoryId,
       pullRequestId,
@@ -79,31 +79,37 @@ describe('getPullRequestComments', () => {
     );
 
     // Verify results
-    expect(result).toHaveLength(1);
-    expect(result[0].comments).toHaveLength(2);
+    assert.strictEqual(result.length, 1);
+    assert.ok(result[0].comments);
+    assert.strictEqual(result[0].comments.length, 2);
 
     // Verify file path and line number are added to each comment
-    result[0].comments?.forEach((comment) => {
-      expect(comment).toHaveProperty('filePath', '/src/app.ts');
-      expect(comment).toHaveProperty('rightFileStart', { line: 10, offset: 5 });
-      expect(comment).toHaveProperty('rightFileEnd', { line: 10, offset: 15 });
-      expect(comment).toHaveProperty('leftFileStart', undefined);
-      expect(comment).toHaveProperty('leftFileEnd', undefined);
-    });
+    for (const comment of result[0].comments) {
+      assert.ok(Object.hasOwn(comment, 'filePath'));
+      assert.strictEqual(comment.filePath, '/src/app.ts');
+      assert.ok(Object.hasOwn(comment, 'rightFileStart'));
+      assert.deepStrictEqual(comment.rightFileStart, { line: 10, offset: 5 });
+      assert.ok(Object.hasOwn(comment, 'rightFileEnd'));
+      assert.deepStrictEqual(comment.rightFileEnd, { line: 10, offset: 15 });
+      assert.ok(Object.hasOwn(comment, 'leftFileStart'));
+      assert.strictEqual(comment.leftFileStart, undefined);
+      assert.ok(Object.hasOwn(comment, 'leftFileEnd'));
+      assert.strictEqual(comment.leftFileEnd, undefined);
+    }
 
-    expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.getThreads).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.getThreads).toHaveBeenCalledWith(
+    assert.strictEqual(mockConnection.getGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockGitApi.getThreads.mock.callCount(), 1);
+    assert.deepStrictEqual(mockGitApi.getThreads.mock.calls[0]?.arguments, [
       repositoryId,
       pullRequestId,
       projectId,
       undefined,
       undefined,
-    );
-    expect(mockGitApi.getPullRequestThread).not.toHaveBeenCalled();
+    ]);
+    assert.strictEqual(mockGitApi.getPullRequestThread.mock.callCount(), 0);
   });
 
-  test('should handle comments without thread context', async () => {
+  void test('should handle comments without thread context', async () => {
     // Mock data for a comment thread without thread context
     const mockCommentThreads: GitPullRequestCommentThread[] = [
       {
@@ -126,16 +132,16 @@ describe('getPullRequestComments', () => {
 
     // Setup mock connection
     const mockGitApi = {
-      getThreads: jest.fn().mockResolvedValue(mockCommentThreads),
-      getPullRequestThread: jest.fn(),
+      getThreads: mock.fn(() => Promise.resolve(mockCommentThreads)),
+      getPullRequestThread: mock.fn(),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     const result = await getPullRequestComments(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       'test-project',
       'test-repo',
       123,
@@ -147,21 +153,28 @@ describe('getPullRequestComments', () => {
     );
 
     // Verify results
-    expect(result).toHaveLength(1);
-    expect(result[0].comments).toHaveLength(1);
-    expect(result[0].status).toBe('active');
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].comments?.length, 1);
+    assert.strictEqual(result[0].status, 'active');
 
     // Verify file path and line number are null for comments without thread context
-    const comment = result[0].comments![0];
-    expect(comment).toHaveProperty('filePath', undefined);
-    expect(comment).toHaveProperty('rightFileStart', undefined);
-    expect(comment).toHaveProperty('rightFileEnd', undefined);
-    expect(comment).toHaveProperty('leftFileStart', undefined);
-    expect(comment).toHaveProperty('leftFileEnd', undefined);
-    expect(comment).toHaveProperty('commentType', 'text');
+    const comment = result[0].comments?.[0];
+    assert.ok(comment);
+    assert.ok(Object.hasOwn(comment, 'filePath'));
+    assert.strictEqual(comment.filePath, undefined);
+    assert.ok(Object.hasOwn(comment, 'rightFileStart'));
+    assert.strictEqual(comment.rightFileStart, undefined);
+    assert.ok(Object.hasOwn(comment, 'rightFileEnd'));
+    assert.strictEqual(comment.rightFileEnd, undefined);
+    assert.ok(Object.hasOwn(comment, 'leftFileStart'));
+    assert.strictEqual(comment.leftFileStart, undefined);
+    assert.ok(Object.hasOwn(comment, 'leftFileEnd'));
+    assert.strictEqual(comment.leftFileEnd, undefined);
+    assert.ok(Object.hasOwn(comment, 'commentType'));
+    assert.strictEqual(comment.commentType, 'text');
   });
 
-  test('should use leftFileStart when rightFileStart is not available', async () => {
+  void test('should use leftFileStart when rightFileStart is not available', async () => {
     // Mock data for a comment thread with only leftFileStart
     const mockCommentThreads: GitPullRequestCommentThread[] = [
       {
@@ -191,16 +204,16 @@ describe('getPullRequestComments', () => {
 
     // Setup mock connection
     const mockGitApi = {
-      getThreads: jest.fn().mockResolvedValue(mockCommentThreads),
-      getPullRequestThread: jest.fn(),
+      getThreads: mock.fn(() => Promise.resolve(mockCommentThreads)),
+      getPullRequestThread: mock.fn(),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     const result = await getPullRequestComments(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       'test-project',
       'test-repo',
       123,
@@ -212,19 +225,25 @@ describe('getPullRequestComments', () => {
     );
 
     // Verify results
-    expect(result).toHaveLength(1);
-    expect(result[0].comments).toHaveLength(1);
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].comments?.length, 1);
 
     // Verify rightFileStart is undefined, leftFileStart is present
-    const comment = result[0].comments![0];
-    expect(comment).toHaveProperty('filePath', '/src/app.ts');
-    expect(comment).toHaveProperty('leftFileStart', { line: 5, offset: 1 });
-    expect(comment).toHaveProperty('rightFileStart', undefined);
-    expect(comment).toHaveProperty('leftFileEnd', undefined);
-    expect(comment).toHaveProperty('rightFileEnd', undefined);
+    const comment = result[0].comments?.[0];
+    assert.ok(comment);
+    assert.ok(Object.hasOwn(comment, 'filePath'));
+    assert.strictEqual(comment.filePath, '/src/app.ts');
+    assert.ok(Object.hasOwn(comment, 'leftFileStart'));
+    assert.deepStrictEqual(comment.leftFileStart, { line: 5, offset: 1 });
+    assert.ok(Object.hasOwn(comment, 'rightFileStart'));
+    assert.strictEqual(comment.rightFileStart, undefined);
+    assert.ok(Object.hasOwn(comment, 'leftFileEnd'));
+    assert.strictEqual(comment.leftFileEnd, undefined);
+    assert.ok(Object.hasOwn(comment, 'rightFileEnd'));
+    assert.strictEqual(comment.rightFileEnd, undefined);
   });
 
-  test('should return a specific comment thread when threadId is provided', async () => {
+  void test('should return a specific comment thread when threadId is provided', async () => {
     // Mock data for a specific comment thread
     const threadId = 42;
     const mockCommentThread: GitPullRequestCommentThread = {
@@ -253,12 +272,14 @@ describe('getPullRequestComments', () => {
 
     // Setup mock connection
     const mockGitApi = {
-      getThreads: jest.fn(),
-      getPullRequestThread: jest.fn().mockResolvedValue(mockCommentThread),
+      getThreads: mock.fn(),
+      getPullRequestThread: mock.fn((..._args: unknown[]) =>
+        Promise.resolve(mockCommentThread),
+      ),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call the function with test parameters
@@ -273,7 +294,7 @@ describe('getPullRequestComments', () => {
     };
 
     const result = await getPullRequestComments(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       repositoryId,
       pullRequestId,
@@ -281,30 +302,34 @@ describe('getPullRequestComments', () => {
     );
 
     // Verify results
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(threadId);
-    expect(result[0].comments).toHaveLength(1);
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].id, threadId);
+    assert.strictEqual(result[0].comments?.length, 1);
 
     // Verify file path and line number are added
-    const comment = result[0].comments![0];
-    expect(comment).toHaveProperty('filePath', '/src/utils.ts');
-    expect(comment).toHaveProperty('rightFileStart', { line: 15, offset: 1 });
-    expect(comment).toHaveProperty('leftFileStart', undefined);
-    expect(comment).toHaveProperty('leftFileEnd', undefined);
-    expect(comment).toHaveProperty('rightFileEnd', undefined);
+    const comment = result[0].comments?.[0];
+    assert.ok(comment);
+    assert.ok(Object.hasOwn(comment, 'filePath'));
+    assert.strictEqual(comment.filePath, '/src/utils.ts');
+    assert.ok(Object.hasOwn(comment, 'rightFileStart'));
+    assert.deepStrictEqual(comment.rightFileStart, { line: 15, offset: 1 });
+    assert.ok(Object.hasOwn(comment, 'leftFileStart'));
+    assert.strictEqual(comment.leftFileStart, undefined);
+    assert.ok(Object.hasOwn(comment, 'leftFileEnd'));
+    assert.strictEqual(comment.leftFileEnd, undefined);
+    assert.ok(Object.hasOwn(comment, 'rightFileEnd'));
+    assert.strictEqual(comment.rightFileEnd, undefined);
 
-    expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.getPullRequestThread).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.getPullRequestThread).toHaveBeenCalledWith(
-      repositoryId,
-      pullRequestId,
-      threadId,
-      projectId,
+    assert.strictEqual(mockConnection.getGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockGitApi.getPullRequestThread.mock.callCount(), 1);
+    assert.deepStrictEqual(
+      mockGitApi.getPullRequestThread.mock.calls[0]?.arguments,
+      [repositoryId, pullRequestId, threadId, projectId],
     );
-    expect(mockGitApi.getThreads).not.toHaveBeenCalled();
+    assert.strictEqual(mockGitApi.getThreads.mock.callCount(), 0);
   });
 
-  test('should handle pagination when top parameter is provided', async () => {
+  void test('should handle pagination when top parameter is provided', async () => {
     // Mock data for multiple comment threads
     const mockCommentThreads: GitPullRequestCommentThread[] = [
       {
@@ -338,12 +363,12 @@ describe('getPullRequestComments', () => {
 
     // Setup mock connection
     const mockGitApi = {
-      getThreads: jest.fn().mockResolvedValue(mockCommentThreads),
-      getPullRequestThread: jest.fn(),
+      getThreads: mock.fn(() => Promise.resolve(mockCommentThreads)),
+      getPullRequestThread: mock.fn(),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call the function with test parameters and top=2
@@ -358,7 +383,7 @@ describe('getPullRequestComments', () => {
     };
 
     const result = await getPullRequestComments(
-      mockConnection as WebApi,
+      mockConnection as unknown as WebApi,
       projectId,
       repositoryId,
       pullRequestId,
@@ -366,8 +391,9 @@ describe('getPullRequestComments', () => {
     );
 
     // Verify results (should only include first 2 threads)
-    expect(result).toHaveLength(2);
-    expect(result).toEqual(
+    assert.strictEqual(result.length, 2);
+    assert.deepStrictEqual(
+      result,
       mockCommentThreads.slice(0, 2).map((thread) => ({
         ...thread,
         status: 'active', // Transform enum to string
@@ -382,27 +408,33 @@ describe('getPullRequestComments', () => {
         })),
       })),
     );
-    expect(mockConnection.getGitApi).toHaveBeenCalledTimes(1);
-    expect(mockGitApi.getThreads).toHaveBeenCalledTimes(1);
-    expect(result[0].comments![0]).toHaveProperty('rightFileStart', {
+    assert.strictEqual(mockConnection.getGitApi.mock.callCount(), 1);
+    assert.strictEqual(mockGitApi.getThreads.mock.callCount(), 1);
+    const firstComment = result[0].comments?.[0];
+    assert.ok(firstComment);
+    assert.ok(Object.hasOwn(firstComment, 'rightFileStart'));
+    assert.deepStrictEqual(firstComment.rightFileStart, {
       line: 1,
       offset: 1,
     });
-    expect(result[1].comments![0]).toHaveProperty('rightFileStart', {
+    const secondComment = result[1].comments?.[0];
+    assert.ok(secondComment);
+    assert.ok(Object.hasOwn(secondComment, 'rightFileStart'));
+    assert.deepStrictEqual(secondComment.rightFileStart, {
       line: 2,
       offset: 1,
     });
   });
 
-  test('should handle error when API call fails', async () => {
+  void test('should handle error when API call fails', async () => {
     // Setup mock connection with error
     const errorMessage = 'API error';
     const mockGitApi = {
-      getThreads: jest.fn().mockRejectedValue(new Error(errorMessage)),
+      getThreads: mock.fn(() => Promise.reject(new Error(errorMessage))),
     };
 
-    const mockConnection: any = {
-      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    const mockConnection = {
+      getGitApi: mock.fn(() => Promise.resolve(mockGitApi)),
     };
 
     // Call the function with test parameters
@@ -416,14 +448,24 @@ describe('getPullRequestComments', () => {
     };
 
     // Verify error handling
-    await expect(
-      getPullRequestComments(
-        mockConnection as WebApi,
-        projectId,
-        repositoryId,
-        pullRequestId,
-        options,
-      ),
-    ).rejects.toThrow(`Failed to get pull request comments: ${errorMessage}`);
+    await assert.rejects(
+      () =>
+        getPullRequestComments(
+          mockConnection as unknown as WebApi,
+          projectId,
+          repositoryId,
+          pullRequestId,
+          options,
+        ),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(
+          err.message.includes(
+            `Failed to get pull request comments: ${errorMessage}`,
+          ),
+        );
+        return true;
+      },
+    );
   });
 });

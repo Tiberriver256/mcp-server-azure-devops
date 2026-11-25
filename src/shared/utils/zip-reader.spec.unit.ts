@@ -1,6 +1,8 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import { deflateRawSync } from 'zlib';
-import { AzureDevOpsError } from '../errors';
-import { readZipArchive } from './zip-reader';
+import { AzureDevOpsError } from '../errors/index.ts';
+import { readZipArchive } from './zip-reader.ts';
 
 function crc32(buf: Buffer): number {
   let crc = 0xffffffff;
@@ -124,8 +126,8 @@ function buildCustomZip(opts: CustomZipOptions): Buffer {
   return Buffer.concat([localPart, cdh, zip64Trailer, eocd]);
 }
 
-describe('zip-reader edge cases & security guards', () => {
-  it('reads ZIP64 archives (ZIP64 EOCD, locator, and 64-bit extra fields)', () => {
+void describe('zip-reader edge cases & security guards', () => {
+  void it('reads ZIP64 archives (ZIP64 EOCD, locator, and 64-bit extra fields)', () => {
     const payload = 'ZIP64 content with UTF-8 café';
     const archiveBuf = buildCustomZip({
       name: 'reports/summary.txt',
@@ -134,13 +136,13 @@ describe('zip-reader edge cases & security guards', () => {
     });
 
     const zip = readZipArchive(archiveBuf);
-    expect(zip.entries).toHaveLength(1);
+    assert.strictEqual(zip.entries.length, 1);
     const entry = zip.findEntry('reports/summary.txt');
-    expect(entry).toBeDefined();
-    expect(zip.readEntryText(entry!)).toBe(payload);
+    assert.ok(entry !== undefined);
+    assert.strictEqual(zip.readEntryText(entry), payload);
   });
 
-  it('reads streamed entries with data descriptors (zero sizes in local header)', () => {
+  void it('reads streamed entries with data descriptors (zero sizes in local header)', () => {
     const archiveBuf = buildCustomZip({
       name: 'logs/build.log',
       data: Buffer.from('line1\nline2\n', 'utf8'),
@@ -149,11 +151,11 @@ describe('zip-reader edge cases & security guards', () => {
 
     const zip = readZipArchive(archiveBuf);
     const entry = zip.findEntry('logs/build.log');
-    expect(entry).toBeDefined();
-    expect(zip.readEntryText(entry!)).toBe('line1\nline2\n');
+    assert.ok(entry !== undefined);
+    assert.strictEqual(zip.readEntryText(entry), 'line1\nline2\n');
   });
 
-  it('reads archives with trailing EOCD comments', () => {
+  void it('reads archives with trailing EOCD comments', () => {
     const archiveBuf = buildCustomZip({
       name: 'note.txt',
       data: Buffer.from('commented archive', 'utf8'),
@@ -161,10 +163,10 @@ describe('zip-reader edge cases & security guards', () => {
     });
 
     const zip = readZipArchive(archiveBuf);
-    expect(zip.readEntryText(zip.entries[0])).toBe('commented archive');
+    assert.strictEqual(zip.readEntryText(zip.entries[0]), 'commented archive');
   });
 
-  it('blocks lying-header zip bombs where deflate output exceeds maxBytes despite spoofed central directory size', () => {
+  void it('blocks lying-header zip bombs where deflate output exceeds maxBytes despite spoofed central directory size', () => {
     const bigPayload = Buffer.alloc(64 * 1024, 0x41);
     const archiveBuf = buildCustomZip({
       name: 'bomb.txt',
@@ -174,24 +176,26 @@ describe('zip-reader edge cases & security guards', () => {
     });
 
     const zip = readZipArchive(archiveBuf);
-    expect(() => zip.readEntryBuffer(zip.entries[0], 1024)).toThrow(
+    assert.throws(
+      () => zip.readEntryBuffer(zip.entries[0], 1024),
       AzureDevOpsError,
     );
   });
 
-  it('rejects encrypted ZIP entries explicitly', () => {
+  void it('rejects encrypted ZIP entries explicitly', () => {
     const archiveBuf = buildCustomZip({
       name: 'secret.txt',
       data: Buffer.from('classified', 'utf8'),
       flags: 0x0801,
     });
 
-    expect(() => readZipArchive(archiveBuf)).toThrow(
+    assert.throws(
+      () => readZipArchive(archiveBuf),
       /Encrypted ZIP archives are not supported/i,
     );
   });
 
-  it('recognizes trailing backslash directory entries on Windows archives', () => {
+  void it('recognizes trailing backslash directory entries on Windows archives', () => {
     const archiveBuf = buildCustomZip({
       name: 'drop\\logs\\',
       data: Buffer.alloc(0),
@@ -199,15 +203,19 @@ describe('zip-reader edge cases & security guards', () => {
     });
 
     const zip = readZipArchive(archiveBuf);
-    expect(zip.entries[0].isDirectory).toBe(true);
-    expect(zip.readEntryBuffer(zip.entries[0])).toEqual(Buffer.alloc(0));
+    assert.strictEqual(zip.entries[0].isDirectory, true);
+    assert.deepStrictEqual(
+      zip.readEntryBuffer(zip.entries[0]),
+      Buffer.alloc(0),
+    );
   });
 
-  it('handles maxBytes === 0 safely for both empty and non-empty deflated entries and rejects negative limits', () => {
+  void it('handles maxBytes === 0 safely for both empty and non-empty deflated entries and rejects negative limits', () => {
     const emptyZip = readZipArchive(
       buildCustomZip({ name: 'empty.txt', data: Buffer.alloc(0), method: 8 }),
     );
-    expect(emptyZip.readEntryBuffer(emptyZip.entries[0], 0)).toEqual(
+    assert.deepStrictEqual(
+      emptyZip.readEntryBuffer(emptyZip.entries[0], 0),
       Buffer.alloc(0),
     );
 
@@ -219,11 +227,13 @@ describe('zip-reader edge cases & security guards', () => {
         spoofedUncompressedSize: 0,
       }),
     );
-    expect(() =>
-      nonEmptyZip.readEntryBuffer(nonEmptyZip.entries[0], 0),
-    ).toThrow(AzureDevOpsError);
+    assert.throws(
+      () => nonEmptyZip.readEntryBuffer(nonEmptyZip.entries[0], 0),
+      AzureDevOpsError,
+    );
 
-    expect(() => emptyZip.readEntryBuffer(emptyZip.entries[0], -1)).toThrow(
+    assert.throws(
+      () => emptyZip.readEntryBuffer(emptyZip.entries[0], -1),
       /Invalid maxBytes limit/i,
     );
   });

@@ -1,4 +1,4 @@
-export { AZURE_DEVOPS_RESOURCE_ID } from '../../shared/auth/auth-factory';
+export { AZURE_DEVOPS_RESOURCE_ID } from '../../shared/auth/auth-factory.ts';
 
 /**
  * Organization interface

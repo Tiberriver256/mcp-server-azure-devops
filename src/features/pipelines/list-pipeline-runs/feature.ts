@@ -1,22 +1,22 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { TypeInfo } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
+import { TypeInfo } from 'azure-devops-node-api/interfaces/PipelinesInterfaces.js';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
-import { extractContinuationToken as extractHeaderContinuationToken } from '../../../shared/http/http-client';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
+} from '../../../shared/errors/index.ts';
+import { extractContinuationToken as extractHeaderContinuationToken } from '../../../shared/http/http-client.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
 import {
   normalizeBranch,
   resolvePipelineApiVersion,
   resolvePipelineProjectId,
-} from '../helpers';
+} from '../helpers.ts';
 import type {
   ListPipelineRunsOptions,
   ListPipelineRunsResult,
   Run,
-} from '../types';
+} from '../types.ts';
 
 export { normalizeBranch };
 

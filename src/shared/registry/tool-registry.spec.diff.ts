@@ -1,3 +1,5 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import {
   ListToolsRequestSchema,
   ListToolsResultSchema,
@@ -6,13 +8,13 @@ import {
   createAzureDevOpsServer,
   getFeatureModules,
   getRegisteredToolRegistry,
-} from '../../server';
-import { AuthenticationMethod } from '../auth';
-import { TOOLSET_NAMES } from '../config';
-import { formatToolResult } from './tool-registry';
+} from '../../server.ts';
+import { AuthenticationMethod } from '../auth/index.ts';
+import { TOOLSET_NAMES } from '../config/index.ts';
+import { formatToolResult } from './tool-registry.ts';
 
-describe('tool-registry contract differential tests: Zod definitions vs MCP ListTools JSON Schema', () => {
-  it('validates all 60 tools against MCP ListToolsResultSchema with zero leaked internals or sentinel defaults', async () => {
+void describe('tool-registry contract differential tests: Zod definitions vs MCP ListTools JSON Schema', () => {
+  void it('validates all 60 tools against MCP ListToolsResultSchema with zero leaked internals or sentinel defaults', async () => {
     const server = createAzureDevOpsServer({
       organizationUrl: 'https://dev.azure.com/contract-org',
       authMethod: AuthenticationMethod.PersonalAccessToken,
@@ -28,31 +30,37 @@ describe('tool-registry contract differential tests: Zod definitions vs MCP List
       }
     )._requestHandlers;
     const listHandler = handlers.get(ListToolsRequestSchema.shape.method.value);
-    expect(listHandler).toBeDefined();
+    assert.ok(listHandler !== undefined);
 
-    const rawResult = (await listHandler!(
+    const rawResult = (await listHandler(
       { method: 'tools/list', params: {} },
       {},
     )) as { tools: Array<Record<string, unknown>> };
 
     // 1. Validate against official MCP SDK ListToolsResultSchema
     const mcpResult = ListToolsResultSchema.parse(rawResult);
-    expect(mcpResult.tools).toHaveLength(60);
+    assert.strictEqual(mcpResult.tools.length, 60);
 
     // 2. Build independent catalog from feature modules
     const modules = getFeatureModules();
-    expect(modules.map((m) => m.toolset)).toEqual([...TOOLSET_NAMES]);
+    assert.deepStrictEqual(
+      modules.map((m) => m.toolset),
+      [...TOOLSET_NAMES],
+    );
 
     const registeredRegistry = getRegisteredToolRegistry();
     const registeredList = TOOLSET_NAMES.flatMap(
       (ts) => registeredRegistry[ts],
     );
-    expect(registeredList).toHaveLength(60);
+    assert.strictEqual(registeredList.length, 60);
 
     // 3. No duplicate tool names across all toolsets
     const names = registeredList.map((t) => t.name);
-    expect(new Set(names).size).toBe(60);
-    expect(mcpResult.tools.map((t) => t.name)).toEqual(names);
+    assert.strictEqual(new Set(names).size, 60);
+    assert.deepStrictEqual(
+      mcpResult.tools.map((t) => t.name),
+      names,
+    );
 
     // 4. Differentially verify every single tool's emitted MCP schema against its RegisteredTool metadata
     const SENTINEL_DEFAULTS = new Set([
@@ -66,31 +74,31 @@ describe('tool-registry contract differential tests: Zod definitions vs MCP List
       const def = registered.toDefinition();
 
       // No internal metadata leaked to wire payload
-      expect(rawTool).not.toHaveProperty('readOnly');
-      expect(rawTool).not.toHaveProperty('mcp_enabled');
+      assert.strictEqual(Object.hasOwn(rawTool, 'readOnly'), false);
+      assert.strictEqual(Object.hasOwn(rawTool, 'mcp_enabled'), false);
 
       // Annotations agree strictly with readOnly flag
-      expect(rawTool.annotations).toEqual({
+      assert.deepStrictEqual(rawTool.annotations, {
         readOnlyHint: registered.readOnly,
       });
-      expect(typeof registered.readOnly).toBe('boolean');
+      assert.strictEqual(typeof registered.readOnly, 'boolean');
 
       // Description non-empty and matches definition
-      expect(typeof def.description).toBe('string');
-      expect(def.description.trim().length).toBeGreaterThan(0);
-      expect(rawTool.description).toBe(def.description);
+      assert.strictEqual(typeof def.description, 'string');
+      assert.ok(def.description.trim().length > 0);
+      assert.strictEqual(rawTool.description, def.description);
 
       // JSON Schema must be Draft-07 object schema (type: 'object')
       const schema = rawTool.inputSchema as Record<string, unknown>;
-      expect(schema.type).toBe('object');
-      expect(typeof schema.properties).toBe('object');
+      assert.strictEqual(schema.type, 'object');
+      assert.strictEqual(typeof schema.properties, 'object');
 
       // No property may advertise a sentinel default value
       const properties =
         (schema.properties as Record<string, Record<string, unknown>>) ?? {};
       for (const propSchema of Object.values(properties)) {
         if (typeof propSchema.default === 'string') {
-          expect(SENTINEL_DEFAULTS.has(propSchema.default)).toBe(false);
+          assert.strictEqual(SENTINEL_DEFAULTS.has(propSchema.default), false);
         }
       }
 
@@ -98,36 +106,37 @@ describe('tool-registry contract differential tests: Zod definitions vs MCP List
       const required = Array.isArray(schema.required)
         ? (schema.required as string[])
         : [];
-      const propKeys = Object.keys(
-        (schema.properties as Record<string, unknown>) ?? {},
+      const propKeys = new Set(
+        Object.keys((schema.properties as Record<string, unknown>) ?? {}),
       );
       for (const reqKey of required) {
-        expect(propKeys).toContain(reqKey);
+        assert.ok(propKeys.has(reqKey));
       }
 
       if (required.length > 0) {
-        expect(registered.schema.safeParse({}).success).toBe(false);
+        assert.strictEqual(registered.schema.safeParse({}).success, false);
       }
     }
   });
 
-  it('formatToolResult produces valid MCP text blocks for undefined and domain objects containing arbitrary content arrays', () => {
-    expect(formatToolResult(undefined)).toEqual({
+  void it('formatToolResult produces valid MCP text blocks for undefined and domain objects containing arbitrary content arrays', () => {
+    assert.deepStrictEqual(formatToolResult(undefined), {
       content: [{ type: 'text', text: '' }],
     });
 
     const domainObject = { content: [{ foo: 1 }], id: 42 };
     const formatted = formatToolResult(domainObject);
-    expect(formatted.content).toHaveLength(1);
-    expect(formatted.content[0].type).toBe('text');
-    expect(JSON.parse(formatted.content[0].text)).toEqual(domainObject);
+    assert.strictEqual(formatted.content.length, 1);
+    assert.strictEqual(formatted.content[0].type, 'text');
+    assert.deepStrictEqual(JSON.parse(formatted.content[0].text), domainObject);
 
     const emptyContentDomain = { content: [] };
-    expect(
+    assert.deepStrictEqual(
       JSON.parse(formatToolResult(emptyContentDomain).content[0].text),
-    ).toEqual(emptyContentDomain);
+      emptyContentDomain,
+    );
 
     const validMcp = { content: [{ type: 'text' as const, text: 'ok' }] };
-    expect(formatToolResult(validMcp)).toBe(validMcp);
+    assert.strictEqual(formatToolResult(validMcp), validMcp);
   });
 });

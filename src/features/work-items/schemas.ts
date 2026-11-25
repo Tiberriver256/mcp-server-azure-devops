@@ -198,4 +198,4 @@ export {
   CreateWorkItemAttachmentSchema,
   GetWorkItemAttachmentSchema,
   DeleteWorkItemAttachmentSchema,
-} from './attachment-schemas';
+} from './attachment-schemas.ts';

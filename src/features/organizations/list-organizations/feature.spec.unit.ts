@@ -1,13 +1,15 @@
-import { AuthenticationMethod } from '../../../shared/auth';
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { AuthenticationMethod } from '../../../shared/auth/index.ts';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsValidationError,
-} from '../../../shared/errors';
-import { HttpError } from '../../../shared/http/http-client';
-import type { HttpRequestOptions } from '../../../shared/http/http-client';
-import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session';
-import { listOrganizations } from './feature';
+} from '../../../shared/errors/index.ts';
+import { HttpError } from '../../../shared/http/http-client.ts';
+import type { HttpRequestOptions } from '../../../shared/http/http-client.ts';
+import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session.ts';
+import { listOrganizations } from './feature.ts';
 
 function makeContext(
   handler: (
@@ -46,8 +48,8 @@ function makeContext(
   );
 }
 
-describe('listOrganizations', () => {
-  it('fetches profile publicAlias and maps accessible organizations', async () => {
+void describe('listOrganizations', () => {
+  void it('fetches profile publicAlias and maps accessible organizations', async () => {
     const urls: string[] = [];
     const ctx = makeContext(async (req) => {
       urls.push(req.url);
@@ -69,24 +71,25 @@ describe('listOrganizations', () => {
     });
 
     const orgs = await listOrganizations(ctx);
-    expect(orgs).toEqual([
+    assert.deepStrictEqual(orgs, [
       { id: 'id-1', name: 'org-one', url: 'https://dev.azure.com/org-one' },
     ]);
-    expect(urls[1]).toContain('memberId=user-alias-123');
+    assert.ok(urls[1].includes('memberId=user-alias-123'));
   });
 
-  it('rejects on-premises Azure DevOps Server URLs', async () => {
+  void it('rejects on-premises Azure DevOps Server URLs', async () => {
     const ctx = makeContext(
       async () => ({ status: 200, data: {} }),
       'https://ado.local/tfs/DefaultCollection',
     );
 
-    await expect(listOrganizations(ctx)).rejects.toThrow(
+    await assert.rejects(
+      () => listOrganizations(ctx),
       AzureDevOpsValidationError,
     );
   });
 
-  it('maps profile HTTP 401 to AzureDevOpsAuthenticationError without leaking PAT', async () => {
+  void it('maps profile HTTP 401 to AzureDevOpsAuthenticationError without leaking PAT', async () => {
     const ctx = makeContext(async (req) => {
       throw new HttpError({
         message: 'Unauthorized',
@@ -97,11 +100,11 @@ describe('listOrganizations', () => {
     });
 
     const err = await listOrganizations(ctx).catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(AzureDevOpsAuthenticationError);
-    expect((err as Error).message).not.toContain('secret-pat-value');
+    assert.ok(err instanceof AzureDevOpsAuthenticationError);
+    assert.ok(!err.message.includes('secret-pat-value'));
   });
 
-  it('maps HTTP 500 and malformed accounts payloads to AzureDevOpsError (not AuthenticationError)', async () => {
+  void it('maps HTTP 500 and malformed accounts payloads to AzureDevOpsError (not AuthenticationError)', async () => {
     const ctx500 = makeContext(async (req) => {
       throw new HttpError({
         message: 'Internal Server Error',
@@ -112,8 +115,8 @@ describe('listOrganizations', () => {
     });
 
     const err500 = await listOrganizations(ctx500).catch((e: unknown) => e);
-    expect(err500).toBeInstanceOf(AzureDevOpsError);
-    expect(err500).not.toBeInstanceOf(AzureDevOpsAuthenticationError);
+    assert.ok(err500 instanceof AzureDevOpsError);
+    assert.strictEqual(err500 instanceof AzureDevOpsAuthenticationError, false);
 
     const ctxMalformed = makeContext(async (req) => {
       if (req.url.includes('/_apis/profile/profiles/me')) {
@@ -124,7 +127,10 @@ describe('listOrganizations', () => {
     const errMalformed = await listOrganizations(ctxMalformed).catch(
       (e: unknown) => e,
     );
-    expect(errMalformed).toBeInstanceOf(AzureDevOpsError);
-    expect(errMalformed).not.toBeInstanceOf(AzureDevOpsAuthenticationError);
+    assert.ok(errMalformed instanceof AzureDevOpsError);
+    assert.strictEqual(
+      errMalformed instanceof AzureDevOpsAuthenticationError,
+      false,
+    );
   });
 });

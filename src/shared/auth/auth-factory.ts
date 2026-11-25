@@ -1,44 +1,47 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { IRequestHandler } from 'azure-devops-node-api/interfaces/common/VsoBaseInterfaces';
+import type { IRequestHandler } from 'azure-devops-node-api/interfaces/common/VsoBaseInterfaces.js';
 import type {
   IHttpClient,
   IHttpClientResponse,
   IRequestInfo,
-} from 'typed-rest-client/Interfaces';
+} from 'typed-rest-client/Interfaces.js';
 import type * as http from 'http';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsValidationError,
   redactSecrets,
-} from '../errors';
+} from '../errors/index.ts';
 import {
   formatOrgUrlForLog,
   isAzureDevOpsServicesUrl,
-} from '../azure-devops-url';
-import { logInfo, logWarn } from '../logging';
+} from '../azure-devops-url.ts';
+import { logInfo, logWarn } from '../logging.ts';
 
 export { formatOrgUrlForLog };
 
 /**
  * Authentication methods supported by the Azure DevOps client
  */
-export enum AuthenticationMethod {
+export const AuthenticationMethod = {
   /**
    * Personal Access Token authentication
    */
-  PersonalAccessToken = 'pat',
+  PersonalAccessToken: 'pat',
 
   /**
    * Azure Identity authentication (DefaultAzureCredential)
    */
-  AzureIdentity = 'azure-identity',
+  AzureIdentity: 'azure-identity',
 
   /**
    * Azure CLI authentication (AzureCliCredential)
    */
-  AzureCli = 'azure-cli',
-}
+  AzureCli: 'azure-cli',
+} as const;
+
+export type AuthenticationMethod =
+  (typeof AuthenticationMethod)[keyof typeof AuthenticationMethod];
 
 /**
  * Authentication configuration for Azure DevOps
@@ -67,13 +70,34 @@ export const AZURE_DEVOPS_RESOURCE_ID = '499b84ac-1321-427f-aa17-267ca6975798';
 const AZURE_DEVOPS_SCOPE = `${AZURE_DEVOPS_RESOURCE_ID}/.default`;
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000; // Refresh 5 minutes before expiry
 
-interface CachedAccessToken {
+export interface CachedAccessToken {
   token: string;
   expiresOnTimestamp: number;
 }
 
-interface TokenCredentialLike {
+export interface TokenCredentialLike {
   getToken(scope: string): Promise<CachedAccessToken | null>;
+}
+
+export interface AzureIdentityModule {
+  DefaultAzureCredential: new () => TokenCredentialLike;
+  AzureCliCredential: new () => TokenCredentialLike;
+}
+
+export interface AzureDevOpsApiModule {
+  WebApi: new (organizationUrl: string, authHandler: IRequestHandler) => WebApi;
+  getPersonalAccessTokenHandler: (
+    personalAccessToken: string,
+  ) => IRequestHandler;
+}
+
+/**
+ * Optional dependency overrides for `createAuthProvider` and `createAuthClient`.
+ * Defaults to lazy-loading `@azure/identity` and `azure-devops-node-api`.
+ */
+export interface AuthFactoryDependencies {
+  loadAzureIdentity?: () => Promise<AzureIdentityModule>;
+  loadAzureDevOpsApi?: () => Promise<AzureDevOpsApiModule>;
 }
 
 /**
@@ -219,7 +243,10 @@ export class RefreshingBearerCredentialHandler implements IRequestHandler {
   }
 }
 
-export function createAuthProvider(config: AuthConfig): AuthProvider {
+export function createAuthProvider(
+  config: AuthConfig,
+  deps: AuthFactoryDependencies = {},
+): AuthProvider {
   if (!config.organizationUrl) {
     throw new AzureDevOpsAuthenticationError('Organization URL is required');
   }
@@ -261,7 +288,9 @@ export function createAuthProvider(config: AuthConfig): AuthProvider {
       return credentialInstance;
     }
 
-    const identity = await import('@azure/identity');
+    const identity = deps.loadAzureIdentity
+      ? await deps.loadAzureIdentity()
+      : await import('@azure/identity');
     credentialInstance =
       config.method === AuthenticationMethod.AzureCli
         ? new identity.AzureCliCredential()
@@ -326,7 +355,9 @@ export function createAuthProvider(config: AuthConfig): AuthProvider {
 
   const createRequestHandler = async (): Promise<IRequestHandler> => {
     if (config.method === AuthenticationMethod.PersonalAccessToken) {
-      const ado = await import('azure-devops-node-api');
+      const ado = deps.loadAzureDevOpsApi
+        ? await deps.loadAzureDevOpsApi()
+        : await import('azure-devops-node-api');
       return ado.getPersonalAccessTokenHandler(
         config.personalAccessToken ?? '',
       );
@@ -389,14 +420,17 @@ export function classifyConnectionError(
 export async function createAuthClient(
   config: AuthConfig,
   provider?: AuthProvider,
+  deps: AuthFactoryDependencies = {},
 ): Promise<WebApi> {
-  const authProvider = provider ?? createAuthProvider(config);
+  const authProvider = provider ?? createAuthProvider(config, deps);
   const orgDisplay = formatOrgUrlForLog(config.organizationUrl);
   logInfo(`Azure DevOps auth: method=${config.method}, org=${orgDisplay}`);
 
   try {
     const [ado, authHandler] = await Promise.all([
-      import('azure-devops-node-api'),
+      deps.loadAzureDevOpsApi
+        ? deps.loadAzureDevOpsApi()
+        : import('azure-devops-node-api'),
       authProvider.createRequestHandler(),
     ]);
 

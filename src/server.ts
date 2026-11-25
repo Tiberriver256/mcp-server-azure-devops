@@ -7,40 +7,46 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type { WebApi } from 'azure-devops-node-api';
-import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import type { ToolsetName } from './shared/config';
-import { VERSION, resolveEnabledTools } from './shared/config';
-import type { AzureDevOpsConfig, ToolDefinition } from './shared/types';
+import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import type { ToolsetName } from './shared/config/index.ts';
+import { VERSION, resolveEnabledTools } from './shared/config/index.ts';
+import type {
+  AzureDevOpsConfig,
+  ToolDefinition,
+} from './shared/types/index.ts';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
   handleResponseError,
   redactSecrets,
-} from './shared/errors';
-import { logError } from './shared/logging';
-import { createAzureDevOpsSession } from './shared/session/azure-devops-session';
-import type { CreateSessionOptions } from './shared/session/azure-devops-session';
+} from './shared/errors/index.ts';
+import { logError } from './shared/logging.ts';
+import { createAzureDevOpsSession } from './shared/session/azure-devops-session.ts';
+import type { CreateSessionOptions } from './shared/session/azure-devops-session.ts';
 import type {
   FeatureModule,
   RegisteredTool,
-} from './shared/registry/tool-registry';
+} from './shared/registry/tool-registry.ts';
 import {
   ADO_RESOURCE_TEMPLATES,
   getMimeType,
   parseAdoResourceUri,
-} from './shared/resources/ado-resource-uri';
+} from './shared/resources/ado-resource-uri.ts';
 
-import { usersFeature } from './features/users';
-import { organizationsFeature } from './features/organizations';
-import { projectsFeature } from './features/projects';
-import { repositoriesFeature, getFileContent } from './features/repositories';
-import { workItemsFeature } from './features/work-items';
-import { searchFeature } from './features/search';
-import { pullRequestsFeature } from './features/pull-requests';
-import { pipelinesFeature } from './features/pipelines';
-import { wikisFeature } from './features/wikis';
-import { testPlansFeature } from './features/test-plans';
+import { usersFeature } from './features/users/index.ts';
+import { organizationsFeature } from './features/organizations/index.ts';
+import { projectsFeature } from './features/projects/index.ts';
+import {
+  repositoriesFeature,
+  getFileContent,
+} from './features/repositories/index.ts';
+import { workItemsFeature } from './features/work-items/index.ts';
+import { searchFeature } from './features/search/index.ts';
+import { pullRequestsFeature } from './features/pull-requests/index.ts';
+import { pipelinesFeature } from './features/pipelines/index.ts';
+import { wikisFeature } from './features/wikis/index.ts';
+import { testPlansFeature } from './features/test-plans/index.ts';
 
 export type AzureDevOpsServer = Server;
 

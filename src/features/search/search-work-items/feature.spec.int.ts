@@ -1,32 +1,42 @@
+import assert from 'node:assert/strict';
+import { before, describe, it } from 'node:test';
 import type { WebApi } from 'azure-devops-node-api';
-import { searchWorkItems } from './feature';
-import { getConnection } from '../../../server';
-import type { AzureDevOpsConfig } from '../../../shared/types';
-import { AuthenticationMethod } from '../../../shared/auth';
+import { searchWorkItems } from './feature.ts';
+import { getConnection } from '../../../server.ts';
+import type { AzureDevOpsConfig } from '../../../shared/types/index.ts';
+import { AuthenticationMethod } from '../../../shared/auth/index.ts';
 
 // Skip tests if no PAT or default project is available
-const hasPat = process.env.AZURE_DEVOPS_PAT && process.env.AZURE_DEVOPS_ORG_URL;
+const hasPat = Boolean(
+  process.env.AZURE_DEVOPS_PAT && process.env.AZURE_DEVOPS_ORG_URL,
+);
 const projectId = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || '';
 const hasProjectId = Boolean(projectId);
-const describeOrSkip = hasPat && hasProjectId ? describe : describe.skip;
+const skipReason =
+  hasPat && hasProjectId
+    ? false
+    : 'AZURE_DEVOPS_PAT, AZURE_DEVOPS_ORG_URL, and AZURE_DEVOPS_DEFAULT_PROJECT are required';
 
-describeOrSkip('searchWorkItems (Integration)', () => {
+void describe('searchWorkItems (Integration)', { skip: skipReason }, () => {
   let connection: WebApi;
   let config: AzureDevOpsConfig;
 
-  beforeAll(async () => {
-    // Set up the connection
-    config = {
-      organizationUrl: process.env.AZURE_DEVOPS_ORG_URL || '',
-      authMethod: AuthenticationMethod.PersonalAccessToken,
-      personalAccessToken: process.env.AZURE_DEVOPS_PAT || '',
-      defaultProject: projectId,
-    };
+  before(
+    async () => {
+      // Set up the connection
+      config = {
+        organizationUrl: process.env.AZURE_DEVOPS_ORG_URL || '',
+        authMethod: AuthenticationMethod.PersonalAccessToken,
+        personalAccessToken: process.env.AZURE_DEVOPS_PAT || '',
+        defaultProject: projectId,
+      };
 
-    connection = await getConnection(config);
-  }, 30000);
+      connection = await getConnection(config);
+    },
+    { timeout: 30000 },
+  );
 
-  it('should search for work items', async () => {
+  void it('should search for work items', { timeout: 30000 }, async () => {
     // Act
     const result = await searchWorkItems(connection, {
       searchText: 'test',
@@ -36,28 +46,28 @@ describeOrSkip('searchWorkItems (Integration)', () => {
     });
 
     // Assert
-    expect(result).toBeDefined();
-    expect(typeof result.count).toBe('number');
-    expect(Array.isArray(result.results)).toBe(true);
+    assert.notStrictEqual(result, undefined);
+    assert.strictEqual(typeof result.count, 'number');
+    assert.strictEqual(Array.isArray(result.results), true);
 
     // If there are results, verify their structure
     if (result.results.length > 0) {
       const firstResult = result.results[0];
-      expect(firstResult.project).toBeDefined();
-      expect(firstResult.fields).toBeDefined();
-      expect(firstResult.fields['system.id']).toBeDefined();
-      expect(firstResult.fields['system.title']).toBeDefined();
-      expect(firstResult.hits).toBeDefined();
-      expect(firstResult.url).toBeDefined();
+      assert.notStrictEqual(firstResult.project, undefined);
+      assert.notStrictEqual(firstResult.fields, undefined);
+      assert.notStrictEqual(firstResult.fields['system.id'], undefined);
+      assert.notStrictEqual(firstResult.fields['system.title'], undefined);
+      assert.notStrictEqual(firstResult.hits, undefined);
+      assert.notStrictEqual(firstResult.url, undefined);
     }
 
     // If facets were requested, verify their structure
     if (result.facets) {
-      expect(result.facets).toBeDefined();
+      assert.notStrictEqual(result.facets, undefined);
     }
-  }, 30000);
+  });
 
-  it('should filter work items by type', async () => {
+  void it('should filter work items by type', { timeout: 30000 }, async () => {
     // Act
     const result = await searchWorkItems(connection, {
       searchText: 'test',
@@ -69,17 +79,20 @@ describeOrSkip('searchWorkItems (Integration)', () => {
     });
 
     // Assert
-    expect(result).toBeDefined();
+    assert.notStrictEqual(result, undefined);
 
     // If there are results, verify they are all bugs
     if (result.results.length > 0) {
       result.results.forEach((item) => {
-        expect(item.fields['system.workitemtype'].toLowerCase()).toBe('bug');
+        assert.strictEqual(
+          item.fields['system.workitemtype'].toLowerCase(),
+          'bug',
+        );
       });
     }
-  }, 30000);
+  });
 
-  it('should support pagination', async () => {
+  void it('should support pagination', { timeout: 30000 }, async () => {
     // Act - Get first page
     const firstPage = await searchWorkItems(connection, {
       searchText: 'test',
@@ -101,8 +114,8 @@ describeOrSkip('searchWorkItems (Integration)', () => {
       });
 
       // Assert
-      expect(secondPage).toBeDefined();
-      expect(secondPage.results).toBeDefined();
+      assert.notStrictEqual(secondPage, undefined);
+      assert.notStrictEqual(secondPage.results, undefined);
 
       // Verify the pages have different items
       if (firstPage.results.length > 0 && secondPage.results.length > 0) {
@@ -116,12 +129,12 @@ describeOrSkip('searchWorkItems (Integration)', () => {
         // Search pagination ordering can shift slightly between calls (index updates).
         // Assert at least one new item appears on the next page.
         const hasNewItem = secondPageIds.some((id) => !firstPageIds.has(id));
-        expect(hasNewItem).toBe(true);
+        assert.strictEqual(hasNewItem, true);
       }
     }
-  }, 30000);
+  });
 
-  it('should support sorting', async () => {
+  void it('should support sorting', { timeout: 30000 }, async () => {
     // Act - Get results sorted by creation date (newest first)
     const result = await searchWorkItems(connection, {
       searchText: 'test',
@@ -131,7 +144,7 @@ describeOrSkip('searchWorkItems (Integration)', () => {
     });
 
     // Assert
-    expect(result).toBeDefined();
+    assert.notStrictEqual(result, undefined);
 
     // If there are multiple results, verify they are sorted
     if (result.results.length > 1) {
@@ -143,10 +156,10 @@ describeOrSkip('searchWorkItems (Integration)', () => {
 
       // Check that dates are in descending order
       for (let i = 0; i < dates.length - 1; i++) {
-        expect(dates[i]).toBeGreaterThanOrEqual(dates[i + 1]);
+        assert.ok(dates[i] >= dates[i + 1]);
       }
     }
-  }, 30000);
+  });
 
   // Add a test to verify Azure Identity authentication if configured
   if (
@@ -154,11 +167,15 @@ describeOrSkip('searchWorkItems (Integration)', () => {
   ) {
     const azureIdentityOrgUrl = process.env.AZURE_DEVOPS_ORG_URL || '';
     const azureIdentityProjectId = process.env.TEST_PROJECT_ID || '';
-    const azureIdentityTest =
-      azureIdentityOrgUrl && azureIdentityProjectId ? test : test.skip;
 
-    azureIdentityTest(
+    void it(
       'should search work items using Azure Identity authentication',
+      {
+        skip:
+          azureIdentityOrgUrl && azureIdentityProjectId
+            ? false
+            : 'AZURE_DEVOPS_ORG_URL and TEST_PROJECT_ID are required',
+      },
       async () => {
         // Create a config with Azure Identity authentication
         const testConfig: AzureDevOpsConfig = {
@@ -177,9 +194,9 @@ describeOrSkip('searchWorkItems (Integration)', () => {
         });
 
         // Check that the response is properly formatted
-        expect(result).toBeDefined();
-        expect(result.count).toBeDefined();
-        expect(Array.isArray(result.results)).toBe(true);
+        assert.notStrictEqual(result, undefined);
+        assert.notStrictEqual(result.count, undefined);
+        assert.strictEqual(Array.isArray(result.results), true);
       },
     );
   }

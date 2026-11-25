@@ -3,13 +3,13 @@ import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
-} from '../../../shared/errors';
-import type { ToolContext } from '../../../shared/session/azure-devops-session';
+} from '../../../shared/errors/index.ts';
+import type { ToolContext } from '../../../shared/session/azure-devops-session.ts';
 import {
   resolvePipelineApiVersion,
   resolvePipelineProjectId,
-} from '../helpers';
-import type { GetPipelineLogOptions, PipelineLogContent } from '../types';
+} from '../helpers.ts';
+import type { GetPipelineLogOptions, PipelineLogContent } from '../types.ts';
 
 export async function getPipelineLog(
   connection: WebApi,

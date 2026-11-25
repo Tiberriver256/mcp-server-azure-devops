@@ -1,12 +1,12 @@
-import type { IGitApi } from 'azure-devops-node-api/GitApi';
-import type { GitChange } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { IGitApi } from 'azure-devops-node-api/GitApi.js';
+import type { GitChange } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 import { createTwoFilesPatch } from 'diff';
-import { mapWithConcurrency } from './concurrency';
+import { mapWithConcurrency } from './concurrency.ts';
 import {
   isLikelyBinaryBuffer,
   StreamSizeLimitError,
   streamToBuffer,
-} from './stream';
+} from './stream.ts';
 
 export const MAX_DIFF_BLOB_BYTES = 2 * 1024 * 1024; // 2 MiB cap per blob
 export const BLOB_FETCH_CONCURRENCY = 6;

@@ -3,13 +3,13 @@ import {
   GitVersionType,
   VersionControlRecursionType,
   GitObjectType,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { AzureDevOpsError } from '../../../shared/errors';
+} from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import { AzureDevOpsError } from '../../../shared/errors/index.ts';
 import type {
   GetRepositoryTreeOptions,
   RepositoryTreeItem,
   RepositoryTreeResponse,
-} from '../types';
+} from '../types.ts';
 
 /**
  * Get tree view of files/directories in a repository starting at an optional path
