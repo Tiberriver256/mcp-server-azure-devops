@@ -841,52 +841,8 @@ export async function startStreamableHttpServer(
         return;
       }
 
-      const bodyResult = await readBoundedBody(req, MAX_MCP_BODY_BYTES);
-      if (!bodyResult.ok) {
-        sendJsonRpcError(res, bodyResult.status, -32000, bodyResult.reason, {
-          Connection: 'close',
-        });
-        return;
-      }
-
-      if (draining) {
-        sendJsonRpcError(
-          res,
-          503,
-          -32000,
-          'Service Unavailable: server is shutting down',
-        );
-        return;
-      }
-
-      if (!isJsonContentType(req.headers['content-type'])) {
-        sendJsonRpcError(
-          res,
-          415,
-          -32000,
-          'Unsupported Media Type: Content-Type must be application/json',
-        );
-        return;
-      }
-
-      let parsedBody: unknown;
-      try {
-        parsedBody = JSON.parse(bodyResult.text);
-      } catch {
-        sendJsonRpcError(res, 400, -32700, 'Parse error: Invalid JSON');
-        return;
-      }
-
-      if (!isInitializePayload(parsedBody)) {
-        sendJsonRpcError(
-          res,
-          400,
-          -32000,
-          'Bad Request: Mcp-Session-Id header is required',
-        );
-        return;
-      }
-
+      // Enforce session capacity BEFORE buffering request body so slow uploads
+      // cannot accumulate unbounded memory past maxSessions.
       if (sessions.size + pendingSessions >= maxSessions) {
         await reapIdleSessions();
       }
@@ -905,6 +861,7 @@ export async function startStreamableHttpServer(
           503,
           -32000,
           'Service Unavailable: Maximum active MCP sessions reached',
+          { Connection: 'close' },
         );
         return;
       }
@@ -915,6 +872,52 @@ export async function startStreamableHttpServer(
       let entry: StatefulSessionEntry | undefined;
 
       try {
+        const bodyResult = await readBoundedBody(req, MAX_MCP_BODY_BYTES);
+        if (!bodyResult.ok) {
+          sendJsonRpcError(res, bodyResult.status, -32000, bodyResult.reason, {
+            Connection: 'close',
+          });
+          return;
+        }
+
+        if (draining) {
+          sendJsonRpcError(
+            res,
+            503,
+            -32000,
+            'Service Unavailable: server is shutting down',
+          );
+          return;
+        }
+
+        if (!isJsonContentType(req.headers['content-type'])) {
+          sendJsonRpcError(
+            res,
+            415,
+            -32000,
+            'Unsupported Media Type: Content-Type must be application/json',
+          );
+          return;
+        }
+
+        let parsedBody: unknown;
+        try {
+          parsedBody = JSON.parse(bodyResult.text);
+        } catch {
+          sendJsonRpcError(res, 400, -32700, 'Parse error: Invalid JSON');
+          return;
+        }
+
+        if (!isInitializePayload(parsedBody)) {
+          sendJsonRpcError(
+            res,
+            400,
+            -32000,
+            'Bad Request: Mcp-Session-Id header is required',
+          );
+          return;
+        }
+
         const created = await options.createServer({
           personalAccessToken: incomingPat,
           disabledTools: [...HTTP_LOCKED_OUT_TOOLS],
