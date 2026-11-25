@@ -1759,4 +1759,91 @@ void describe('startStreamableHttpServer', () => {
     );
     assert.equal(authFailHandlerCalls, 2);
   });
+
+  void it('rate-limits /mcp requests and locks out repeated failed Bearer/API-key auth guesses with 429 + Retry-After', async (t) => {
+    const authToken = 'mcp-valid-secret-token';
+
+    // Part A: Failed-auth brute-force lockout on /mcp
+    const authLockSrv = await startStreamableHttpServer({
+      host: '127.0.0.1',
+      port: 0,
+      mode: 'stateless',
+      enableJsonResponse: true,
+      authToken,
+      mcpRateLimitPerMinute: 20,
+      mcpAuthFailLimitPerMinute: 2,
+      mcpRateLimitWindowMs: 60_000,
+      version: '1.0.0',
+      createServer: (o) => ({ server: createTestMcpServer(o) }),
+    });
+    t.after(() => authLockSrv.close());
+
+    const authUrl = `http://127.0.0.1:${authLockSrv.port}`;
+    for (let i = 1; i <= 2; i += 1) {
+      const bad = await sendHttpRequest(authUrl, '/mcp', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json, text/event-stream',
+          Authorization: `Bearer wrong-guess-${i}`,
+        },
+        body: makeInitBody(),
+      });
+      assert.equal(bad.status, 401);
+    }
+
+    // 3rd attempt (even with valid token + spoofed X-Forwarded-For) is locked out with 429
+    const locked = await sendHttpRequest(authUrl, '/mcp', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json, text/event-stream',
+        Authorization: `Bearer ${authToken}`,
+        'X-Forwarded-For': '203.0.113.77',
+      },
+      body: makeInitBody(),
+    });
+    assert.equal(locked.status, 429);
+    const lockRetry = Number(locked.headers['retry-after']);
+    assert.ok(Number.isInteger(lockRetry) && lockRetry >= 1);
+
+    // Part B: Request rate limit on /mcp
+    const reqLimitSrv = await startStreamableHttpServer({
+      host: '127.0.0.1',
+      port: 0,
+      mode: 'stateless',
+      enableJsonResponse: true,
+      authToken,
+      mcpRateLimitPerMinute: 2,
+      mcpAuthFailLimitPerMinute: 10,
+      mcpRateLimitWindowMs: 60_000,
+      version: '1.0.0',
+      createServer: (o) => ({ server: createTestMcpServer(o) }),
+    });
+    t.after(() => reqLimitSrv.close());
+
+    const reqUrl = `http://127.0.0.1:${reqLimitSrv.port}`;
+    for (let i = 1; i <= 2; i += 1) {
+      const ok = await sendHttpRequest(reqUrl, '/mcp', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json, text/event-stream',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: makeInitBody(),
+      });
+      assert.equal(ok.status, 200);
+    }
+
+    const throttled = await sendHttpRequest(reqUrl, '/mcp', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json, text/event-stream',
+        Authorization: `Bearer ${authToken}`,
+        'X-Forwarded-For': '198.51.100.88',
+      },
+      body: makeInitBody(),
+    });
+    assert.equal(throttled.status, 429);
+    const reqRetry = Number(throttled.headers['retry-after']);
+    assert.ok(Number.isInteger(reqRetry) && reqRetry >= 1);
+  });
 });

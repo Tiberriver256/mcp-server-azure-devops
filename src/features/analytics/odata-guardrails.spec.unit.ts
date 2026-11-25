@@ -387,6 +387,13 @@ void describe('OData Analytics Poka-Yoke Guardrails', () => {
     );
     assert.equal(validSnapshotNextLink.entitySet, 'WorkItemSnapshot');
 
+    const validExpandNextLink = validateNextLinkQueryOptions(
+      `${base}?$select=WorkItemId,Title&$expand=AssignedTo($select=UserName)&$top=50&$skiptoken=4`,
+      'WorkItems',
+    );
+    assert.equal(validExpandNextLink.entitySet, 'WorkItems');
+    assert.equal(validExpandNextLink.expand, 'AssignedTo($select=UserName)');
+
     // Smuggled, forbidden, malformed, or duplicate query options are rejected
     const tooManyCols = Array.from({ length: 805 }, (_, i) => `Col${i}`).join(
       ',',
@@ -401,7 +408,6 @@ void describe('OData Analytics Poka-Yoke Guardrails', () => {
       [`${base}?$skip=-1&$skiptoken=2`, 'WorkItems'],
       [`${base}?$skip=abc&$skiptoken=2`, 'WorkItems'],
       [`${base}?$count=yes&$skiptoken=2`, 'WorkItems'],
-      [`${base}?$expand=Links&$skiptoken=2`, 'WorkItems'],
       [`${base}?$expand=Revisions&$skiptoken=2`, 'WorkItems'],
       [`${base}?$search=secret&$skiptoken=2`, 'WorkItems'],
       [`${base}?$format=json&$skiptoken=2`, 'WorkItems'],

@@ -443,6 +443,7 @@ const ALLOWED_NEXT_LINK_QUERY_PARAMS: ReadonlySet<string> = new Set([
   '$select',
   '$filter',
   '$apply',
+  '$expand',
   '$orderby',
   '$top',
   '$skip',
@@ -469,9 +470,10 @@ function parseStrictODataInteger(raw: string, paramName: string): number {
 
 /**
  * Validate all query options embedded in a caller-supplied `@odata.nextLink`
- * against the same Analytics guardrails (`validateAnalyticsQuery`) and reject
- * forbidden or unsupported OData system query options (such as `$expand`,
- * `$search`, `$format`, `$compute`, `$levels`) as well as duplicate parameters.
+ * against the same Analytics guardrails (`validateAnalyticsQuery`) — including
+ * `$expand` column & nested `$select` checks — and reject unsupported OData
+ * system query options (`$search`, `$format`, `$compute`, `$levels`) as well as
+ * duplicate parameters.
  */
 export function validateNextLinkQueryOptions(
   nextLink: string,
@@ -529,6 +531,7 @@ export function validateNextLinkQueryOptions(
     select: seenParams.get('$select'),
     filter: seenParams.get('$filter'),
     apply: seenParams.get('$apply'),
+    expand: seenParams.get('$expand'),
     orderby: seenParams.get('$orderby'),
     top,
     skip,

@@ -769,6 +769,7 @@ export class ResourcePollingWatcher {
           : `${coreBaseUrl}/${encodedProject}/_apis/git/pullrequests/${prId}`;
 
         let threads: unknown = prData.threads;
+        let threadsFailed = false;
         if (!Array.isArray(threads)) {
           try {
             const threadsRes = await this.ctx.requestAzureDevOps<unknown>({
@@ -787,6 +788,7 @@ export class ResourcePollingWatcher {
             if (error instanceof AzureDevOpsRateLimitError) {
               throw error;
             }
+            threadsFailed = true;
             logDebug(
               `[events-watcher] Failed to fetch threads for PR ${prId}: ${error instanceof Error ? error.message : String(error)}`,
             );
@@ -794,6 +796,7 @@ export class ResourcePollingWatcher {
         }
 
         let statuses: unknown = prData.statuses;
+        let statusesFailed = false;
         if (!Array.isArray(statuses)) {
           try {
             const statusesRes = await this.ctx.requestAzureDevOps<unknown>({
@@ -812,17 +815,35 @@ export class ResourcePollingWatcher {
             if (error instanceof AzureDevOpsRateLimitError) {
               throw error;
             }
+            statusesFailed = true;
             logDebug(
               `[events-watcher] Failed to fetch statuses for PR ${prId}: ${error instanceof Error ? error.message : String(error)}`,
             );
           }
         }
 
-        return extractPullRequestSnapshot({
+        const snapshot = extractPullRequestSnapshot({
           ...prData,
           ...(threads !== undefined ? { threads } : {}),
           ...(statuses !== undefined ? { statuses } : {}),
         });
+
+        const prevPr =
+          this.baseline?.kind === 'pull-request' ? this.baseline : null;
+        if (prevPr && (threadsFailed || statusesFailed)) {
+          return {
+            ...snapshot,
+            ...(threadsFailed ? { commentCount: prevPr.commentCount } : {}),
+            ...(statusesFailed
+              ? {
+                  statusesKey: prevPr.statusesKey,
+                  overallCheckState: prevPr.overallCheckState,
+                  failedChecks: prevPr.failedChecks,
+                }
+              : {}),
+          };
+        }
+        return snapshot;
       }
       case 'pipeline': {
         const runId = this.parsedUri.runId;
@@ -836,6 +857,7 @@ export class ResourcePollingWatcher {
         const buildData = asRecord(response.data) ?? {};
 
         let stages: unknown = buildData.stages;
+        let timelineFailed = false;
         if (!Array.isArray(stages) && !isRecord(stages)) {
           try {
             const timelineRes = await this.ctx.requestAzureDevOps<unknown>({
@@ -869,16 +891,27 @@ export class ResourcePollingWatcher {
             if (error instanceof AzureDevOpsRateLimitError) {
               throw error;
             }
+            timelineFailed = true;
             logDebug(
               `[events-watcher] Failed to fetch timeline for build ${runId}: ${error instanceof Error ? error.message : String(error)}`,
             );
           }
         }
 
-        return extractPipelineRunSnapshot({
+        const snapshot = extractPipelineRunSnapshot({
           ...buildData,
           ...(stages !== undefined ? { stages } : {}),
         });
+        const prevPipeline =
+          this.baseline?.kind === 'pipeline' ? this.baseline : null;
+        if (prevPipeline && timelineFailed) {
+          return {
+            ...snapshot,
+            stagesKey: prevPipeline.stagesKey,
+            stages: prevPipeline.stages,
+          };
+        }
+        return snapshot;
       }
     }
   }

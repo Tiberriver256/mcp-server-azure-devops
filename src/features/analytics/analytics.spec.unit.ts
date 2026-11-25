@@ -376,7 +376,7 @@ void describe('Analytics feature module & handlers', () => {
       projectId: 'DemoProject',
       scope: 'project',
       version: 'v3.0-preview',
-      nextLink: `${base}?$skiptoken=4`,
+      nextLink: `${base}?$select=WorkItemId,Title&$expand=AssignedTo($select=UserName)&$skiptoken=4`,
     });
     assert.equal(page3.returnedCount, 1);
     assert.equal(requests.length, 2);
@@ -385,7 +385,7 @@ void describe('Analytics feature module & handlers', () => {
     const maliciousNextLinks = [
       `${base}?$select=WorkItemId&$top=50000&$skiptoken=2`,
       `${base}?$select=WorkItemId&$top=abc&$skiptoken=2`,
-      `${base}?$select=WorkItemId&$expand=Links&$skiptoken=2`,
+      `${base}?$select=WorkItemId&$expand=Revisions&$skiptoken=2`,
       `${base}?$select=WorkItemId&$filter=ChangedDate%20ge%202026-11-01T00:00:00&$skiptoken=2`,
       `${base}?$select=WorkItemId&$filter=%24search%3Dsecret&$skiptoken=2`,
       `${base}?$select=WorkItemId&$top=10&$top=50000&$skiptoken=2`,

@@ -84,7 +84,13 @@ export interface StreamableHttpTransportOptions {
   webhookAuthFailLimitPerMinute?: number;
   /** Sliding window duration in milliseconds for webhook rate limiting (default: 60000). */
   webhookRateLimitWindowMs?: number;
-  /** Maximum distinct client IP keys tracked by each webhook rate limiter (default: 1024). */
+  /** Maximum MCP HTTP requests per client IP per rate-limit window (default: 600). */
+  mcpRateLimitPerMinute?: number;
+  /** Maximum failed MCP Bearer/API-key auth attempts per client IP per rate-limit window (default: 20). */
+  mcpAuthFailLimitPerMinute?: number;
+  /** Sliding window duration in milliseconds for MCP HTTP rate limiting (default: 60000). */
+  mcpRateLimitWindowMs?: number;
+  /** Maximum distinct client IP keys tracked by each rate limiter (default: 1024). */
   maxTrackedRateLimitKeys?: number;
   /** Server version reported by GET /healthz. */
   version: string;
@@ -127,6 +133,9 @@ const DEFAULT_SHUTDOWN_DRAIN_MS = 10_000;
 const DEFAULT_WEBHOOK_RATE_LIMIT_PER_MINUTE = 120;
 const DEFAULT_WEBHOOK_AUTH_FAIL_LIMIT_PER_MINUTE = 20;
 const DEFAULT_WEBHOOK_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_MCP_RATE_LIMIT_PER_MINUTE = 600;
+const DEFAULT_MCP_AUTH_FAIL_LIMIT_PER_MINUTE = 20;
+const DEFAULT_MCP_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_MAX_TRACKED_RATE_LIMIT_KEYS = 1_024;
 const WEBHOOK_PATH = '/webhooks/ado';
 const HEALTHZ_PATH = '/healthz';
@@ -266,6 +275,9 @@ interface NumericTransportOptions {
   webhookRateLimitPerMinute: number;
   webhookAuthFailLimitPerMinute: number;
   webhookRateLimitWindowMs: number;
+  mcpRateLimitPerMinute: number;
+  mcpAuthFailLimitPerMinute: number;
+  mcpRateLimitWindowMs: number;
   maxTrackedRateLimitKeys: number;
 }
 
@@ -326,6 +338,30 @@ function validateNumericOptions(opts: NumericTransportOptions): void {
     );
   }
   if (
+    !Number.isInteger(opts.mcpRateLimitPerMinute) ||
+    opts.mcpRateLimitPerMinute < 1
+  ) {
+    throw new AzureDevOpsValidationError(
+      `Invalid mcpRateLimitPerMinute "${opts.mcpRateLimitPerMinute}". Must be an integer >= 1.`,
+    );
+  }
+  if (
+    !Number.isInteger(opts.mcpAuthFailLimitPerMinute) ||
+    opts.mcpAuthFailLimitPerMinute < 1
+  ) {
+    throw new AzureDevOpsValidationError(
+      `Invalid mcpAuthFailLimitPerMinute "${opts.mcpAuthFailLimitPerMinute}". Must be an integer >= 1.`,
+    );
+  }
+  if (
+    !Number.isFinite(opts.mcpRateLimitWindowMs) ||
+    opts.mcpRateLimitWindowMs < 1
+  ) {
+    throw new AzureDevOpsValidationError(
+      `Invalid mcpRateLimitWindowMs "${opts.mcpRateLimitWindowMs}". Must be > 0.`,
+    );
+  }
+  if (
     !Number.isInteger(opts.maxTrackedRateLimitKeys) ||
     opts.maxTrackedRateLimitKeys < 1
   ) {
@@ -366,6 +402,12 @@ export async function startStreamableHttpServer(
     DEFAULT_WEBHOOK_AUTH_FAIL_LIMIT_PER_MINUTE;
   const webhookRateLimitWindowMs =
     options.webhookRateLimitWindowMs ?? DEFAULT_WEBHOOK_RATE_LIMIT_WINDOW_MS;
+  const mcpRateLimitPerMinute =
+    options.mcpRateLimitPerMinute ?? DEFAULT_MCP_RATE_LIMIT_PER_MINUTE;
+  const mcpAuthFailLimitPerMinute =
+    options.mcpAuthFailLimitPerMinute ?? DEFAULT_MCP_AUTH_FAIL_LIMIT_PER_MINUTE;
+  const mcpRateLimitWindowMs =
+    options.mcpRateLimitWindowMs ?? DEFAULT_MCP_RATE_LIMIT_WINDOW_MS;
   const maxTrackedRateLimitKeys =
     options.maxTrackedRateLimitKeys ?? DEFAULT_MAX_TRACKED_RATE_LIMIT_KEYS;
   const version = options.version;
@@ -379,6 +421,9 @@ export async function startStreamableHttpServer(
     webhookRateLimitPerMinute,
     webhookAuthFailLimitPerMinute,
     webhookRateLimitWindowMs,
+    mcpRateLimitPerMinute,
+    mcpAuthFailLimitPerMinute,
+    mcpRateLimitWindowMs,
     maxTrackedRateLimitKeys,
   });
   validateHttpServerSecurityConfig({
@@ -397,6 +442,16 @@ export async function startStreamableHttpServer(
   const webhookAuthFailLimiter = new SlidingWindowRateLimiter({
     limit: webhookAuthFailLimitPerMinute,
     windowMs: webhookRateLimitWindowMs,
+    maxKeys: maxTrackedRateLimitKeys,
+  });
+  const mcpRequestLimiter = new SlidingWindowRateLimiter({
+    limit: mcpRateLimitPerMinute,
+    windowMs: mcpRateLimitWindowMs,
+    maxKeys: maxTrackedRateLimitKeys,
+  });
+  const mcpAuthFailLimiter = new SlidingWindowRateLimiter({
+    limit: mcpAuthFailLimitPerMinute,
+    windowMs: mcpRateLimitWindowMs,
     maxKeys: maxTrackedRateLimitKeys,
   });
   let pendingSessions = 0;
@@ -994,8 +1049,36 @@ export async function startStreamableHttpServer(
       return;
     }
 
-    // 2. Bearer / X-API-Key authentication BEFORE reading body
+    // 2. Per-IP sliding-window rate limits & auth-failure lockout BEFORE auth/body read
+    // Key strictly by socket remoteAddress (never trust spoofable X-Forwarded-For).
+    const clientKey = req.socket?.remoteAddress || 'unknown';
+    const authLockout = mcpAuthFailLimiter.check(clientKey);
+    if (!authLockout.allowed) {
+      sendJsonRpcError(
+        res,
+        429,
+        -32000,
+        'Too Many Requests: authentication failure limit reached',
+        { 'Retry-After': String(authLockout.retryAfterSeconds) },
+      );
+      return;
+    }
+
+    const rateLimit = mcpRequestLimiter.consume(clientKey);
+    if (!rateLimit.allowed) {
+      sendJsonRpcError(
+        res,
+        429,
+        -32000,
+        'Too Many Requests: MCP request rate limit exceeded',
+        { 'Retry-After': String(rateLimit.retryAfterSeconds) },
+      );
+      return;
+    }
+
+    // 3. Bearer / X-API-Key authentication BEFORE reading body
     if (authToken && !verifyHttpBearerAuth(req, authToken)) {
+      mcpAuthFailLimiter.record(clientKey);
       sendJsonRpcError(res, 401, -32000, 'Unauthorized', {
         'WWW-Authenticate': 'Bearer',
       });
@@ -1168,6 +1251,8 @@ export async function startStreamableHttpServer(
 
       webhookRequestLimiter.clear();
       webhookAuthFailLimiter.clear();
+      mcpRequestLimiter.clear();
+      mcpAuthFailLimiter.clear();
     })();
 
     return closePromise;

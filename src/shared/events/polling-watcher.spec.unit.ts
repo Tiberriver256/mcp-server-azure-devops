@@ -506,21 +506,35 @@ void describe('ResourcePollingWatcher — separate sub-endpoints & multi-org sco
     });
 
     // Confirm baseline polled the exact subscribed orgs (other-org AND default-org)
+    const hasExactUrl = (
+      urls: readonly string[],
+      expected: string,
+    ): boolean => {
+      const target = new URL(expected);
+      return urls.some((raw) => {
+        const parsed = new URL(raw);
+        return (
+          parsed.origin === target.origin && parsed.pathname === target.pathname
+        );
+      });
+    };
     assert.ok(
-      requestedUrls.includes(
+      hasExactUrl(
+        requestedUrls,
         'https://dev.azure.com/other-org/DemoProject/_apis/wit/workitems/101',
       ),
     );
     assert.ok(
-      requestedUrls.includes(
+      hasExactUrl(
+        requestedUrls,
         'https://dev.azure.com/default-org/DemoProject/_apis/wit/workitems/101',
       ),
     );
     assert.ok(
-      optionsUrls.includes('https://dev.azure.com/other-org/_apis/wit'),
+      hasExactUrl(optionsUrls, 'https://dev.azure.com/other-org/_apis/wit'),
     );
     assert.ok(
-      optionsUrls.includes('https://dev.azure.com/default-org/_apis/wit'),
+      hasExactUrl(optionsUrls, 'https://dev.azure.com/default-org/_apis/wit'),
     );
 
     // Mutate ONLY other-org's work item 101
@@ -542,6 +556,121 @@ void describe('ResourcePollingWatcher — separate sub-endpoints & multi-org sco
     assert.equal(defaultFeed.events.length, 0);
 
     engine.close();
+  });
+
+  void it('preserves last-known PR threads/statuses and pipeline timeline stages on transient sub-request failures without emitting false updates', async () => {
+    const scheduler = createFakeScheduler();
+    let failSubrequests = false;
+
+    const ctx = createRealUrlMockToolContext(
+      async (url, req) => {
+        if (req.method === 'OPTIONS') {
+          throw new Error('OPTIONS unavailable');
+        }
+        if (url.endsWith('/threads')) {
+          if (failSubrequests) {
+            throw new Error('503 transient threads outage');
+          }
+          return { value: [{ id: 1, comments: [{ id: 10 }, { id: 11 }] }] };
+        }
+        if (url.endsWith('/statuses')) {
+          if (failSubrequests) {
+            throw new Error('503 transient statuses outage');
+          }
+          return {
+            value: [
+              {
+                state: 'failed',
+                context: { genre: 'ci', name: 'unit-tests' },
+              },
+            ],
+          };
+        }
+        if (url.endsWith('/timeline')) {
+          if (failSubrequests) {
+            throw new Error('503 transient timeline outage');
+          }
+          return {
+            records: [
+              {
+                id: 'stage-1',
+                type: 'Stage',
+                name: 'Build',
+                state: 'completed',
+                result: 'failed',
+              },
+            ],
+          };
+        }
+        if (url.includes('/_apis/git/pullrequests/42')) {
+          return {
+            pullRequestId: 42,
+            title: 'Hardening PR',
+            status: 'active',
+            mergeStatus: 'succeeded',
+            repository: { id: 'repo-1', name: 'web' },
+          };
+        }
+        if (url.includes('/_apis/build/builds/500')) {
+          return {
+            id: 500,
+            status: 'inProgress',
+            definition: { id: 7, name: 'CI' },
+          };
+        }
+        return {};
+      },
+      { organizationUrl: 'https://dev.azure.com/contoso' },
+    );
+
+    const prEvents: EventOccurrence[] = [];
+    const pipelineEvents: EventOccurrence[] = [];
+
+    const prWatcher = new ResourcePollingWatcher({
+      parsedUri: mustParseWatchableUri(
+        'ado://contoso/DemoProject/events/pull-requests/42',
+      ),
+      ctx,
+      pollIntervalMs: 10_000,
+      onEvent: (ev) => prEvents.push(ev),
+      scheduleTimeout: scheduler.schedule,
+      clearScheduledTimeout: scheduler.clear,
+    });
+
+    const pipelineWatcher = new ResourcePollingWatcher({
+      parsedUri: mustParseWatchableUri(
+        'ado://contoso/DemoProject/events/pipelines/500',
+      ),
+      ctx,
+      pollIntervalMs: 10_000,
+      onEvent: (ev) => pipelineEvents.push(ev),
+      scheduleTimeout: scheduler.schedule,
+      clearScheduledTimeout: scheduler.clear,
+    });
+
+    await prWatcher.start();
+    await pipelineWatcher.start();
+
+    // Transient outage on /threads, /statuses, /timeline -> MUST emit zero false events
+    failSubrequests = true;
+    scheduler.fireAll();
+    await new Promise<void>((r) => {
+      setImmediate(r);
+    });
+    assert.deepEqual(prEvents, []);
+    assert.deepEqual(pipelineEvents, []);
+
+    // Recovery back to identical data -> MUST ALSO emit zero false recovery events
+    failSubrequests = false;
+    scheduler.fireAll();
+    await new Promise<void>((r) => {
+      setImmediate(r);
+    });
+    assert.deepEqual(prEvents, []);
+    assert.deepEqual(pipelineEvents, []);
+
+    prWatcher.stop();
+    pipelineWatcher.stop();
   });
 
   void it('routes on-prem Azure DevOps Server watchers to the collection specified in the event URI', async () => {
