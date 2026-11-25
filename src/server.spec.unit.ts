@@ -3,11 +3,15 @@ import { describe, it, mock } from 'node:test';
 import { Readable } from 'stream';
 import {
   CallToolRequestSchema,
+  ErrorCode,
   ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
   ListToolsRequestSchema,
   ListToolsResultSchema,
+  McpError,
   ReadResourceRequestSchema,
+  SubscribeRequestSchema,
+  UnsubscribeRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type { WebApi } from 'azure-devops-node-api';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
@@ -490,6 +494,174 @@ void describe('createAzureDevOpsServer deep seam tests', () => {
           toolsets: ['not-a-toolset'],
         }),
       AzureDevOpsValidationError,
+    );
+  });
+
+  void it('gates event capabilities, resource templates, and handlers when the events toolset is excluded', async () => {
+    const server = createAzureDevOpsServer({
+      ...baseConfig,
+      toolsets: ['pull-requests'],
+    });
+
+    const caps = (
+      server as unknown as { getCapabilities(): Record<string, unknown> }
+    ).getCapabilities();
+    assert.deepStrictEqual(caps.resources, { listChanged: false });
+    assert.strictEqual(caps.extensions, undefined);
+
+    const listTemplates = getHandler(
+      server,
+      ListResourceTemplatesRequestSchema.shape.method.value,
+    );
+    const templates = (await listTemplates(
+      { method: 'resources/templates/list', params: {} },
+      {},
+    )) as { resourceTemplates: Array<{ uriTemplate: string }> };
+    assert.strictEqual(templates.resourceTemplates.length, 5);
+    assert.strictEqual(
+      templates.resourceTemplates.some((t) =>
+        t.uriTemplate.includes('/events/'),
+      ),
+      false,
+    );
+
+    const assertEventsDisabledError = (err: unknown): boolean => {
+      assert.ok(err instanceof McpError);
+      assert.strictEqual(err.code, ErrorCode.InvalidRequest);
+      assert.ok(
+        err.message.includes(
+          "Events functionality is disabled because the 'events' toolset is not enabled",
+        ),
+      );
+      return true;
+    };
+
+    const eventsList = getHandler(server, 'events/list');
+    await assert.rejects(
+      async () => await eventsList({ method: 'events/list', params: {} }, {}),
+      assertEventsDisabledError,
+    );
+
+    const eventsPoll = getHandler(server, 'events/poll');
+    await assert.rejects(
+      async () =>
+        await eventsPoll(
+          {
+            method: 'events/poll',
+            params: { name: 'ado.work_item.updated', cursor: null },
+          },
+          {},
+        ),
+      assertEventsDisabledError,
+    );
+
+    const eventsStream = getHandler(server, 'events/stream');
+    await assert.rejects(
+      async () =>
+        await eventsStream(
+          {
+            method: 'events/stream',
+            params: { name: 'ado.work_item.updated', cursor: null },
+          },
+          {
+            signal: new AbortController().signal,
+            requestId: 'req-disabled',
+            sendNotification: async () => {},
+          },
+        ),
+      assertEventsDisabledError,
+    );
+
+    const eventsSubscribe = getHandler(server, 'events/subscribe');
+    await assert.rejects(
+      async () =>
+        await eventsSubscribe({ method: 'events/subscribe', params: {} }, {}),
+      assertEventsDisabledError,
+    );
+
+    const eventsUnsubscribe = getHandler(server, 'events/unsubscribe');
+    await assert.rejects(
+      async () =>
+        await eventsUnsubscribe(
+          { method: 'events/unsubscribe', params: {} },
+          {},
+        ),
+      assertEventsDisabledError,
+    );
+
+    const subscribe = getHandler(
+      server,
+      SubscribeRequestSchema.shape.method.value,
+    );
+    await assert.rejects(
+      async () =>
+        await subscribe(
+          {
+            method: 'resources/subscribe',
+            params: {
+              uri: 'ado://test-org/demo-project/events/work-items/101',
+            },
+          },
+          {},
+        ),
+      assertEventsDisabledError,
+    );
+
+    const unsubscribe = getHandler(
+      server,
+      UnsubscribeRequestSchema.shape.method.value,
+    );
+    await assert.rejects(
+      async () =>
+        await unsubscribe(
+          {
+            method: 'resources/unsubscribe',
+            params: {
+              uri: 'ado://test-org/demo-project/events/work-items/101',
+            },
+          },
+          {},
+        ),
+      assertEventsDisabledError,
+    );
+
+    const readResource = getHandler(
+      server,
+      ReadResourceRequestSchema.shape.method.value,
+    );
+    await assert.rejects(
+      async () =>
+        await readResource(
+          {
+            method: 'resources/read',
+            params: { uri: 'ado://test-org/demo-project/events/feed' },
+          },
+          {},
+        ),
+      assertEventsDisabledError,
+    );
+  });
+
+  void it('gates event surfaces when all events tools are disabled via disabledTools', async () => {
+    const server = createAzureDevOpsServer({
+      ...baseConfig,
+      disabledTools: ['list_event_types', 'poll_events'],
+    });
+
+    const caps = (
+      server as unknown as { getCapabilities(): Record<string, unknown> }
+    ).getCapabilities();
+    assert.deepStrictEqual(caps.resources, { listChanged: false });
+    assert.strictEqual(caps.extensions, undefined);
+
+    const eventsList = getHandler(server, 'events/list');
+    await assert.rejects(
+      async () => await eventsList({ method: 'events/list', params: {} }, {}),
+      (err: unknown) => {
+        assert.ok(err instanceof McpError);
+        assert.strictEqual(err.code, ErrorCode.InvalidRequest);
+        return true;
+      },
     );
   });
 });

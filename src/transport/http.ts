@@ -17,6 +17,7 @@ import {
   HTTP_LOCKED_OUT_TOOLS,
   MAX_MCP_BODY_BYTES,
   MAX_WEBHOOK_BODY_BYTES,
+  SlidingWindowRateLimiter,
   readBoundedBody,
   validateHostAndOrigin,
   validateHttpServerSecurityConfig,
@@ -69,12 +70,22 @@ export interface StreamableHttpTransportOptions {
   allowUnauthenticated?: boolean;
   /** Maximum concurrent stateful MCP sessions (default: 100). */
   maxSessions?: number;
+  /** Maximum concurrent in-flight stateless MCP requests (default: maxSessions, i.e. 100). */
+  maxConcurrentStatelessRequests?: number;
   /** Idle timeout in milliseconds before reaping stateful sessions (default: 30 min). */
   sessionIdleTimeoutMs?: number;
   /** Graceful shutdown drain timeout in milliseconds (default: 10s). */
   shutdownDrainMs?: number;
   /** Shared secret enabling POST /webhooks/ado (endpoint returns 404 when unset). */
   webhookSecret?: string;
+  /** Maximum webhook requests per client IP per rate-limit window (default: 120). */
+  webhookRateLimitPerMinute?: number;
+  /** Maximum failed webhook auth attempts per client IP per rate-limit window (default: 20). */
+  webhookAuthFailLimitPerMinute?: number;
+  /** Sliding window duration in milliseconds for webhook rate limiting (default: 60000). */
+  webhookRateLimitWindowMs?: number;
+  /** Maximum distinct client IP keys tracked by each webhook rate limiter (default: 1024). */
+  maxTrackedRateLimitKeys?: number;
   /** Server version reported by GET /healthz. */
   version: string;
   /** Factory creating an isolated MCP Server instance per session or stateless request. */
@@ -113,6 +124,10 @@ const DEFAULT_PATH = '/mcp';
 const DEFAULT_MAX_SESSIONS = 100;
 const DEFAULT_SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const DEFAULT_SHUTDOWN_DRAIN_MS = 10_000;
+const DEFAULT_WEBHOOK_RATE_LIMIT_PER_MINUTE = 120;
+const DEFAULT_WEBHOOK_AUTH_FAIL_LIMIT_PER_MINUTE = 20;
+const DEFAULT_WEBHOOK_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_MAX_TRACKED_RATE_LIMIT_KEYS = 1_024;
 const WEBHOOK_PATH = '/webhooks/ado';
 const HEALTHZ_PATH = '/healthz';
 const READYZ_PATH = '/readyz';
@@ -242,30 +257,80 @@ function sendJsonRpcError(
   );
 }
 
-function validateNumericOptions(
-  port: number,
-  maxSessions: number,
-  sessionIdleTimeoutMs: number,
-  shutdownDrainMs: number,
-): void {
-  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+interface NumericTransportOptions {
+  port: number;
+  maxSessions: number;
+  maxConcurrentStatelessRequests: number;
+  sessionIdleTimeoutMs: number;
+  shutdownDrainMs: number;
+  webhookRateLimitPerMinute: number;
+  webhookAuthFailLimitPerMinute: number;
+  webhookRateLimitWindowMs: number;
+  maxTrackedRateLimitKeys: number;
+}
+
+function validateNumericOptions(opts: NumericTransportOptions): void {
+  if (!Number.isInteger(opts.port) || opts.port < 0 || opts.port > 65535) {
     throw new AzureDevOpsValidationError(
-      `Invalid HTTP port "${port}". Port must be an integer between 0 and 65535.`,
+      `Invalid HTTP port "${opts.port}". Port must be an integer between 0 and 65535.`,
     );
   }
-  if (!Number.isInteger(maxSessions) || maxSessions < 1) {
+  if (!Number.isInteger(opts.maxSessions) || opts.maxSessions < 1) {
     throw new AzureDevOpsValidationError(
-      `Invalid maxSessions "${maxSessions}". Must be an integer >= 1.`,
+      `Invalid maxSessions "${opts.maxSessions}". Must be an integer >= 1.`,
     );
   }
-  if (!Number.isFinite(sessionIdleTimeoutMs) || sessionIdleTimeoutMs < 1) {
+  if (
+    !Number.isInteger(opts.maxConcurrentStatelessRequests) ||
+    opts.maxConcurrentStatelessRequests < 1
+  ) {
     throw new AzureDevOpsValidationError(
-      `Invalid sessionIdleTimeoutMs "${sessionIdleTimeoutMs}". Must be > 0.`,
+      `Invalid maxConcurrentStatelessRequests "${opts.maxConcurrentStatelessRequests}". Must be an integer >= 1.`,
     );
   }
-  if (!Number.isFinite(shutdownDrainMs) || shutdownDrainMs < 0) {
+  if (
+    !Number.isFinite(opts.sessionIdleTimeoutMs) ||
+    opts.sessionIdleTimeoutMs < 1
+  ) {
     throw new AzureDevOpsValidationError(
-      `Invalid shutdownDrainMs "${shutdownDrainMs}". Must be >= 0.`,
+      `Invalid sessionIdleTimeoutMs "${opts.sessionIdleTimeoutMs}". Must be > 0.`,
+    );
+  }
+  if (!Number.isFinite(opts.shutdownDrainMs) || opts.shutdownDrainMs < 0) {
+    throw new AzureDevOpsValidationError(
+      `Invalid shutdownDrainMs "${opts.shutdownDrainMs}". Must be >= 0.`,
+    );
+  }
+  if (
+    !Number.isInteger(opts.webhookRateLimitPerMinute) ||
+    opts.webhookRateLimitPerMinute < 1
+  ) {
+    throw new AzureDevOpsValidationError(
+      `Invalid webhookRateLimitPerMinute "${opts.webhookRateLimitPerMinute}". Must be an integer >= 1.`,
+    );
+  }
+  if (
+    !Number.isInteger(opts.webhookAuthFailLimitPerMinute) ||
+    opts.webhookAuthFailLimitPerMinute < 1
+  ) {
+    throw new AzureDevOpsValidationError(
+      `Invalid webhookAuthFailLimitPerMinute "${opts.webhookAuthFailLimitPerMinute}". Must be an integer >= 1.`,
+    );
+  }
+  if (
+    !Number.isFinite(opts.webhookRateLimitWindowMs) ||
+    opts.webhookRateLimitWindowMs < 1
+  ) {
+    throw new AzureDevOpsValidationError(
+      `Invalid webhookRateLimitWindowMs "${opts.webhookRateLimitWindowMs}". Must be > 0.`,
+    );
+  }
+  if (
+    !Number.isInteger(opts.maxTrackedRateLimitKeys) ||
+    opts.maxTrackedRateLimitKeys < 1
+  ) {
+    throw new AzureDevOpsValidationError(
+      `Invalid maxTrackedRateLimitKeys "${opts.maxTrackedRateLimitKeys}". Must be an integer >= 1.`,
     );
   }
 }
@@ -288,18 +353,34 @@ export async function startStreamableHttpServer(
     allowPerRequestPat && (options.requirePerRequestPat ?? false);
   const allowUnauthenticated = options.allowUnauthenticated ?? false;
   const maxSessions = options.maxSessions ?? DEFAULT_MAX_SESSIONS;
+  const maxConcurrentStatelessRequests =
+    options.maxConcurrentStatelessRequests ?? maxSessions;
   const sessionIdleTimeoutMs =
     options.sessionIdleTimeoutMs ?? DEFAULT_SESSION_IDLE_TIMEOUT_MS;
   const shutdownDrainMs = options.shutdownDrainMs ?? DEFAULT_SHUTDOWN_DRAIN_MS;
   const webhookSecret = options.webhookSecret?.trim() || undefined;
+  const webhookRateLimitPerMinute =
+    options.webhookRateLimitPerMinute ?? DEFAULT_WEBHOOK_RATE_LIMIT_PER_MINUTE;
+  const webhookAuthFailLimitPerMinute =
+    options.webhookAuthFailLimitPerMinute ??
+    DEFAULT_WEBHOOK_AUTH_FAIL_LIMIT_PER_MINUTE;
+  const webhookRateLimitWindowMs =
+    options.webhookRateLimitWindowMs ?? DEFAULT_WEBHOOK_RATE_LIMIT_WINDOW_MS;
+  const maxTrackedRateLimitKeys =
+    options.maxTrackedRateLimitKeys ?? DEFAULT_MAX_TRACKED_RATE_LIMIT_KEYS;
   const version = options.version;
 
-  validateNumericOptions(
+  validateNumericOptions({
     port,
     maxSessions,
+    maxConcurrentStatelessRequests,
     sessionIdleTimeoutMs,
     shutdownDrainMs,
-  );
+    webhookRateLimitPerMinute,
+    webhookAuthFailLimitPerMinute,
+    webhookRateLimitWindowMs,
+    maxTrackedRateLimitKeys,
+  });
   validateHttpServerSecurityConfig({
     host,
     authToken,
@@ -308,7 +389,18 @@ export async function startStreamableHttpServer(
 
   const sessions = new Map<string, StatefulSessionEntry>();
   const activeStatelessCleanups = new Set<() => Promise<void>>();
+  const webhookRequestLimiter = new SlidingWindowRateLimiter({
+    limit: webhookRateLimitPerMinute,
+    windowMs: webhookRateLimitWindowMs,
+    maxKeys: maxTrackedRateLimitKeys,
+  });
+  const webhookAuthFailLimiter = new SlidingWindowRateLimiter({
+    limit: webhookAuthFailLimitPerMinute,
+    windowMs: webhookRateLimitWindowMs,
+    maxKeys: maxTrackedRateLimitKeys,
+  });
   let pendingSessions = 0;
+  let activeStatelessRequests = 0;
   let draining = false;
   let closePromise: Promise<void> | undefined;
 
@@ -391,6 +483,22 @@ export async function startStreamableHttpServer(
       sendJson(res, 404, { error: 'Not Found' });
       return;
     }
+
+    // 1. DNS rebinding / Host & Origin protection BEFORE reading body
+    const securityResult = validateHostAndOrigin(req, {
+      allowedHosts: options.allowedHosts,
+      allowedOrigins: options.allowedOrigins,
+    });
+    if (!securityResult.ok) {
+      sendJson(
+        res,
+        securityResult.status,
+        { error: securityResult.reason },
+        { Connection: 'close' },
+      );
+      return;
+    }
+
     if (draining) {
       sendJson(res, 503, { error: 'Server is shutting down' });
       return;
@@ -400,6 +508,35 @@ export async function startStreamableHttpServer(
       sendJson(res, 405, { error: 'Method Not Allowed' }, { Allow: 'POST' });
       return;
     }
+
+    // 2. Per-IP sliding-window rate limits BEFORE reading body or running HMAC
+    // Key strictly by socket remoteAddress (never trust spoofable X-Forwarded-For).
+    const clientKey = req.socket?.remoteAddress || 'unknown';
+    const authLockout = webhookAuthFailLimiter.check(clientKey);
+    if (!authLockout.allowed) {
+      sendJson(
+        res,
+        429,
+        {
+          error:
+            'Too Many Requests: webhook authentication failure limit reached',
+        },
+        { 'Retry-After': String(authLockout.retryAfterSeconds) },
+      );
+      return;
+    }
+
+    const rateLimit = webhookRequestLimiter.consume(clientKey);
+    if (!rateLimit.allowed) {
+      sendJson(
+        res,
+        429,
+        { error: 'Too Many Requests: webhook rate limit exceeded' },
+        { 'Retry-After': String(rateLimit.retryAfterSeconds) },
+      );
+      return;
+    }
+
     if (!isJsonContentType(req.headers['content-type'])) {
       sendJson(res, 415, {
         error: 'Unsupported Media Type: Content-Type must be application/json',
@@ -424,6 +561,9 @@ export async function startStreamableHttpServer(
     }
 
     const result = await options.onWebhookRequest(req, bodyResult.rawBody);
+    if (result.status === 401) {
+      webhookAuthFailLimiter.record(clientKey);
+    }
     sendJson(res, result.status, result.body);
   }
 
@@ -444,78 +584,128 @@ export async function startStreamableHttpServer(
       return;
     }
 
-    const bodyResult = await readBoundedBody(req, MAX_MCP_BODY_BYTES);
-    if (!bodyResult.ok) {
-      sendJsonRpcError(res, bodyResult.status, -32000, bodyResult.reason, {
-        Connection: 'close',
-      });
-      return;
-    }
-
-    if (!isJsonContentType(req.headers['content-type'])) {
+    if (activeStatelessRequests >= maxConcurrentStatelessRequests) {
       sendJsonRpcError(
         res,
-        415,
+        503,
         -32000,
-        'Unsupported Media Type: Content-Type must be application/json',
+        'Service Unavailable: concurrent stateless request limit reached',
       );
       return;
     }
+    activeStatelessRequests += 1;
 
-    let parsedBody: unknown;
     try {
-      parsedBody = JSON.parse(bodyResult.text);
-    } catch {
-      sendJsonRpcError(res, 400, -32700, 'Parse error: Invalid JSON');
-      return;
-    }
-
-    const created = await options.createServer({
-      personalAccessToken,
-      disabledTools: [...HTTP_LOCKED_OUT_TOOLS],
-    });
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-      enableJsonResponse,
-    });
-
-    let cleaned = false;
-    const cleanupRequest = async (): Promise<void> => {
-      if (cleaned) {
+      const bodyResult = await readBoundedBody(req, MAX_MCP_BODY_BYTES);
+      if (!bodyResult.ok) {
+        sendJsonRpcError(res, bodyResult.status, -32000, bodyResult.reason, {
+          Connection: 'close',
+        });
         return;
       }
-      cleaned = true;
-      activeStatelessCleanups.delete(cleanupRequest);
-      try {
-        await transport.close();
-      } catch {
-        // Ignore close errors.
-      }
-      try {
-        await created.server.close();
-      } catch {
-        // Ignore close errors.
-      }
-      try {
-        await created.cleanup?.();
-      } catch (error) {
-        logError(
-          `Stateless request cleanup error: ${redactSecrets(error instanceof Error ? error.message : String(error))}`,
+
+      if (draining) {
+        sendJsonRpcError(
+          res,
+          503,
+          -32000,
+          'Service Unavailable: server is shutting down',
         );
+        return;
       }
-    };
 
-    activeStatelessCleanups.add(cleanupRequest);
-    res.once('close', () => {
-      void cleanupRequest();
-    });
+      if (!isJsonContentType(req.headers['content-type'])) {
+        sendJsonRpcError(
+          res,
+          415,
+          -32000,
+          'Unsupported Media Type: Content-Type must be application/json',
+        );
+        return;
+      }
 
-    try {
-      await created.server.connect(transport);
-      await transport.handleRequest(req, res, parsedBody);
-    } catch (error) {
-      await cleanupRequest();
-      throw error;
+      let parsedBody: unknown;
+      try {
+        parsedBody = JSON.parse(bodyResult.text);
+      } catch {
+        sendJsonRpcError(res, 400, -32700, 'Parse error: Invalid JSON');
+        return;
+      }
+
+      const created = await options.createServer({
+        personalAccessToken,
+        disabledTools: [...HTTP_LOCKED_OUT_TOOLS],
+      });
+
+      if (draining) {
+        await Promise.allSettled([
+          Promise.resolve().then(() => created.server.close()),
+          Promise.resolve().then(() => created.cleanup?.()),
+        ]);
+        sendJsonRpcError(
+          res,
+          503,
+          -32000,
+          'Service Unavailable: server is shutting down',
+        );
+        return;
+      }
+
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+        enableJsonResponse,
+      });
+
+      let cleaned = false;
+      const cleanupRequest = async (): Promise<void> => {
+        if (cleaned) {
+          return;
+        }
+        cleaned = true;
+        activeStatelessCleanups.delete(cleanupRequest);
+        try {
+          await transport.close();
+        } catch {
+          // Ignore close errors.
+        }
+        try {
+          await created.server.close();
+        } catch {
+          // Ignore close errors.
+        }
+        try {
+          await created.cleanup?.();
+        } catch (error) {
+          logError(
+            `Stateless request cleanup error: ${redactSecrets(error instanceof Error ? error.message : String(error))}`,
+          );
+        }
+      };
+
+      activeStatelessCleanups.add(cleanupRequest);
+      res.once('close', () => {
+        void cleanupRequest();
+      });
+
+      try {
+        await created.server.connect(transport);
+        if (draining) {
+          await cleanupRequest();
+          sendJsonRpcError(
+            res,
+            503,
+            -32000,
+            'Service Unavailable: server is shutting down',
+          );
+          return;
+        }
+        await transport.handleRequest(req, res, parsedBody);
+      } catch (error) {
+        await cleanupRequest();
+        throw error;
+      }
+    } finally {
+      activeStatelessRequests = Math.max(0, activeStatelessRequests - 1);
     }
   }
 
@@ -566,6 +756,16 @@ export async function startStreamableHttpServer(
         return;
       }
 
+      if (draining) {
+        sendJsonRpcError(
+          res,
+          503,
+          -32000,
+          'Service Unavailable: server is shutting down',
+        );
+        return;
+      }
+
       if (!isJsonContentType(req.headers['content-type'])) {
         sendJsonRpcError(
           res,
@@ -597,6 +797,15 @@ export async function startStreamableHttpServer(
       if (sessions.size + pendingSessions >= maxSessions) {
         await reapIdleSessions();
       }
+      if (draining) {
+        sendJsonRpcError(
+          res,
+          503,
+          -32000,
+          'Service Unavailable: server is shutting down',
+        );
+        return;
+      }
       if (sessions.size + pendingSessions >= maxSessions) {
         sendJsonRpcError(
           res,
@@ -618,6 +827,21 @@ export async function startStreamableHttpServer(
           disabledTools: [...HTTP_LOCKED_OUT_TOOLS],
           sessionId,
         });
+
+        if (draining) {
+          await Promise.allSettled([
+            Promise.resolve().then(() => created.server.close()),
+            Promise.resolve().then(() => created.cleanup?.()),
+          ]);
+          eventStore.clear();
+          sendJsonRpcError(
+            res,
+            503,
+            -32000,
+            'Service Unavailable: server is shutting down',
+          );
+          return;
+        }
 
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => sessionId,
@@ -646,6 +870,16 @@ export async function startStreamableHttpServer(
         };
 
         await created.server.connect(transport);
+        if (draining) {
+          await finalizeSession(entry);
+          sendJsonRpcError(
+            res,
+            503,
+            -32000,
+            'Service Unavailable: server is shutting down',
+          );
+          return;
+        }
         trackSessionResponse(entry, res);
         await transport.handleRequest(req, res, parsedBody);
 
@@ -931,6 +1165,9 @@ export async function startStreamableHttpServer(
         });
         httpServer.closeIdleConnections();
       });
+
+      webhookRequestLimiter.clear();
+      webhookAuthFailLimiter.clear();
     })();
 
     return closePromise;

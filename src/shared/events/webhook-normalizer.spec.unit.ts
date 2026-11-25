@@ -91,6 +91,76 @@ void describe('verifyWebhookAuth', () => {
       true,
     );
   });
+
+  void it('handles Basic auth whitespace/case variations and rejects malformed headers or length-mismatched secrets', () => {
+    const validToken = Buffer.from(`ado:${secret}`).toString('base64');
+
+    // Case-insensitive scheme, multiple spaces, and tab separator
+    assert.equal(
+      verifyWebhookAuth(
+        { Authorization: `basic   ${validToken}` },
+        body,
+        secret,
+      ),
+      true,
+    );
+    assert.equal(
+      verifyWebhookAuth(
+        { Authorization: `BASIC\t${validToken}` },
+        body,
+        secret,
+      ),
+      true,
+    );
+
+    // Reject malformed Basic auth headers
+    assert.equal(
+      verifyWebhookAuth({ Authorization: 'Basic ' }, body, secret),
+      false,
+    );
+    assert.equal(
+      verifyWebhookAuth({ Authorization: 'Basic' }, body, secret),
+      false,
+    );
+    assert.equal(
+      verifyWebhookAuth(
+        { Authorization: `BasicX ${validToken}` },
+        body,
+        secret,
+      ),
+      false,
+    );
+    assert.equal(
+      verifyWebhookAuth(
+        { Authorization: `Basic ${validToken} trailing` },
+        body,
+        secret,
+      ),
+      false,
+    );
+    assert.equal(
+      verifyWebhookAuth(
+        { Authorization: `Bearer ${validToken}` },
+        body,
+        secret,
+      ),
+      false,
+    );
+
+    // Reject prefix/suffix length mismatches in constant-time comparison
+    assert.equal(
+      verifyWebhookAuth({ 'X-ADO-Webhook-Secret': `${secret}x` }, body, secret),
+      false,
+    );
+    assert.equal(
+      verifyWebhookAuth(
+        { 'X-ADO-Webhook-Secret': secret.slice(0, -1) },
+        body,
+        secret,
+      ),
+      false,
+    );
+  });
 });
 
 void describe('normalizeAdoWebhookPayload', () => {

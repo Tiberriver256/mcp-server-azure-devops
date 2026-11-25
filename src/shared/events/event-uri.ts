@@ -1,3 +1,7 @@
+import {
+  getOrgNameFromUrl,
+  isAzureDevOpsServicesUrl,
+} from '../azure-devops-url.ts';
 import type { EventOccurrence } from './catalog.ts';
 
 export interface AdoEventResourceTemplate {
@@ -79,6 +83,78 @@ function parsePositiveInt(raw: string): number | null {
   }
   const value = Number.parseInt(raw, 10);
   return Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+/**
+ * Extract the Azure DevOps organization (Services) or collection (Server)
+ * name from a resource or container URL, returning `undefined` when it cannot
+ * be determined unambiguously.
+ */
+export function extractOrganizationFromUrl(
+  rawUrl: string,
+  projectHint?: string,
+): string | undefined {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return undefined;
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return undefined;
+  }
+
+  if (isAzureDevOpsServicesUrl(rawUrl)) {
+    return getOrgNameFromUrl(rawUrl);
+  }
+
+  const rawSegments = url.pathname.split('/').filter(Boolean);
+  const segments: string[] = [];
+  for (const seg of rawSegments) {
+    const decoded = safeDecode(seg);
+    if (decoded === null) {
+      return undefined;
+    }
+    segments.push(decoded);
+  }
+
+  if (segments.length === 0) {
+    return undefined;
+  }
+
+  const projectLower = projectHint?.toLowerCase();
+  if (projectLower) {
+    for (let i = 1; i < segments.length; i += 1) {
+      if (segments[i].toLowerCase() === projectLower) {
+        const candidate = segments[i - 1];
+        if (candidate.toLowerCase() !== 'tfs') {
+          return candidate;
+        }
+      }
+    }
+  }
+
+  for (let i = 1; i < segments.length; i += 1) {
+    const segLower = segments[i].toLowerCase();
+    if (segLower === '_apis' || segLower === '_git') {
+      const prev = segments[i - 1];
+      if (projectLower && prev.toLowerCase() === projectLower && i > 1) {
+        const candidate = segments[i - 2];
+        if (candidate.toLowerCase() !== 'tfs') {
+          return candidate;
+        }
+      } else if (prev.toLowerCase() !== 'tfs') {
+        return prev;
+      }
+    }
+  }
+
+  if (segments.length <= 2) {
+    return getOrgNameFromUrl(rawUrl);
+  }
+
+  return undefined;
 }
 
 /**
@@ -182,6 +258,31 @@ export function canonicalizeEventResourceUri(
   }
 }
 
+function matchesOrganization(
+  organization: string,
+  data: Record<string, unknown>,
+): boolean {
+  const explicitOrg =
+    typeof data.organization === 'string' && data.organization.length > 0
+      ? data.organization
+      : undefined;
+  const projectHint =
+    typeof data.project === 'string' && data.project.length > 0
+      ? data.project
+      : typeof data.projectId === 'string' && data.projectId.length > 0
+        ? data.projectId
+        : undefined;
+  const urlOrg =
+    !explicitOrg && typeof data.url === 'string' && data.url.length > 0
+      ? extractOrganizationFromUrl(data.url, projectHint)
+      : undefined;
+  const candidate = explicitOrg ?? urlOrg;
+  if (!candidate) {
+    return true;
+  }
+  return candidate.toLowerCase() === organization.toLowerCase();
+}
+
 function matchesProject(
   project: string,
   data: Record<string, unknown>,
@@ -210,6 +311,9 @@ export function matchesEventResourceUri(
   occurrence: EventOccurrence,
 ): boolean {
   const data = occurrence.data;
+  if (!matchesOrganization(parsed.organization, data)) {
+    return false;
+  }
   if (!matchesProject(parsed.project, data)) {
     return false;
   }

@@ -14,6 +14,7 @@ export {
   validateAnalyticsQuery,
   validateEntitySet,
   validateMetadataEntitySetName,
+  validateNextLinkQueryOptions,
   validateSameOriginNextLink,
 } from './odata-guardrails.ts';
 export { getAnalyticsSchema } from './get-analytics-schema/feature.ts';

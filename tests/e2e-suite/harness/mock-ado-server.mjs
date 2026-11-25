@@ -2655,17 +2655,25 @@ export async function createMockAdoServer(options = {}) {
   }
 
   function sendJson(res, status, data, extraHeaders = {}) {
-    const payload = JSON.stringify(data);
-    res.writeHead(
-      status,
-      mergeResponseHeaders(
-        {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Content-Length': String(Buffer.byteLength(payload)),
-        },
-        extraHeaders,
-      ),
+    const payload = (JSON.stringify(data) ?? 'null')
+      .replace(/</g, '\\u003c')
+      .replace(/>/g, '\\u003e')
+      .replace(/&/g, '\\u0026');
+    const headers = mergeResponseHeaders(
+      extraHeaders && typeof extraHeaders === 'object' ? extraHeaders : {},
+      {
+        'Content-Type': 'application/json; charset=utf-8',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Length': String(Buffer.byteLength(payload)),
+      },
     );
+    for (const [key, value] of Object.entries(headers)) {
+      res.setHeader(key, value);
+    }
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Length', String(Buffer.byteLength(payload)));
+    res.writeHead(status);
     res.end(payload);
   }
 
@@ -2684,6 +2692,7 @@ export async function createMockAdoServer(options = {}) {
       mergeResponseHeaders(
         {
           'Content-Type': contentType,
+          'X-Content-Type-Options': 'nosniff',
           'Content-Length': String(buf.length),
         },
         extraHeaders,

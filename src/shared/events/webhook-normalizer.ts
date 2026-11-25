@@ -2,6 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { extractHeader } from '../http/http-client.ts';
 import { truncateEventText } from './catalog.ts';
 import type { EventOccurrence } from './catalog.ts';
+import { extractOrganizationFromUrl } from './event-uri.ts';
 
 export const MAX_WEBHOOK_BODY_BYTES = 256 * 1024; // 256 KiB
 
@@ -17,19 +18,71 @@ export type NormalizedWebhookResult =
     };
 
 /**
- * Constant-time, length-safe string comparison over SHA-256 digests.
- * Hashing both sides to fixed 32-byte digests avoids any length side-channel.
+ * Constant-time, length-safe UTF-8 string comparison without password hashing.
+ * Pads both buffers to the same length so `timingSafeEqual` runs in constant
+ * time regardless of length differences, then verifies exact byte length match.
  */
 function timingSafeEqualString(a: string, b: string): boolean {
-  const digestA = createHash('sha256').update(a, 'utf8').digest();
-  const digestB = createHash('sha256').update(b, 'utf8').digest();
-  return timingSafeEqual(digestA, digestB);
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  const maxLen = Math.max(bufA.length, bufB.length, 1);
+  const padA = Buffer.alloc(maxLen);
+  const padB = Buffer.alloc(maxLen);
+  bufA.copy(padA);
+  bufB.copy(padB);
+  const bytesEqual = timingSafeEqual(padA, padB);
+  return bytesEqual && bufA.length === bufB.length;
+}
+
+function isWhitespaceCharCode(code: number): boolean {
+  return (
+    code === 0x20 || // space
+    code === 0x09 || // tab
+    code === 0x0a || // LF
+    code === 0x0d || // CR
+    code === 0x0b || // VT
+    code === 0x0c // FF
+  );
+}
+
+/**
+ * Parse `Basic <token>` in linear O(n) time without backtracking regexes.
+ */
+function extractBasicAuthToken(headerValue: string): string | null {
+  const trimmed = headerValue.trim();
+  if (trimmed.length <= 6) {
+    return null;
+  }
+  if (trimmed.slice(0, 5).toLowerCase() !== 'basic') {
+    return null;
+  }
+  const sep = trimmed.charCodeAt(5);
+  if (sep !== 0x20 && sep !== 0x09) {
+    return null;
+  }
+  let start = 6;
+  while (
+    start < trimmed.length &&
+    (trimmed.charCodeAt(start) === 0x20 || trimmed.charCodeAt(start) === 0x09)
+  ) {
+    start += 1;
+  }
+  if (start >= trimmed.length) {
+    return null;
+  }
+  const token = trimmed.slice(start);
+  for (let i = 0; i < token.length; i += 1) {
+    if (isWhitespaceCharCode(token.charCodeAt(i))) {
+      return null;
+    }
+  }
+  return token;
 }
 
 /**
  * Verify Azure DevOps Service Hook authentication (fail-closed).
  *
- * Supports three authentication mechanisms using constant-time SHA-256 comparison:
+ * Supports three authentication mechanisms using constant-time comparison:
  * 1. `X-ADO-Webhook-Secret: <secret>`
  * 2. `Authorization: Basic <base64(user:secret)>` (validates password portion)
  * 3. `X-Webhook-Signature-256: sha256=<hex>` (HMAC-SHA256 of exact raw body bytes)
@@ -53,10 +106,10 @@ export function verifyWebhookAuth(
 
   const authHeader = extractHeader(headers, 'authorization');
   if (authHeader !== undefined) {
-    const basicMatch = /^Basic\s+(\S+)$/i.exec(authHeader.trim());
-    if (basicMatch) {
+    const basicToken = extractBasicAuthToken(authHeader);
+    if (basicToken !== null) {
       try {
-        const decoded = Buffer.from(basicMatch[1], 'base64').toString('utf8');
+        const decoded = Buffer.from(basicToken, 'base64').toString('utf8');
         const colonIdx = decoded.indexOf(':');
         if (colonIdx !== -1) {
           const password = decoded.slice(colonIdx + 1);
@@ -210,6 +263,32 @@ function extractProjectInfo(
   return { project, projectId };
 }
 
+function extractOrganization(
+  payload: Record<string, unknown>,
+  resourceUrl: string | undefined,
+  projectHint: string | undefined,
+): string | undefined {
+  const containers = asRecord(payload.resourceContainers);
+  const accountBaseUrl = asString(asRecord(containers?.account)?.baseUrl);
+  if (accountBaseUrl) {
+    const org = extractOrganizationFromUrl(accountBaseUrl);
+    if (org) {
+      return org;
+    }
+  }
+  const collectionBaseUrl = asString(asRecord(containers?.collection)?.baseUrl);
+  if (collectionBaseUrl) {
+    const org = extractOrganizationFromUrl(collectionBaseUrl);
+    if (org) {
+      return org;
+    }
+  }
+  if (resourceUrl) {
+    return extractOrganizationFromUrl(resourceUrl, projectHint);
+  }
+  return undefined;
+}
+
 function isAdoTestEvent(
   payload: Record<string, unknown>,
   resource: Record<string, unknown> | undefined,
@@ -287,12 +366,15 @@ export function normalizeAdoWebhookPayload(
     const firstRef = asRecord(refUpdates[0]);
     const commits = Array.isArray(resource.commits) ? resource.commits : [];
     const firstCommit = asRecord(commits[0]);
+    const url = asString(resource.url);
+    const organization = extractOrganization(root, url, project);
 
     const occurrence: EventOccurrence = {
       eventId,
       name: 'ado.git.pushed',
       timestamp,
       data: stripUndefined({
+        organization,
         project,
         projectId,
         repository: asString(repo?.name),
@@ -303,7 +385,7 @@ export function normalizeAdoWebhookPayload(
         headCommitId:
           asString(firstRef?.newObjectId) ?? asString(firstCommit?.commitId),
         pushedBy: extractIdentityName(resource.pushedBy),
-        url: asString(resource.url),
+        url,
       }),
     };
     return { kind: 'event', occurrence };
@@ -333,12 +415,15 @@ export function normalizeAdoWebhookPayload(
     const action = isCommentEvent
       ? 'commented'
       : eventTypeLower.slice('git.pullrequest.'.length) || 'updated';
+    const url = asString(pr.url) ?? asString(resource.url);
+    const organization = extractOrganization(root, url, project);
 
     const occurrence: EventOccurrence = {
       eventId,
       name: 'ado.pull_request.updated',
       timestamp,
       data: stripUndefined({
+        organization,
         project,
         projectId,
         repository: asString(repo?.name),
@@ -350,7 +435,7 @@ export function normalizeAdoWebhookPayload(
         lastCommitId: asString(lastMergeSourceCommit?.commitId),
         title: truncateEventText(asString(pr.title)),
         commentPreview: truncateEventText(asString(comment?.content)),
-        url: asString(pr.url) ?? asString(resource.url),
+        url,
       }),
     };
     return { kind: 'event', occurrence };
@@ -382,12 +467,15 @@ export function normalizeAdoWebhookPayload(
       asString(resource.status) ??
       asString(resource.state) ??
       'unknown';
+    const url = asString(run?.url) ?? asString(resource.url);
+    const organization = extractOrganization(root, url, project);
 
     const occurrence: EventOccurrence = {
       eventId,
       name: 'ado.pipeline.run_state_changed',
       timestamp,
       data: stripUndefined({
+        organization,
         project,
         projectId,
         pipelineId: asNumber(pipeline?.id) ?? asNumber(definition?.id),
@@ -405,7 +493,7 @@ export function normalizeAdoWebhookPayload(
         stageName: asString(stage?.name),
         sourceBranch:
           asString(resource.sourceBranch) ?? asString(run?.sourceBranch),
-        url: asString(run?.url) ?? asString(resource.url),
+        url,
       }),
     };
     return { kind: 'event', occurrence };
@@ -463,12 +551,15 @@ export function normalizeAdoWebhookPayload(
       asString(extractFieldScalar(directFields, 'System.History'));
 
     const eventAction = eventTypeLower.slice('workitem.'.length) || 'updated';
+    const url = asString(revision?.url) ?? asString(resource.url);
+    const organization = extractOrganization(root, url, project);
 
     const occurrence: EventOccurrence = {
       eventId,
       name: 'ado.work_item.updated',
       timestamp,
       data: stripUndefined({
+        organization,
         project,
         projectId,
         workItemId,
@@ -481,7 +572,7 @@ export function normalizeAdoWebhookPayload(
         assignedTo,
         title: truncateEventText(titleRaw),
         commentPreview: truncateEventText(commentRaw),
-        url: asString(revision?.url) ?? asString(resource.url),
+        url,
       }),
     };
     return { kind: 'event', occurrence };

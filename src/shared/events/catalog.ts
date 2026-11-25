@@ -96,6 +96,7 @@ const GitPushedFilterSchema = z
   .strict();
 
 const PullRequestUpdatedPayloadSchema = z.object({
+  organization: z.string().optional(),
   project: z.string().optional(),
   projectId: z.string().optional(),
   repository: z.string().optional(),
@@ -112,6 +113,7 @@ const PullRequestUpdatedPayloadSchema = z.object({
 });
 
 const PullRequestChecksChangedPayloadSchema = z.object({
+  organization: z.string().optional(),
   project: z.string().optional(),
   projectId: z.string().optional(),
   repository: z.string().optional(),
@@ -124,6 +126,7 @@ const PullRequestChecksChangedPayloadSchema = z.object({
 });
 
 const PipelineRunStateChangedPayloadSchema = z.object({
+  organization: z.string().optional(),
   project: z.string().optional(),
   projectId: z.string().optional(),
   pipelineId: z.number().int().optional(),
@@ -138,6 +141,7 @@ const PipelineRunStateChangedPayloadSchema = z.object({
 });
 
 const WorkItemUpdatedPayloadSchema = z.object({
+  organization: z.string().optional(),
   project: z.string().optional(),
   projectId: z.string().optional(),
   workItemId: z.number().int(),
@@ -154,6 +158,7 @@ const WorkItemUpdatedPayloadSchema = z.object({
 });
 
 const GitPushedPayloadSchema = z.object({
+  organization: z.string().optional(),
   project: z.string().optional(),
   projectId: z.string().optional(),
   repository: z.string().optional(),

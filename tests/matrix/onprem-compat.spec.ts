@@ -515,18 +515,19 @@ void describe('On-Prem & Services Compatibility Matrix — URL Routing (Zero Hos
           resolved.identityBaseUrl,
           resolved.analyticsBaseUrl,
         ]) {
+          const hostname = new URL(baseUrl).hostname.toLowerCase();
           assert.equal(
-            baseUrl.includes('dev.azure.com'),
+            hostname === 'dev.azure.com' || hostname.endsWith('.dev.azure.com'),
             false,
             `On-prem URL must never leak Cloud dev.azure.com host: ${baseUrl}`,
           );
           assert.equal(
-            baseUrl.includes('almsearch.'),
+            hostname.startsWith('almsearch.'),
             false,
             `On-prem URL must never leak almsearch host: ${baseUrl}`,
           );
           assert.equal(
-            baseUrl.includes('analytics.dev.azure.com'),
+            hostname === 'analytics.dev.azure.com',
             false,
             `On-prem URL must never leak analytics.dev.azure.com host: ${baseUrl}`,
           );

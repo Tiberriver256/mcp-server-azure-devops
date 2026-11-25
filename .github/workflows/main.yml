@@ -60,6 +60,10 @@ jobs:
         run: npm run typecheck:tests
       - name: Unit Tests & Coverage
         run: npm run test:coverage
+      - name: On-Prem Compatibility Matrix
+        run: npm run test:matrix
+      - name: Offline E2E Suite
+        run: npm run test:e2e:offline
 
   integration:
     needs: [changes, test]

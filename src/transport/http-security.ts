@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import { AzureDevOpsValidationError } from '../shared/errors/index.ts';
 
@@ -236,15 +236,28 @@ export function validateHostAndOrigin(
   return { ok: true };
 }
 
-function timingSafeTokenEqual(provided: string, expected: string): boolean {
-  const providedDigest = createHash('sha256').update(provided, 'utf8').digest();
-  const expectedDigest = createHash('sha256').update(expected, 'utf8').digest();
-  return timingSafeEqual(providedDigest, expectedDigest);
+/**
+ * Constant-time UTF-8 string comparison using zero-padded buffers so
+ * `timingSafeEqual` never receives mismatched lengths or leaks token bytes.
+ */
+export function timingSafeTokenEqual(
+  provided: string,
+  expected: string,
+): boolean {
+  const providedBuf = Buffer.from(provided, 'utf8');
+  const expectedBuf = Buffer.from(expected, 'utf8');
+  const maxLen = Math.max(providedBuf.length, expectedBuf.length, 1);
+  const paddedProvided = Buffer.alloc(maxLen);
+  const paddedExpected = Buffer.alloc(maxLen);
+  providedBuf.copy(paddedProvided);
+  expectedBuf.copy(paddedExpected);
+  const bytesEqual = timingSafeEqual(paddedProvided, paddedExpected);
+  return bytesEqual && providedBuf.length === expectedBuf.length;
 }
 
 /**
- * Verifies HTTP request credentials using constant-time SHA-256 digest
- * comparison against `Authorization: Bearer <token>` or `X-API-Key: <token>`.
+ * Verifies HTTP request credentials using constant-time comparison
+ * against `Authorization: Bearer <token>` or `X-API-Key: <token>`.
  */
 export function verifyHttpBearerAuth(
   req: IncomingMessage,
@@ -259,11 +272,19 @@ export function verifyHttpBearerAuth(
     if (typeof authorization !== 'string') {
       return false;
     }
-    const match = /^Bearer\s+(.+)$/i.exec(authorization.trim());
-    if (!match) {
+    const trimmed = authorization.trim();
+    if (trimmed.length <= 7 || trimmed.slice(0, 6).toLowerCase() !== 'bearer') {
       return false;
     }
-    return timingSafeTokenEqual(match[1], authToken);
+    const sep = trimmed[6];
+    if (sep !== ' ' && sep !== '\t') {
+      return false;
+    }
+    const token = trimmed.slice(7).trim();
+    if (token.length === 0) {
+      return false;
+    }
+    return timingSafeTokenEqual(token, authToken);
   }
 
   const apiKey = req.headers['x-api-key'];
@@ -388,4 +409,207 @@ export function readBoundedBody(
     req.on('aborted', onAborted);
     req.on('close', onClose);
   });
+}
+
+export interface SlidingWindowRateLimiterOptions {
+  /** Maximum events permitted per key within `windowMs` (integer >= 1). */
+  readonly limit: number;
+  /** Sliding window duration in milliseconds (finite number >= 1). */
+  readonly windowMs: number;
+  /** Maximum distinct keys retained in memory (integer >= 1). */
+  readonly maxKeys: number;
+  /** Optional clock provider (defaults to `Date.now`). */
+  readonly now?: () => number;
+}
+
+export interface RateLimitDecision {
+  readonly allowed: boolean;
+  readonly remaining: number;
+  readonly retryAfterSeconds: number;
+}
+
+/**
+ * Zero-dependency, bounded-memory sliding-window rate limiter keyed by client
+ * identifier (e.g., `req.socket.remoteAddress`). Evicts expired keys before
+ * oldest keys whenever `maxKeys` is reached so attackers cannot exhaust memory.
+ */
+export class SlidingWindowRateLimiter {
+  private readonly limit: number;
+  private readonly windowMs: number;
+  private readonly maxKeys: number;
+  private readonly now: () => number;
+  private readonly buckets = new Map<string, number[]>();
+
+  constructor(options: SlidingWindowRateLimiterOptions) {
+    if (!Number.isInteger(options.limit) || options.limit < 1) {
+      throw new RangeError(
+        `limit must be an integer >= 1, got ${options.limit}`,
+      );
+    }
+    if (!Number.isFinite(options.windowMs) || options.windowMs < 1) {
+      throw new RangeError(
+        `windowMs must be a finite number >= 1, got ${options.windowMs}`,
+      );
+    }
+    if (!Number.isInteger(options.maxKeys) || options.maxKeys < 1) {
+      throw new RangeError(
+        `maxKeys must be an integer >= 1, got ${options.maxKeys}`,
+      );
+    }
+    this.limit = options.limit;
+    this.windowMs = options.windowMs;
+    this.maxKeys = options.maxKeys;
+    this.now = options.now ?? Date.now;
+  }
+
+  get size(): number {
+    return this.buckets.size;
+  }
+
+  clear(): void {
+    this.buckets.clear();
+  }
+
+  /**
+   * Inspects whether `key` is currently within its quota without consuming a slot.
+   */
+  check(key: string): RateLimitDecision {
+    const now = this.now();
+    const cutoff = now - this.windowMs;
+    const existing = this.buckets.get(key);
+    if (!existing) {
+      return { allowed: true, remaining: this.limit, retryAfterSeconds: 0 };
+    }
+
+    const active = this.pruneTimestamps(existing, cutoff);
+    if (active.length === 0) {
+      this.buckets.delete(key);
+      return { allowed: true, remaining: this.limit, retryAfterSeconds: 0 };
+    }
+    if (active !== existing) {
+      this.buckets.set(key, active);
+    }
+
+    if (active.length >= this.limit) {
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfterSeconds: this.computeRetryAfterSeconds(active[0], now),
+      };
+    }
+
+    return {
+      allowed: true,
+      remaining: this.limit - active.length,
+      retryAfterSeconds: 0,
+    };
+  }
+
+  /**
+   * Checks quota for `key` and, if allowed, records a new event in the current window.
+   */
+  consume(key: string): RateLimitDecision {
+    const now = this.now();
+    const cutoff = now - this.windowMs;
+    const existing = this.buckets.get(key);
+    const active = existing ? this.pruneTimestamps(existing, cutoff) : [];
+
+    if (active.length >= this.limit) {
+      if (existing && active !== existing) {
+        this.buckets.set(key, active);
+      }
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfterSeconds: this.computeRetryAfterSeconds(active[0], now),
+      };
+    }
+
+    if (!this.buckets.has(key)) {
+      this.evictIfFull(cutoff);
+    }
+
+    const updated = [...active, now];
+    this.buckets.delete(key);
+    this.buckets.set(key, updated);
+
+    return {
+      allowed: true,
+      remaining: this.limit - updated.length,
+      retryAfterSeconds: 0,
+    };
+  }
+
+  /**
+   * Unconditionally records an event for `key` (for example, an authentication
+   * failure) while capping stored timestamps per key to `limit`.
+   */
+  record(key: string): RateLimitDecision {
+    const now = this.now();
+    const cutoff = now - this.windowMs;
+    const existing = this.buckets.get(key);
+    const active = existing ? this.pruneTimestamps(existing, cutoff) : [];
+
+    if (!this.buckets.has(key)) {
+      this.evictIfFull(cutoff);
+    }
+
+    const appended = [...active, now];
+    const bounded =
+      appended.length > this.limit
+        ? appended.slice(appended.length - this.limit)
+        : appended;
+
+    this.buckets.delete(key);
+    this.buckets.set(key, bounded);
+
+    if (bounded.length >= this.limit) {
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfterSeconds: this.computeRetryAfterSeconds(bounded[0], now),
+      };
+    }
+
+    return {
+      allowed: true,
+      remaining: this.limit - bounded.length,
+      retryAfterSeconds: 0,
+    };
+  }
+
+  private pruneTimestamps(timestamps: number[], cutoff: number): number[] {
+    let firstValid = 0;
+    while (firstValid < timestamps.length && timestamps[firstValid] <= cutoff) {
+      firstValid += 1;
+    }
+    return firstValid === 0 ? timestamps : timestamps.slice(firstValid);
+  }
+
+  private computeRetryAfterSeconds(
+    oldestTimestamp: number,
+    now: number,
+  ): number {
+    const remainingMs = oldestTimestamp + this.windowMs - now;
+    return Math.max(1, Math.ceil(remainingMs / 1000));
+  }
+
+  private evictIfFull(cutoff: number): void {
+    if (this.buckets.size < this.maxKeys) {
+      return;
+    }
+    for (const [k, timestamps] of this.buckets) {
+      const latest = timestamps[timestamps.length - 1];
+      if (latest === undefined || latest <= cutoff) {
+        this.buckets.delete(k);
+      }
+    }
+    while (this.buckets.size >= this.maxKeys) {
+      const oldestKey = this.buckets.keys().next().value;
+      if (oldestKey === undefined) {
+        break;
+      }
+      this.buckets.delete(oldestKey);
+    }
+  }
 }

@@ -1058,10 +1058,11 @@ describe('Tier 3 — On-Premises Compatibility Matrix & Feature Pairwise Combina
       onPremResolved.coreBaseUrl,
       'On-prem identityBaseUrl must equal coreBaseUrl (zero vssps.dev.azure.com leakage)',
     );
-    assert.equal(
-      String(onPremResolved.identityBaseUrl).includes('vssps.dev.azure.com'),
-      false,
-    );
+    const identityHost = new URL(
+      String(onPremResolved.identityBaseUrl),
+    ).hostname.toLowerCase();
+    assert.notEqual(identityHost, 'vssps.dev.azure.com');
+    assert.equal(identityHost.endsWith('.dev.azure.com'), false);
 
     const cloudResolved = urlMod.resolveAzureDevOpsBaseUrls(
       'https://dev.azure.com/my-org',
@@ -1275,12 +1276,11 @@ describe('Tier 3 — On-Premises Compatibility Matrix & Feature Pairwise Combina
       onPremResolved.coreBaseUrl,
       'On-prem analyticsBaseUrl must equal coreBaseUrl (zero analytics.dev.azure.com leakage)',
     );
-    assert.equal(
-      String(onPremResolved.analyticsBaseUrl).includes(
-        'analytics.dev.azure.com',
-      ),
-      false,
-    );
+    const analyticsHost = new URL(
+      String(onPremResolved.analyticsBaseUrl),
+    ).hostname.toLowerCase();
+    assert.notEqual(analyticsHost, 'analytics.dev.azure.com');
+    assert.equal(analyticsHost.endsWith('.dev.azure.com'), false);
 
     const corpResolved = urlMod.resolveAzureDevOpsBaseUrls(
       'https://ado.corp.local:8080/MyCollection',

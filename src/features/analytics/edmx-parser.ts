@@ -37,7 +37,13 @@ function stripNamespacePrefix(qualifiedName: string): string {
 }
 
 function stripXmlComments(xml: string): string {
-  return xml.replace(/<!--[\s\S]*?-->/g, '');
+  let result = xml;
+  let previous: string;
+  do {
+    previous = result;
+    result = result.replace(/<!--[\s\S]*?-->/g, '');
+  } while (result !== previous);
+  return result;
 }
 
 /**

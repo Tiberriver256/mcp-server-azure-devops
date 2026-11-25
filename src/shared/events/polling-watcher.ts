@@ -329,6 +329,13 @@ interface PullRequestSnapshot {
   readonly url?: string;
 }
 
+interface PipelineStageSummary {
+  readonly key: string;
+  readonly name: string;
+  readonly state: string;
+  readonly result: string;
+}
+
 interface PipelineRunSnapshot {
   readonly kind: 'pipeline';
   readonly state: string;
@@ -338,6 +345,7 @@ interface PipelineRunSnapshot {
   readonly buildNumber?: string;
   readonly sourceBranch?: string;
   readonly stagesKey: string;
+  readonly stages: readonly PipelineStageSummary[];
   readonly url?: string;
 }
 
@@ -517,18 +525,43 @@ function extractPipelineRunSnapshot(raw: unknown): PipelineRunSnapshot {
   const build = asRecord(raw) ?? {};
   const definition = asRecord(build.definition);
   const pipeline = asRecord(build.pipeline);
-  const stages = asRecord(build.stages);
 
-  let stagesKey = '';
-  if (stages) {
-    stagesKey = Object.entries(stages)
-      .map(([k, v]) => {
+  const stageSummaries: PipelineStageSummary[] = [];
+  if (Array.isArray(build.stages)) {
+    for (let i = 0; i < build.stages.length; i += 1) {
+      const s = asRecord(build.stages[i]);
+      if (!s) {
+        continue;
+      }
+      const id = asString(s.id);
+      const name = asString(s.name) ?? id ?? `stage-${i}`;
+      const key = id ?? name;
+      stageSummaries.push({
+        key,
+        name,
+        state: asString(s.state) ?? '',
+        result: asString(s.result) ?? '',
+      });
+    }
+  } else {
+    const stages = asRecord(build.stages);
+    if (stages) {
+      for (const [k, v] of Object.entries(stages)) {
         const s = asRecord(v);
-        return `${k}:${asString(s?.state) ?? ''}:${asString(s?.result) ?? ''}`;
-      })
-      .sort()
-      .join(',');
+        stageSummaries.push({
+          key: k,
+          name: asString(s?.name) ?? k,
+          state: asString(s?.state) ?? '',
+          result: asString(s?.result) ?? '',
+        });
+      }
+    }
   }
+
+  const stagesKey = stageSummaries
+    .map((s) => `${s.key}:${s.state}:${s.result}`)
+    .sort()
+    .join(',');
 
   return {
     kind: 'pipeline',
@@ -539,6 +572,7 @@ function extractPipelineRunSnapshot(raw: unknown): PipelineRunSnapshot {
     buildNumber: asString(build.buildNumber) ?? asString(build.name),
     sourceBranch: asString(build.sourceBranch),
     stagesKey,
+    stages: stageSummaries,
     url: asString(build.url),
   };
 }
@@ -646,6 +680,7 @@ export class ResourcePollingWatcher {
     this.inFlight = true;
     try {
       const baseUrls = this.ctx.resolveBaseUrls({
+        organizationId: this.parsedUri.organization,
         projectId: this.parsedUri.project,
       });
       const apiVersion = await negotiatePollingApiVersion(
@@ -718,24 +753,132 @@ export class ResourcePollingWatcher {
         return extractWorkItemSnapshot(response.data);
       }
       case 'pull-request': {
-        const url = `${coreBaseUrl}/${encodedProject}/_apis/git/pullrequests/${this.parsedUri.pullRequestId}`;
+        const prId = this.parsedUri.pullRequestId;
+        const url = `${coreBaseUrl}/${encodedProject}/_apis/git/pullrequests/${prId}`;
         const response = await this.ctx.requestAzureDevOps<unknown>({
           method: 'GET',
           url,
           query: { 'api-version': apiVersion },
-          context: `poll pull request ${this.parsedUri.pullRequestId}`,
+          context: `poll pull request ${prId}`,
         });
-        return extractPullRequestSnapshot(response.data);
+        const prData = asRecord(response.data) ?? {};
+        const repoRec = asRecord(prData.repository);
+        const repoId = asString(repoRec?.id);
+        const prSubresourceBase = repoId
+          ? `${coreBaseUrl}/${encodedProject}/_apis/git/repositories/${encodeURIComponent(repoId)}/pullRequests/${prId}`
+          : `${coreBaseUrl}/${encodedProject}/_apis/git/pullrequests/${prId}`;
+
+        let threads: unknown = prData.threads;
+        if (!Array.isArray(threads)) {
+          try {
+            const threadsRes = await this.ctx.requestAzureDevOps<unknown>({
+              method: 'GET',
+              url: `${prSubresourceBase}/threads`,
+              query: { 'api-version': apiVersion },
+              context: `poll pull request ${prId} threads`,
+            });
+            const threadsRec = asRecord(threadsRes.data);
+            if (Array.isArray(threadsRec?.value)) {
+              threads = threadsRec.value;
+            } else if (Array.isArray(threadsRes.data)) {
+              threads = threadsRes.data;
+            }
+          } catch (error) {
+            if (error instanceof AzureDevOpsRateLimitError) {
+              throw error;
+            }
+            logDebug(
+              `[events-watcher] Failed to fetch threads for PR ${prId}: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        }
+
+        let statuses: unknown = prData.statuses;
+        if (!Array.isArray(statuses)) {
+          try {
+            const statusesRes = await this.ctx.requestAzureDevOps<unknown>({
+              method: 'GET',
+              url: `${prSubresourceBase}/statuses`,
+              query: { 'api-version': apiVersion },
+              context: `poll pull request ${prId} statuses`,
+            });
+            const statusesRec = asRecord(statusesRes.data);
+            if (Array.isArray(statusesRec?.value)) {
+              statuses = statusesRec.value;
+            } else if (Array.isArray(statusesRes.data)) {
+              statuses = statusesRes.data;
+            }
+          } catch (error) {
+            if (error instanceof AzureDevOpsRateLimitError) {
+              throw error;
+            }
+            logDebug(
+              `[events-watcher] Failed to fetch statuses for PR ${prId}: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        }
+
+        return extractPullRequestSnapshot({
+          ...prData,
+          ...(threads !== undefined ? { threads } : {}),
+          ...(statuses !== undefined ? { statuses } : {}),
+        });
       }
       case 'pipeline': {
-        const url = `${coreBaseUrl}/${encodedProject}/_apis/build/builds/${this.parsedUri.runId}`;
+        const runId = this.parsedUri.runId;
+        const url = `${coreBaseUrl}/${encodedProject}/_apis/build/builds/${runId}`;
         const response = await this.ctx.requestAzureDevOps<unknown>({
           method: 'GET',
           url,
           query: { 'api-version': apiVersion },
-          context: `poll pipeline run ${this.parsedUri.runId}`,
+          context: `poll pipeline run ${runId}`,
         });
-        return extractPipelineRunSnapshot(response.data);
+        const buildData = asRecord(response.data) ?? {};
+
+        let stages: unknown = buildData.stages;
+        if (!Array.isArray(stages) && !isRecord(stages)) {
+          try {
+            const timelineRes = await this.ctx.requestAzureDevOps<unknown>({
+              method: 'GET',
+              url: `${coreBaseUrl}/${encodedProject}/_apis/build/builds/${runId}/timeline`,
+              query: { 'api-version': apiVersion },
+              context: `poll pipeline run ${runId} timeline`,
+            });
+            const timelineRec = asRecord(timelineRes.data);
+            const records = Array.isArray(timelineRec?.records)
+              ? timelineRec.records
+              : [];
+            stages = records
+              .filter((r) => {
+                const rec = asRecord(r);
+                return (
+                  typeof rec?.type === 'string' &&
+                  rec.type.toLowerCase() === 'stage'
+                );
+              })
+              .map((r) => {
+                const rec = asRecord(r) ?? {};
+                return {
+                  id: asString(rec.id),
+                  name: asString(rec.name),
+                  state: asString(rec.state),
+                  result: asString(rec.result),
+                };
+              });
+          } catch (error) {
+            if (error instanceof AzureDevOpsRateLimitError) {
+              throw error;
+            }
+            logDebug(
+              `[events-watcher] Failed to fetch timeline for build ${runId}: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        }
+
+        return extractPipelineRunSnapshot({
+          ...buildData,
+          ...(stages !== undefined ? { stages } : {}),
+        });
       }
     }
   }
@@ -745,6 +888,7 @@ export class ResourcePollingWatcher {
     current: ResourceSnapshot,
   ): EventOccurrence[] {
     const timestamp = new Date(this.now()).toISOString();
+    const organization = this.parsedUri.organization;
     const project = this.parsedUri.project;
 
     if (
@@ -768,6 +912,7 @@ export class ResourcePollingWatcher {
       return [
         {
           eventId: deterministicEventId('poll-wi', [
+            organization,
             project,
             workItemId,
             current.rev,
@@ -780,6 +925,7 @@ export class ResourcePollingWatcher {
           name: 'ado.work_item.updated',
           timestamp,
           data: stripUndefined({
+            organization,
             project,
             workItemId,
             rev: current.rev,
@@ -805,18 +951,21 @@ export class ResourcePollingWatcher {
       const pullRequestId = this.parsedUri.pullRequestId;
       const events: EventOccurrence[] = [];
 
-      const prChanged =
+      const corePrChanged =
         previous.title !== current.title ||
         previous.status !== current.status ||
         previous.mergeStatus !== current.mergeStatus ||
         previous.isDraft !== current.isDraft ||
         previous.lastCommitId !== current.lastCommitId ||
-        previous.commentCount !== current.commentCount ||
         previous.votesKey !== current.votesKey;
+      const commentsChanged = previous.commentCount !== current.commentCount;
 
-      if (prChanged) {
+      if (corePrChanged || commentsChanged) {
+        const action =
+          !corePrChanged && commentsChanged ? 'commented' : 'updated';
         events.push({
           eventId: deterministicEventId('poll-pr', [
+            organization,
             project,
             pullRequestId,
             current.title,
@@ -830,11 +979,12 @@ export class ResourcePollingWatcher {
           name: 'ado.pull_request.updated',
           timestamp,
           data: stripUndefined({
+            organization,
             project,
             repository: current.repository,
             repositoryId: current.repositoryId,
             pullRequestId,
-            action: 'updated',
+            action,
             status: current.status,
             mergeStatus: current.mergeStatus,
             commentCount: current.commentCount,
@@ -848,6 +998,7 @@ export class ResourcePollingWatcher {
       if (previous.statusesKey !== current.statusesKey) {
         events.push({
           eventId: deterministicEventId('poll-pr-checks', [
+            organization,
             project,
             pullRequestId,
             current.statusesKey,
@@ -855,6 +1006,7 @@ export class ResourcePollingWatcher {
           name: 'ado.pull_request.checks_changed',
           timestamp,
           data: stripUndefined({
+            organization,
             project,
             repository: current.repository,
             repositoryId: current.repositoryId,
@@ -875,19 +1027,33 @@ export class ResourcePollingWatcher {
       previous.kind === 'pipeline' &&
       current.kind === 'pipeline'
     ) {
+      const stagesChanged = previous.stagesKey !== current.stagesKey;
       const changed =
         previous.state !== current.state ||
         previous.result !== current.result ||
-        previous.stagesKey !== current.stagesKey;
+        stagesChanged;
 
       if (!changed) {
         return [];
+      }
+
+      let changedStage: PipelineStageSummary | undefined;
+      if (stagesChanged) {
+        const prevByKey = new Map(previous.stages.map((s) => [s.key, s]));
+        for (const st of current.stages) {
+          const prev = prevByKey.get(st.key);
+          if (!prev || prev.state !== st.state || prev.result !== st.result) {
+            changedStage = st;
+            break;
+          }
+        }
       }
 
       const runId = this.parsedUri.runId;
       return [
         {
           eventId: deterministicEventId('poll-run', [
+            organization,
             project,
             runId,
             current.state,
@@ -897,13 +1063,15 @@ export class ResourcePollingWatcher {
           name: 'ado.pipeline.run_state_changed',
           timestamp,
           data: stripUndefined({
+            organization,
             project,
             pipelineId: current.pipelineId,
             pipelineName: current.pipelineName,
             runId,
             buildNumber: current.buildNumber,
             state: current.state,
-            result: current.result,
+            result: current.result ?? (changedStage?.result || undefined),
+            stageName: changedStage?.name,
             sourceBranch: current.sourceBranch,
             url: current.url,
           }),

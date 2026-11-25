@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   CallToolRequestSchema,
+  ErrorCode,
   ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
   ListToolsRequestSchema,
@@ -44,7 +45,11 @@ import {
   isAdoEventResourceUri,
   parseAdoResourceUri,
 } from './shared/resources/ado-resource-uri.ts';
-import { EventEngine, isEventsProtocolError } from './shared/events/index.ts';
+import {
+  ADO_EVENT_RESOURCE_TEMPLATES,
+  EventEngine,
+  isEventsProtocolError,
+} from './shared/events/index.ts';
 
 import { usersFeature } from './features/users/index.ts';
 import { organizationsFeature } from './features/organizations/index.ts';
@@ -105,6 +110,13 @@ const EventsUnsubscribeRequestSchema = z.object({
   method: z.literal('events/unsubscribe'),
   params: z.record(z.string(), z.unknown()).optional(),
 });
+
+const EVENTS_DISABLED_MESSAGE =
+  "Events functionality is disabled because the 'events' toolset is not enabled";
+
+const EVENT_TEMPLATE_URIS = new Set(
+  ADO_EVENT_RESOURCE_TEMPLATES.map((template) => template.uriTemplate),
+);
 
 function toMcpProtocolError(error: unknown): never {
   if (isEventsProtocolError(error)) {
@@ -212,6 +224,16 @@ export function createAzureDevOpsServer(
     enabledToolMap.set(tool.name, tool);
   }
 
+  const eventsEnabled = eventsFeature.tools.some((tool) =>
+    enabledToolMap.has(tool.name),
+  );
+
+  const assertEventsEnabled = (): void => {
+    if (!eventsEnabled) {
+      throw new McpError(ErrorCode.InvalidRequest, EVENTS_DISABLED_MESSAGE);
+    }
+  };
+
   let cachedMcpTools: Array<{
     name: string;
     description: string;
@@ -240,18 +262,25 @@ export function createAzureDevOpsServer(
       version: VERSION,
     },
     {
-      capabilities: {
-        tools: {},
-        resources: {
-          subscribe: true,
-          listChanged: false,
-        },
-        extensions: {
-          'io.modelcontextprotocol/events': {
-            listChanged: false,
+      capabilities: eventsEnabled
+        ? {
+            tools: {},
+            resources: {
+              subscribe: true,
+              listChanged: false,
+            },
+            extensions: {
+              'io.modelcontextprotocol/events': {
+                listChanged: false,
+              },
+            },
+          }
+        : {
+            tools: {},
+            resources: {
+              listChanged: false,
+            },
           },
-        },
-      },
     },
   );
 
@@ -271,11 +300,17 @@ export function createAzureDevOpsServer(
   });
 
   server.setRequestHandler(ListResourceTemplatesRequestSchema, () => {
-    return { resourceTemplates: [...ADO_RESOURCE_TEMPLATES] };
+    const resourceTemplates = eventsEnabled
+      ? [...ADO_RESOURCE_TEMPLATES]
+      : ADO_RESOURCE_TEMPLATES.filter(
+          (template) => !EVENT_TEMPLATE_URIS.has(template.uriTemplate),
+        );
+    return { resourceTemplates };
   });
 
   server.setRequestHandler(SubscribeRequestSchema, async (request) => {
     try {
+      assertEventsEnabled();
       const uri = request.params.uri;
       await eventEngine.subscribeResource(
         sessionId,
@@ -302,6 +337,7 @@ export function createAzureDevOpsServer(
 
   server.setRequestHandler(UnsubscribeRequestSchema, (request) => {
     try {
+      assertEventsEnabled();
       eventEngine.unsubscribeResource(sessionId, request.params.uri);
       return {};
     } catch (error) {
@@ -311,6 +347,7 @@ export function createAzureDevOpsServer(
 
   server.setRequestHandler(EventsListRequestSchema, () => {
     try {
+      assertEventsEnabled();
       const res = eventEngine.listEvents();
       return {
         resultType: res.resultType,
@@ -323,6 +360,7 @@ export function createAzureDevOpsServer(
 
   server.setRequestHandler(EventsPollRequestSchema, (request) => {
     try {
+      assertEventsEnabled();
       const res = eventEngine.pollEvents(request.params ?? {});
       return {
         resultType: res.resultType,
@@ -341,6 +379,7 @@ export function createAzureDevOpsServer(
     EventsStreamRequestSchema,
     async (request, extra) => {
       try {
+        assertEventsEnabled();
         await eventEngine.openStream(
           request.params ?? {},
           async (notification) => {
@@ -364,10 +403,12 @@ export function createAzureDevOpsServer(
   );
 
   server.setRequestHandler(EventsSubscribeRequestSchema, () => {
+    assertEventsEnabled();
     toMcpProtocolError(eventEngine.createUnsupportedError('events/subscribe'));
   });
 
   server.setRequestHandler(EventsUnsubscribeRequestSchema, () => {
+    assertEventsEnabled();
     toMcpProtocolError(
       eventEngine.createUnsupportedError('events/unsubscribe'),
     );
@@ -376,6 +417,7 @@ export function createAzureDevOpsServer(
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     try {
       if (isAdoEventResourceUri(request.params.uri)) {
+        assertEventsEnabled();
         const feed = eventEngine.readEventResource(request.params.uri);
         return {
           contents: [
@@ -468,6 +510,9 @@ export function createAzureDevOpsServer(
     } catch (error) {
       if (isEventsProtocolError(error)) {
         throw new McpError(error.code, error.message, error.data);
+      }
+      if (error instanceof McpError) {
+        throw error;
       }
       const safeMessage = redactSecrets(
         error instanceof Error ? error.message : String(error),

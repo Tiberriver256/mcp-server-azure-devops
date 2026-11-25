@@ -346,6 +346,69 @@ void describe('Analytics feature module & handlers', () => {
     assert.equal(requests.length, 1);
   });
 
+  void it('query_analytics validates nextLink query options before HTTP and allows legitimate $skiptoken pages', async () => {
+    const { ctx, requests } = createMockToolContext(() => ({
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      data: {
+        value: [{ WorkItemId: 202, Title: 'Page 2 Item' }],
+      },
+    }));
+
+    const base =
+      'https://analytics.dev.azure.com/myorg/DemoProject/_odata/v3.0-preview/WorkItems';
+
+    // Legitimate server-issued nextLink with $select, $top, and $skiptoken passes
+    const page2 = await queryAnalytics(ctx, {
+      entitySet: 'WorkItems',
+      projectId: 'DemoProject',
+      scope: 'project',
+      version: 'v3.0-preview',
+      nextLink: `${base}?$select=WorkItemId,Title&$top=2&$skiptoken=2`,
+    });
+    assert.equal(page2.returnedCount, 1);
+    assert.equal(page2.value[0].WorkItemId, 202);
+    assert.equal(requests.length, 1);
+
+    // Legitimate minimal server-issued nextLink with only $skiptoken passes
+    const page3 = await queryAnalytics(ctx, {
+      entitySet: 'WorkItems',
+      projectId: 'DemoProject',
+      scope: 'project',
+      version: 'v3.0-preview',
+      nextLink: `${base}?$skiptoken=4`,
+    });
+    assert.equal(page3.returnedCount, 1);
+    assert.equal(requests.length, 2);
+
+    // Smuggled query options in same-origin nextLink must be rejected with zero extra HTTP calls
+    const maliciousNextLinks = [
+      `${base}?$select=WorkItemId&$top=50000&$skiptoken=2`,
+      `${base}?$select=WorkItemId&$top=abc&$skiptoken=2`,
+      `${base}?$select=WorkItemId&$expand=Links&$skiptoken=2`,
+      `${base}?$select=WorkItemId&$filter=ChangedDate%20ge%202026-11-01T00:00:00&$skiptoken=2`,
+      `${base}?$select=WorkItemId&$filter=%24search%3Dsecret&$skiptoken=2`,
+      `${base}?$select=WorkItemId&$top=10&$top=50000&$skiptoken=2`,
+      `${base}?$select=WorkItemId&$search=secret&$skiptoken=2`,
+    ];
+
+    for (const badNextLink of maliciousNextLinks) {
+      await assert.rejects(
+        () =>
+          queryAnalytics(ctx, {
+            entitySet: 'WorkItems',
+            projectId: 'DemoProject',
+            scope: 'project',
+            version: 'v3.0-preview',
+            nextLink: badNextLink,
+          }),
+        AzureDevOpsValidationError,
+        `Expected nextLink "${badNextLink}" to be rejected`,
+      );
+    }
+    assert.equal(requests.length, 2);
+  });
+
   void it('query_analytics surfaces actionable 403/404 Analytics guidance', async () => {
     const { ctx } = createMockToolContext(() => {
       throw new HttpError({
@@ -437,6 +500,136 @@ void describe('Analytics feature module & handlers', () => {
     assert.equal(result.value[0].PassRatePercent, 50);
     assert.equal(requests.length, 1);
     assert.ok(typeof requests[0].query?.$apply === 'string');
+  });
+
+  void it('get_analytics_metrics computes accurate multi-day FailRatePercent/FlakyRatePercent using post-groupby filtering', async () => {
+    const fixedNow = new Date('2026-11-25T12:00:00Z');
+
+    // failed_tests: no pre-groupby ResultFailCount filter; post-groupby /filter(FailedCount gt 0)
+    const failedCompiled = compileAnalyticsMetricPreset(
+      {
+        metric: 'failed_tests',
+        scope: 'project',
+        version: 'v3.0-preview',
+        days: 14,
+      },
+      fixedNow,
+    );
+    const failedGroupByIdx = failedCompiled.apply.indexOf('groupby(');
+    assert.ok(failedGroupByIdx > 0);
+    const failedPreGroupBy = failedCompiled.apply.slice(0, failedGroupByIdx);
+    assert.ok(!failedPreGroupBy.includes('ResultFailCount gt 0'));
+    assert.ok(failedCompiled.apply.endsWith('/filter(FailedCount gt 0)'));
+
+    // Without optional date/filter params, groupby starts immediately (no empty filter prefix)
+    const failedNoFilter = compileAnalyticsMetricPreset(
+      {
+        metric: 'failed_tests',
+        scope: 'project',
+        version: 'v3.0-preview',
+      },
+      fixedNow,
+    );
+    assert.ok(failedNoFilter.apply.startsWith('groupby('));
+    assert.ok(failedNoFilter.apply.endsWith('/filter(FailedCount gt 0)'));
+
+    // flaky_tests: no pre-groupby ResultFlakyCount filter; post-groupby /filter(FlakyCount gt 0)
+    const flakyCompiled = compileAnalyticsMetricPreset(
+      {
+        metric: 'flaky_tests',
+        scope: 'project',
+        version: 'v3.0-preview',
+        days: 14,
+      },
+      fixedNow,
+    );
+    const flakyGroupByIdx = flakyCompiled.apply.indexOf('groupby(');
+    assert.ok(flakyGroupByIdx > 0);
+    const flakyPreGroupBy = flakyCompiled.apply.slice(0, flakyGroupByIdx);
+    assert.ok(!flakyPreGroupBy.includes('ResultFlakyCount gt 0'));
+    assert.ok(flakyCompiled.apply.endsWith('/filter(FlakyCount gt 0)'));
+
+    // End-to-end failed_tests: 1 fail yesterday + 9 passes today => 10% (not 100%), and 0-fail rows stripped
+    const failedMock = createMockToolContext(() => ({
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      data: {
+        value: [
+          {
+            Test: { TestName: 'Checkout.PlacesOrder' },
+            FailedCount: 1,
+            TotalResults: 10,
+            PassedCount: 9,
+            FlakyCount: 0,
+          },
+          {
+            Test: { TestName: 'Checkout.AlwaysPasses' },
+            FailedCount: 0,
+            TotalResults: 10,
+            PassedCount: 10,
+            FlakyCount: 0,
+          },
+        ],
+      },
+    }));
+
+    const failedResult = await getAnalyticsMetrics(failedMock.ctx, {
+      metric: 'failed_tests',
+      projectId: 'DemoProject',
+      scope: 'project',
+      version: 'v3.0-preview',
+      days: 7,
+    });
+    assert.equal(failedResult.returnedCount, 1);
+    assert.equal(failedResult.value.length, 1);
+    assert.equal(failedResult.value[0].FailRatePercent, 10);
+    assert.ok(
+      typeof failedMock.requests[0].query?.$apply === 'string' &&
+        !failedMock.requests[0].query.$apply.includes('ResultFailCount gt 0') &&
+        failedMock.requests[0].query.$apply.endsWith(
+          '/filter(FailedCount gt 0)',
+        ),
+    );
+
+    // End-to-end flaky_tests: 1 flaky out of 10 total => 10% (not 100%), and 0-flaky rows stripped
+    const flakyMock = createMockToolContext(() => ({
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      data: {
+        value: [
+          {
+            Test: { TestName: 'Search.IntermittentTimeout' },
+            FlakyCount: 1,
+            TotalResults: 10,
+            FailedCount: 0,
+            PassedCount: 9,
+          },
+          {
+            Test: { TestName: 'Search.Stable' },
+            FlakyCount: 0,
+            TotalResults: 10,
+            FailedCount: 0,
+            PassedCount: 10,
+          },
+        ],
+      },
+    }));
+
+    const flakyResult = await getAnalyticsMetrics(flakyMock.ctx, {
+      metric: 'flaky_tests',
+      projectId: 'DemoProject',
+      scope: 'project',
+      version: 'v3.0-preview',
+      days: 7,
+    });
+    assert.equal(flakyResult.returnedCount, 1);
+    assert.equal(flakyResult.value.length, 1);
+    assert.equal(flakyResult.value[0].FlakyRatePercent, 10);
+    assert.ok(
+      typeof flakyMock.requests[0].query?.$apply === 'string' &&
+        !flakyMock.requests[0].query.$apply.includes('ResultFlakyCount gt 0') &&
+        flakyMock.requests[0].query.$apply.endsWith('/filter(FlakyCount gt 0)'),
+    );
   });
 
   void it('executes RegisteredTool end-to-end via createHttpClient and percent-encodes +08:00 as %2B08 on wire', async () => {

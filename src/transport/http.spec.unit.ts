@@ -1421,4 +1421,342 @@ void describe('startStreamableHttpServer', () => {
       'Default-credential session should continue observing shared EventEngine events',
     );
   });
+
+  void it('enforces maxConcurrentStatelessRequests by returning 503 at capacity and freeing slots after completion', async (t) => {
+    let factoryCalls = 0;
+    let enteredFirstFactory!: () => void;
+    const firstEntered = new Promise<void>((resolve) => {
+      enteredFirstFactory = resolve;
+    });
+    let releaseFirstFactory!: () => void;
+    const firstGate = new Promise<void>((resolve) => {
+      releaseFirstFactory = resolve;
+    });
+
+    const started = await startStreamableHttpServer({
+      host: '127.0.0.1',
+      port: 0,
+      mode: 'stateless',
+      enableJsonResponse: true,
+      maxConcurrentStatelessRequests: 1,
+      version: '1.0.0',
+      createServer: async (overrides) => {
+        factoryCalls += 1;
+        if (factoryCalls === 1) {
+          enteredFirstFactory();
+          await firstGate;
+        }
+        return { server: createTestMcpServer(overrides) };
+      },
+    });
+    t.after(() => started.close());
+
+    const baseUrl = `http://127.0.0.1:${started.port}`;
+    const callBody = {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: { name: 'echo_context', arguments: {} },
+    };
+
+    const firstReq = sendHttpRequest(baseUrl, '/mcp', {
+      method: 'POST',
+      headers: { Accept: 'application/json, text/event-stream' },
+      body: callBody,
+    });
+    await firstEntered;
+
+    // Concurrent second request must be rejected with 503 BEFORE createServer()
+    const overflowReq = await sendHttpRequest(baseUrl, '/mcp', {
+      method: 'POST',
+      headers: { Accept: 'application/json, text/event-stream' },
+      body: { ...callBody, id: 2 },
+    });
+    assert.equal(overflowReq.status, 503);
+    assert.equal(factoryCalls, 1);
+
+    releaseFirstFactory();
+    const firstRes = await firstReq;
+    assert.equal(firstRes.status, 200);
+
+    // Slot is freed after first request finishes
+    const afterRes = await sendHttpRequest(baseUrl, '/mcp', {
+      method: 'POST',
+      headers: { Accept: 'application/json, text/event-stream' },
+      body: { ...callBody, id: 3 },
+    });
+    assert.equal(afterRes.status, 200);
+    assert.equal(factoryCalls, 2);
+  });
+
+  void it('rechecks draining after createServer in stateless mode, closes server and runs cleanup, and returns 503 without executing tools', async () => {
+    let enteredFactory!: () => void;
+    const factoryEntered = new Promise<void>((resolve) => {
+      enteredFactory = resolve;
+    });
+    let releaseFactory!: () => void;
+    const factoryGate = new Promise<void>((resolve) => {
+      releaseFactory = resolve;
+    });
+
+    let serverCloseCalls = 0;
+    let cleanupCalls = 0;
+    let toolCalls = 0;
+
+    const started = await startStreamableHttpServer({
+      host: '127.0.0.1',
+      port: 0,
+      mode: 'stateless',
+      enableJsonResponse: true,
+      version: '1.0.0',
+      createServer: async () => {
+        enteredFactory();
+        await factoryGate;
+
+        const server = new Server(
+          { name: 'drain-test-mcp', version: '0.1.0' },
+          { capabilities: { tools: {} } },
+        );
+        server.setRequestHandler(CallToolRequestSchema, async () => {
+          toolCalls += 1;
+          return { content: [{ type: 'text', text: 'should-not-run' }] };
+        });
+
+        const origClose = server.close.bind(server);
+        server.close = async () => {
+          serverCloseCalls += 1;
+          await origClose();
+        };
+
+        return {
+          server,
+          cleanup: () => {
+            cleanupCalls += 1;
+          },
+        };
+      },
+    });
+
+    const baseUrl = `http://127.0.0.1:${started.port}`;
+    const reqPromise = sendHttpRequest(baseUrl, '/mcp', {
+      method: 'POST',
+      headers: { Accept: 'application/json, text/event-stream' },
+      body: {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name: 'echo_context', arguments: {} },
+      },
+    });
+
+    await factoryEntered;
+    const closePromise = started.close();
+    releaseFactory();
+
+    const res = await reqPromise;
+    await closePromise;
+
+    assert.equal(res.status, 503);
+    assert.equal(serverCloseCalls, 1);
+    assert.equal(cleanupCalls, 1);
+    assert.equal(toolCalls, 0);
+  });
+
+  void it('rechecks draining after createServer on stateful initialize and returns 503 after closing created server', async () => {
+    let enteredFactory!: () => void;
+    const factoryEntered = new Promise<void>((resolve) => {
+      enteredFactory = resolve;
+    });
+    let releaseFactory!: () => void;
+    const factoryGate = new Promise<void>((resolve) => {
+      releaseFactory = resolve;
+    });
+
+    let serverCloseCalls = 0;
+    let cleanupCalls = 0;
+
+    const started = await startStreamableHttpServer({
+      host: '127.0.0.1',
+      port: 0,
+      mode: 'stateful',
+      enableJsonResponse: true,
+      version: '1.0.0',
+      createServer: async (overrides) => {
+        enteredFactory();
+        await factoryGate;
+
+        const server = createTestMcpServer(overrides);
+        const origClose = server.close.bind(server);
+        server.close = async () => {
+          serverCloseCalls += 1;
+          await origClose();
+        };
+        return {
+          server,
+          cleanup: () => {
+            cleanupCalls += 1;
+          },
+        };
+      },
+    });
+
+    const baseUrl = `http://127.0.0.1:${started.port}`;
+    const initPromise = sendHttpRequest(baseUrl, '/mcp', {
+      method: 'POST',
+      headers: { Accept: 'application/json, text/event-stream' },
+      body: makeInitBody(),
+    });
+
+    await factoryEntered;
+    const closePromise = started.close();
+    releaseFactory();
+
+    const res = await initPromise;
+    await closePromise;
+
+    assert.equal(res.status, 503);
+    assert.equal(res.headers['mcp-session-id'], undefined);
+    assert.equal(serverCloseCalls, 1);
+    assert.equal(cleanupCalls, 1);
+  });
+
+  void it('rejects forged Host or Origin on POST /webhooks/ado with 403 before invoking onWebhookRequest', async (t) => {
+    const webhookSecret = 'wh-host-origin-secret';
+    let handlerCalls = 0;
+    const started = await startStreamableHttpServer({
+      host: '127.0.0.1',
+      port: 0,
+      version: '1.0.0',
+      webhookSecret,
+      createServer: (o) => ({ server: createTestMcpServer(o) }),
+      onWebhookRequest: async () => {
+        handlerCalls += 1;
+        return { status: 200, body: { accepted: true } };
+      },
+    });
+    t.after(() => started.close());
+
+    const baseUrl = `http://127.0.0.1:${started.port}`;
+
+    const badHost = await sendHttpRequest(baseUrl, '/webhooks/ado', {
+      method: 'POST',
+      headers: {
+        Host: 'evil.example:3000',
+        'X-ADO-Webhook-Secret': webhookSecret,
+      },
+      body: { id: 'evt-bad-host' },
+    });
+    assert.equal(badHost.status, 403);
+
+    const badOrigin = await sendHttpRequest(baseUrl, '/webhooks/ado', {
+      method: 'POST',
+      headers: {
+        Origin: 'https://evil.example',
+        'X-ADO-Webhook-Secret': webhookSecret,
+      },
+      body: { id: 'evt-bad-origin' },
+    });
+    assert.equal(badOrigin.status, 403);
+    assert.equal(handlerCalls, 0);
+  });
+
+  void it('rate-limits POST /webhooks/ado requests and failed-auth bursts with 429 + Retry-After (ignoring X-Forwarded-For)', async (t) => {
+    const webhookSecret = 'wh-rate-limit-secret';
+
+    // Part A: Total request rate limit
+    let reqLimitHandlerCalls = 0;
+    const reqLimitSrv = await startStreamableHttpServer({
+      host: '127.0.0.1',
+      port: 0,
+      version: '1.0.0',
+      webhookSecret,
+      webhookRateLimitPerMinute: 2,
+      webhookAuthFailLimitPerMinute: 10,
+      webhookRateLimitWindowMs: 60_000,
+      createServer: (o) => ({ server: createTestMcpServer(o) }),
+      onWebhookRequest: async (req, rawBody) => {
+        reqLimitHandlerCalls += 1;
+        if (!verifyWebhookAuth(req.headers, rawBody, webhookSecret)) {
+          return { status: 401, body: { error: 'Unauthorized' } };
+        }
+        return { status: 200, body: { accepted: true } };
+      },
+    });
+    t.after(() => reqLimitSrv.close());
+
+    const reqBaseUrl = `http://127.0.0.1:${reqLimitSrv.port}`;
+    for (let i = 1; i <= 2; i += 1) {
+      const ok = await sendHttpRequest(reqBaseUrl, '/webhooks/ado', {
+        method: 'POST',
+        headers: { 'X-ADO-Webhook-Secret': webhookSecret },
+        body: { id: `evt-${i}` },
+      });
+      assert.equal(ok.status, 200);
+    }
+
+    // 3rd request exceeds limit even with spoofed X-Forwarded-For -> 429 + Retry-After, handler NOT invoked
+    const throttled = await sendHttpRequest(reqBaseUrl, '/webhooks/ado', {
+      method: 'POST',
+      headers: {
+        'X-ADO-Webhook-Secret': webhookSecret,
+        'X-Forwarded-For': '203.0.113.99',
+      },
+      body: { id: 'evt-3' },
+    });
+    assert.equal(throttled.status, 429);
+    const reqRetryAfter = Number(throttled.headers['retry-after']);
+    assert.ok(
+      Number.isInteger(reqRetryAfter) && reqRetryAfter >= 1,
+      `Expected positive integer Retry-After header, got ${String(throttled.headers['retry-after'])}`,
+    );
+    assert.equal(reqLimitHandlerCalls, 2);
+
+    // Part B: Failed-auth lockout limit
+    let authFailHandlerCalls = 0;
+    const authFailSrv = await startStreamableHttpServer({
+      host: '127.0.0.1',
+      port: 0,
+      version: '1.0.0',
+      webhookSecret,
+      webhookRateLimitPerMinute: 10,
+      webhookAuthFailLimitPerMinute: 2,
+      webhookRateLimitWindowMs: 60_000,
+      createServer: (o) => ({ server: createTestMcpServer(o) }),
+      onWebhookRequest: async (req, rawBody) => {
+        authFailHandlerCalls += 1;
+        if (!verifyWebhookAuth(req.headers, rawBody, webhookSecret)) {
+          return { status: 401, body: { error: 'Unauthorized' } };
+        }
+        return { status: 200, body: { accepted: true } };
+      },
+    });
+    t.after(() => authFailSrv.close());
+
+    const authBaseUrl = `http://127.0.0.1:${authFailSrv.port}`;
+    for (let i = 1; i <= 2; i += 1) {
+      const fail = await sendHttpRequest(authBaseUrl, '/webhooks/ado', {
+        method: 'POST',
+        headers: { 'X-ADO-Webhook-Secret': `wrong-secret-${i}` },
+        body: { id: `bad-${i}` },
+      });
+      assert.equal(fail.status, 401);
+    }
+
+    // 3rd attempt (even with valid secret + spoofed X-Forwarded-For) is locked out with 429 BEFORE handler runs
+    const lockedOut = await sendHttpRequest(authBaseUrl, '/webhooks/ado', {
+      method: 'POST',
+      headers: {
+        'X-ADO-Webhook-Secret': webhookSecret,
+        'X-Forwarded-For': '198.51.100.42',
+      },
+      body: { id: 'after-lockout' },
+    });
+    assert.equal(lockedOut.status, 429);
+    const authRetryAfter = Number(lockedOut.headers['retry-after']);
+    assert.ok(
+      Number.isInteger(authRetryAfter) && authRetryAfter >= 1,
+      `Expected positive integer Retry-After header, got ${String(lockedOut.headers['retry-after'])}`,
+    );
+    assert.equal(authFailHandlerCalls, 2);
+  });
 });

@@ -11,6 +11,7 @@ import {
   parseSingleOpBatchResponse,
   validateAnalyticsQuery,
   validateEntitySet,
+  validateNextLinkQueryOptions,
   validateSameOriginNextLink,
 } from '../odata-guardrails.ts';
 import type { QueryAnalyticsInput } from '../schemas.ts';
@@ -208,6 +209,7 @@ export async function queryAnalytics(
       odataBaseUrl,
       canonicalEntitySet,
     );
+    validateNextLinkQueryOptions(safeNextLink, canonicalEntitySet);
     const { payload, usedBatch } = await fetchValidatedNextLink(ctx, {
       safeNextLink,
       odataBaseUrl,

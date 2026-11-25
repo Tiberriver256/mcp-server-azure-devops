@@ -9,6 +9,7 @@ interface CompiledPresetQuery {
   readonly entitySet: AllowedEntitySet;
   readonly apply: string;
   readonly orderby?: string;
+  readonly filterRow?: (row: Record<string, unknown>) => boolean;
   readonly enrichRow?: (
     row: Record<string, unknown>,
   ) => Record<string, unknown>;
@@ -156,7 +157,6 @@ export function compileAnalyticsMetricPreset(
     }
 
     case 'flaky_tests': {
-      filterClauses.push('ResultFlakyCount gt 0');
       if (input.days !== undefined) {
         const minDateSk = formatUtcDateSk(
           computeLookbackUtcDate(input.days, now),
@@ -191,12 +191,14 @@ export function compileAnalyticsMetricPreset(
         `aggregate(ResultFlakyCount with sum as FlakyCount,` +
         `ResultCount with sum as TotalResults,` +
         `ResultFailCount with sum as FailedCount,` +
-        `ResultPassCount with sum as PassedCount))`;
+        `ResultPassCount with sum as PassedCount))` +
+        `/filter(FlakyCount gt 0)`;
 
       return {
         entitySet: 'TestResultsDaily',
         apply,
         orderby: 'FlakyCount desc',
+        filterRow: (row) => asFiniteNumber(row.FlakyCount) > 0,
         enrichRow: (row) => {
           const total = asFiniteNumber(row.TotalResults);
           const flaky = asFiniteNumber(row.FlakyCount);
@@ -209,7 +211,6 @@ export function compileAnalyticsMetricPreset(
     }
 
     case 'failed_tests': {
-      filterClauses.push('ResultFailCount gt 0');
       if (input.days !== undefined) {
         const minDateSk = formatUtcDateSk(
           computeLookbackUtcDate(input.days, now),
@@ -244,12 +245,14 @@ export function compileAnalyticsMetricPreset(
         `aggregate(ResultFailCount with sum as FailedCount,` +
         `ResultCount with sum as TotalResults,` +
         `ResultPassCount with sum as PassedCount,` +
-        `ResultFlakyCount with sum as FlakyCount))`;
+        `ResultFlakyCount with sum as FlakyCount))` +
+        `/filter(FailedCount gt 0)`;
 
       return {
         entitySet: 'TestResultsDaily',
         apply,
         orderby: 'FailedCount desc',
+        filterRow: (row) => asFiniteNumber(row.FailedCount) > 0,
         enrichRow: (row) => {
           const total = asFiniteNumber(row.TotalResults);
           const failed = asFiniteNumber(row.FailedCount);
@@ -375,9 +378,12 @@ export async function getAnalyticsMetrics(
     top,
   });
 
-  const rows = compiled.enrichRow
-    ? queryResult.value.map(compiled.enrichRow)
+  const filteredRows = compiled.filterRow
+    ? queryResult.value.filter(compiled.filterRow)
     : queryResult.value;
+  const rows = compiled.enrichRow
+    ? filteredRows.map(compiled.enrichRow)
+    : filteredRows;
 
   return {
     metric: input.metric,

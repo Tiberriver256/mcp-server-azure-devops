@@ -659,16 +659,29 @@ export class EventEngine {
           { cursor: rawCursor },
         );
       }
-      const read = this.ringBuffer.readSince(
-        rawCursor,
-        MAX_POLL_EVENTS,
-        (occurrence) =>
-          occurrence.name === eventName &&
-          matchesEventFilter(occurrence, filterArgs),
-      );
-      initialCursor = read.cursor;
-      truncated = read.truncated;
-      replayEntries = read.items;
+      const allReplayEntries: RingBufferEntry<EventOccurrence>[] = [];
+      let pageCursor = rawCursor;
+      let firstPage = true;
+      for (;;) {
+        const read = this.ringBuffer.readSince(
+          pageCursor,
+          MAX_POLL_EVENTS,
+          (occurrence) =>
+            occurrence.name === eventName &&
+            matchesEventFilter(occurrence, filterArgs),
+        );
+        if (firstPage) {
+          truncated = read.truncated;
+          firstPage = false;
+        }
+        allReplayEntries.push(...read.items);
+        initialCursor = read.cursor;
+        if (!read.hasMore || read.cursor === pageCursor) {
+          break;
+        }
+        pageCursor = read.cursor;
+      }
+      replayEntries = allReplayEntries;
       initialDeliveredSeq = 0;
     }
 

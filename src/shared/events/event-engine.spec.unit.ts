@@ -964,6 +964,9 @@ void describe('EventEngine — SEP-3415, Resource Subscriptions & Polling Watche
             };
           }
           if (url.includes('/_apis/build/builds/')) {
+            if (url.endsWith('/timeline')) {
+              return { records: [] };
+            }
             return {
               id: 500,
               buildNumber: '20261125.1',
@@ -1022,8 +1025,8 @@ void describe('EventEngine — SEP-3415, Resource Subscriptions & Polling Watche
         `Expected cached OPTIONS per area for ${profile.fixture}`,
       );
 
-      // All 6 GET polls (3 baseline + 3 tick) sent the exact negotiated api-version
-      assert.equal(getCalls.length, 6);
+      // All 8 GET polls (baseline + tick for WI, PR, build, and build timeline) sent the exact negotiated api-version
+      assert.equal(getCalls.length, 8);
       for (const call of getCalls) {
         assert.equal(
           call.apiVersion,
@@ -1034,5 +1037,128 @@ void describe('EventEngine — SEP-3415, Resource Subscriptions & Polling Watche
 
       engine.close();
     }
+  });
+
+  void it('replays all 250 retained events across multiple pages in strict sequence order on stream reconnect', async () => {
+    const scheduler = createFakeScheduler();
+    const engine = new EventEngine({
+      bufferSize: 300,
+      scheduleTimeout: scheduler.schedule,
+      clearScheduledTimeout: scheduler.clear,
+    });
+
+    const initialCursor = engine.headCursor;
+    for (let i = 1; i <= 250; i += 1) {
+      engine.publish({
+        eventId: `evt-${i}`,
+        name: 'ado.work_item.updated',
+        timestamp: '2026-11-25T12:00:00Z',
+        data: {
+          project: 'DemoProject',
+          workItemId: i,
+          eventAction: 'updated',
+        },
+      });
+    }
+
+    const received: StreamNotificationMessage[] = [];
+    const controller = new AbortController();
+    const streamPromise = engine.openStream(
+      {
+        name: 'ado.work_item.updated',
+        arguments: { projectId: 'DemoProject' },
+        cursor: initialCursor,
+      },
+      (notif) => {
+        received.push(notif);
+      },
+      controller.signal,
+      'req-replay-250',
+      'session-replay-250',
+    );
+
+    await new Promise<void>((r) => {
+      setImmediate(r);
+    });
+
+    assert.equal(received[0].method, 'notifications/events/active');
+    assert.equal(received[0].params.truncated, false);
+    assert.equal(received[0].params.cursor, engine.headCursor);
+
+    const eventNotifs = received.filter(
+      (n) => n.method === 'notifications/events/event',
+    );
+    assert.equal(eventNotifs.length, 250);
+
+    for (let i = 0; i < 250; i += 1) {
+      const notif = eventNotifs[i];
+      assert.equal(notif.params.eventId, `evt-${i + 1}`);
+      const parsed = parseCursor(String(notif.params.cursor));
+      assert.ok(parsed);
+      assert.equal(parsed.seq, i + 1);
+    }
+
+    controller.abort();
+    await streamPromise;
+    engine.close();
+  });
+
+  void it('prevents cross-organization event delivery between subscribed resource URIs', async () => {
+    const engine = new EventEngine();
+    const ctx = createMockToolContext(async () => ({}));
+
+    const orgANotifs: string[] = [];
+    const orgBNotifs: string[] = [];
+    const orgAUri = 'ado://org-a/DemoProject/events/feed';
+    const orgBUri = 'ado://org-b/DemoProject/events/feed';
+
+    await engine.subscribeResource('s-org', orgAUri, ctx, (u) => {
+      orgANotifs.push(u);
+    });
+    await engine.subscribeResource('s-org', orgBUri, ctx, (u) => {
+      orgBNotifs.push(u);
+    });
+
+    // Event explicitly tagged with org-a
+    engine.publish({
+      eventId: 'wi-org-a',
+      name: 'ado.work_item.updated',
+      timestamp: '2026-11-25T12:00:00Z',
+      data: {
+        organization: 'org-a',
+        project: 'DemoProject',
+        workItemId: 101,
+        eventAction: 'updated',
+      },
+    });
+
+    // Event without explicit organization field, inferred from Services URL (org-b)
+    engine.publish({
+      eventId: 'wi-org-b',
+      name: 'ado.work_item.updated',
+      timestamp: '2026-11-25T12:00:01Z',
+      data: {
+        project: 'DemoProject',
+        workItemId: 101,
+        eventAction: 'updated',
+        url: 'https://dev.azure.com/org-b/DemoProject/_apis/wit/workitems/101',
+      },
+    });
+
+    assert.deepEqual(orgANotifs, [orgAUri]);
+    assert.deepEqual(orgBNotifs, [orgBUri]);
+
+    const feedA = engine.readEventResource(orgAUri);
+    const feedB = engine.readEventResource(orgBUri);
+    assert.deepEqual(
+      feedA.events.map((e) => e.eventId),
+      ['wi-org-a'],
+    );
+    assert.deepEqual(
+      feedB.events.map((e) => e.eventId),
+      ['wi-org-b'],
+    );
+
+    engine.close();
   });
 });

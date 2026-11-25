@@ -427,8 +427,7 @@ export function validateSameOriginNextLink(
     const normalizedPath = parsed.pathname.toLowerCase();
     const normalizedPrefix = expectedPrefix.toLowerCase();
     const matchesPrefix = expectedEntitySet
-      ? normalizedPath === normalizedPrefix ||
-        normalizedPath.startsWith(`${normalizedPrefix}/`)
+      ? normalizedPath.replace(/\/+$/, '') === normalizedPrefix
       : normalizedPath.startsWith(normalizedPrefix);
     if (!matchesPrefix) {
       throw new AzureDevOpsValidationError(
@@ -438,6 +437,103 @@ export function validateSameOriginNextLink(
   }
 
   return trimmed;
+}
+
+const ALLOWED_NEXT_LINK_QUERY_PARAMS: ReadonlySet<string> = new Set([
+  '$select',
+  '$filter',
+  '$apply',
+  '$orderby',
+  '$top',
+  '$skip',
+  '$count',
+  '$skiptoken',
+  'skiptoken',
+]);
+
+function parseStrictODataInteger(raw: string, paramName: string): number {
+  const trimmed = raw.trim();
+  if (!/^-?\d+$/.test(trimmed)) {
+    throw new AzureDevOpsValidationError(
+      `Invalid '${paramName}' query option in nextLink ('${raw}'): must be an integer.`,
+    );
+  }
+  const parsed = Number(trimmed);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new AzureDevOpsValidationError(
+      `Invalid '${paramName}' query option in nextLink ('${raw}'): must be a safe integer.`,
+    );
+  }
+  return parsed;
+}
+
+/**
+ * Validate all query options embedded in a caller-supplied `@odata.nextLink`
+ * against the same Analytics guardrails (`validateAnalyticsQuery`) and reject
+ * forbidden or unsupported OData system query options (such as `$expand`,
+ * `$search`, `$format`, `$compute`, `$levels`) as well as duplicate parameters.
+ */
+export function validateNextLinkQueryOptions(
+  nextLink: string,
+  entitySet: string,
+): ValidatedAnalyticsQuery {
+  let parsed: URL;
+  try {
+    parsed = new URL(nextLink);
+  } catch {
+    throw new AzureDevOpsValidationError(
+      `Invalid nextLink URL: expected a valid same-origin Azure DevOps OData pagination URL.`,
+    );
+  }
+
+  const seenParams = new Map<string, string>();
+  for (const [rawKey, rawValue] of parsed.searchParams.entries()) {
+    const key = rawKey.toLowerCase();
+    if (!ALLOWED_NEXT_LINK_QUERY_PARAMS.has(key)) {
+      throw new AzureDevOpsValidationError(
+        `Rejected nextLink with forbidden or unsupported query option '${rawKey}': allowed nextLink query options are ${Array.from(ALLOWED_NEXT_LINK_QUERY_PARAMS).join(', ')}.`,
+      );
+    }
+    if (seenParams.has(key)) {
+      throw new AzureDevOpsValidationError(
+        `Rejected nextLink with duplicate query option '${rawKey}'.`,
+      );
+    }
+    seenParams.set(key, rawValue);
+  }
+
+  const rawTop = seenParams.get('$top');
+  const top =
+    rawTop !== undefined ? parseStrictODataInteger(rawTop, '$top') : undefined;
+
+  const rawSkip = seenParams.get('$skip');
+  const skip =
+    rawSkip !== undefined
+      ? parseStrictODataInteger(rawSkip, '$skip')
+      : undefined;
+
+  const rawCount = seenParams.get('$count');
+  let count: boolean | undefined;
+  if (rawCount !== undefined) {
+    const normalizedCount = rawCount.trim().toLowerCase();
+    if (normalizedCount !== 'true' && normalizedCount !== 'false') {
+      throw new AzureDevOpsValidationError(
+        `Invalid '$count' query option in nextLink ('${rawCount}'): must be 'true' or 'false'.`,
+      );
+    }
+    count = normalizedCount === 'true';
+  }
+
+  return validateAnalyticsQuery({
+    entitySet,
+    select: seenParams.get('$select'),
+    filter: seenParams.get('$filter'),
+    apply: seenParams.get('$apply'),
+    orderby: seenParams.get('$orderby'),
+    top,
+    skip,
+    count,
+  });
 }
 
 /**

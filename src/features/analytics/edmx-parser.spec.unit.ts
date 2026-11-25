@@ -126,6 +126,33 @@ void describe('parseEdmxMetadata', () => {
     assert.ok(typeA.properties.some((p) => p.name === 'PropB'));
   });
 
+  void it('strips nested/crafted XML comments completely via fixpoint removal', () => {
+    const craftedEdmx = `<?xml version="1.0" encoding="utf-8"?>
+      <edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+        <edmx:DataServices>
+          <Schema Namespace="Test.Model" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+            <EntityType Name="WorkItem">
+              <Key><PropertyRef Name="WorkItemId" /></Key>
+              <Property Name="WorkItemId" Type="Edm.Int32" Nullable="false" />
+              <!<!--inner-->--outer <Property Name="SmuggledProp" Type="Edm.String" /> -->
+              <!<!--a--><!<!--b-->--nested <Property Name="DoubleSmuggled" Type="Edm.String" /> -->-->
+            </EntityType>
+            <EntityContainer Name="Analytics">
+              <EntitySet Name="WorkItems" EntityType="Test.Model.WorkItem" />
+            </EntityContainer>
+          </Schema>
+        </edmx:DataServices>
+      </edmx:Edmx>`;
+
+    const parsed = parseEdmxMetadata(craftedEdmx);
+    const wi = parsed.entityTypes.get('WorkItem');
+    assert.ok(wi);
+    assert.deepEqual(
+      wi.properties.map((p) => p.name),
+      ['WorkItemId'],
+    );
+  });
+
   void it('rejects empty or non-EDMX payloads with AzureDevOpsError', () => {
     assert.throws(() => parseEdmxMetadata(''), AzureDevOpsError);
     assert.throws(

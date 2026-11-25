@@ -19,6 +19,7 @@ import {
   validateAnalyticsQuery,
   validateEntitySet,
   validateMetadataEntitySetName,
+  validateNextLinkQueryOptions,
   validateSameOriginNextLink,
 } from './odata-guardrails.ts';
 import { SNAPSHOT_ENTITY_SETS } from './types.ts';
@@ -336,6 +337,98 @@ void describe('OData Analytics Poka-Yoke Guardrails', () => {
             'https://analytics.dev.azure.com/myorg',
           ),
         AzureDevOpsValidationError,
+      );
+    }
+
+    // Sub-path smuggling after entitySet is rejected when expectedODataBaseUrl & expectedEntitySet are supplied
+    assert.throws(
+      () =>
+        validateSameOriginNextLink(
+          'https://analytics.dev.azure.com/myorg/DemoProject/_odata/v3.0-preview/WorkItems/Revisions?$skiptoken=1',
+          'https://analytics.dev.azure.com/myorg',
+          projectBase,
+          'WorkItems',
+        ),
+      AzureDevOpsValidationError,
+    );
+  });
+
+  void it('Guard #11: validateNextLinkQueryOptions validates all query options inside nextLink URLs', () => {
+    const base =
+      'https://analytics.dev.azure.com/myorg/DemoProject/_odata/v3.0-preview/WorkItems';
+
+    // Legitimate server-generated nextLink URLs pass cleanly
+    const validWithOptions = validateNextLinkQueryOptions(
+      `${base}?$select=WorkItemId,Title&$filter=ChangedDate%20ge%202026-11-01T00:00:00Z&$orderby=WorkItemId%20asc&$top=100&$skip=100&$count=true&$skiptoken=2`,
+      'WorkItems',
+    );
+    assert.equal(validWithOptions.entitySet, 'WorkItems');
+    assert.deepEqual(validWithOptions.selectColumns, ['WorkItemId', 'Title']);
+    assert.equal(validWithOptions.top, 100);
+    assert.equal(validWithOptions.skip, 100);
+    assert.equal(validWithOptions.count, true);
+
+    const validSkiptokenOnly = validateNextLinkQueryOptions(
+      `${base}?$skiptoken=2`,
+      'WorkItems',
+    );
+    assert.equal(validSkiptokenOnly.entitySet, 'WorkItems');
+    assert.equal(validSkiptokenOnly.top, 100);
+
+    const validPlainSkiptoken = validateNextLinkQueryOptions(
+      `${base}?skiptoken=abc123`,
+      'WorkItems',
+    );
+    assert.equal(validPlainSkiptoken.entitySet, 'WorkItems');
+
+    const validSnapshotNextLink = validateNextLinkQueryOptions(
+      'https://analytics.dev.azure.com/myorg/DemoProject/_odata/v3.0-preview/WorkItemSnapshot?$apply=groupby((DateSK),aggregate($count%20as%20Count))&$top=50&$skiptoken=3',
+      'WorkItemSnapshot',
+    );
+    assert.equal(validSnapshotNextLink.entitySet, 'WorkItemSnapshot');
+
+    // Smuggled, forbidden, malformed, or duplicate query options are rejected
+    const tooManyCols = Array.from({ length: 805 }, (_, i) => `Col${i}`).join(
+      ',',
+    );
+    for (const [url, entitySet] of [
+      [`${base}?$top=50000&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$top=0&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$top=-5&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$top=abc&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$top=10abc&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$top=10.5&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$skip=-1&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$skip=abc&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$count=yes&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$expand=Links&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$expand=Revisions&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$search=secret&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$format=json&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$compute=1%20as%20A&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$levels=max&$skiptoken=2`, 'WorkItems'],
+      [`${base}?unknown=1&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$top=10&$top=50000&$skiptoken=2`, 'WorkItems'],
+      [`${base}?$top=10&$TOP=20&$skiptoken=2`, 'WorkItems'],
+      [
+        `${base}?$filter=ChangedDate%20ge%202026-11-01T00:00:00&$skiptoken=2`,
+        'WorkItems',
+      ],
+      [`${base}?$filter=isdefined(StoryPoints)&$skiptoken=2`, 'WorkItems'],
+      [
+        `${base}?$apply=groupby((WorkItemId),aggregate($count%20as%20C))&$skiptoken=2`,
+        'WorkItems',
+      ],
+      [`${base}?$select=${tooManyCols}&$skiptoken=2`, 'WorkItems'],
+      [
+        'https://analytics.dev.azure.com/myorg/DemoProject/_odata/v3.0-preview/WorkItemSnapshot?$skiptoken=1',
+        'WorkItemSnapshot',
+      ],
+    ] as const) {
+      assert.throws(
+        () => validateNextLinkQueryOptions(url, entitySet),
+        AzureDevOpsValidationError,
+        `Expected nextLink "${url}" for ${entitySet} to be rejected`,
       );
     }
   });
