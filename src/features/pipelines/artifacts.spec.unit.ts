@@ -1,5 +1,3 @@
-import axios from 'axios';
-import JSZip from 'jszip';
 import type { WebApi } from 'azure-devops-node-api';
 import type { BuildArtifact } from 'azure-devops-node-api/interfaces/BuildInterfaces';
 import type { FileContainerItem } from 'azure-devops-node-api/interfaces/FileContainerInterfaces';
@@ -7,11 +5,9 @@ import {
   ContainerItemStatus,
   ContainerItemType,
 } from 'azure-devops-node-api/interfaces/FileContainerInterfaces';
-import { fetchRunArtifacts } from './artifacts';
-
-jest.mock('axios');
-
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+import { fetchRunArtifacts, MAX_ARTIFACT_ZIP_BYTES } from './artifacts';
+import { buildTestZip } from '../../shared/test/zip-builder';
+import type { ToolContext } from '../../shared/session/azure-devops-session';
 
 describe('fetchRunArtifacts', () => {
   const projectId = 'test-project';
@@ -22,6 +18,7 @@ describe('fetchRunArtifacts', () => {
   const getPipelinesApi = jest.fn();
 
   const connection = {
+    serverUrl: 'https://dev.azure.com/test-org',
     getBuildApi,
     getFileContainerApi,
     getPipelinesApi,
@@ -38,8 +35,8 @@ describe('fetchRunArtifacts', () => {
       resource: {
         type: 'Container',
         data: '#/39106000/embedding-metrics',
-        downloadUrl: 'https://example.com/artifact.zip',
-        url: 'https://example.com/artifact',
+        downloadUrl: 'https://dev.azure.com/test-org/artifact.zip',
+        url: 'https://dev.azure.com/test-org/artifact',
       },
     };
 
@@ -83,26 +80,36 @@ describe('fetchRunArtifacts', () => {
     expect(artifacts[0].itemsTruncated).toBeUndefined();
   });
 
-  it('lists pipeline artifact entries from zip content', async () => {
+  it('lists pipeline artifact entries from zip content and sends auth only for same-origin URLs', async () => {
     const pipelineArtifact: BuildArtifact = {
       name: 'embedding-batch',
       source: 'source-2',
       resource: {
         type: 'PipelineArtifact',
-        downloadUrl: 'https://example.com/pipeline-artifact.zip',
-        url: 'https://example.com/pipeline-artifact',
+        downloadUrl:
+          'https://dev.azure.com/test-org/_apis/resources/pipeline-artifact.zip',
+        url: 'https://dev.azure.com/test-org/_apis/resources/pipeline-artifact',
       },
     };
 
-    const zip = new JSZip();
-    zip.file('embedding-batch/logs/summary.json', '{"ok":true}');
-    const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
+    const zipBuffer = buildTestZip([
+      { name: 'embedding-batch/logs/summary.json', content: '{"ok":true}' },
+    ]);
     const arrayBuffer = zipBuffer.buffer.slice(
       zipBuffer.byteOffset,
       zipBuffer.byteOffset + zipBuffer.byteLength,
     );
 
-    mockedAxios.get.mockResolvedValue({ data: arrayBuffer });
+    const httpGet = jest.fn().mockResolvedValue({
+      status: 200,
+      headers: {},
+      data: arrayBuffer,
+    });
+    const getAuthHeader = jest.fn().mockResolvedValue('Basic dGVzdA==');
+    const mockCtx = {
+      http: { get: httpGet },
+      getAuthHeader,
+    } as unknown as ToolContext;
 
     getBuildApi.mockResolvedValue({
       getArtifacts: jest.fn().mockResolvedValue([pipelineArtifact]),
@@ -112,18 +119,82 @@ describe('fetchRunArtifacts', () => {
       getItems: jest.fn().mockResolvedValue([]),
     });
 
-    const artifacts = await fetchRunArtifacts(connection, projectId, runId);
+    const artifacts = await fetchRunArtifacts(
+      connection,
+      projectId,
+      runId,
+      undefined,
+      mockCtx,
+    );
 
-    expect(mockedAxios.get).toHaveBeenCalledWith(
-      'https://example.com/pipeline-artifact.zip',
-      expect.objectContaining({ responseType: 'arraybuffer' }),
+    expect(getAuthHeader).toHaveBeenCalledTimes(1);
+    expect(httpGet).toHaveBeenCalledWith(
+      'https://dev.azure.com/test-org/_apis/resources/pipeline-artifact.zip',
+      expect.objectContaining({
+        headers: { Authorization: 'Basic dGVzdA==' },
+        responseType: 'arraybuffer',
+        maxResponseBytes: MAX_ARTIFACT_ZIP_BYTES,
+      }),
     );
 
     expect(artifacts).toHaveLength(1);
     expect(artifacts[0].items).toEqual([
       { path: 'logs', itemType: 'folder' },
-      { path: 'logs/summary.json', itemType: 'file' },
+      { path: 'logs/summary.json', itemType: 'file', size: 11 },
     ]);
     expect(artifacts[0].itemsTruncated).toBeUndefined();
+  });
+
+  it('omits Authorization header when downloading from external signed URLs', async () => {
+    const pipelineArtifact: BuildArtifact = {
+      name: 'drop',
+      source: 'source-3',
+      resource: {
+        type: 'PipelineArtifact',
+        downloadUrl: 'https://artprodcus3.artifacts.visualstudio.com/drop.zip',
+      },
+    };
+
+    const zipBuffer = buildTestZip([{ name: 'drop/app.js', content: '1' }]);
+    const arrayBuffer = zipBuffer.buffer.slice(
+      zipBuffer.byteOffset,
+      zipBuffer.byteOffset + zipBuffer.byteLength,
+    );
+
+    const httpGet = jest.fn().mockResolvedValue({
+      status: 200,
+      headers: {},
+      data: arrayBuffer,
+    });
+    const getAuthHeader = jest.fn().mockResolvedValue('Basic c2VjcmV0');
+    const mockCtx = {
+      http: { get: httpGet },
+      getAuthHeader,
+    } as unknown as ToolContext;
+
+    getBuildApi.mockResolvedValue({
+      getArtifacts: jest.fn().mockResolvedValue([pipelineArtifact]),
+    });
+
+    const artifacts = await fetchRunArtifacts(
+      connection,
+      projectId,
+      runId,
+      undefined,
+      mockCtx,
+    );
+
+    expect(getAuthHeader).not.toHaveBeenCalled();
+    expect(httpGet).toHaveBeenCalledWith(
+      'https://artprodcus3.artifacts.visualstudio.com/drop.zip',
+      expect.objectContaining({
+        headers: {},
+        responseType: 'arraybuffer',
+        maxResponseBytes: MAX_ARTIFACT_ZIP_BYTES,
+      }),
+    );
+    expect(artifacts[0].items).toEqual([
+      { path: 'app.js', itemType: 'file', size: 1 },
+    ]);
   });
 });

@@ -9,12 +9,14 @@ import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
 } from '../../shared/errors';
-import { defaultProject } from '../../utils/environment';
+import { extractContinuationToken } from '../../shared/http/http-client';
 import type {
   SuiteExpandOption,
   TestCaseStepInput,
   TestSuiteTypeOption,
 } from './types';
+
+export { extractContinuationToken };
 
 export const TEST_PLAN_AREA = 'testplan';
 export const TEST_PLANS_LOCATION_ID = '0e292477-a0c2-47f3-a9b6-34f153d627f4';
@@ -25,16 +27,23 @@ export const SUITE_TEST_CASES_LOCATION_ID =
 const NO_DEFAULT_PROJECT = 'no default project';
 
 /**
- * Resolve projectId from explicit argument or configured AZURE_DEVOPS_DEFAULT_PROJECT.
+ * Resolve projectId from explicit argument, optional default override,
+ * or process.env.AZURE_DEVOPS_DEFAULT_PROJECT.
  * Fails fast with AzureDevOpsValidationError if neither is configured.
  */
-export function resolveProjectId(projectId?: string): string {
+export function resolveProjectId(
+  projectId?: string,
+  configuredDefault?: string,
+): string {
   const trimmed = projectId?.trim();
-  if (trimmed) {
+  if (trimmed && trimmed !== NO_DEFAULT_PROJECT) {
     return trimmed;
   }
-  if (defaultProject && defaultProject !== NO_DEFAULT_PROJECT) {
-    return defaultProject;
+  const fallback = (
+    configuredDefault ?? process.env.AZURE_DEVOPS_DEFAULT_PROJECT
+  )?.trim();
+  if (fallback && fallback !== NO_DEFAULT_PROJECT) {
+    return fallback;
   }
   throw new AzureDevOpsValidationError(
     'projectId is required (provide projectId or set AZURE_DEVOPS_DEFAULT_PROJECT)',
@@ -123,23 +132,6 @@ export function formatTestStepsXml(steps: TestCaseStepInput[]): string {
     .join('');
 
   return `<steps id="0" last="${lastId}">${stepElements}</steps>`;
-}
-
-/**
- * Extract x-ms-continuationtoken from an Azure DevOps REST response headers map.
- */
-export function extractContinuationToken(
-  headers?: Record<string, unknown>,
-): string | undefined {
-  if (!headers) {
-    return undefined;
-  }
-  const token =
-    headers['x-ms-continuationtoken'] ?? headers['X-MS-ContinuationToken'];
-  if (typeof token === 'string' && token.trim().length > 0) {
-    return token.trim();
-  }
-  return undefined;
 }
 
 interface TestPlanRestClientLike {

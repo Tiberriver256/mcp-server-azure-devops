@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { defaultProject, defaultOrg } from '../../utils/environment';
+
+const projectIdDescription =
+  'The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT)';
+const organizationIdDescription =
+  'The ID or name of the organization (defaults to configured organization)';
 
 /**
  * Schema for getting a work item
@@ -18,14 +22,8 @@ export const GetWorkItemSchema = z.object({
  * Schema for listing work items
  */
 export const ListWorkItemsSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(projectIdDescription),
+  organizationId: z.string().optional().describe(organizationIdDescription),
   teamId: z.string().optional().describe('The ID of the team'),
   queryId: z.string().optional().describe('ID of a saved work item query'),
   wiql: z.string().optional().describe('Work Item Query Language (WIQL) query'),
@@ -46,14 +44,8 @@ export const ListWorkItemsSchema = z.object({
  * Schema for creating a work item
  */
 export const CreateWorkItemSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(projectIdDescription),
+  organizationId: z.string().optional().describe(organizationIdDescription),
   workItemType: z
     .string()
     .describe(
@@ -156,14 +148,8 @@ export const UpdateWorkItemSchema = z.object({
 export const ManageWorkItemLinkSchema = z.object({
   sourceWorkItemId: z.number().describe('The ID of the source work item'),
   targetWorkItemId: z.number().describe('The ID of the target work item'),
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(projectIdDescription),
+  organizationId: z.string().optional().describe(organizationIdDescription),
   operation: z
     .enum(['add', 'remove', 'update'])
     .describe('The operation to perform on the link'),

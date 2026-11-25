@@ -242,12 +242,19 @@ const toIsoString = (date: Date | undefined): string | undefined =>
 const extractString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 
-const parseNumeric = (value: unknown): number | undefined => {
-  if (value === null || value === undefined) {
-    return undefined;
+export const parseNumeric = (value: unknown): number | undefined => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
   }
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : undefined;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      return undefined;
+    }
+    const numeric = Number(trimmed);
+    return Number.isFinite(numeric) ? numeric : undefined;
+  }
+  return undefined;
 };
 
 const parseIdFromUri = (uri?: string): number | undefined => {

@@ -83,18 +83,32 @@ export async function listWorkItems(
     const fields = options.fields
       ? [...new Set([...defaultFields, ...options.fields])]
       : defaultFields;
-    const workItems = await witApi.getWorkItems(
-      workItemIds,
-      fields,
-      undefined,
-      undefined,
-    );
 
-    if (!workItems) {
-      return [];
+    // Azure DevOps getWorkItems accepts at most 200 IDs per request
+    const MAX_BATCH_SIZE = 200;
+    const allWorkItems: WorkItem[] = [];
+    for (
+      let offset = 0;
+      offset < workItemIds.length;
+      offset += MAX_BATCH_SIZE
+    ) {
+      const batch = workItemIds.slice(offset, offset + MAX_BATCH_SIZE);
+      const workItems = await witApi.getWorkItems(
+        batch,
+        fields,
+        undefined,
+        undefined,
+      );
+      if (workItems) {
+        for (const wi of workItems) {
+          if (wi !== undefined) {
+            allWorkItems.push(wi);
+          }
+        }
+      }
     }
 
-    return workItems.filter((wi): wi is WorkItem => wi !== undefined);
+    return allWorkItems;
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
       throw error;

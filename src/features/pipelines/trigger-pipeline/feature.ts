@@ -4,7 +4,7 @@ import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { defaultProject } from '../../../utils/environment';
+import { resolvePipelineProjectId } from '../helpers';
 import type { Run, TriggerPipelineOptions } from '../types';
 
 /**
@@ -20,14 +20,9 @@ export async function triggerPipeline(
 ): Promise<Run> {
   try {
     const pipelinesApi = await connection.getPipelinesApi();
-    const {
-      projectId = defaultProject,
-      pipelineId,
-      branch,
-      variables,
-      templateParameters,
-      stagesToSkip,
-    } = options;
+    const projectId = resolvePipelineProjectId(options.projectId);
+    const { pipelineId, branch, variables, templateParameters, stagesToSkip } =
+      options;
 
     // Prepare run parameters
     const runParameters: Record<string, unknown> = {};

@@ -1,62 +1,39 @@
-import * as azureDevOpsClient from '../../../clients/azure-devops';
-import { AzureDevOpsError } from '../../../shared/errors/azure-devops-errors';
+import { AzureDevOpsError } from '../../../shared/errors';
+import type { ToolContext } from '../../../shared/session/azure-devops-session';
+import { createWikiClient } from '../wiki-client';
 
-/**
- * Options for getting a wiki page
- */
 export interface GetWikiPageOptions {
-  /**
-   * The ID or name of the organization
-   * If not provided, the default organization will be used
-   */
-  organizationId: string;
-
-  /**
-   * The ID or name of the project
-   * If not provided, the default project will be used
-   */
-  projectId: string;
-
-  /**
-   * The ID or name of the wiki
-   */
+  organizationId?: string;
+  projectId?: string;
   wikiId: string;
-
-  /**
-   * The path of the page within the wiki
-   */
   pagePath: string;
 }
 
 /**
- * Get a wiki page from a wiki
- *
- * @param options Options for getting a wiki page
- * @returns Wiki page content as text/plain
- * @throws {AzureDevOpsResourceNotFoundError} When the wiki page is not found
- * @throws {AzureDevOpsPermissionError} When the user does not have permission to access the wiki page
- * @throws {AzureDevOpsError} When an error occurs while fetching the wiki page
+ * Get a wiki page's content as plain text.
  */
 export async function getWikiPage(
   options: GetWikiPageOptions,
+  ctx?: ToolContext,
 ): Promise<string> {
-  const { organizationId, projectId, wikiId, pagePath } = options;
+  const { organizationId, wikiId, pagePath } = options;
+  const projectId = ctx
+    ? ctx.resolveProjectId(options.projectId)
+    : (options.projectId ?? '');
 
   try {
-    // Create the client
-    const client = await azureDevOpsClient.getWikiClient({
+    const client = createWikiClient(ctx, {
       organizationId,
       projectId,
     });
 
-    // Get the wiki page
     return (await client.getPage(projectId, wikiId, pagePath)).content;
   } catch (error) {
-    // If it's already an AzureDevOpsError, rethrow it
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    // Otherwise wrap it in an AzureDevOpsError
-    throw new AzureDevOpsError('Failed to get wiki page', { cause: error });
+    throw new AzureDevOpsError(
+      `Failed to get wiki page: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }

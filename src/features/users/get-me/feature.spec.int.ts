@@ -1,5 +1,5 @@
 import type { WebApi } from 'azure-devops-node-api';
-import { getMe } from '../get-me';
+import { getMe } from './feature';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,

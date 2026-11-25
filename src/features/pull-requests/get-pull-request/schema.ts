@@ -1,1 +1,0 @@
-export { GetPullRequestSchema } from '../schemas';

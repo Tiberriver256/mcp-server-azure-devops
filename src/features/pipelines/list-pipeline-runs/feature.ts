@@ -5,21 +5,27 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { apiVersion, defaultProject } from '../../../utils/environment';
+import { extractContinuationToken as extractHeaderContinuationToken } from '../../../shared/http/http-client';
+import type { ToolContext } from '../../../shared/session/azure-devops-session';
+import {
+  resolvePipelineApiVersion,
+  resolvePipelineProjectId,
+} from '../helpers';
 import type {
   ListPipelineRunsOptions,
   ListPipelineRunsResult,
   Run,
 } from '../types';
 
-const API_VERSION = apiVersion;
-
-function normalizeBranch(branch?: string): string | undefined {
+export function normalizeBranch(branch?: string): string | undefined {
   if (!branch) {
     return undefined;
   }
 
   const trimmed = branch.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
   if (trimmed.startsWith('refs/')) {
     return trimmed;
   }
@@ -35,18 +41,9 @@ function extractContinuationToken(
   headers: unknown,
   result: unknown,
 ): string | undefined {
-  if (typeof headers === 'object' && headers !== null) {
-    for (const [key, value] of Object.entries(headers)) {
-      if (key.toLowerCase() === 'x-ms-continuationtoken') {
-        if (Array.isArray(value)) {
-          const first: unknown = value[0];
-          return typeof first === 'string' ? first : undefined;
-        }
-        if (typeof value === 'string') {
-          return value;
-        }
-      }
-    }
+  const headerToken = extractHeaderContinuationToken(headers);
+  if (headerToken) {
+    return headerToken;
   }
 
   if (result && typeof result === 'object') {
@@ -63,17 +60,21 @@ function extractContinuationToken(
 export async function listPipelineRuns(
   connection: WebApi,
   options: ListPipelineRunsOptions,
+  ctx?: ToolContext,
 ): Promise<ListPipelineRunsResult> {
   try {
     const pipelinesApi = await connection.getPipelinesApi();
-    const projectId = options.projectId ?? defaultProject;
+    const projectId = ctx
+      ? ctx.resolveProjectId(options.projectId)
+      : resolvePipelineProjectId(options.projectId);
+    const apiVersion = resolvePipelineApiVersion(ctx?.config.apiVersion);
     const pipelineId = options.pipelineId;
 
     const baseUrl = connection.serverUrl.replace(/\/+$/, '');
     const route = `${encodeURIComponent(projectId)}/_apis/pipelines/${pipelineId}/runs`;
     const url = new URL(`${route}`, `${baseUrl}/`);
 
-    url.searchParams.set('api-version', API_VERSION);
+    url.searchParams.set('api-version', apiVersion);
 
     const top = Math.min(Math.max(options.top ?? 50, 1), 100);
     url.searchParams.set('$top', top.toString());
@@ -107,7 +108,7 @@ export async function listPipelineRuns(
 
     const requestOptions = pipelinesApi.createRequestOptions(
       'application/json',
-      API_VERSION,
+      apiVersion,
     );
 
     const response = await pipelinesApi.rest.get<{

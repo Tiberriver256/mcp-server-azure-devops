@@ -1,68 +1,46 @@
 export * from './schemas';
 export * from './types';
-export * from './search-code';
-export * from './search-wiki';
-export * from './search-work-items';
+export { searchCode } from './search-code/feature';
+export { searchWiki } from './search-wiki/feature';
+export { searchWorkItems } from './search-work-items/feature';
 
-// Export tool definitions
-export * from './tool-definitions';
-
-// New exports for request handling
-import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import type { WebApi } from 'azure-devops-node-api';
-import type {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
+import { defineTool } from '../../shared/registry/tool-registry';
+import type { FeatureModule } from '../../shared/registry/tool-registry';
 import {
   SearchCodeSchema,
   SearchWikiSchema,
   SearchWorkItemsSchema,
 } from './schemas';
-import { searchCode } from './search-code';
-import { searchWiki } from './search-wiki';
-import { searchWorkItems } from './search-work-items';
+import { searchCode } from './search-code/feature';
+import { searchWiki } from './search-wiki/feature';
+import { searchWorkItems } from './search-work-items/feature';
 
-/**
- * Checks if the request is for the search feature
- */
-export const isSearchRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return ['search_code', 'search_wiki', 'search_work_items'].includes(toolName);
-};
-
-/**
- * Handles search feature requests
- */
-export const handleSearchRequest: RequestHandler = async (
-  connection: WebApi,
-  request: CallToolRequest,
-): Promise<{ content: Array<{ type: string; text: string }> }> => {
-  switch (request.params.name) {
-    case 'search_code': {
-      const args = SearchCodeSchema.parse(request.params.arguments);
-      const result = await searchCode(connection, args);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'search_wiki': {
-      const args = SearchWikiSchema.parse(request.params.arguments);
-      const result = await searchWiki(connection, args);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'search_work_items': {
-      const args = SearchWorkItemsSchema.parse(request.params.arguments);
-      const result = await searchWorkItems(connection, args);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    default:
-      throw new Error(`Unknown search tool: ${request.params.name}`);
-  }
+export const searchFeature: FeatureModule = {
+  toolset: 'search',
+  tools: [
+    defineTool({
+      name: 'search_code',
+      description: 'Search for code across repositories in a project',
+      schema: SearchCodeSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await searchCode(connection, args, ctx);
+      },
+    }),
+    defineTool({
+      name: 'search_wiki',
+      description: 'Search for content across wiki pages in a project',
+      schema: SearchWikiSchema,
+      readOnly: true,
+      handler: (ctx, args) => searchWiki(ctx, args),
+    }),
+    defineTool({
+      name: 'search_work_items',
+      description: 'Search for work items across projects in Azure DevOps',
+      schema: SearchWorkItemsSchema,
+      readOnly: true,
+      handler: (ctx, args) => searchWorkItems(ctx, args),
+    }),
+  ],
 };

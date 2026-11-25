@@ -12,7 +12,7 @@ export interface AzureDevOpsBaseUrls {
   projectFromUrl?: string;
 }
 
-interface AzureDevOpsUrlOptions {
+export interface AzureDevOpsUrlOptions {
   organizationId?: string;
   projectId?: string;
 }
@@ -77,6 +77,43 @@ export function isAzureDevOpsServicesUrl(serverUrl: string): boolean {
   }
 }
 
+/**
+ * Format an Azure DevOps organization URL safely for logs:
+ * host + pathname only, stripping any embedded userinfo credentials, query string, or hash.
+ */
+export function formatOrgUrlForLog(organizationUrl: string): string {
+  if (!organizationUrl) {
+    return '(not set)';
+  }
+  try {
+    const url = new URL(organizationUrl);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return '(invalid org URL)';
+    }
+    const pathname = url.pathname.replace(/\/+$/, '');
+    return `${url.host}${pathname}` || url.host;
+  } catch {
+    return '(invalid org URL)';
+  }
+}
+
+/**
+ * Extract the organization (Services) or collection (Server) name from an
+ * Azure DevOps URL, returning undefined when extraction fails.
+ */
+export function getOrgNameFromUrl(url?: string): string | undefined {
+  if (!url) {
+    return undefined;
+  }
+
+  try {
+    const resolved = resolveAzureDevOpsBaseUrls(url);
+    return resolved.organization ?? resolved.collection;
+  } catch {
+    return undefined;
+  }
+}
+
 function parseUrl(input: string): URL {
   try {
     const url = new URL(input);
@@ -110,11 +147,21 @@ function extractServicesOrganization(url: URL): string {
   return hostParts[0] ?? '';
 }
 
+function safeDecodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    throw new AzureDevOpsValidationError(
+      `Organization URL contains malformed percent-encoding in segment '${segment}'`,
+    );
+  }
+}
+
 function getPathSegments(url: URL): string[] {
   return url.pathname
     .split('/')
     .filter(Boolean)
-    .map((segment) => decodeURIComponent(segment));
+    .map((segment) => safeDecodeSegment(segment));
 }
 
 function extractServerInfo(

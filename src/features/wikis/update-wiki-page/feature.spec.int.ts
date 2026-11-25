@@ -1,6 +1,6 @@
 import { updateWikiPage } from './feature';
 import { shouldSkipIntegrationTest } from '@/shared/test/test-helpers';
-import { getOrgNameFromUrl } from '@/utils/environment';
+import { getOrgNameFromUrl } from '@/shared/azure-devops-url';
 
 const shouldSkip = shouldSkipIntegrationTest();
 const describeOrSkip = shouldSkip ? describe.skip : describe;
@@ -8,7 +8,7 @@ const describeOrSkip = shouldSkip ? describe.skip : describe;
 describeOrSkip('updateWikiPage integration', () => {
   let projectName: string;
   let wikiId: string;
-  let organizationId: string;
+  let organizationId: string | undefined;
 
   beforeAll(async () => {
     projectName = process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'DefaultProject';

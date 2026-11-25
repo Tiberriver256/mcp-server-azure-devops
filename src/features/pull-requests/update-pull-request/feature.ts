@@ -2,10 +2,10 @@ import type { GitPullRequest } from 'azure-devops-node-api/interfaces/GitInterfa
 import type { WebApi } from 'azure-devops-node-api';
 import type { WorkItemRelation } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
-import { AzureDevOpsClient } from '../../../shared/auth/client-factory';
 import { AzureDevOpsError } from '../../../shared/errors';
+import { logError } from '../../../shared/logging';
+import { createSessionFromEnv } from '../../../shared/session/azure-devops-session';
 import type { UpdatePullRequestOptions } from '../types';
-import { AuthenticationMethod } from '../../../shared/auth/auth-factory';
 import { pullRequestStatusMapper } from '../../../shared/enums';
 
 function normalizeTags(tags?: string[]): string[] {
@@ -38,10 +38,12 @@ function normalizeTags(tags?: string[]): string[] {
  * Updates an existing pull request in Azure DevOps with the specified changes.
  *
  * @param options - The options for updating the pull request
+ * @param providedConnection - Optional reusable WebApi connection (preferred)
  * @returns The updated pull request
  */
 export const updatePullRequest = async (
   options: UpdatePullRequestOptions,
+  providedConnection?: WebApi,
 ): Promise<GitPullRequest> => {
   const {
     projectId,
@@ -61,21 +63,8 @@ export const updatePullRequest = async (
   } = options;
 
   try {
-    const rawAuthMethod = process.env.AZURE_DEVOPS_AUTH_METHOD;
-    const authMethod =
-      rawAuthMethod === AuthenticationMethod.AzureIdentity
-        ? AuthenticationMethod.AzureIdentity
-        : rawAuthMethod === AuthenticationMethod.AzureCli
-          ? AuthenticationMethod.AzureCli
-          : AuthenticationMethod.PersonalAccessToken;
-
-    // Get connection to Azure DevOps
-    const client = new AzureDevOpsClient({
-      method: authMethod,
-      organizationUrl: process.env.AZURE_DEVOPS_ORG_URL ?? '',
-      personalAccessToken: process.env.AZURE_DEVOPS_PAT,
-    });
-    const connection = await client.getWebApiClient();
+    const connection =
+      providedConnection ?? (await createSessionFromEnv().getWebApi());
 
     // Get the Git API client
     const gitApi = await connection.getGitApi();
@@ -276,10 +265,13 @@ async function handleWorkItems(
   } = options;
 
   try {
-    // For each work item to add, create a link
-    if (workItemIdsToAdd.length > 0) {
-      const workItemTrackingApi = await connection.getWorkItemTrackingApi();
+    const workItemTrackingApi =
+      workItemIdsToAdd.length > 0 || workItemIdsToRemove.length > 0
+        ? await connection.getWorkItemTrackingApi()
+        : undefined;
 
+    // For each work item to add, create a link
+    if (workItemTrackingApi && workItemIdsToAdd.length > 0) {
       for (const workItemId of workItemIdsToAdd) {
         // Add the relationship between the work item and pull request
         await workItemTrackingApi.updateWorkItem(
@@ -306,9 +298,7 @@ async function handleWorkItems(
     }
 
     // For each work item to remove, remove the link
-    if (workItemIdsToRemove.length > 0) {
-      const workItemTrackingApi = await connection.getWorkItemTrackingApi();
-
+    if (workItemTrackingApi && workItemIdsToRemove.length > 0) {
       for (const workItemId of workItemIdsToRemove) {
         try {
           // First, get the work item with relations expanded
@@ -344,7 +334,7 @@ async function handleWorkItems(
             }
           }
         } catch (error) {
-          console.log(
+          logError(
             `Error removing work item ${workItemId} from pull request ${pullRequestId}: ${
               error instanceof Error ? error.message : String(error)
             }`,
@@ -402,7 +392,7 @@ async function handleReviewers(
             projectId,
           );
         } catch (error) {
-          console.log(
+          logError(
             `Error adding reviewer ${reviewer} to pull request ${pullRequestId}: ${
               error instanceof Error ? error.message : String(error)
             }`,
@@ -422,7 +412,7 @@ async function handleReviewers(
             projectId,
           );
         } catch (error) {
-          console.log(
+          logError(
             `Error removing reviewer ${reviewer} from pull request ${pullRequestId}: ${
               error instanceof Error ? error.message : String(error)
             }`,

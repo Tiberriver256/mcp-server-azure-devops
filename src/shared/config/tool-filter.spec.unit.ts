@@ -1,4 +1,4 @@
-import type { ToolsetName } from './tool-filter';
+import type { ToolLike, ToolsetName } from './tool-filter';
 import {
   normalizeToolsetName,
   parseBooleanOption,
@@ -7,19 +7,16 @@ import {
   resolveEnabledTools,
   TOOLSET_NAMES,
 } from './tool-filter';
-import type { ToolDefinition } from '../types/tool-definition';
 import { AzureDevOpsValidationError } from '../errors';
 
-function makeTool(name: string, readOnly?: boolean): ToolDefinition {
+function makeTool(name: string, readOnly?: boolean): ToolLike {
   return {
     name,
-    description: `${name} description`,
-    inputSchema: { type: 'object', properties: {} },
     ...(readOnly !== undefined ? { readOnly } : {}),
   };
 }
 
-function makeRegistry(): Record<ToolsetName, ToolDefinition[]> {
+function makeRegistry(): Record<ToolsetName, ToolLike[]> {
   return {
     users: [makeTool('get_me', true)],
     organizations: [makeTool('list_organizations', true)],

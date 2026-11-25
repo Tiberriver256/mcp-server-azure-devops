@@ -79,23 +79,13 @@ describeOrSkip('triggerPipeline integration', () => {
   });
 
   test('should handle non-existent pipeline', async () => {
-    // Use a very high ID that is unlikely to exist
     const nonExistentPipelineId = 999999;
 
-    try {
-      // Attempt to trigger a pipeline that shouldn't exist
-      await triggerPipeline(connection, {
+    await expect(
+      triggerPipeline(connection, {
         projectId,
         pipelineId: nonExistentPipelineId,
-      });
-      // If we reach here without an error, we'll fail the test
-      fail(
-        'Expected triggerPipeline to throw an error for non-existent pipeline',
-      );
-    } catch (error) {
-      // We expect an error, so this test passes if we get here
-      expect(error).toBeDefined();
-      // Note: the exact error type might vary depending on the API response
-    }
+      }),
+    ).rejects.toThrow();
   });
 });

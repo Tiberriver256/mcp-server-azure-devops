@@ -1,18 +1,16 @@
 import { z } from 'zod';
-import { defaultProject, defaultOrg } from '../../utils/environment';
+
+const defaultProjectDesc =
+  'The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT)';
+const defaultOrgDesc =
+  'The ID or name of the organization (defaults to configured organization)';
 
 /**
  * Schema for creating a pull request
  */
 export const CreatePullRequestSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   repositoryId: z.string().describe('The ID or name of the repository'),
   title: z.string().describe('The title of the pull request'),
   description: z
@@ -52,10 +50,7 @@ export const CreatePullRequestSchema = z.object({
  */
 export const GetPullRequestSchema = z.object({
   projectId: z.string().describe('The ID or name of the project'),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   pullRequestId: z.number().describe('The ID of the pull request'),
 });
 
@@ -63,14 +58,8 @@ export const GetPullRequestSchema = z.object({
  * Schema for listing pull requests
  */
 export const ListPullRequestsSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   repositoryId: z.string().describe('The ID or name of the repository'),
   status: z
     .enum(['all', 'active', 'completed', 'abandoned'])
@@ -100,14 +89,8 @@ export const ListPullRequestsSchema = z.object({
  * Schema for getting pull request comments
  */
 export const GetPullRequestCommentsSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   repositoryId: z.string().describe('The ID or name of the repository'),
   pullRequestId: z.number().describe('The ID of the pull request'),
   threadId: z
@@ -129,14 +112,8 @@ export const GetPullRequestCommentsSchema = z.object({
  */
 export const AddPullRequestCommentSchema = z
   .object({
-    projectId: z
-      .string()
-      .optional()
-      .describe(`The ID or name of the project (Default: ${defaultProject})`),
-    organizationId: z
-      .string()
-      .optional()
-      .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+    projectId: z.string().optional().describe(defaultProjectDesc),
+    organizationId: z.string().optional().describe(defaultOrgDesc),
     repositoryId: z
       .string()
       .optional()
@@ -217,14 +194,8 @@ export const AddPullRequestCommentSchema = z
  * Schema for updating a pull request
  */
 export const UpdatePullRequestSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   repositoryId: z.string().describe('The ID or name of the repository'),
   pullRequestId: z.number().describe('The ID of the pull request to update'),
   title: z
@@ -279,14 +250,8 @@ export const UpdatePullRequestSchema = z.object({
  * Schema for getting pull request changes and policy evaluations
  */
 export const GetPullRequestChangesSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   repositoryId: z.string().describe('The ID or name of the repository'),
   pullRequestId: z.number().describe('The ID of the pull request'),
 });
@@ -295,14 +260,8 @@ export const GetPullRequestChangesSchema = z.object({
  * Schema for retrieving pull request status checks and policy evaluations
  */
 export const GetPullRequestChecksSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   repositoryId: z.string().describe('The ID or name of the repository'),
   pullRequestId: z.number().describe('The ID of the pull request'),
 });
@@ -324,14 +283,8 @@ export const GetPullRequestChangesResponseSchema = z.object({
  * Schema for updating pull request thread status
  */
 export const UpdatePullRequestThreadStatusSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   repositoryId: z
     .string()
     .optional()
@@ -362,7 +315,7 @@ export const MergePullRequestSchema = z
       .string()
       .optional()
       .describe(
-        `The ID or name of the project (Default: ${defaultProject}; derived from pullRequestId when omitted and no default project is configured)`,
+        'The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT; derived from pullRequestId when omitted and no default project is configured)',
       ),
     repositoryId: z
       .string()

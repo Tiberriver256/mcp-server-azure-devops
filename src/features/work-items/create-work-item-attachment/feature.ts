@@ -1,18 +1,14 @@
 import type { WebApi } from 'azure-devops-node-api';
 import { WorkItemExpand } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import * as fs from 'fs';
+import * as fsp from 'fs/promises';
 import * as path from 'path';
-import { Readable } from 'stream';
 import { AzureDevOpsError } from '../../../shared/errors';
 import type { CreateWorkItemAttachmentOptions, WorkItem } from '../types';
 
 /**
- * Create an attachment on a work item
- *
- * @param connection The Azure DevOps WebApi connection
- * @param workItemId The ID of the work item to attach the file to
- * @param options Options for creating the attachment
- * @returns The updated work item with the attachment
+ * Create an attachment on a work item by streaming directly from disk
+ * (avoids buffering entire attachment files in RAM).
  */
 export async function createWorkItemAttachment(
   connection: WebApi,
@@ -20,40 +16,39 @@ export async function createWorkItemAttachment(
   options: CreateWorkItemAttachmentOptions,
 ): Promise<WorkItem> {
   try {
-    // Validate required parameters
     if (!options.filePath) {
       throw new Error('File path is required');
     }
 
-    // Check if file exists
-    if (!fs.existsSync(options.filePath)) {
+    try {
+      await fsp.access(options.filePath, fs.constants.R_OK);
+    } catch {
       throw new Error(`File does not exist: ${options.filePath}`);
     }
 
     const witApi = await connection.getWorkItemTrackingApi();
-
-    // Read the file content and convert to a readable stream
-    const fileBuffer = fs.readFileSync(options.filePath);
-    const fileStream = Readable.from(fileBuffer);
-
-    // Determine the file name
     const fileName = options.fileName || path.basename(options.filePath);
+    const fileStream = fs.createReadStream(options.filePath);
 
-    // Upload the attachment
-    // Signature: createAttachment(customHeaders, contentStream, fileName, uploadType, project, areaPath)
-    const attachmentResult = await witApi.createAttachment(
-      {},
-      fileStream,
-      fileName,
-      undefined, // uploadType (defaults to Simple)
-      undefined, // project
-    );
+    let attachmentResult;
+    try {
+      attachmentResult = await witApi.createAttachment(
+        {},
+        fileStream,
+        fileName,
+        undefined,
+        undefined,
+      );
+    } finally {
+      if (!fileStream.destroyed) {
+        fileStream.destroy();
+      }
+    }
 
     if (!attachmentResult || !attachmentResult.url) {
       throw new Error('Failed to upload attachment');
     }
 
-    // Create the JSON patch document to add the attachment relation
     const document = [
       {
         op: 'add',
@@ -69,16 +64,15 @@ export async function createWorkItemAttachment(
       },
     ];
 
-    // Update the work item to add the attachment relation
     const updatedWorkItem = await witApi.updateWorkItem(
-      {}, // customHeaders
+      {},
       document,
       workItemId,
-      undefined, // project
-      false, // validateOnly
-      false, // bypassRules
-      false, // suppressNotifications
-      WorkItemExpand.All, // expand
+      undefined,
+      false,
+      false,
+      false,
+      WorkItemExpand.All,
     );
 
     if (!updatedWorkItem) {

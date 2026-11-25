@@ -1,184 +1,102 @@
-import { listOrganizations } from './feature';
+import { AuthenticationMethod } from '../../../shared/auth';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsValidationError,
 } from '../../../shared/errors';
-import axios from 'axios';
-import { AuthenticationMethod } from '../../../shared/auth';
+import { HttpError } from '../../../shared/http/http-client';
+import type { HttpRequestOptions } from '../../../shared/http/http-client';
+import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session';
+import { listOrganizations } from './feature';
 
-// Mock axios
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+function makeContext(
+  handler: (
+    req: HttpRequestOptions,
+  ) => Promise<{ status: number; data: unknown }>,
+  organizationUrl = 'https://dev.azure.com/test-org',
+) {
+  const http = {
+    request: async <T = unknown>(req: HttpRequestOptions) => {
+      const res = await handler(req);
+      return { status: res.status, headers: {}, data: res.data as T };
+    },
+    get: <T = unknown>(
+      url: string,
+      opts?: Omit<HttpRequestOptions, 'method' | 'url' | 'body'>,
+    ) => http.request<T>({ ...opts, method: 'GET', url }),
+    post: <T = unknown>(
+      url: string,
+      body?: unknown,
+      opts?: Omit<HttpRequestOptions, 'method' | 'url' | 'body'>,
+    ) => http.request<T>({ ...opts, method: 'POST', url, body }),
+    put: <T = unknown>(
+      url: string,
+      body?: unknown,
+      opts?: Omit<HttpRequestOptions, 'method' | 'url' | 'body'>,
+    ) => http.request<T>({ ...opts, method: 'PUT', url, body }),
+  };
 
-// Mock Azure Identity
-jest.mock('@azure/identity', () => ({
-  DefaultAzureCredential: jest.fn().mockImplementation(() => ({
-    getToken: jest.fn().mockResolvedValue({ token: 'mock-token' }),
-  })),
-  AzureCliCredential: jest.fn().mockImplementation(() => ({
-    getToken: jest.fn().mockResolvedValue({ token: 'mock-token' }),
-  })),
-}));
+  return createAzureDevOpsSession(
+    {
+      organizationUrl,
+      authMethod: AuthenticationMethod.PersonalAccessToken,
+      personalAccessToken: 'secret-pat-value',
+    },
+    { httpClient: http },
+  );
+}
 
-describe('listOrganizations unit', () => {
-  afterEach(() => {
-    jest.clearAllMocks();
+describe('listOrganizations', () => {
+  it('fetches profile publicAlias and maps accessible organizations', async () => {
+    const urls: string[] = [];
+    const ctx = makeContext(async (req) => {
+      urls.push(req.url);
+      if (req.url.includes('/_apis/profile/profiles/me')) {
+        return { status: 200, data: { publicAlias: 'user-alias-123' } };
+      }
+      return {
+        status: 200,
+        data: {
+          value: [
+            {
+              accountId: 'id-1',
+              accountName: 'org-one',
+              accountUri: 'https://dev.azure.com/org-one',
+            },
+          ],
+        },
+      };
+    });
+
+    const orgs = await listOrganizations(ctx);
+    expect(orgs).toEqual([
+      { id: 'id-1', name: 'org-one', url: 'https://dev.azure.com/org-one' },
+    ]);
+    expect(urls[1]).toContain('memberId=user-alias-123');
   });
 
-  test('should throw error when PAT is not provided with PAT auth method', async () => {
-    // Arrange
-    const config = {
-      organizationUrl: 'https://dev.azure.com/test-org',
-      authMethod: AuthenticationMethod.PersonalAccessToken,
-      // No PAT provided
-    };
-
-    // Act & Assert
-    await expect(listOrganizations(config)).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
+  it('rejects on-premises Azure DevOps Server URLs', async () => {
+    const ctx = makeContext(
+      async () => ({ status: 200, data: {} }),
+      'https://ado.local/tfs/DefaultCollection',
     );
-    await expect(listOrganizations(config)).rejects.toThrow(
-      'Personal Access Token (PAT) is required',
-    );
-  });
 
-  test('should reject Azure DevOps Server organizationUrl', async () => {
-    const config = {
-      organizationUrl: 'https://ado.local/tfs/DefaultCollection',
-      authMethod: AuthenticationMethod.PersonalAccessToken,
-      personalAccessToken: 'test-pat',
-    };
-
-    await expect(listOrganizations(config)).rejects.toThrow(
+    await expect(listOrganizations(ctx)).rejects.toThrow(
       AzureDevOpsValidationError,
     );
   });
 
-  test('should throw authentication error when profile API fails', async () => {
-    // Arrange
-    const config = {
-      organizationUrl: 'https://dev.azure.com/test-org',
-      authMethod: AuthenticationMethod.PersonalAccessToken,
-      personalAccessToken: 'test-pat',
-    };
-
-    // Mock axios to throw an error with properties expected by axios.isAxiosError
-    const axiosError = new Error('Unauthorized');
-    // Add axios error properties
-    (axiosError as any).isAxiosError = true;
-    (axiosError as any).config = {
-      url: 'https://app.vssps.visualstudio.com/_apis/profile/profiles/me',
-    };
-
-    // Setup the mock for the first call
-    mockedAxios.get.mockRejectedValueOnce(axiosError);
-
-    // Act & Assert - Test with a fresh call each time to avoid test sequence issues
-    await expect(listOrganizations(config)).rejects.toThrow(
-      AzureDevOpsAuthenticationError,
-    );
-
-    // Reset mock and set it up again for the second call
-    mockedAxios.get.mockReset();
-    mockedAxios.get.mockRejectedValueOnce(axiosError);
-
-    await expect(listOrganizations(config)).rejects.toThrow(
-      /Authentication failed/,
-    );
-  });
-
-  test('should include status and never leak Authorization headers on profile errors', async () => {
-    const config = {
-      organizationUrl: 'https://dev.azure.com/test-org',
-      authMethod: AuthenticationMethod.PersonalAccessToken,
-      personalAccessToken: 'super-secret-pat',
-    };
-
-    const axiosError = Object.assign(new Error('Request failed with 401'), {
-      isAxiosError: true,
-      response: { status: 401 },
-      config: {
-        url: 'https://app.vssps.visualstudio.com/_apis/profile/profiles/me',
-        headers: { Authorization: 'Basic c3VwZXItc2VjcmV0LXBhdA==' },
-      },
-      toJSON: () => ({
+  it('maps profile HTTP 401 to AzureDevOpsAuthenticationError without leaking PAT', async () => {
+    const ctx = makeContext(async (req) => {
+      throw new HttpError({
+        message: 'Unauthorized',
         status: 401,
-        config: {
-          headers: { Authorization: 'Basic c3VwZXItc2VjcmV0LXBhdA==' },
-        },
-      }),
+        statusText: 'Unauthorized',
+        url: req.url,
+      });
     });
 
-    mockedAxios.isAxiosError.mockReturnValueOnce(true);
-    mockedAxios.get.mockRejectedValueOnce(axiosError);
-
-    try {
-      await listOrganizations(config);
-      fail('Expected AzureDevOpsAuthenticationError');
-    } catch (error) {
-      expect(error).toBeInstanceOf(AzureDevOpsAuthenticationError);
-      const message = (error as Error).message;
-      expect(message).toBe(
-        'Authentication failed: Request failed with 401 (status 401)',
-      );
-      expect(message).not.toContain('Authorization');
-      expect(message).not.toContain('c3VwZXItc2VjcmV0LXBhdA==');
-      expect(message).not.toContain('super-secret-pat');
-    }
-  });
-
-  test('should transform organization response correctly', async () => {
-    // Arrange
-    const config = {
-      organizationUrl: 'https://dev.azure.com/test-org',
-      authMethod: AuthenticationMethod.PersonalAccessToken,
-      personalAccessToken: 'test-pat',
-    };
-
-    // Mock profile API response
-    mockedAxios.get.mockImplementationOnce(() =>
-      Promise.resolve({
-        data: {
-          publicAlias: 'test-alias',
-        },
-      }),
-    );
-
-    // Mock organizations API response
-    mockedAxios.get.mockImplementationOnce(() =>
-      Promise.resolve({
-        data: {
-          value: [
-            {
-              accountId: 'org-id-1',
-              accountName: 'org-name-1',
-              accountUri: 'https://dev.azure.com/org-name-1',
-            },
-            {
-              accountId: 'org-id-2',
-              accountName: 'org-name-2',
-              accountUri: 'https://dev.azure.com/org-name-2',
-            },
-          ],
-        },
-      }),
-    );
-
-    // Act
-    const result = await listOrganizations(config);
-
-    // Assert
-    expect(result).toEqual([
-      {
-        id: 'org-id-1',
-        name: 'org-name-1',
-        url: 'https://dev.azure.com/org-name-1',
-      },
-      {
-        id: 'org-id-2',
-        name: 'org-name-2',
-        url: 'https://dev.azure.com/org-name-2',
-      },
-    ]);
+    const err = await listOrganizations(ctx).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AzureDevOpsAuthenticationError);
+    expect((err as Error).message).not.toContain('secret-pat-value');
   });
 });

@@ -5,7 +5,7 @@ import {
   getTestConnection,
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
-import { getOrgNameFromUrl } from '@/utils/environment';
+import { getOrgNameFromUrl } from '@/shared/azure-devops-url';
 
 process.env.AZURE_DEVOPS_DEFAULT_PROJECT =
   process.env.AZURE_DEVOPS_DEFAULT_PROJECT || 'default-project';

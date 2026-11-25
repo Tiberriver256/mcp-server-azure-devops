@@ -1,6 +1,8 @@
 import type { WebApi } from 'azure-devops-node-api';
 import * as fs from 'fs';
+import * as fsp from 'fs/promises';
 import * as path from 'path';
+import { pipeline } from 'stream/promises';
 import { AzureDevOpsError } from '../../../shared/errors';
 import type {
   GetWorkItemAttachmentOptions,
@@ -8,18 +10,14 @@ import type {
 } from '../types';
 
 /**
- * Get an attachment from a work item and save it to the local filesystem
- *
- * @param connection The Azure DevOps WebApi connection
- * @param options Options for getting the attachment
- * @returns The result of the operation including file path and size
+ * Download an attachment from a work item and save it to disk using
+ * backpressure-aware stream pipelining with automatic partial-file cleanup.
  */
 export async function getWorkItemAttachment(
   connection: WebApi,
   options: GetWorkItemAttachmentOptions,
 ): Promise<GetWorkItemAttachmentResult> {
   try {
-    // Validate required parameters
     if (!options.attachmentId) {
       throw new Error('Attachment ID is required');
     }
@@ -29,8 +27,6 @@ export async function getWorkItemAttachment(
     }
 
     const witApi = await connection.getWorkItemTrackingApi();
-
-    // Download the attachment content
     const attachmentStream = await witApi.getAttachmentContent(
       options.attachmentId,
     );
@@ -39,30 +35,24 @@ export async function getWorkItemAttachment(
       throw new Error('Failed to download attachment: No content received');
     }
 
-    // Ensure the output directory exists
     const outputDir = path.dirname(options.outputPath);
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+    await fsp.mkdir(outputDir, { recursive: true });
 
-    // Write the attachment to the output file
     const writeStream = fs.createWriteStream(options.outputPath);
-
-    await new Promise<void>((resolve, reject) => {
-      attachmentStream.pipe(writeStream);
-      attachmentStream.on('error', reject);
-      writeStream.on('error', reject);
-      writeStream.on('finish', resolve);
-    });
+    try {
+      await pipeline(attachmentStream, writeStream);
+    } catch (streamError) {
+      await fsp.unlink(options.outputPath).catch(() => undefined);
+      throw streamError;
+    }
 
     // Azure DevOps may return an HTML/JSON error body for invalid attachment
     // IDs instead of throwing; detect that and surface a not-found error.
-    const statsBeforeCheck = fs.statSync(options.outputPath);
-    if (statsBeforeCheck.size > 0 && statsBeforeCheck.size < 4096) {
-      const preview = fs
-        .readFileSync(options.outputPath)
-        .toString('utf8')
-        .toLowerCase();
+    const stats = await fsp.stat(options.outputPath);
+    if (stats.size > 0 && stats.size < 4096) {
+      const preview = (
+        await fsp.readFile(options.outputPath, 'utf8')
+      ).toLowerCase();
       if (
         preview.includes('<!doctype') ||
         preview.includes('<html') ||
@@ -71,15 +61,12 @@ export async function getWorkItemAttachment(
         preview.includes('"typekey"') ||
         preview.includes('exception')
       ) {
-        fs.unlinkSync(options.outputPath);
+        await fsp.unlink(options.outputPath).catch(() => undefined);
         throw new Error(
           `Failed to get attachment: Attachment not found (${options.attachmentId})`,
         );
       }
     }
-
-    // Get the file size
-    const stats = fs.statSync(options.outputPath);
 
     return {
       filePath: options.outputPath,

@@ -1,6 +1,6 @@
 import type { WebApi } from 'azure-devops-node-api';
 import { createWiki } from './feature';
-import { WikiType } from './schema';
+import { WikiType } from '../schemas';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,

@@ -1,5 +1,3 @@
-import axios from 'axios';
-import JSZip from 'jszip';
 import type { WebApi } from 'azure-devops-node-api';
 import type {
   BuildArtifact,
@@ -8,16 +6,32 @@ import type {
 import type { FileContainerItem } from 'azure-devops-node-api/interfaces/FileContainerInterfaces';
 import { ContainerItemType } from 'azure-devops-node-api/interfaces/FileContainerInterfaces';
 import { GetArtifactExpandOptions } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
+import { createHttpClient } from '../../shared/http/http-client';
+import type { HttpClient } from '../../shared/http/http-client';
+import type { ToolContext } from '../../shared/session/azure-devops-session';
+import { readZipArchive } from '../../shared/utils/zip-reader';
 import type { PipelineArtifactItem, PipelineRunArtifact } from './types';
 
-interface ArtifactContainerInfo {
+export interface ArtifactContainerInfo {
   containerId?: number;
   rootPath?: string;
 }
 
-const MAX_ITEMS_PER_ARTIFACT = 200;
+export const MAX_ITEMS_PER_ARTIFACT = 200;
+export const MAX_ARTIFACT_ZIP_BYTES = 25 * 1024 * 1024; // 25 MiB cap to prevent OOM on large artifacts
 
-function extractContainerInfo(
+function isSameOrigin(targetUrl: string, serverUrl?: string): boolean {
+  if (!serverUrl) {
+    return false;
+  }
+  try {
+    return new URL(targetUrl).origin === new URL(serverUrl).origin;
+  } catch {
+    return false;
+  }
+}
+
+export function extractContainerInfo(
   resource?: ArtifactResource,
 ): ArtifactContainerInfo {
   const data = resource?.data;
@@ -62,12 +76,12 @@ function normalizePathSegment(segment: string): string {
   return segment.replace(/^[\\/]+|[\\/]+$/g, '');
 }
 
-function normalizeFullPath(path: string): string {
-  return path.replace(/\\+/g, '/').replace(/^\/+/, '');
+function normalizeFullPath(filePath: string): string {
+  return filePath.replace(/\\+/g, '/').replace(/^\/+/, '');
 }
 
-function makeRelativePath(path: string, prefixes: string[]): string {
-  const normalized = normalizeFullPath(path);
+export function makeRelativePath(filePath: string, prefixes: string[]): string {
+  const normalized = normalizeFullPath(filePath);
   const filteredPrefixes = prefixes
     .map((prefix) => normalizePathSegment(prefix))
     .filter((prefix) => prefix.length > 0)
@@ -85,7 +99,7 @@ function makeRelativePath(path: string, prefixes: string[]): string {
   return normalized;
 }
 
-function mapContainerItems(
+export function mapContainerItems(
   items: FileContainerItem[],
   artifact: PipelineRunArtifact,
 ): { items: PipelineArtifactItem[]; truncated: boolean } {
@@ -99,11 +113,7 @@ function mapContainerItems(
 
   for (const item of items) {
     const relative = makeRelativePath(item.path, basePrefixes);
-    if (relative.length === 0) {
-      continue;
-    }
-
-    if (uniquePaths.has(relative)) {
+    if (relative.length === 0 || uniquePaths.has(relative)) {
       continue;
     }
     uniquePaths.add(relative);
@@ -191,6 +201,9 @@ async function listContainerItems(
 
 async function listPipelineArtifactItems(
   artifact: PipelineRunArtifact,
+  httpClient: HttpClient,
+  serverUrl?: string,
+  ctx?: ToolContext,
 ): Promise<{ items?: PipelineArtifactItem[]; truncated?: boolean }> {
   const downloadUrl =
     artifact.signedContentUrl || artifact.downloadUrl || artifact.resourceUrl;
@@ -200,69 +213,72 @@ async function listPipelineArtifactItems(
   }
 
   try {
-    const response = await axios.get<ArrayBuffer>(downloadUrl, {
+    const headers: Record<string, string> = {};
+    if (
+      ctx &&
+      !artifact.signedContentUrl &&
+      isSameOrigin(downloadUrl, serverUrl)
+    ) {
+      headers.Authorization = await ctx.getAuthHeader();
+    }
+
+    const response = await httpClient.get<ArrayBuffer>(downloadUrl, {
+      headers,
       responseType: 'arraybuffer',
+      maxResponseBytes: MAX_ARTIFACT_ZIP_BYTES,
     });
 
-    const zip = await JSZip.loadAsync(response.data);
+    const zip = readZipArchive(response.data);
     const basePrefixes = [artifact.name, artifact.rootPath].filter(
       (value): value is string => typeof value === 'string' && value.length > 0,
     );
 
-    const items: PipelineArtifactItem[] = [];
-    const directories = new Set<string>();
-
+    const itemsByPath = new Map<string, PipelineArtifactItem>();
+    let fileCount = 0;
     let hitLimit = false;
 
-    zip.forEach((entryPath, entry) => {
+    for (const entry of zip.entries) {
       if (hitLimit) {
-        return;
+        break;
       }
 
-      const relative = makeRelativePath(entryPath, basePrefixes);
+      const relative = makeRelativePath(entry.name, basePrefixes);
       if (relative.length === 0) {
-        return;
+        continue;
       }
 
-      if (entry.dir) {
+      if (entry.isDirectory) {
         const folderPath = relative.replace(/\/+$/, '');
-        if (folderPath.length > 0) {
-          directories.add(folderPath);
+        if (folderPath.length > 0 && !itemsByPath.has(folderPath)) {
+          itemsByPath.set(folderPath, { path: folderPath, itemType: 'folder' });
         }
-        return;
+        continue;
       }
 
-      // Ensure parent folders are recorded even when the archive omits explicit entries
+      // Ensure parent folders are recorded even when the archive omits explicit directory entries
       const segments = relative.split('/');
-      if (segments.length > 1) {
-        for (let i = 1; i < segments.length; i += 1) {
-          const folder = segments.slice(0, i).join('/');
-          directories.add(folder);
+      for (let i = 1; i < segments.length; i += 1) {
+        const folder = segments.slice(0, i).join('/');
+        if (!itemsByPath.has(folder)) {
+          itemsByPath.set(folder, { path: folder, itemType: 'folder' });
         }
       }
 
-      items.push({
+      itemsByPath.set(relative, {
         path: relative,
         itemType: 'file',
+        size: entry.uncompressedSize,
       });
+      fileCount += 1;
 
-      if (items.length >= MAX_ITEMS_PER_ARTIFACT) {
+      if (fileCount >= MAX_ITEMS_PER_ARTIFACT) {
         hitLimit = true;
       }
-    });
+    }
 
-    const folderItems: PipelineArtifactItem[] = Array.from(directories)
-      .filter((folder) => folder.length > 0)
-      .map((folder) => ({ path: folder, itemType: 'folder' }));
-
-    const combined = [...folderItems, ...items]
-      .filter((entry, index, array) => {
-        const duplicateIndex = array.findIndex(
-          (candidate) => candidate.path === entry.path,
-        );
-        return duplicateIndex === index;
-      })
-      .sort((a, b) => a.path.localeCompare(b.path));
+    const combined = Array.from(itemsByPath.values()).sort((a, b) =>
+      a.path.localeCompare(b.path),
+    );
 
     const truncated = hitLimit || combined.length > MAX_ITEMS_PER_ARTIFACT;
     return {
@@ -279,6 +295,7 @@ export async function fetchRunArtifacts(
   projectId: string,
   runId: number,
   pipelineId?: number,
+  ctx?: ToolContext,
 ): Promise<PipelineRunArtifact[]> {
   try {
     const buildApi = await connection.getBuildApi();
@@ -292,6 +309,7 @@ export async function fetchRunArtifacts(
     }
 
     const summaries = artifacts.map(mapBuildArtifact);
+    const httpClient = ctx?.http ?? createHttpClient();
 
     if (typeof pipelineId === 'number') {
       const pipelinesApi = await connection.getPipelinesApi();
@@ -333,14 +351,21 @@ export async function fetchRunArtifacts(
         }
 
         if (artifactType?.includes('pipelineartifact')) {
-          collectors.push(listPipelineArtifactItems(artifact));
+          collectors.push(
+            listPipelineArtifactItems(
+              artifact,
+              httpClient,
+              connection.serverUrl,
+              ctx,
+            ),
+          );
         }
 
         if (collectors.length === 0) {
           return artifact;
         }
 
-        let aggregatedItems: PipelineArtifactItem[] | undefined;
+        const merged = new Map<string, PipelineArtifactItem>();
         let truncated = false;
 
         for (const collector of collectors) {
@@ -349,23 +374,22 @@ export async function fetchRunArtifacts(
             if (!result.items || result.items.length === 0) {
               continue;
             }
-
-            aggregatedItems = aggregatedItems
-              ? [...aggregatedItems, ...result.items]
-              : result.items;
+            for (const item of result.items) {
+              merged.set(item.path, item);
+            }
             truncated = truncated || Boolean(result.truncated);
           } catch {
             // Continue to next collector
           }
         }
 
-        if (!aggregatedItems || aggregatedItems.length === 0) {
+        if (merged.size === 0) {
           return artifact;
         }
 
-        const uniqueItems = Array.from(
-          new Map(aggregatedItems.map((item) => [item.path, item])).values(),
-        ).sort((a, b) => a.path.localeCompare(b.path));
+        const uniqueItems = Array.from(merged.values()).sort((a, b) =>
+          a.path.localeCompare(b.path),
+        );
 
         return {
           ...artifact,

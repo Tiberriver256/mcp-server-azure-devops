@@ -6,7 +6,7 @@ import {
   getTestConnection,
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
-import { getOrgNameFromUrl } from '@/utils/environment';
+import { getOrgNameFromUrl } from '@/shared/azure-devops-url';
 import { AzureDevOpsError } from '@/shared/errors/azure-devops-errors';
 
 // Ensure environment variables are set for testing
@@ -21,7 +21,7 @@ describeOrSkip('listWikiPages integration', () => {
   let wikiName: string;
   let projectName: string;
   let orgUrl: string;
-  let organizationId: string;
+  let organizationId: string | undefined;
 
   beforeAll(async () => {
     // Mock the required environment variable for testing

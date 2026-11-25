@@ -1,18 +1,16 @@
 import { z } from 'zod';
-import { defaultProject, defaultOrg } from '../../utils/environment';
+
+const defaultProjectDesc =
+  'The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT)';
+const defaultOrgDesc =
+  'The ID or name of the organization (defaults to configured organization)';
 
 /**
  * Schema for getting a repository
  */
 export const GetRepositorySchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   repositoryId: z.string().describe('The ID or name of the repository'),
 });
 
@@ -20,14 +18,8 @@ export const GetRepositorySchema = z.object({
  * Schema for getting detailed repository information
  */
 export const GetRepositoryDetailsSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   repositoryId: z.string().describe('The ID or name of the repository'),
   includeStatistics: z
     .boolean()
@@ -55,14 +47,8 @@ export const GetRepositoryDetailsSchema = z.object({
  * Schema for listing repositories
  */
 export const ListRepositoriesSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   includeLinks: z
     .boolean()
     .optional()
@@ -73,14 +59,8 @@ export const ListRepositoriesSchema = z.object({
  * Schema for getting file content
  */
 export const GetFileContentSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   repositoryId: z.string().describe('The ID or name of the repository'),
   path: z
     .string()
@@ -101,16 +81,8 @@ export const GetFileContentSchema = z.object({
  * Schema for getting all repositories tree structure
  */
 export const GetAllRepositoriesTreeSchema = z.object({
-  organizationId: z
-    .string()
-    .optional()
-    .describe(
-      `The ID or name of the Azure DevOps organization (Default: ${defaultOrg})`,
-    ),
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
+  projectId: z.string().optional().describe(defaultProjectDesc),
   repositoryPattern: z
     .string()
     .optional()
@@ -139,14 +111,8 @@ export const GetAllRepositoriesTreeSchema = z.object({
  * Schema for getting a tree for a single repository
  */
 export const GetRepositoryTreeSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   repositoryId: z.string().describe('The ID or name of the repository'),
   path: z
     .string()
@@ -168,14 +134,8 @@ export const GetRepositoryTreeSchema = z.object({
  */
 export const CreateBranchSchema = z
   .object({
-    projectId: z
-      .string()
-      .optional()
-      .describe(`The ID or name of the project (Default: ${defaultProject})`),
-    organizationId: z
-      .string()
-      .optional()
-      .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+    projectId: z.string().optional().describe(defaultProjectDesc),
+    organizationId: z.string().optional().describe(defaultOrgDesc),
     repositoryId: z.string().describe('The ID or name of the repository'),
     sourceBranch: z
       .string()
@@ -199,14 +159,8 @@ export const CreateBranchSchema = z
  */
 export const CreateCommitSchema = z
   .object({
-    projectId: z
-      .string()
-      .optional()
-      .describe(`The ID or name of the project (Default: ${defaultProject})`),
-    organizationId: z
-      .string()
-      .optional()
-      .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+    projectId: z.string().optional().describe(defaultProjectDesc),
+    organizationId: z.string().optional().describe(defaultOrgDesc),
     repositoryId: z.string().describe('The ID or name of the repository'),
     branchName: z
       .string()
@@ -321,14 +275,8 @@ export const CreateCommitSchema = z
  * Schema for listing commits on a branch
  */
 export const ListCommitsSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
-  organizationId: z
-    .string()
-    .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+  projectId: z.string().optional().describe(defaultProjectDesc),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
   repositoryId: z.string().describe('The ID or name of the repository'),
   branchName: z.string().describe('Branch name to list commits from'),
   top: z

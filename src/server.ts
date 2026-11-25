@@ -1,133 +1,157 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   CallToolRequestSchema,
-  ListToolsRequestSchema,
   ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type { WebApi } from 'azure-devops-node-api';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import type { ToolsetName } from './shared/config';
 import { VERSION, resolveEnabledTools } from './shared/config';
-import type { AzureDevOpsConfig } from './shared/types';
-import type { ToolDefinition } from './shared/types/tool-definition';
+import type { AzureDevOpsConfig, ToolDefinition } from './shared/types';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
+  handleResponseError,
 } from './shared/errors';
-import { handleResponseError } from './shared/errors/handle-request-error';
-import { AuthenticationMethod, AzureDevOpsClient } from './shared/auth';
-// Import environment defaults when needed in feature handlers
-
-// Import feature modules with request handlers and tool definitions
+import { logError } from './shared/logging';
+import { createAzureDevOpsSession } from './shared/session/azure-devops-session';
+import type { CreateSessionOptions } from './shared/session/azure-devops-session';
+import type {
+  FeatureModule,
+  RegisteredTool,
+} from './shared/registry/tool-registry';
 import {
-  workItemsTools,
-  isWorkItemsRequest,
-  handleWorkItemsRequest,
-} from './features/work-items';
+  ADO_RESOURCE_TEMPLATES,
+  getMimeType,
+  parseAdoResourceUri,
+} from './shared/resources/ado-resource-uri';
 
-import {
-  projectsTools,
-  isProjectsRequest,
-  handleProjectsRequest,
-} from './features/projects';
+import { usersFeature } from './features/users';
+import { organizationsFeature } from './features/organizations';
+import { projectsFeature } from './features/projects';
+import { repositoriesFeature, getFileContent } from './features/repositories';
+import { workItemsFeature } from './features/work-items';
+import { searchFeature } from './features/search';
+import { pullRequestsFeature } from './features/pull-requests';
+import { pipelinesFeature } from './features/pipelines';
+import { wikisFeature } from './features/wikis';
+import { testPlansFeature } from './features/test-plans';
 
-import {
-  repositoriesTools,
-  isRepositoriesRequest,
-  handleRepositoriesRequest,
-} from './features/repositories';
-
-import {
-  organizationsTools,
-  isOrganizationsRequest,
-  handleOrganizationsRequest,
-} from './features/organizations';
-
-import {
-  searchTools,
-  isSearchRequest,
-  handleSearchRequest,
-} from './features/search';
-
-import {
-  usersTools,
-  isUsersRequest,
-  handleUsersRequest,
-} from './features/users';
-
-import {
-  pullRequestsTools,
-  isPullRequestsRequest,
-  handlePullRequestsRequest,
-} from './features/pull-requests';
-
-import {
-  pipelinesTools,
-  isPipelinesRequest,
-  handlePipelinesRequest,
-} from './features/pipelines';
-
-import {
-  wikisTools,
-  isWikisRequest,
-  handleWikisRequest,
-} from './features/wikis';
-
-import {
-  testPlansTools,
-  isTestPlansRequest,
-  handleTestPlansRequest,
-} from './features/test-plans';
-
-// Create a safe console logging function that won't interfere with MCP protocol
-function safeLog(message: string) {
-  process.stderr.write(`${message}\n`);
-}
-
-/**
- * Type definition for the Azure DevOps MCP Server
- */
 export type AzureDevOpsServer = Server;
 
+const FEATURE_MODULES: readonly FeatureModule[] = [
+  usersFeature,
+  organizationsFeature,
+  projectsFeature,
+  repositoriesFeature,
+  workItemsFeature,
+  searchFeature,
+  pullRequestsFeature,
+  pipelinesFeature,
+  wikisFeature,
+  testPlansFeature,
+];
+
 /**
- * Returns the full tool registry grouped by toolset name.
+ * Returns registered executable tools grouped by toolset name (without
+ * eagerly converting Zod schemas to JSON Schema).
  */
-export function getToolRegistry(): Record<ToolsetName, ToolDefinition[]> {
+export function getRegisteredToolRegistry(): Record<
+  ToolsetName,
+  readonly RegisteredTool[]
+> {
   return {
-    users: usersTools,
-    organizations: organizationsTools,
-    projects: projectsTools,
-    repositories: repositoriesTools,
-    'work-items': workItemsTools,
-    search: searchTools,
-    'pull-requests': pullRequestsTools,
-    pipelines: pipelinesTools,
-    wikis: wikisTools,
-    'test-plans': testPlansTools,
+    users: usersFeature.tools,
+    organizations: organizationsFeature.tools,
+    projects: projectsFeature.tools,
+    repositories: repositoriesFeature.tools,
+    'work-items': workItemsFeature.tools,
+    search: searchFeature.tools,
+    'pull-requests': pullRequestsFeature.tools,
+    pipelines: pipelinesFeature.tools,
+    wikis: wikisFeature.tools,
+    'test-plans': testPlansFeature.tools,
   };
 }
 
 /**
- * Create an Azure DevOps MCP Server
- *
- * @param config The Azure DevOps configuration
- * @returns A configured MCP server instance
+ * Returns the full tool definition registry grouped by toolset name.
  */
-export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
-  // Validate the configuration
-  validateConfig(config);
+export function getToolRegistry(): Record<ToolsetName, ToolDefinition[]> {
+  const registered = getRegisteredToolRegistry();
+  return {
+    users: registered.users.map((t) => t.toDefinition()),
+    organizations: registered.organizations.map((t) => t.toDefinition()),
+    projects: registered.projects.map((t) => t.toDefinition()),
+    repositories: registered.repositories.map((t) => t.toDefinition()),
+    'work-items': registered['work-items'].map((t) => t.toDefinition()),
+    search: registered.search.map((t) => t.toDefinition()),
+    'pull-requests': registered['pull-requests'].map((t) => t.toDefinition()),
+    pipelines: registered.pipelines.map((t) => t.toDefinition()),
+    wikis: registered.wikis.map((t) => t.toDefinition()),
+    'test-plans': registered['test-plans'].map((t) => t.toDefinition()),
+  };
+}
 
-  // Resolve active tools upfront so invalid toolsets/filters fail fast
-  const toolCatalog = resolveEnabledTools(getToolRegistry(), {
-    toolsets: config.toolsets,
-    enabledTools: config.enabledTools,
-    disabledTools: config.disabledTools,
-    readOnly: config.readOnly,
+export function getFeatureModules(): readonly FeatureModule[] {
+  return FEATURE_MODULES;
+}
+
+/**
+ * Create an Azure DevOps MCP Server.
+ *
+ * - Validates config and resolves enabled tools upfront (fail-fast).
+ * - Converts Zod schemas to JSON Schema lazily only for enabled tools.
+ * - Uses a single cached AzureDevOpsSession per server instance (no per-call
+ *   connection probes or credential re-instantiation).
+ * - Dispatches tools in O(1) via Map lookup with uniform schema validation.
+ */
+export function createAzureDevOpsServer(
+  config: AzureDevOpsConfig,
+  sessionDeps?: CreateSessionOptions,
+): Server {
+  const session = createAzureDevOpsSession(config, sessionDeps);
+
+  const toolCatalog = resolveEnabledTools(getRegisteredToolRegistry(), {
+    toolsets: session.config.toolsets,
+    enabledTools: session.config.enabledTools,
+    disabledTools: session.config.disabledTools,
+    readOnly: session.config.readOnly,
   });
 
-  // Initialize the MCP server
+  const enabledToolMap = new Map<string, RegisteredTool>();
+  for (const tool of toolCatalog.tools) {
+    enabledToolMap.set(tool.name, tool);
+  }
+
+  let cachedMcpTools: Array<{
+    name: string;
+    description: string;
+    inputSchema: Record<string, unknown>;
+    annotations: { readOnlyHint: boolean };
+  }> | null = null;
+
+  const getMcpTools = () => {
+    if (!cachedMcpTools) {
+      cachedMcpTools = toolCatalog.tools.map((tool) => {
+        const def = tool.toDefinition();
+        return {
+          name: def.name,
+          description: def.description,
+          inputSchema: def.inputSchema,
+          annotations: {
+            readOnlyHint: def.readOnly,
+          },
+        };
+      });
+    }
+    return cachedMcpTools;
+  };
+
   const server = new Server(
     {
       name: 'azure-devops-mcp',
@@ -141,169 +165,101 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
     },
   );
 
-  const mcpTools = toolCatalog.tools.map(
-    ({ name, description, inputSchema, readOnly }) => ({
-      name,
-      description,
-      inputSchema,
-      annotations: {
-        readOnlyHint: readOnly === true,
-      },
-    }),
-  );
-
-  // Register the ListTools request handler
   server.setRequestHandler(ListToolsRequestSchema, () => {
-    return { tools: mcpTools };
+    return { tools: getMcpTools() };
   });
 
-  // Register the resource handlers
-  // ListResources - register available resource templates
-  server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    // Create resource templates for repository content
-    const templates = [
-      // Default branch content
-      {
-        uriTemplate: 'ado://{organization}/{project}/{repo}/contents{/path*}',
-        name: 'Repository Content',
-        description: 'Content from the default branch of a repository',
-      },
-      // Branch specific content
-      {
-        uriTemplate:
-          'ado://{organization}/{project}/{repo}/branches/{branch}/contents{/path*}',
-        name: 'Branch Content',
-        description: 'Content from a specific branch of a repository',
-      },
-      // Commit specific content
-      {
-        uriTemplate:
-          'ado://{organization}/{project}/{repo}/commits/{commit}/contents{/path*}',
-        name: 'Commit Content',
-        description: 'Content from a specific commit in a repository',
-      },
-      // Tag specific content
-      {
-        uriTemplate:
-          'ado://{organization}/{project}/{repo}/tags/{tag}/contents{/path*}',
-        name: 'Tag Content',
-        description: 'Content from a specific tag in a repository',
-      },
-      // Pull request specific content
-      {
-        uriTemplate:
-          'ado://{organization}/{project}/{repo}/pullrequests/{prId}/contents{/path*}',
-        name: 'Pull Request Content',
-        description: 'Content from a specific pull request in a repository',
-      },
-    ];
-
-    return {
-      resources: [],
-      templates,
-    };
+  server.setRequestHandler(ListResourcesRequestSchema, () => {
+    return { resources: [] };
   });
 
-  // ReadResource - handle reading content from the templates
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, () => {
+    return { resourceTemplates: [...ADO_RESOURCE_TEMPLATES] };
+  });
+
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     try {
-      const uri = new URL(request.params.uri);
+      const parsed = parseAdoResourceUri(request.params.uri);
+      const connection = await session.getWebApi(parsed.organization);
 
-      // Parse the URI to extract components
-      const segments = uri.pathname.split('/').filter(Boolean);
+      let versionDescriptor:
+        | { versionType: GitVersionType; version: string }
+        | undefined;
 
-      // Check if it's an Azure DevOps resource URI
-      if (uri.protocol !== 'ado:') {
-        throw new AzureDevOpsResourceNotFoundError(
-          `Unsupported protocol: ${uri.protocol}`,
-        );
-      }
+      switch (parsed.ref.kind) {
+        case 'default':
+          break;
+        case 'branch':
+          versionDescriptor = {
+            versionType: GitVersionType.Branch,
+            version: parsed.ref.branch,
+          };
+          break;
+        case 'commit':
+          versionDescriptor = {
+            versionType: GitVersionType.Commit,
+            version: parsed.ref.commit,
+          };
+          break;
+        case 'tag':
+          versionDescriptor = {
+            versionType: GitVersionType.Tag,
+            version: parsed.ref.tag,
+          };
+          break;
+        case 'pullrequest': {
+          const gitApi = await connection.getGitApi();
+          const pr = await gitApi.getPullRequestById(
+            parsed.ref.pullRequestId,
+            parsed.project,
+          );
+          if (!pr) {
+            throw new AzureDevOpsResourceNotFoundError(
+              `Pull request ${parsed.ref.pullRequestId} not found in project '${parsed.project}'`,
+            );
+          }
 
-      // Extract organization, project, and repo
-      // const organization = segments[0]; // Currently unused but kept for future use
-      const project = segments[1];
-      const repo = segments[2];
+          const sourceCommit = pr.lastMergeSourceCommit?.commitId;
+          const sourceBranch = pr.sourceRefName?.replace(/^refs\/heads\//, '');
 
-      // Get a connection to Azure DevOps
-      const connection = await getConnection(config);
-
-      // Default path is root if not specified
-      let path = '/';
-      // Extract path from the remaining segments, if there are at least 5 segments (org/project/repo/contents/path)
-      if (segments.length >= 5 && segments[3] === 'contents') {
-        path = '/' + segments.slice(4).join('/');
-      }
-
-      // Determine version control parameters based on URI pattern
-      let versionType: number | undefined;
-      let version: string | undefined;
-
-      if (segments[3] === 'branches' && segments.length >= 5) {
-        versionType = GitVersionType.Branch;
-        version = segments[4];
-
-        // Extract path if present
-        if (segments.length >= 7 && segments[5] === 'contents') {
-          path = '/' + segments.slice(6).join('/');
-        }
-      } else if (segments[3] === 'commits' && segments.length >= 5) {
-        versionType = GitVersionType.Commit;
-        version = segments[4];
-
-        // Extract path if present
-        if (segments.length >= 7 && segments[5] === 'contents') {
-          path = '/' + segments.slice(6).join('/');
-        }
-      } else if (segments[3] === 'tags' && segments.length >= 5) {
-        versionType = GitVersionType.Tag;
-        version = segments[4];
-
-        // Extract path if present
-        if (segments.length >= 7 && segments[5] === 'contents') {
-          path = '/' + segments.slice(6).join('/');
-        }
-      } else if (segments[3] === 'pullrequests' && segments.length >= 5) {
-        // TODO: For PR head, we need to get the source branch or commit
-        // Currently just use the default branch as a fallback
-        // versionType = GitVersionType.Branch;
-        // version = 'PR-' + segments[4];
-
-        // Extract path if present
-        if (segments.length >= 7 && segments[5] === 'contents') {
-          path = '/' + segments.slice(6).join('/');
+          if (sourceCommit) {
+            versionDescriptor = {
+              versionType: GitVersionType.Commit,
+              version: sourceCommit,
+            };
+          } else if (sourceBranch) {
+            versionDescriptor = {
+              versionType: GitVersionType.Branch,
+              version: sourceBranch,
+            };
+          }
+          break;
         }
       }
-
-      // Get the content
-      const versionDescriptor =
-        versionType && version ? { versionType, version } : undefined;
-
-      // Import the getFileContent function from repositories feature
-      const { getFileContent } =
-        await import('./features/repositories/get-file-content/index.js');
 
       const fileContent = await getFileContent(
         connection,
-        project,
-        repo,
-        path,
+        parsed.project,
+        parsed.repository,
+        parsed.path,
         versionDescriptor,
       );
 
-      // Return the content based on whether it's a file or directory
       return {
         contents: [
           {
             uri: request.params.uri,
             mimeType: fileContent.isDirectory
               ? 'application/json'
-              : getMimeType(path),
+              : getMimeType(parsed.path),
             text: fileContent.content,
           },
         ],
       };
     } catch (error) {
-      safeLog(`Error reading resource: ${error}`);
+      logError(
+        `Error reading resource: ${error instanceof Error ? error.message : String(error)}`,
+      );
       if (error instanceof AzureDevOpsError) {
         throw error;
       }
@@ -313,11 +269,11 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
     }
   });
 
-  // Register the CallTool request handler
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     try {
       const toolName = request.params.name;
-      if (!toolCatalog.enabledToolNames.has(toolName)) {
+      const tool = enabledToolMap.get(toolName);
+      if (!tool) {
         if (toolCatalog.readOnlyBlockedNames.has(toolName)) {
           throw new AzureDevOpsValidationError(
             `Tool '${toolName}' is disabled in read-only mode`,
@@ -331,58 +287,7 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
         throw new Error(`Unknown tool: ${toolName}`);
       }
 
-      // Note: We don't need to validate the presence of arguments here because:
-      // 1. The schema validations (via zod.parse) will check for required parameters
-      // 2. Default values from environment.ts are applied for optional parameters (projectId, organizationId)
-      // 3. Arguments can be omitted entirely for tools with no required parameters
-
-      // Get a connection to Azure DevOps
-      const connection = await getConnection(config);
-
-      // Route the request to the appropriate feature handler
-      if (isWorkItemsRequest(request)) {
-        return await handleWorkItemsRequest(connection, request);
-      }
-
-      if (isProjectsRequest(request)) {
-        return await handleProjectsRequest(connection, request);
-      }
-
-      if (isRepositoriesRequest(request)) {
-        return await handleRepositoriesRequest(connection, request);
-      }
-
-      if (isOrganizationsRequest(request)) {
-        // Organizations feature doesn't need the config object anymore
-        return await handleOrganizationsRequest(connection, request);
-      }
-
-      if (isSearchRequest(request)) {
-        return await handleSearchRequest(connection, request);
-      }
-
-      if (isUsersRequest(request)) {
-        return await handleUsersRequest(connection, request);
-      }
-
-      if (isPullRequestsRequest(request)) {
-        return await handlePullRequestsRequest(connection, request);
-      }
-
-      if (isPipelinesRequest(request)) {
-        return await handlePipelinesRequest(connection, request);
-      }
-
-      if (isWikisRequest(request)) {
-        return await handleWikisRequest(connection, request);
-      }
-
-      if (isTestPlansRequest(request)) {
-        return await handleTestPlansRequest(connection, request);
-      }
-
-      // If we get here, the tool is not recognized by any feature handler
-      throw new Error(`Unknown tool: ${request.params.name}`);
+      return await tool.execute(session, request.params.arguments);
     } catch (error) {
       return handleResponseError(error);
     }
@@ -392,156 +297,11 @@ export function createAzureDevOpsServer(config: AzureDevOpsConfig): Server {
 }
 
 /**
- * Get a mime type based on file extension
- *
- * @param path File path
- * @returns Mime type string
- */
-function getMimeType(path: string): string {
-  const extension = path.split('.').pop()?.toLowerCase();
-
-  switch (extension) {
-    case 'txt':
-      return 'text/plain';
-    case 'html':
-    case 'htm':
-      return 'text/html';
-    case 'css':
-      return 'text/css';
-    case 'js':
-      return 'application/javascript';
-    case 'json':
-      return 'application/json';
-    case 'xml':
-      return 'application/xml';
-    case 'md':
-      return 'text/markdown';
-    case 'png':
-      return 'image/png';
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg';
-    case 'gif':
-      return 'image/gif';
-    case 'webp':
-      return 'image/webp';
-    case 'svg':
-      return 'image/svg+xml';
-    case 'pdf':
-      return 'application/pdf';
-    case 'ts':
-    case 'tsx':
-      return 'application/typescript';
-    case 'py':
-      return 'text/x-python';
-    case 'cs':
-      return 'text/x-csharp';
-    case 'java':
-      return 'text/x-java';
-    case 'c':
-      return 'text/x-c';
-    case 'cpp':
-    case 'cc':
-      return 'text/x-c++';
-    case 'go':
-      return 'text/x-go';
-    case 'rs':
-      return 'text/x-rust';
-    case 'rb':
-      return 'text/x-ruby';
-    case 'sh':
-      return 'text/x-sh';
-    case 'yaml':
-    case 'yml':
-      return 'text/yaml';
-    default:
-      return 'text/plain';
-  }
-}
-
-/**
- * Validate the Azure DevOps configuration
- *
- * @param config The configuration to validate
- * @throws {AzureDevOpsValidationError} If the configuration is invalid
- */
-function validateConfig(config: AzureDevOpsConfig): void {
-  if (!config.organizationUrl) {
-    process.stderr.write(
-      'ERROR: Organization URL is required but was not provided.\n',
-    );
-    process.stderr.write(
-      `Config: ${JSON.stringify(
-        {
-          organizationUrl: config.organizationUrl,
-          authMethod: config.authMethod,
-          defaultProject: config.defaultProject,
-          // Hide PAT for security
-          personalAccessToken: config.personalAccessToken
-            ? 'REDACTED'
-            : undefined,
-          apiVersion: config.apiVersion,
-        },
-        null,
-        2,
-      )}\n`,
-    );
-    throw new AzureDevOpsValidationError('Organization URL is required');
-  }
-
-  // Set default authentication method if not specified
-  if (!config.authMethod) {
-    config.authMethod = AuthenticationMethod.AzureIdentity;
-  }
-
-  // Validate PAT if using PAT authentication
-  if (
-    config.authMethod === AuthenticationMethod.PersonalAccessToken &&
-    !config.personalAccessToken
-  ) {
-    throw new AzureDevOpsValidationError(
-      'Personal access token is required when using PAT authentication',
-    );
-  }
-}
-
-/**
- * Create a connection to Azure DevOps
- *
- * @param config The configuration to use
- * @returns A WebApi connection
+ * Create a one-off authenticated WebApi connection for standalone callers.
  */
 export async function getConnection(
   config: AzureDevOpsConfig,
 ): Promise<WebApi> {
-  safeLog('Azure DevOps: connecting...');
-  try {
-    // Create a client with the appropriate authentication method
-    const client = new AzureDevOpsClient({
-      method: config.authMethod || AuthenticationMethod.AzureIdentity,
-      organizationUrl: config.organizationUrl,
-      personalAccessToken: config.personalAccessToken,
-    });
-
-    // Test the connection by getting the Core API
-    await client.getCoreApi();
-
-    // Return the underlying WebApi client
-    const webApi = await client.getWebApiClient();
-    safeLog('Azure DevOps: connection ok');
-    return webApi;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    safeLog(`Azure DevOps: connection failed: ${message}`);
-
-    // Preserve typed Azure DevOps errors (incl. location-id ValidationError)
-    if (error instanceof AzureDevOpsError) {
-      throw error;
-    }
-
-    throw new AzureDevOpsError(
-      `Failed to connect to Azure DevOps: ${message}`,
-      { cause: error },
-    );
-  }
+  const session = createAzureDevOpsSession(config);
+  return await session.getWebApi();
 }

@@ -1,47 +1,30 @@
-import * as azureDevOpsClient from '../../../clients/azure-devops';
-import { AzureDevOpsError } from '../../../shared/errors/azure-devops-errors';
-import { defaultOrg, defaultProject } from '../../../utils/environment';
-import type { ListWikiPagesOptions } from './schema';
+import { AzureDevOpsError } from '../../../shared/errors';
+import type { ToolContext } from '../../../shared/session/azure-devops-session';
+import type { ListWikiPagesOptions } from '../schemas';
+import { createWikiClient } from '../wiki-client';
+import type { WikiPageSummary } from '../wiki-client';
+
+export type { WikiPageSummary };
 
 /**
- * Summary information for a wiki page
- */
-export interface WikiPageSummary {
-  id: number;
-  path: string;
-  url?: string;
-  order?: number;
-}
-
-/**
- * List wiki pages from a wiki
- *
- * @param options Options for listing wiki pages
- * @returns Array of wiki page summaries
- * @throws {AzureDevOpsResourceNotFoundError} When the wiki is not found
- * @throws {AzureDevOpsPermissionError} When the user does not have permission to access the wiki
- * @throws {AzureDevOpsError} When an error occurs while fetching the wiki pages
+ * List wiki pages from a wiki sorted by order then path.
  */
 export async function listWikiPages(
   options: ListWikiPagesOptions,
+  ctx?: ToolContext,
 ): Promise<WikiPageSummary[]> {
-  const { organizationId, projectId, wikiId } = options;
-
-  // Use defaults if not provided
-  const orgId = organizationId || defaultOrg;
-  const projId = projectId || defaultProject;
+  const organizationId = options.organizationId ?? undefined;
+  const projectId = ctx
+    ? ctx.resolveProjectId(options.projectId ?? undefined)
+    : (options.projectId ?? '');
 
   try {
-    // Create the client
-    const client = await azureDevOpsClient.getWikiClient({
-      organizationId: orgId,
-      projectId: projId,
+    const client = createWikiClient(ctx, {
+      organizationId,
+      projectId,
     });
 
-    // Get the wiki pages
-    const pages = await client.listWikiPages(projId, wikiId);
-
-    // Return the pages directly since the client interface now matches our requirements
+    const pages = await client.listWikiPages(projectId, options.wikiId);
     return pages.map((page) => ({
       id: page.id,
       path: page.path,
@@ -49,11 +32,11 @@ export async function listWikiPages(
       order: page.order,
     }));
   } catch (error) {
-    // If it's already an AzureDevOpsError, rethrow it
     if (error instanceof AzureDevOpsError) {
       throw error;
     }
-    // Otherwise wrap it in an AzureDevOpsError
-    throw new AzureDevOpsError('Failed to list wiki pages', { cause: error });
+    throw new AzureDevOpsError(
+      `Failed to list wiki pages: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }

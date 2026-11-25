@@ -4,7 +4,7 @@ import { createWorkItem } from '../create-work-item/feature';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,
-} from '../__test__/test-helpers';
+} from '../../../shared/test/test-helpers';
 import type {
   CreateWorkItemOptions,
   CreateWorkItemAttachmentOptions,

@@ -1,129 +1,98 @@
-export { getWikis, GetWikisSchema } from './get-wikis';
-export { getWikiPage, GetWikiPageSchema } from './get-wiki-page';
-export { createWiki, CreateWikiSchema, WikiType } from './create-wiki';
-export { updateWikiPage, UpdateWikiPageSchema } from './update-wiki-page';
-export { listWikiPages, ListWikiPagesSchema } from './list-wiki-pages';
-export { createWikiPage, CreateWikiPageSchema } from './create-wiki-page';
+export * from './schemas';
+export * from './wiki-client';
+export { getWikis } from './get-wikis/feature';
+export { getWikiPage } from './get-wiki-page/feature';
+export { createWiki } from './create-wiki/feature';
+export { updateWikiPage } from './update-wiki-page/feature';
+export { listWikiPages } from './list-wiki-pages/feature';
+export { createWikiPage } from './create-wiki-page/feature';
 
-// Export tool definitions
-export * from './tool-definitions';
+import { defineTool } from '../../shared/registry/tool-registry';
+import type { FeatureModule } from '../../shared/registry/tool-registry';
+import {
+  CreateWikiPageSchema,
+  CreateWikiSchema,
+  GetWikiPageSchema,
+  GetWikisSchema,
+  ListWikiPagesSchema,
+  UpdateWikiPageSchema,
+} from './schemas';
+import { getWikis } from './get-wikis/feature';
+import { getWikiPage } from './get-wiki-page/feature';
+import { createWiki } from './create-wiki/feature';
+import { updateWikiPage } from './update-wiki-page/feature';
+import { listWikiPages } from './list-wiki-pages/feature';
+import { createWikiPage } from './create-wiki-page/feature';
 
-// New exports for request handling
-import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import type { WebApi } from 'azure-devops-node-api';
-import type {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
-import { defaultProject, defaultOrg } from '../../utils/environment';
-import { getWikis, GetWikisSchema } from './get-wikis';
-import { getWikiPage, GetWikiPageSchema } from './get-wiki-page';
-import { createWiki, CreateWikiSchema } from './create-wiki';
-import { updateWikiPage, UpdateWikiPageSchema } from './update-wiki-page';
-import { listWikiPages, ListWikiPagesSchema } from './list-wiki-pages';
-import { createWikiPage, CreateWikiPageSchema } from './create-wiki-page';
-
-/**
- * Checks if the request is for the wikis feature
- */
-export const isWikisRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return [
-    'get_wikis',
-    'get_wiki_page',
-    'create_wiki',
-    'update_wiki_page',
-    'list_wiki_pages',
-    'create_wiki_page',
-  ].includes(toolName);
-};
-
-/**
- * Handles wikis feature requests
- */
-export const handleWikisRequest: RequestHandler = async (
-  connection: WebApi,
-  request: CallToolRequest,
-): Promise<{ content: Array<{ type: string; text: string }> }> => {
-  switch (request.params.name) {
-    case 'get_wikis': {
-      const args = GetWikisSchema.parse(request.params.arguments);
-      const result = await getWikis(connection, {
-        organizationId: args.organizationId ?? defaultOrg,
-        projectId: args.projectId ?? defaultProject,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'get_wiki_page': {
-      const args = GetWikiPageSchema.parse(request.params.arguments);
-      const result = await getWikiPage({
-        organizationId: args.organizationId ?? defaultOrg,
-        projectId: args.projectId ?? defaultProject,
-        wikiId: args.wikiId,
-        pagePath: args.pagePath,
-      });
-      return {
-        content: [{ type: 'text', text: result }],
-      };
-    }
-    case 'create_wiki': {
-      const args = CreateWikiSchema.parse(request.params.arguments);
-      const result = await createWiki(connection, {
-        organizationId: args.organizationId ?? defaultOrg,
-        projectId: args.projectId ?? defaultProject,
-        name: args.name,
-        type: args.type,
-        repositoryId: args.repositoryId ?? undefined,
-        mappedPath: args.mappedPath ?? undefined,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'update_wiki_page': {
-      const args = UpdateWikiPageSchema.parse(request.params.arguments);
-      const result = await updateWikiPage({
-        organizationId: args.organizationId ?? defaultOrg,
-        projectId: args.projectId ?? defaultProject,
-        wikiId: args.wikiId,
-        pagePath: args.pagePath,
-        content: args.content,
-        comment: args.comment,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'list_wiki_pages': {
-      const args = ListWikiPagesSchema.parse(request.params.arguments);
-      const result = await listWikiPages({
-        organizationId: args.organizationId ?? defaultOrg,
-        projectId: args.projectId ?? defaultProject,
-        wikiId: args.wikiId,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'create_wiki_page': {
-      const args = CreateWikiPageSchema.parse(request.params.arguments);
-      const result = await createWikiPage({
-        organizationId: args.organizationId ?? defaultOrg,
-        projectId: args.projectId ?? defaultProject,
-        wikiId: args.wikiId,
-        pagePath: args.pagePath,
-        content: args.content,
-        comment: args.comment,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    default:
-      throw new Error(`Unknown wikis tool: ${request.params.name}`);
-  }
+export const wikisFeature: FeatureModule = {
+  toolset: 'wikis',
+  tools: [
+    defineTool({
+      name: 'get_wikis',
+      description: 'Get details of wikis in a project',
+      schema: GetWikisSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const orgId = args.organizationId ?? undefined;
+        const connection = await ctx.getWebApi(orgId);
+        return await getWikis(connection, {
+          organizationId: orgId,
+          projectId: ctx.resolveOptionalProjectId(args.projectId ?? undefined),
+        });
+      },
+    }),
+    defineTool({
+      name: 'get_wiki_page',
+      description: 'Get the content of a wiki page',
+      schema: GetWikiPageSchema,
+      readOnly: true,
+      handler: (ctx, args) =>
+        getWikiPage(
+          {
+            organizationId: args.organizationId ?? undefined,
+            projectId: args.projectId ?? undefined,
+            wikiId: args.wikiId,
+            pagePath: args.pagePath,
+          },
+          ctx,
+        ),
+    }),
+    defineTool({
+      name: 'create_wiki',
+      description: 'Create a new wiki in the project',
+      schema: CreateWikiSchema,
+      readOnly: false,
+      handler: (ctx, args) =>
+        createWiki(ctx, {
+          organizationId: args.organizationId ?? undefined,
+          projectId: args.projectId ?? undefined,
+          name: args.name,
+          type: args.type,
+          repositoryId: args.repositoryId ?? undefined,
+          mappedPath: args.mappedPath ?? undefined,
+        }),
+    }),
+    defineTool({
+      name: 'update_wiki_page',
+      description: 'Update content of a wiki page',
+      schema: UpdateWikiPageSchema,
+      readOnly: false,
+      handler: (ctx, args) => updateWikiPage(args, ctx),
+    }),
+    defineTool({
+      name: 'list_wiki_pages',
+      description: 'List pages within an Azure DevOps wiki',
+      schema: ListWikiPagesSchema,
+      readOnly: true,
+      handler: (ctx, args) => listWikiPages(args, ctx),
+    }),
+    defineTool({
+      name: 'create_wiki_page',
+      description:
+        'Create a new page in a wiki. If the page already exists at the specified path, it will be updated.',
+      schema: CreateWikiPageSchema,
+      readOnly: false,
+      handler: (ctx, args) => createWikiPage(args, ctx),
+    }),
+  ],
 };
