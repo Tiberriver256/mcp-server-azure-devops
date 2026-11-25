@@ -1,50 +1,55 @@
 # Azure DevOps MCP Server - Development Instructions
 
-Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
+Always reference these instructions first and fall back to search or shell commands only when you encounter unexpected information that does not match what is documented here.
 
 ## Prerequisites
 
-You need to have `Node.js` and `npm` installed. Node 20 (LTS) or later is recommended for development; on the 20.x line, current tooling requires Node `>=20.19.0` (or `>=22.12.0` on newer majors).
+- **Node.js `>=22.0.0`** and **npm** (the server relies on Node 22 built-ins: `fetch`, `process.loadEnvFile`, `path.posix.matchesGlob`, and `zlib`).
 
 ## Building and Running
 
 ### 1. Install Dependencies
 ```bash
-npm install  # Takes ~25 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
+npm install  # NEVER CANCEL. Set timeout to 60+ seconds.
 ```
 
 ### 2. Build the Server
 ```bash
-npm run build  # Takes ~5 seconds. Compiles TypeScript to `dist/` directory.
+npm run build  # Compiles TypeScript to `dist/` directory.
 ```
 
 ### 3. Run Tests
 ```bash
-# Unit tests (no Azure DevOps credentials required)
-npm run test:unit  # Takes ~19 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
+# Offline tests: unit + property-based + differential + coverage (no ADO credentials required)
+npm run test:unit
+
+# Property-based tests only (fast-check)
+npm run test:prop
+
+# Differential oracle tests only
+npm run test:diff
 
 # Integration tests (requires Azure DevOps credentials)
-npm run test:int  # Takes ~18 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
+npm run test:int
 
 # E2E tests (requires Azure DevOps credentials)
-npm run test:e2e  # Takes ~6 seconds. NEVER CANCEL. Set timeout to 30+ seconds.
+npm run test:e2e
 
 # All tests
-npm test  # Takes ~45 seconds total. NEVER CANCEL. Set timeout to 90+ seconds.
+npm test
 ```
 
 ### 4. Code Quality
 ```bash
-npm run lint       # Takes ~3 seconds. Runs Oxlint for code quality.
-npm run lint:fix   # Auto-fix linting issues.
-npm run format     # Takes ~3 seconds. Runs oxfmt for code formatting.
-npm run format:check  # Checks formatting with oxfmt.
+npm run lint          # Runs Oxlint (type-aware; configured in oxlint.config.mts)
+npm run lint:fix      # Auto-fix linting issues
+npm run format        # Runs oxfmt for code formatting
+npm run format:check  # Checks formatting with oxfmt
 ```
 
 ### 5. Run the Server
 ```bash
-# IMPORTANT: Always configure environment first using `.env` file (copy from `.env.example`)
-
+# Always configure environment first using `.env` (copy from `.env.example`)
 npm run dev        # Development mode with auto-restart using tsx watch
 npm run start      # Production mode - runs compiled version from `dist/index.js`
 npm run inspector  # Debug mode with MCP Inspector tool
@@ -73,15 +78,13 @@ AZURE_DEVOPS_DEFAULT_PROJECT=your-project-name  # Optional
 - Copy from `docs/examples/` directory for ready-to-use configurations (PAT, Azure Identity, Azure CLI)
 - For CI/CD environments: Reference `docs/ci-setup.md` for secrets configuration
 
-**Note:** The application will fail gracefully with clear error messages if credentials are missing.
-
 ## Submitting Changes
 
 Before submitting a PR, ensure:
 
 1. **Linting and formatting pass:**
    ```bash
-   npm run lint:fix && npm run format
+   npm run lint:fix && npm run format && npm run format:check
    ```
 
 2. **Build succeeds:**
@@ -89,170 +92,75 @@ Before submitting a PR, ensure:
    npm run build
    ```
 
-3. **Unit tests pass:**
+3. **Offline test suites pass:**
    ```bash
    npm run test:unit
    ```
 
-4. **Manual testing complete:**
-   - Configure `.env` file (copy from `.env.example` and update values)
-   - Test server startup: `npm run dev` (should start or fail gracefully with clear error messages)
-   - Test MCP protocol using `npm run inspector` (requires working Azure DevOps credentials)
-
-5. **Integration/E2E tests pass** (if you have Azure DevOps credentials):
+4. **Integration/E2E tests pass** (when Azure DevOps credentials are available):
    ```bash
    npm run test:int && npm run test:e2e
    ```
 
-6. **Conventional commits:**
+5. **Conventional commits:**
    ```bash
    npm run commit  # Guided commit message creation (@commitlint/prompt-cli)
    ```
 
-**Note:** Unit tests must pass even without Azure DevOps credentials - they use mocks for all external dependencies.
-
 ## Project Architecture
 
-- **TypeScript** project with strict configuration (`tsconfig.json`)
-- **Feature-based architecture:** Each Azure DevOps feature area is a separate module in `src/features/`
-  - Example: `src/features/work-items/`, `src/features/projects/`, `src/features/repositories/`
-- **MCP Protocol** implementation for AI assistant integration using `@modelcontextprotocol/sdk`
-- **Test Strategy:** Testing Trophy approach (see `docs/testing/README.md`)
-  - Unit tests: `.spec.unit.ts` (mock all external dependencies, focus on logic)
-  - Integration tests: `.spec.int.ts` (test with real Azure DevOps APIs, requires credentials)
-  - E2E tests: `.spec.e2e.ts` (test complete MCP server functionality)
-  - Tests are co-located with feature code
-- **Path aliases:** Use `@/` instead of relative imports (e.g., `import { something } from '@/shared/utils'`)
+- **TypeScript** with strict configuration (`tsconfig.json`)
+- **Declarative Feature Modules (`src/features/*`)**: Each of the 10 toolsets (`users`, `organizations`, `projects`, `repositories`, `work-items`, `search`, `pull-requests`, `pipelines`, `wikis`, `test-plans`) exports a `FeatureModule` built with `defineTool(...)`.
+- **Deep Shared Seams (`src/shared/*`)**:
+  - `src/shared/session/azure-devops-session.ts` — Single cached `AzureDevOpsSession` (`ToolContext`) per server instance (caches `WebApi` connections, manages config/project resolution, provides `requestAzureDevOps`).
+  - `src/shared/auth/auth-factory.ts` — Lazy-loads `@azure/identity` (only for non-PAT) and `azure-devops-node-api`, caches/refreshes Entra tokens, deduplicates in-flight token refreshes.
+  - `src/shared/http/http-client.ts` — Zero-dependency native `fetch` HTTP client with response-size caps, timeouts, secret-free `HttpError`, and typed status mapping.
+  - `src/shared/registry/tool-registry.ts` — `defineTool` + lazy Draft-07 `input` JSON Schema generation.
+  - `src/shared/logging.ts` — Stdio-safe stderr logger (`no-console` enforced on `src/`).
+  - `src/shared/resources/ado-resource-uri.ts` — `ado://` resource URI parser/builder.
+  - `src/shared/utils/` — Stream helpers, bounded concurrency, zero-dep glob matcher, zero-dep ZIP reader, Zod-to-JSON-Schema helper.
+- **Test Strategy:** Testing Trophy + Property-Based & Differential Testing (see `docs/testing/README.md`):
+  - Unit tests: `*.spec.unit.ts`
+  - Property-based tests: `*.spec.prop.ts` (`fast-check`)
+  - Differential tests: `*.spec.diff.ts`
+  - Integration tests: `*.spec.int.ts`
+  - E2E tests: `*.spec.e2e.ts`
 
 ### Key Directories
-- `src/index.ts` and `src/server.ts` - Main server entry points
-- `src/features/[feature-name]/` - Feature modules
-- `src/shared/` - Shared utilities (auth, errors, types, config)
-- `src/clients/azure-devops.ts` - Azure DevOps client
-- `tests/setup.ts` - Test configuration
-- `docs/` - Comprehensive documentation (authentication, testing, tools)
+- `src/index.ts` and `src/server.ts` — CLI entry point and MCP Server wiring
+- `src/features/<toolset>/` — Declarative feature modules (`schemas.ts`, `types.ts`, `index.ts`, `<tool>/feature.ts`)
+- `src/shared/` — Deep shared infrastructure modules
+- `tests/setup.ts` — Jest test setup
+- `docs/` — Documentation (authentication, testing, tools, important knowledge)
 
-## Adding a New Feature
+## Adding or Modifying a Tool
 
-Follow the Feature Module pattern used throughout the codebase:
+1. Add or update the Zod input schema in `src/features/<toolset>/schemas.ts`
+2. Implement or update core logic in `src/features/<toolset>/<tool-name>/feature.ts`
+3. Register the tool in `src/features/<toolset>/index.ts` via `defineTool({ name, description, schema, readOnly, handler })`
+4. Add/update co-located tests (`*.spec.unit.ts`, plus `*.spec.prop.ts` / `*.spec.diff.ts` for pure logic)
+5. Update `README.md` and `docs/tools/`
+6. Run `npm run format && npm run lint && npm run build && npm run test:unit`
 
-1. **Create feature module directory:**
-   ```
-   src/features/[feature-name]/
-   ```
+## Runtime Dependencies
 
-2. **Add required files:**
-   - `feature.ts` - Core feature logic
-   - `schema.ts` - Zod schemas for input/output validation
-   - `tool-definitions.ts` - MCP tool definitions
-   - `index.ts` - Exports and request handlers
-
-3. **Add test files:**
-   - `feature.spec.unit.ts` - Unit tests (required)
-   - `feature.spec.int.ts` - Integration tests (if applicable)
-
-4. **Register the feature:**
-   - Add to `src/server.ts` following existing patterns
-
-5. **Reference existing modules:**
-   - See `src/features/work-items/` or `src/features/projects/` for complete examples
-   - Follow the same structure and naming conventions
-
-## Modifying Existing Features
-
-When updating existing features:
-
-1. **Update core logic:** `src/features/[feature-name]/feature.ts`
-2. **Update schemas:** `schemas.ts` (if input/output changes)
-3. **Update tool definitions:** `tool-definitions.ts` (if MCP interface changes)
-4. **Update or add tests:** Always update existing tests or add new ones
-5. **Run validation:** Execute the full validation workflow before committing
-
-## Dependencies
-
-**Core libraries:**
-- `@modelcontextprotocol/sdk` - MCP protocol implementation
-- `azure-devops-node-api` - Azure DevOps REST APIs
-- `@azure/identity` - Azure authentication
-- `zod` - Schema validation and type safety
-
-**Development tools:**
-- `jest` - Testing framework (with separate configs for unit/int/e2e tests)
-- `tsx` - Development server with auto-restart (`tsx watch`)
-- `oxlint` + `oxfmt` - Code quality and formatting
-- `husky` - Git hooks for commit validation
-
-**CI/CD:**
-- GitHub Actions workflow: `.github/workflows/main.yml`
-- Runs on PRs to `main`: Install → Lint → Build → Unit Tests → Integration Tests → E2E Tests
-- Integration and E2E tests require Azure DevOps secrets in CI
-- Release automation with `release-please`
-
-## Documentation
-
-The repository has extensive documentation. Reference these for specific scenarios:
-
-### Authentication & Configuration
-- `docs/authentication.md` - Complete authentication guide (PAT, Azure Identity, Azure CLI)
-- `docs/azure-identity-authentication.md` - Detailed Azure Identity setup and troubleshooting
-- `docs/ci-setup.md` - CI/CD environment setup and secrets configuration
-- `docs/examples/` - Ready-to-use environment configuration examples
-
-### Testing & Development
-- `docs/testing/README.md` - Testing Trophy approach, test types, and testing philosophy
-- `docs/testing/setup.md` - Test environment setup, import patterns, VSCode integration
-- `CONTRIBUTING.md` - Development practices, commit guidelines, and workflow
-
-### Tool & API Documentation  
-- `docs/tools/README.md` - Complete tool catalog with examples and response formats
-- `docs/tools/[feature].md` - Detailed docs for each feature area (work-items, projects, etc.)
-- `docs/tools/resources.md` - Resource URI patterns for accessing repository content
-
-### When to Reference
-- **Starting new features:** Review `CONTRIBUTING.md` and `docs/testing/README.md`
-- **Authentication issues:** Check `docs/authentication.md` first
-- **Available tools:** Browse `docs/tools/README.md`
-- **CI/CD problems:** Reference `docs/ci-setup.md`
-- **Testing patterns:** Use `docs/testing/setup.md`
-- **Environment setup:** Copy from `docs/examples/`
+Minimal runtime dependency surface (5 packages):
+- `@modelcontextprotocol/sdk` — MCP protocol implementation
+- `azure-devops-node-api` — Azure DevOps typed SDK clients
+- `@azure/identity` — Lazy-loaded Entra ID / Azure CLI credentials
+- `zod` — Runtime input validation and Draft-07 JSON Schema generation
+- `diff` — Unified patch parsing and generation for commits/PR diffs
 
 ## Troubleshooting
 
-**Build fails:**
-- Check TypeScript errors
-- Ensure all imports are valid
-- Verify `tsconfig.json` paths configuration
-
-**Tests fail:**
-- Unit tests: Should pass without Azure DevOps credentials (they use mocks)
-- Integration/E2E tests: Check `.env` file has valid Azure DevOps credentials
-- See `docs/testing/setup.md` for environment variables and patterns
-
-**Lint errors:**
-- Run `npm run lint:fix` to auto-fix common issues
-- Check Oxlint rules in `.oxlintrc.json`
-
-**Server won't start:**
-- Verify `.env` file configuration
-- Check error messages for missing environment variables
-- See `docs/authentication.md` for comprehensive setup guides
-
-**Authentication issues:**
-- See `docs/authentication.md` for comprehensive troubleshooting
-- For CI/CD: Reference `docs/ci-setup.md` for proper secrets configuration
-
-**Import errors:**
-- Use `@/` path aliases instead of relative imports
-- Verify `tsconfig.json` paths configuration
-
-**Unknown tool capabilities:**
-- Browse `docs/tools/README.md` for complete tool documentation
+- **Build fails:** Run `npm run build` and verify strict TypeScript errors and imports.
+- **Lint errors:** Run `npm run lint:fix` and inspect `oxlint.config.mts`. Never use `console.log` in `src/` (corrupts MCP stdio JSON-RPC; use `src/shared/logging.ts`).
+- **Tests fail:** Offline tests (`npm run test:unit`) must pass without Azure DevOps credentials. Integration/E2E tests require `.env`.
+- **Authentication issues:** See `docs/authentication.md`.
 
 ## Available Skills
 
-Skills are modular, self-contained packages that extend capabilities with specialized knowledge, workflows, and tools. Reference these skills when working on related tasks.
-
 | Skill Name | Use When... | Path |
 |------------|-------------|------|
-| skill-creator | Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy. | [.github/skills/skill-creator/SKILL.md](.github/skills/skill-creator/SKILL.md) |
-| azure-devops-rest-api | Implementing new Azure DevOps API integrations, exploring API capabilities, understanding request/response formats, or referencing the official OpenAPI specifications from the vsts-rest-api-specs repository | [.github/skills/azure-devops-rest-api/SKILL.md](.github/skills/azure-devops-rest-api/SKILL.md) |
+| skill-creator | Create new skills, modify and improve existing skills, and measure skill performance. | [skills/skill-creator/SKILL.md](skills/skill-creator/SKILL.md) |
+| azure-devops-rest-api | Implementing new Azure DevOps API integrations, exploring API capabilities, or referencing the official OpenAPI specs from vsts-rest-api-specs. | [skills/azure-devops-rest-api/SKILL.md](skills/azure-devops-rest-api/SKILL.md) |

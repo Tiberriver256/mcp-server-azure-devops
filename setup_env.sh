@@ -129,15 +129,11 @@ EOF
     # Add remaining configuration
     cat >> .env << EOF
 
-# API Version to use (optional, defaults to latest)
-# AZURE_DEVOPS_API_VERSION=6.0
-
-# Server Configuration
-PORT=3000
-HOST=localhost
+# API Version to use (optional, defaults to 7.1)
+# AZURE_DEVOPS_API_VERSION=7.1
 
 # Logging Level (debug, info, warn, error)
-LOG_LEVEL=info
+AZURE_DEVOPS_LOG_LEVEL=info
 EOF
 
     echo -e "\n${GREEN}Environment setup completed successfully!${NC}"

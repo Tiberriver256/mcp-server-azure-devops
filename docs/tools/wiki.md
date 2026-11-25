@@ -189,4 +189,95 @@ console.log(result);
 
 ### Implementation Details
 
-This tool uses the Azure DevOps REST API to retrieve the list of pages within a wiki. The response is mapped to provide a consistent interface with page ID, path, URL, and order information. 
+This tool uses the Azure DevOps REST API (`GET /_apis/wiki/wikis/{wikiId}/pages?recursionLevel=full`) with cycle detection and maps pages to `{ id, path, url, order }`.
+
+## create_wiki
+
+Creates a new project wiki or code wiki in an Azure DevOps project.
+
+### Parameters
+
+| Parameter        | Type   | Required | Description                                                                                      |
+| ---------------- | ------ | -------- | ------------------------------------------------------------------------------------------------ |
+| `name`           | string | Yes      | Name of the new wiki                                                                             |
+| `type`           | string | No       | Wiki type: `"projectWiki"` (default) or `"codeWiki"`                                             |
+| `projectId`      | string | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)                       |
+| `organizationId` | string | No       | Optional Azure DevOps Services organization override                                             |
+| `repositoryId`   | string | No       | Repository ID (required when `type` is `"codeWiki"`)                                             |
+| `mappedPath`     | string | No       | Path inside the repository to publish as a code wiki (default: `"/"`)                            |
+
+### Response
+
+Returns the created Azure DevOps `WikiV2` object (`id`, `name`, `type`, `projectId`, `repositoryId`, `mappedPath`, `url`, `remoteUrl`).
+
+### Example Usage
+
+```typescript
+const wiki = await mcpClient.callTool('create_wiki', {
+  projectId: 'MyProject',
+  name: 'Engineering-Wiki',
+  type: 'projectWiki',
+});
+```
+
+## update_wiki_page
+
+Updates the Markdown content of an existing wiki page using ETag-based optimistic concurrency (`If-Match`).
+
+### Parameters
+
+| Parameter        | Type   | Required | Description                                                                                      |
+| ---------------- | ------ | -------- | ------------------------------------------------------------------------------------------------ |
+| `wikiId`         | string | Yes      | The ID or name of the wiki                                                                       |
+| `pagePath`       | string | Yes      | Path of the page within the wiki (e.g., `"/Home"` or `"/Docs/Guide"`)                            |
+| `content`        | string | Yes      | New Markdown content for the page                                                                |
+| `comment`        | string | No       | Optional commit/change comment                                                                   |
+| `projectId`      | string | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)                       |
+| `organizationId` | string | No       | Optional Azure DevOps Services organization override                                             |
+
+### Response
+
+Returns the updated wiki page object (`path`, `content`, `eTag`, `gitItemPath`, `url`).
+
+### Example Usage
+
+```typescript
+await mcpClient.callTool('update_wiki_page', {
+  projectId: 'MyProject',
+  wikiId: 'MyWiki',
+  pagePath: '/Home',
+  content: '# Updated Home\n\nWelcome!',
+  comment: 'Refresh landing page',
+});
+```
+
+## create_wiki_page
+
+Creates a new wiki page (or updates an existing page) at a specified path.
+
+### Parameters
+
+| Parameter        | Type   | Required | Description                                                                                      |
+| ---------------- | ------ | -------- | ------------------------------------------------------------------------------------------------ |
+| `wikiId`         | string | Yes      | The ID or name of the wiki                                                                       |
+| `content`        | string | Yes      | Markdown content for the page                                                                    |
+| `pagePath`       | string | No       | Path for the page within the wiki (default: `"/"`)                                               |
+| `comment`        | string | No       | Optional commit/change comment                                                                   |
+| `projectId`      | string | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)                       |
+| `organizationId` | string | No       | Optional Azure DevOps Services organization override                                             |
+
+### Response
+
+Returns the created/updated wiki page object (`path`, `content`, `eTag`, `gitItemPath`, `url`).
+
+### Example Usage
+
+```typescript
+await mcpClient.callTool('create_wiki_page', {
+  projectId: 'MyProject',
+  wikiId: 'MyWiki',
+  pagePath: '/Runbooks/Deploy',
+  content: '# Deployment Runbook\n\n1. Verify CI green.',
+  comment: 'Add deployment runbook',
+});
+```

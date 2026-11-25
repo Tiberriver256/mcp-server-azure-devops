@@ -91,13 +91,12 @@ This retrieves the version of `index.ts` from pull request #42.
 
 ## Implementation Details
 
-When a resource URI is requested, the server:
+The server advertises all five URI templates via MCP `resources/templates/list` (`ListResourceTemplatesRequestSchema`). When a resource URI is requested via `resources/read`:
 
-1. Parses the URI to extract the components (organization, project, repository, path, etc.)
-2. Establishes a connection to Azure DevOps using the configured authentication method
-3. Determines if a specific version (branch, commit, tag) is requested
-4. Uses the `getFileContent` functionality to retrieve the content
-5. Returns the content with the appropriate MIME type
+1. `parseAdoResourceUri` extracts `{organization}` (from URI host), `{project}`, `{repo}`, `{path}`, and ref selector (`default`, `branches/{branch}`, `commits/{commit}`, `tags/{tag}`, or `pullrequests/{prId}`). Multi-segment branch and tag names containing slashes (e.g., `feature/new-ui`) are supported natively.
+2. Uses the cached `AzureDevOpsSession` connection for the target organization.
+3. For `pullrequests/{prId}`, resolves the pull request's `lastMergeSourceCommit` (falling back to `sourceRefName`) via `gitApi.getPullRequestById`.
+4. Calls `getFileContent` with the resolved `GitVersionDescriptor` and returns the content with the appropriate MIME type.
 
 ## Response Format
 

@@ -2,26 +2,23 @@
 
 This document describes the user-related tools provided by the Azure DevOps MCP server.
 
+> **Cloud only:** `get_me` calls the Azure DevOps Services profile endpoint (`https://app.vssps.visualstudio.com/_apis/profile/profiles/me`). Calling it against an on-premises Azure DevOps Server URL returns an `AzureDevOpsValidationError`.
+
 ## get_me
 
-The `get_me` tool retrieves information about the currently authenticated user.
+Retrieves profile details for the currently authenticated user.
 
-### Input
+### Parameters
 
-This tool doesn't require any input parameters.
+This tool does not require any input parameters.
 
 ```json
 {}
 ```
 
-### Output
+### Response
 
-The tool returns the user's profile information including:
-- `id`: The unique identifier for the user
-- `displayName`: The user's display name
-- `email`: The user's email address
-
-#### Example Response
+Returns `{ id, displayName, email }`:
 
 ```json
 {
@@ -33,7 +30,6 @@ The tool returns the user's profile information including:
 
 ### Error Handling
 
-The tool may return the following errors:
-
-- `AzureDevOpsAuthenticationError`: If authentication fails
-- `AzureDevOpsError`: For general errors when retrieving user information 
+- `AzureDevOpsValidationError`: When configured with an on-premises Azure DevOps Server URL
+- `AzureDevOpsAuthenticationError`: When authentication fails
+- `AzureDevOpsError`: For other API or network errors

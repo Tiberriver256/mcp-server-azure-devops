@@ -8,9 +8,14 @@ We love your input! We want to make contributing to Azure DevOps MCP Server as e
 - Proposing new features
 - Becoming a maintainer
 
+## Prerequisites
+
+- **Node.js `>=22.0.0`** (the server uses Node 22 built-ins including `fetch`, `process.loadEnvFile`, `path.posix.matchesGlob`, and `zlib`)
+- **npm**
+
 ## Development Process
 
-We use GitHub to host code, to track issues and feature requests, as well as accept pull requests.
+We use GitHub to host code, track issues and feature requests, and accept pull requests.
 
 ## Pull Requests
 
@@ -22,18 +27,30 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
 
 ## Development Practices
 
-This project follows Test-Driven Development practices. Each new feature should:
+This project follows Test-Driven Development practices. Each new feature or bug fix should:
 
-1. Begin with a failing test
-2. Implement the minimal code to make the test pass
-3. Refactor while keeping tests green
+1. Begin with a failing test (unit, property-based, or differential as appropriate)
+2. Implement the minimal clean code to make the test pass
+3. Refactor while keeping tests, linting, and type-checking green
 
 ## Project Structure
 
-The server is organized into feature-specific modules:
+The server is organized into declarative feature modules backed by deep shared seams:
 
 ```
 src/
+ ├── index.ts          # CLI entry point, env loading, stdio transport
+ ├── server.ts         # MCP Server setup, tool filtering, O(1) dispatch, resources
+ ├── shared/
+ │   ├── auth/         # Lazy-loaded auth providers & refreshable bearer handler
+ │   ├── config/       # Env loading, version, tool filtering
+ │   ├── enums/        # Prototype-safe bidirectional enum mappers
+ │   ├── errors/       # Typed AzureDevOpsError hierarchy & secret redaction
+ │   ├── http/         # Zero-dependency native fetch HttpClient
+ │   ├── registry/     # Declarative defineTool() & FeatureModule contract
+ │   ├── resources/    # ado:// resource URI parser & builder
+ │   ├── session/      # Single cached AzureDevOpsSession (ToolContext)
+ │   └── utils/        # Streams, bounded concurrency, globs, ZIP reader, JSON Schema
  └── features/
      ├── organizations/
      ├── pipelines/
@@ -41,23 +58,25 @@ src/
      ├── pull-requests/
      ├── repositories/
      ├── search/
+     ├── test-plans/
      ├── users/
      ├── wikis/
      └── work-items/
 ```
 
-Each feature module:
-1. Exports its schemas, types, and individual tool functions
-2. Provides an `is<FeatureName>Request` function to identify if a request is for this feature
-3. Provides a `handle<FeatureName>Request` function to handle requests for this feature
+Each feature module exports a `FeatureModule` (`{ toolset, tools }`) whose tools are declared with `defineTool({ name, description, schema, readOnly, handler })`. Every handler receives the shared `ToolContext` session (`ctx.getWebApi()`, `ctx.requestAzureDevOps()`, `ctx.resolveProjectId()`, `ctx.config`, etc.).
 
-### Adding a New Feature or Tool
+### Adding a New Tool or Feature
 
-When adding a new feature or tool:
-1. Create a new directory under `src/features/` if needed
-2. Implement your tool functions
-3. Update the feature's `index.ts` to export your functions and add them to the request handlers
-4. No changes to server.ts should be needed!
+When adding a tool to an existing feature module:
+
+1. Add the Zod input schema to the feature's `schemas.ts`
+2. Implement the core logic in `src/features/<toolset>/<tool-name>/feature.ts`
+3. Register the tool in the feature's `index.ts` using `defineTool(...)` with an explicit `readOnly: true | false`
+4. Add focused tests (`*.spec.unit.ts`, and `*.spec.prop.ts` / `*.spec.diff.ts` for pure parsers, validators, or algorithms)
+5. Update `README.md` and `docs/tools/` to document the tool
+
+When adding a brand-new toolset, also add its name to `TOOLSET_NAMES` in `src/shared/config/tool-filter.ts` and register the module in `src/server.ts`.
 
 ## Local Setup (run the server from source)
 
@@ -73,36 +92,40 @@ npm start
 npm run dev
 ```
 
-## Testing
+## Testing & Quality Checks
 
-### Unit Tests
-
-Run unit tests with:
+### Offline Verification (no Azure DevOps credentials required)
 
 ```bash
-npm run test:unit
+npm run test:unit      # Runs unit, property-based, and differential tests + coverage
+npm run test:prop      # Runs fast-check property-based suites only (*.spec.prop.ts)
+npm run test:diff      # Runs differential oracle suites only (*.spec.diff.ts)
+npm run lint           # Runs Oxlint (type-aware)
+npm run format:check   # Checks formatting with oxfmt
+npm run build          # Compiles TypeScript to dist/
 ```
 
-### Integration Tests
+### Integration & E2E Tests
 
-Integration tests require a connection to a real Azure DevOps instance. To run them:
+Integration and E2E tests require a connection to a real Azure DevOps instance:
 
-1. Ensure your `.env` file is configured with valid Azure DevOps credentials:
+1. Configure `.env` with valid Azure DevOps credentials:
 
    ```
    AZURE_DEVOPS_ORG_URL=https://dev.azure.com/your-organization
+   AZURE_DEVOPS_AUTH_METHOD=pat
    AZURE_DEVOPS_PAT=your-personal-access-token
    AZURE_DEVOPS_DEFAULT_PROJECT=your-project-name
    ```
 
-2. Run the integration tests:
+2. Run the integration or E2E suites:
+
    ```bash
    npm run test:int
+   npm run test:e2e
    ```
 
-### CI Environment
-
-For running tests in CI environments (like GitHub Actions), see [CI Environment Setup](docs/ci-setup.md) for instructions on configuring secrets.
+For details on our testing strategy (including property-based and differential testing), see [docs/testing/README.md](docs/testing/README.md). For CI secrets setup, see [docs/ci-setup.md](docs/ci-setup.md).
 
 ## Commit Message Guidelines
 
@@ -157,7 +180,7 @@ Breaking Changes should start with the word `BREAKING CHANGE:` with a space or t
 
 ### Using the Interactive Tool
 
-To simplify the process of creating correctly formatted commit messages, we've set up a tool that will guide you through the process. Simply use:
+To simplify the process of creating correctly formatted commit messages, run:
 
 ```bash
 npm run commit
@@ -167,42 +190,16 @@ This starts the interactive [`@commitlint/prompt-cli`](https://commitlint.js.org
 
 ## Release Process
 
-This project uses [Conventional Commits](https://www.conventionalcommits.org/) to automate versioning and changelog generation. When contributing, please follow the commit message convention.
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) and [Release Please](https://github.com/googleapis/release-please) to automate semantic versioning, changelog generation, GitHub Releases, and npm publishing via Trusted Publishers (OIDC).
 
-To create a commit with the correct format, use:
-```bash
-npm run commit
-```
-
-## Automated Release Workflow
-
-Our project uses [Release Please](https://github.com/googleapis/release-please) to automate releases based on Conventional Commits. This approach manages semantic versioning, changelog generation, and GitHub Releases creation.
-
-The workflow is automatically triggered on pushes to the `main` branch and follows this process:
-
-1. Release Please analyzes commit messages since the last release
-2. If releasable changes are detected, it creates or updates a Release PR
-3. When the Release PR is merged, it:
-   - Updates the version in package.json
-   - Updates CHANGELOG.md with details of all changes
-   - Creates a Git tag and GitHub Release
-   - Publishes the package to npm
-
-### Release PR Process
-
-1. When commits with conventional commit messages are pushed to `main`, Release Please automatically creates a Release PR
-2. The Release PR contains all the changes since the last release with proper version bump based on commit types:
+1. Release Please analyzes commit messages pushed to `main`
+2. If releasable changes are detected, it creates or updates a Release PR:
    - `feat:` commits trigger a minor version bump
    - `fix:` commits trigger a patch version bump
    - `feat!:` or `fix!:` commits with breaking changes trigger a major version bump
-3. Review the Release PR to ensure the changelog and version bump are correct
-4. Merge the Release PR to trigger the actual release
+3. Merging the Release PR updates `package.json` and `CHANGELOG.md`, tags the release, and publishes to npm.
 
-This automation ensures consistent and well-documented releases that accurately reflect the changes made since the previous release.
-
-### Troubleshooting Releases
-
-If you encounter issues with the release process (e.g., failed npm publish, need to re-release), see the [Release Troubleshooting Guide](docs/release-troubleshooting.md) for solutions.
+If you encounter issues with the release process (e.g., failed npm publish, need to re-release), see the [Release Troubleshooting Guide](docs/release-troubleshooting.md).
 
 ## License
 

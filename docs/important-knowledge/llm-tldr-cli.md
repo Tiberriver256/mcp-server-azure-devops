@@ -28,10 +28,10 @@ Scope: CLI only. Skip MCP. Use uv instead of pip.
 ## Example: URL-based server selection in this repo
 
 1) Locate entry points:
-   - `tldr search "serverUrl|organizationUrl|extractOrgFromUrl" src`
-2) Inspect extraction logic:
-   - `tldr extract src/features/users/get-me/feature.ts --function extractOrgFromUrl --lang typescript`
-   - `tldr extract src/features/search/search-code/feature.ts --function extractOrgFromUrl --lang typescript`
-3) Check org derivation:
-   - `tldr extract src/utils/environment.ts --function getOrgNameFromUrl --lang typescript`
-4) Summarize how URL patterns drive which host or org is used.
+   - `tldr search "resolveAzureDevOpsBaseUrls|organizationUrl|getOrgNameFromUrl" src`
+2) Inspect URL resolution logic:
+   - `tldr extract src/shared/azure-devops-url.ts --function resolveAzureDevOpsBaseUrls --lang typescript`
+   - `tldr extract src/shared/azure-devops-url.ts --function getOrgNameFromUrl --lang typescript`
+3) Check session routing:
+   - `tldr extract src/shared/session/azure-devops-session.ts --function createAzureDevOpsSession --lang typescript`
+4) Summarize how URL patterns drive cloud (`dev.azure.com` / `almsearch.dev.azure.com`) vs on-premises collection routing.

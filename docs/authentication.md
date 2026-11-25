@@ -32,6 +32,8 @@ PAT authentication is the simplest method and works well for personal use or tes
      - **Project and Team**: Read
      - **Graph**: Read
      - **Release**: Read & Execute
+     - **Wiki**: Read & Write (if using Wiki tools)
+     - **Test Management**: Read & Write (if using Test Plans tools; write operations also require Basic + Test Plans or Visual Studio Enterprise license)
    - Click "Create" and copy the generated token
 
 2. **Configure your `.env` file**:

@@ -206,16 +206,18 @@ The `list_pull_requests` tool retrieves pull requests from a specified Azure Dev
 }
 ```
 
-| Parameter       | Type   | Required | Description                                                                         |
-| --------------- | ------ | -------- | ----------------------------------------------------------------------------------- |
-| `projectId`     | string | Yes      | The ID or name of the project containing the repository                             |
-| `repositoryId`  | string | Yes      | The ID or name of the repository to list pull requests from                         |
-| `status`        | string | No       | The status of pull requests to return: "active", "completed", "abandoned", or "all" |
-| `creatorId`     | string | No       | Filter pull requests by creator ID (must be a UUID)                                 |
-| `reviewerId`    | string | No       | Filter pull requests by reviewer ID (must be a UUID)                                |
-| `sourceRefName` | string | No       | Filter pull requests by source branch name                                          |
-| `targetRefName` | string | No       | Filter pull requests by target branch name                                          |
-| `top`           | number | No       | Maximum number of pull requests to return                                           |
+| Parameter        | Type   | Required | Description                                                                         |
+| ---------------- | ------ | -------- | ----------------------------------------------------------------------------------- |
+| `repositoryId`   | string | Yes      | The ID or name of the repository to list pull requests from                         |
+| `projectId`      | string | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)          |
+| `organizationId` | string | No       | Optional Azure DevOps Services organization override                                |
+| `status`         | string | No       | The status of pull requests to return: `"active"`, `"completed"`, `"abandoned"`, or `"all"` |
+| `creatorId`      | string | No       | Filter pull requests by creator ID (must be a UUID)                                 |
+| `reviewerId`     | string | No       | Filter pull requests by reviewer ID (must be a UUID)                                |
+| `sourceRefName`  | string | No       | Filter pull requests by source branch name                                          |
+| `targetRefName`  | string | No       | Filter pull requests by target branch name                                          |
+| `top`            | number | No       | Maximum number of pull requests to return (default: `10`)                           |
+| `skip`           | number | No       | Number of pull requests to skip for pagination                                      |
 
 ### Response
 
@@ -503,9 +505,7 @@ Example response:
         "publishedDate": "2023-04-15T14:30:00Z",
         "filePath": "/src/app.ts",
         "rightFileStart": { "line": 10, "offset": 5 },
-        "rightFileEnd": { "line": 10, "offset": 15 },
-        "leftFileStart": undefined,
-        "leftFileEnd": undefined
+        "rightFileEnd": { "line": 10, "offset": 15 }
       },
       {
         "id": 457,
@@ -520,9 +520,7 @@ Example response:
         "publishedDate": "2023-04-15T14:35:00Z",
         "filePath": "/src/app.ts",
         "rightFileStart": { "line": 10, "offset": 5 },
-        "rightFileEnd": { "line": 10, "offset": 15 },
-        "leftFileStart": undefined,
-        "leftFileEnd": undefined
+        "rightFileEnd": { "line": 10, "offset": 15 }
       }
     ],
     "isDeleted": false
@@ -541,11 +539,7 @@ Example response:
           "uniqueName": "jane.smith@example.com"
         },
         "publishedDate": "2023-04-15T14:40:00Z",
-        "filePath": null,
-        "rightFileStart": undefined,
-        "rightFileEnd": undefined,
-        "leftFileStart": undefined,
-        "leftFileEnd": undefined
+        "filePath": null
       }
     ],
     "isDeleted": false
@@ -563,8 +557,6 @@ The tool may throw the following errors:
 - ResourceNotFoundError: If the project, repository, pull request, or thread doesn't exist
 - GeneralError: For other unexpected errors
 
-Error messages will include details about what went wrong and suggestions for resolution.
-
 ### Example Usage
 
 ```typescript
@@ -575,17 +567,6 @@ const comments = await mcpClient.callTool('get_pull_request_comments', {
   pullRequestId: 42,
 });
 
-// Get comments with file path and line number information
-comments.forEach(thread => {
-  thread.comments?.forEach(comment => {
-    if (comment.filePath && comment.rightFileStart && comment.rightFileEnd) {
-      console.log(`Comment on ${comment.filePath}:${comment.rightFileStart.line}-${comment.rightFileEnd.line}: ${comment.content}`);
-    } else {
-      console.log(`General comment: ${comment.content}`);
-    }
-  });
-});
-
 // Get a specific thread by ID
 const thread = await mcpClient.callTool('get_pull_request_comments', {
   projectId: 'MyProject',
@@ -593,163 +574,39 @@ const thread = await mcpClient.callTool('get_pull_request_comments', {
   pullRequestId: 42,
   threadId: 123,
 });
-
-// Get comments with pagination
-const firstPage = await mcpClient.callTool('get_pull_request_comments', {
-  projectId: 'MyProject',
-  repositoryId: 'MyRepo',
-  pullRequestId: 42,
-  top: 10,
-});
 ```
-
-### Implementation Details
-
-The `get_pull_request_comments` tool:
-
-1. Establishes a connection to Azure DevOps using the provided credentials
-2. Retrieves the Git API client
-3. Gets the comment threads from the pull request
-4. For each thread:
-   - Extracts file path and line number information from the thread context
-   - Adds these fields to each comment in the thread
-   - Uses rightFileStart.line for line number if available, falls back to leftFileStart.line
-5. Returns the transformed threads with enhanced comment information
-6. Handles errors and provides meaningful error messages
-
-This implementation provides a robust way to retrieve and analyze pull request comments from Azure DevOps repositories, with enhanced file and line number information for better code review integration.
 
 ## add_pull_request_comment
 
-Adds a comment to a pull request, either as a reply to an existing comment or as a new thread.
+Adds a comment to a pull request, either as a reply to an existing comment thread or as a new thread.
 
 ### Description
 
-The `add_pull_request_comment` tool allows you to create new comments in pull requests in Azure DevOps. You can either:
+The `add_pull_request_comment` tool allows you to:
 
-1. Add a reply to an existing comment thread
-2. Create a new thread with a comment in the general discussion
-3. Create a new thread with a comment on a specific file at a specific line
-
-This tool is useful for providing feedback on pull requests, engaging in code review discussions, and automating comment workflows.
+1. Add a reply to an existing comment thread (`threadId` supplied)
+2. Create a new thread in the general discussion (`status` required)
+3. Create a new thread anchored to a specific file and optional line range (`filePath`, `status`, and optional `lineNumber`/`endLineNumber`)
 
 ### Parameters
 
-```json
-{
-  "projectId": "MyProject", // Required: The ID or name of the project
-  "repositoryId": "MyRepo", // Required: The ID or name of the repository
-  "pullRequestId": 42, // Required: The ID of the pull request
-  "content": "This looks good, let's merge!", // Required: The content of the comment
-  "threadId": 123, // Optional: The ID of the thread to add the comment to (for replying)
-  "parentCommentId": 456, // Optional: The ID of the parent comment (for threaded replies)
-  "filePath": "/src/app.ts", // Optional: The path of the file to comment on (for file comments)
-  "lineNumber": 42, // Optional: The line number to comment on (for file comments)
-  "endLineNumber": 44, // Optional: The last line of the commented range (default: lineNumber)
-  "status": "active" // Optional: The status to set for a new thread (active, fixed, wontFix, closed, pending)
-}
-```
-
-| Parameter         | Type   | Required | Description                                                                                      |
-| ----------------- | ------ | -------- | ------------------------------------------------------------------------------------------------ |
-| `projectId`       | string | Yes      | The ID or name of the project containing the repository                                          |
-| `repositoryId`    | string | Yes      | The ID or name of the repository containing the pull request                                     |
-| `pullRequestId`   | number | Yes      | The ID of the pull request to comment on                                                         |
-| `content`         | string | Yes      | The text content of the comment                                                                  |
-| `threadId`        | number | No       | The ID of an existing thread to add the comment to. Required when replying to an existing thread |
-| `parentCommentId` | number | No       | ID of the parent comment when replying to a specific comment in a thread                         |
-| `filePath`        | string | No       | The path of the file to comment on (for creating a new thread on a file)                         |
-| `lineNumber`      | number | No       | The line number to comment on (for creating a new thread on a file)                              |
-| `endLineNumber`   | number | No       | Last line of the range (default and minimum: `lineNumber`); a suggestion replaces these lines    |
-| `status`          | string | No       | The status to set for a new thread: "active", "fixed", "wontFix", "closed", or "pending"         |
+| Parameter         | Type    | Required | Description                                                                                                              |
+| ----------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `pullRequestId`   | number  | Yes      | The ID of the pull request to comment on                                                                                 |
+| `content`         | string  | Yes      | The text content of the comment                                                                                          |
+| `projectId`       | string  | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)                                               |
+| `organizationId`  | string  | No       | Optional Azure DevOps Services organization override                                                                     |
+| `repositoryId`    | string  | No       | The ID or name of the repository (derived from `pullRequestId` when omitted)                                             |
+| `threadId`        | number  | No       | Existing thread ID to reply to                                                                                           |
+| `parentCommentId` | number  | No       | Parent comment ID when replying to a specific comment in a thread                                                        |
+| `filePath`        | string  | No       | File path for a new file-scoped review thread (e.g., `"/src/app.ts"`)                                                    |
+| `lineNumber`      | integer | No       | Starting 1-based line number (requires `filePath`)                                                                       |
+| `endLineNumber`   | integer | No       | Ending 1-based line number (`>= lineNumber`, requires `filePath` and `lineNumber`)                                       |
+| `status`          | string  | No*      | **Required when creating a new thread** (`threadId` omitted): `"active"`, `"fixed"`, `"wontFix"`, `"closed"`, `"pending"`, `"byDesign"`, or `"unknown"` |
 
 ### Response
 
-When adding a comment to an existing thread, the tool returns an object containing:
-
-- `comment`: The created comment object with details like ID, content, and author
-
-When creating a new thread with a comment, the tool returns an object containing:
-
-- `comment`: The created comment object
-- `thread`: The created thread object with details like ID, status, and context
-
-Example response for replying to an existing thread:
-
-```json
-{
-  "comment": {
-    "id": 101,
-    "content": "I agree with the suggestion",
-    "commentType": 1,
-    "parentCommentId": 100,
-    "author": {
-      "displayName": "John Doe",
-      "id": "user-guid",
-      "uniqueName": "john.doe@example.com"
-    },
-    "publishedDate": "2023-05-15T10:23:45Z"
-  }
-}
-```
-
-Example response for creating a new thread on a file:
-
-```json
-{
-  "comment": {
-    "id": 200,
-    "content": "This variable name should be more descriptive",
-    "commentType": 1,
-    "author": {
-      "displayName": "John Doe",
-      "id": "user-guid",
-      "uniqueName": "john.doe@example.com"
-    },
-    "publishedDate": "2023-05-15T10:30:12Z"
-  },
-  "thread": {
-    "id": 50,
-    "status": 1,
-    "threadContext": {
-      "filePath": "/src/app.ts",
-      "rightFileStart": {
-        "line": 42,
-        "offset": 1
-      },
-      "rightFileEnd": {
-        "line": 42,
-        "offset": 1
-      }
-    },
-    "comments": [
-      {
-        "id": 200,
-        "content": "This variable name should be more descriptive",
-        "commentType": 1,
-        "author": {
-          "displayName": "John Doe",
-          "id": "user-guid",
-          "uniqueName": "john.doe@example.com"
-        },
-        "publishedDate": "2023-05-15T10:30:12Z"
-      }
-    ]
-  }
-}
-```
-
-### Error Handling
-
-The tool may throw the following errors:
-
-- ValidationError: If required parameters are missing or invalid
-- AuthenticationError: If authentication fails
-- PermissionError: If the user doesn't have permission to comment on the pull request
-- ResourceNotFoundError: If the project, repository, pull request, or thread doesn't exist
-- GeneralError: For other unexpected errors
-
-Error messages will include details about what went wrong and suggestions for resolution.
+When replying to an existing thread, returns `{ comment }`. When creating a new thread, returns `{ comment, thread }`.
 
 ### Example Usage
 
@@ -762,30 +619,17 @@ const reply = await mcpClient.callTool('add_pull_request_comment', {
   threadId: 123,
   content: 'I agree with the suggestion, let me implement this change.',
 });
-console.log(`Created reply with ID ${reply.comment.id}`);
 
-// Reply to a specific comment in a thread
-const threadedReply = await mcpClient.callTool('add_pull_request_comment', {
-  projectId: 'MyProject',
-  repositoryId: 'MyRepo',
-  pullRequestId: 42,
-  threadId: 123,
-  parentCommentId: 456,
-  content: 'Specifically addressing your point about error handling.',
-});
-console.log(`Created threaded reply with ID ${threadedReply.comment.id}`);
-
-// Create a new general discussion thread in a pull request
+// Create a new general discussion thread (status is required for new threads)
 const newThread = await mcpClient.callTool('add_pull_request_comment', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   pullRequestId: 42,
-  content:
-    "Overall this looks good, but let's discuss the error handling approach.",
+  content: "Overall this looks good, but let's discuss the error handling approach.",
+  status: 'active',
 });
-console.log(`Created new thread with ID ${newThread.thread.id}`);
 
-// Create a comment on a specific file and line
+// Create a file/line review comment
 const fileComment = await mcpClient.callTool('add_pull_request_comment', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
@@ -793,234 +637,83 @@ const fileComment = await mcpClient.callTool('add_pull_request_comment', {
   content: 'This variable name should be more descriptive.',
   filePath: '/src/app.ts',
   lineNumber: 42,
-});
-console.log(
-  `Created file comment with ID ${fileComment.comment.id} in thread ${fileComment.thread.id}`,
-);
-
-// Create a comment with thread status
-const statusComment = await mcpClient.callTool('add_pull_request_comment', {
-  projectId: 'MyProject',
-  repositoryId: 'MyRepo',
-  pullRequestId: 42,
-  content: "There's an edge case not handled here.",
-  filePath: '/src/app.ts',
-  lineNumber: 87,
+  endLineNumber: 44,
   status: 'active',
 });
-console.log(`Created active thread with ID ${statusComment.thread.id}`);
 ```
-
-### Implementation Details
-
-The `add_pull_request_comment` tool:
-
-1. Establishes a connection to Azure DevOps using the provided credentials
-2. Retrieves the Git API client
-3. Creates the comment object with the provided content
-4. Determines whether to add a comment to an existing thread or create a new thread:
-   - For existing threads, it calls `createComment` to add a comment to the thread
-   - For new threads, it creates a thread object and calls `createThread` to create a new thread with the comment
-5. For file comments, it adds file path and line information to the thread context
-6. Maps status strings to the appropriate CommentThreadStatus enum values
-7. Returns the created comment or thread information
-8. Handles errors and provides meaningful error messages
-
-This implementation provides a flexible way to add comments to pull requests, supporting both regular discussion comments and code review feedback.
 
 ## update_pull_request
 
-Updates an existing pull request with new properties, links work items, and manages reviewers.
-
-### Description
-
-The `update_pull_request` tool allows you to update various aspects of an existing pull request in Azure DevOps. You can modify the title, description, status, draft state, add or remove linked work items, and add or remove reviewers. This tool is useful for automating pull request workflows, updating PR details based on new information, and managing the review process.
+Updates an existing pull request with new properties, links work items, manages reviewers, and adds/removes tags.
 
 ### Parameters
 
-```json
-{
-  "projectId": "MyProject", // Required: The ID or name of the project
-  "repositoryId": "MyRepo", // Required: The ID or name of the repository
-  "pullRequestId": 42, // Required: The ID of the pull request to update
-  "title": "Updated PR Title", // Optional: The updated title of the pull request
-  "description": "Updated PR description", // Optional: The updated description
-  "status": "active", // Optional: The updated status (active, abandoned, completed)
-  "isDraft": false, // Optional: Whether to mark (true) or unmark (false) as draft
-  "addWorkItemIds": [123, 456], // Optional: Work item IDs to link to the PR
-  "removeWorkItemIds": [789], // Optional: Work item IDs to unlink from the PR
-  "addReviewers": ["user1@example.com"], // Optional: Reviewers to add
-  "removeReviewers": ["user2@example.com"], // Optional: Reviewers to remove
-  "additionalProperties": {} // Optional: Additional properties to update
-}
-```
-
-| Parameter              | Type     | Required | Description                                                  |
-| ---------------------- | -------- | -------- | ------------------------------------------------------------ |
-| `projectId`            | string   | Yes      | The ID or name of the project containing the repository      |
-| `repositoryId`         | string   | Yes      | The ID or name of the repository containing the pull request |
-| `pullRequestId`        | number   | Yes      | The ID of the pull request to update                         |
-| `title`                | string   | No       | The updated title of the pull request                        |
-| `description`          | string   | No       | The updated description of the pull request                  |
-| `status`               | string   | No       | The updated status: "active", "abandoned", or "completed"    |
-| `isDraft`              | boolean  | No       | Whether to mark (true) or unmark (false) the PR as a draft   |
-| `addWorkItemIds`       | number[] | No       | Array of work item IDs to link to the pull request           |
-| `removeWorkItemIds`    | number[] | No       | Array of work item IDs to unlink from the pull request       |
-| `addReviewers`         | string[] | No       | Array of reviewer email addresses or IDs to add              |
-| `removeReviewers`      | string[] | No       | Array of reviewer email addresses or IDs to remove           |
-| `additionalProperties` | object   | No       | Additional properties to update on the pull request          |
+| Parameter              | Type     | Required | Description                                                                   |
+| ---------------------- | -------- | -------- | ----------------------------------------------------------------------------- |
+| `repositoryId`         | string   | Yes      | The ID or name of the repository containing the pull request                  |
+| `pullRequestId`        | number   | Yes      | The ID of the pull request to update                                          |
+| `projectId`            | string   | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)    |
+| `organizationId`       | string   | No       | Optional Azure DevOps Services organization override                          |
+| `title`                | string   | No       | The updated title of the pull request                                         |
+| `description`          | string   | No       | The updated description of the pull request                                   |
+| `status`               | string   | No       | The updated status: `"active"`, `"abandoned"`, or `"completed"`               |
+| `isDraft`              | boolean  | No       | Whether to mark (`true`) or unmark (`false`) the PR as a draft                |
+| `addWorkItemIds`       | number[] | No       | Array of work item IDs to link to the pull request                            |
+| `removeWorkItemIds`    | number[] | No       | Array of work item IDs to unlink from the pull request                        |
+| `addReviewers`         | string[] | No       | Array of reviewer email addresses or IDs to add                               |
+| `removeReviewers`      | string[] | No       | Array of reviewer email addresses or IDs to remove                            |
+| `addTags`              | string[] | No       | Array of tags/labels to add (case-insensitively deduplicated)                 |
+| `removeTags`           | string[] | No       | Array of tags/labels to remove (missing tags are ignored)                     |
+| `additionalProperties` | object   | No       | Additional properties to update on the pull request                           |
 
 ### Response
 
-The tool returns the updated `PullRequest` object containing:
-
-- `pullRequestId`: The unique identifier of the updated pull request
-- `title`: The title of the pull request (updated if provided)
-- `description`: The description of the pull request (updated if provided)
-- `status`: The status of the pull request (active, abandoned, completed)
-- `isDraft`: Whether the pull request is a draft
-- And various other fields and references, including updated reviewers and work item references
-
-Example response:
-
-```json
-{
-  "repository": {
-    "id": "repo-guid",
-    "name": "MyRepo",
-    "url": "https://dev.azure.com/organization/MyProject/_apis/git/repositories/MyRepo",
-    "project": {
-      "id": "project-guid",
-      "name": "MyProject"
-    }
-  },
-  "pullRequestId": 42,
-  "codeReviewId": 42,
-  "status": 1,
-  "createdBy": {
-    "displayName": "John Doe",
-    "id": "user-guid",
-    "uniqueName": "john.doe@example.com"
-  },
-  "creationDate": "2023-01-01T12:00:00Z",
-  "title": "Updated PR Title",
-  "description": "Updated PR description",
-  "sourceRefName": "refs/heads/feature-branch",
-  "targetRefName": "refs/heads/main",
-  "mergeStatus": 3,
-  "isDraft": false,
-  "reviewers": [
-    {
-      "displayName": "Jane Smith",
-      "id": "reviewer-guid",
-      "uniqueName": "jane.smith@example.com",
-      "voteResult": 0
-    }
-  ],
-  "url": "https://dev.azure.com/organization/MyProject/_apis/git/repositories/MyRepo/pullRequests/42",
-  "workItemRefs": [
-    {
-      "id": "123",
-      "url": "https://dev.azure.com/organization/MyProject/_apis/wit/workItems/123"
-    },
-    {
-      "id": "456",
-      "url": "https://dev.azure.com/organization/MyProject/_apis/wit/workItems/456"
-    }
-  ]
-}
-```
-
-### Error Handling
-
-The tool may throw the following errors:
-
-- ValidationError: If required parameters are missing or invalid
-- AuthenticationError: If authentication fails
-- PermissionError: If the user doesn't have permission to update the pull request
-- ResourceNotFoundError: If the project, repository, or pull request doesn't exist
-- GeneralError: For other unexpected errors
-
-Error messages will include details about what went wrong and suggestions for resolution.
+Returns the updated `GitPullRequest` object (including updated `labels` when tags were modified).
 
 ### Example Usage
 
 ```typescript
-// Update the title and description of a pull request
 const updatedPR = await mcpClient.callTool('update_pull_request', {
   projectId: 'MyProject',
   repositoryId: 'MyRepo',
   pullRequestId: 42,
   title: 'Updated PR Title',
-  description: 'This PR has been updated to add new features',
-});
-console.log(`Updated PR: ${updatedPR.title}`);
-
-// Mark a pull request as completed
-const completedPR = await mcpClient.callTool('update_pull_request', {
-  projectId: 'MyProject',
-  repositoryId: 'MyRepo',
-  pullRequestId: 42,
-  status: 'completed',
-});
-console.log(
-  `PR status: ${completedPR.status === 3 ? 'Completed' : 'Not completed'}`,
-);
-
-// Convert a draft PR to a normal PR
-const readyPR = await mcpClient.callTool('update_pull_request', {
-  projectId: 'MyProject',
-  repositoryId: 'MyRepo',
-  pullRequestId: 42,
   isDraft: false,
+  addTags: ['ready-for-review'],
+  removeTags: ['wip'],
 });
-console.log(`PR is draft: ${readyPR.isDraft ? 'Yes' : 'No'}`);
-
-// Add and remove work items from a PR
-const workItemPR = await mcpClient.callTool('update_pull_request', {
-  projectId: 'MyProject',
-  repositoryId: 'MyRepo',
-  pullRequestId: 42,
-  addWorkItemIds: [123, 456],
-  removeWorkItemIds: [789],
-});
-console.log(
-  `PR now has ${workItemPR.workItemRefs?.length || 0} linked work items`,
-);
-
-// Add and remove reviewers
-const reviewersPR = await mcpClient.callTool('update_pull_request', {
-  projectId: 'MyProject',
-  repositoryId: 'MyRepo',
-  pullRequestId: 42,
-  addReviewers: ['alex@example.com', 'taylor@example.com'],
-  removeReviewers: ['old-reviewer@example.com'],
-});
-console.log(`PR now has ${reviewersPR.reviewers?.length || 0} reviewers`);
 ```
 
-### Implementation Details
+## update_pull_request_thread_status
 
-The `update_pull_request` tool:
+Updates the resolution status of an existing pull request comment thread.
 
-1. Establishes a connection to Azure DevOps using the provided credentials
-2. Retrieves the Git API client
-3. Gets the current pull request to verify it exists
-4. Creates an update object with only the properties that are being updated:
-   - Basic properties (title, description, isDraft)
-   - Status (active, abandoned, completed)
-   - Any additional properties provided
-5. Updates the pull request with the provided changes
-6. If specified, handles adding and removing work item associations:
-   - Adds work items by creating links between the PR and work items
-   - Removes work items by deleting links between the PR and work items
-7. If specified, handles adding and removing reviewers:
-   - Adds reviewers by creating reviewer references
-   - Removes reviewers by deleting reviewer references
-8. Gets the final updated pull request to return all changes
-9. Handles errors and provides meaningful error messages
+### Parameters
 
-This implementation provides a comprehensive way to update pull requests in Azure DevOps repositories, supporting all common update scenarios.
+| Parameter        | Type   | Required | Description                                                                                                          |
+| ---------------- | ------ | -------- | -------------------------------------------------------------------------------------------------------------------- |
+| `pullRequestId`  | number | Yes      | The ID of the pull request                                                                                           |
+| `threadId`       | number | Yes      | The ID of the comment thread to update                                                                               |
+| `status`         | string | Yes      | Target thread status: `"active"`, `"fixed"`, `"wontFix"`, `"closed"`, `"pending"`, `"byDesign"`, or `"unknown"`      |
+| `projectId`      | string | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)                                           |
+| `organizationId` | string | No       | Optional Azure DevOps Services organization override                                                                 |
+| `repositoryId`   | string | No       | The ID or name of the repository (derived from `pullRequestId` when omitted)                                         |
+
+### Response
+
+Returns the updated `GitPullRequestCommentThread` object.
+
+### Example Usage
+
+```typescript
+await mcpClient.callTool('update_pull_request_thread_status', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  pullRequestId: 42,
+  threadId: 123,
+  status: 'fixed',
+});
+```
 
 ## get_pull_request_changes
 
@@ -1028,13 +721,12 @@ Retrieves the list of files changed in a pull request, including unified diff pa
 
 ### Parameters
 
-```json
-{
-  "projectId": "MyProject",
-  "repositoryId": "MyRepo",
-  "pullRequestId": 42
-}
-```
+| Parameter        | Type   | Required | Description                                                                |
+| ---------------- | ------ | -------- | -------------------------------------------------------------------------- |
+| `repositoryId`   | string | Yes      | The ID or name of the repository                                           |
+| `pullRequestId`  | number | Yes      | The ID of the pull request                                                 |
+| `projectId`      | string | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`) |
+| `organizationId` | string | No       | Optional Azure DevOps Services organization override                       |
 
 ### Response
 
@@ -1042,16 +734,7 @@ Returns an object with:
 
 - `changes`: The raw change entries from Azure DevOps for the latest iteration
 - `evaluations`: Policy evaluation records for the pull request
-- `files`: Array of changed files with their unified diffs
-
-Each file entry has the shape:
-
-```json
-{
-  "path": "src/app.ts",
-  "patch": "@@ -1,2 +1,2 @@\n-old\n+new\n"
-}
-```
+- `files`: Array of changed files with their unified diffs (`{ path, patch }`; binary files and blobs exceeding 2 MiB are skipped gracefully)
 
 ## get_pull_request_checks
 
@@ -1059,13 +742,12 @@ Summarises the latest status checks (builds, validations, custom checks) and pol
 
 ### Parameters
 
-```json
-{
-  "projectId": "MyProject",
-  "repositoryId": "MyRepo",
-  "pullRequestId": 42
-}
-```
+| Parameter        | Type   | Required | Description                                                                |
+| ---------------- | ------ | -------- | -------------------------------------------------------------------------- |
+| `repositoryId`   | string | Yes      | The ID or name of the repository                                           |
+| `pullRequestId`  | number | Yes      | The ID of the pull request                                                 |
+| `projectId`      | string | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`) |
+| `organizationId` | string | No       | Optional Azure DevOps Services organization override                       |
 
 ### Response
 
