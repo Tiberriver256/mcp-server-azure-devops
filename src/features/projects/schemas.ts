@@ -84,3 +84,53 @@ export const ListProjectsSchema = z.object({
     .optional()
     .describe('Gets the projects after the continuation token provided'),
 });
+
+/**
+ * Schema for listing teams in a project or across all projects
+ */
+export const ListTeamsSchema = z.object({
+  projectId: z
+    .string()
+    .optional()
+    .describe(
+      'The ID or name of the project to list teams for (defaults to AZURE_DEVOPS_DEFAULT_PROJECT unless allProjects is true; lists org/collection-wide teams when omitted and no default project is configured)',
+    ),
+  organizationId: z
+    .string()
+    .optional()
+    .describe(
+      'The ID or name of the organization (defaults to configured organization)',
+    ),
+  allProjects: z
+    .boolean()
+    .optional()
+    .describe(
+      'If true, list teams across all projects in the organization or collection (ignores projectId and AZURE_DEVOPS_DEFAULT_PROJECT)',
+    ),
+  mine: z
+    .boolean()
+    .optional()
+    .describe(
+      'If true, return only teams the authenticated user is a member of',
+    ),
+  top: z
+    .number()
+    .int()
+    .min(1)
+    .max(1000)
+    .optional()
+    .default(100)
+    .describe('Maximum number of teams to return (1-1000, default: 100)'),
+  skip: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe('Number of teams to skip (non-negative integer)'),
+  expandIdentity: z
+    .boolean()
+    .optional()
+    .describe(
+      'If true, expand identity information in the returned team objects (supported on Azure DevOps Server 2020+ and Services; automatically omitted when unset, false, or unsupported)',
+    ),
+});

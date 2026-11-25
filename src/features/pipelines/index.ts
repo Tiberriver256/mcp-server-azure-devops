@@ -23,6 +23,10 @@ export { getPipelineLog } from './get-pipeline-log/feature.ts';
 export { GetPipelineLogSchema } from './get-pipeline-log/schema.ts';
 export { triggerPipeline } from './trigger-pipeline/feature.ts';
 export { TriggerPipelineSchema } from './trigger-pipeline/schema.ts';
+export { getBuildTestResults } from './get-build-test-results/feature.ts';
+export { GetBuildTestResultsSchema } from './get-build-test-results/schema.ts';
+export { retryPipelineStage } from './retry-pipeline-stage/feature.ts';
+export { RetryPipelineStageSchema } from './retry-pipeline-stage/schema.ts';
 export * from './run-reference.ts';
 
 import type { WebApi } from 'azure-devops-node-api';
@@ -38,6 +42,8 @@ import { DownloadPipelineArtifactSchema } from './download-pipeline-artifact/sch
 import { GetPipelineTimelineSchema } from './pipeline-timeline/schema.ts';
 import { GetPipelineLogSchema } from './get-pipeline-log/schema.ts';
 import { TriggerPipelineSchema } from './trigger-pipeline/schema.ts';
+import { GetBuildTestResultsSchema } from './get-build-test-results/schema.ts';
+import { RetryPipelineStageSchema } from './retry-pipeline-stage/schema.ts';
 import { listPipelines } from './list-pipelines/feature.ts';
 import { getPipeline } from './get-pipeline/feature.ts';
 import { listPipelineRuns } from './list-pipeline-runs/feature.ts';
@@ -46,6 +52,8 @@ import { downloadPipelineArtifact } from './download-pipeline-artifact/feature.t
 import { getPipelineTimeline } from './pipeline-timeline/feature.ts';
 import { getPipelineLog } from './get-pipeline-log/feature.ts';
 import { triggerPipeline } from './trigger-pipeline/feature.ts';
+import { getBuildTestResults } from './get-build-test-results/feature.ts';
+import { retryPipelineStage } from './retry-pipeline-stage/feature.ts';
 import type { RunReferenceInput } from './run-reference.ts';
 import {
   resolvePipelineReference,
@@ -224,6 +232,36 @@ export const pipelinesFeature: FeatureModule = {
         return await triggerPipeline(
           connection,
           await withResolvedPipeline(ctx, connection, args),
+        );
+      },
+    }),
+    defineTool({
+      name: 'get_build_test_results',
+      description:
+        'Retrieve test run summaries and test results (defaulting to failed/aborted/timeout/error tests with error messages and stack traces) for a pipeline run. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
+      schema: GetBuildTestResultsSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await getBuildTestResults(
+          connection,
+          await withResolvedRun(ctx, connection, args),
+        );
+      },
+    }),
+    defineTool({
+      name: 'retry_pipeline_stage',
+      description:
+        'Retry, cancel, or run a specific stage in a pipeline run. Requires Azure DevOps Server 2020+ or Azure DevOps Services. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
+      schema: RetryPipelineStageSchema,
+      readOnly: false,
+      destructive: true,
+      idempotent: false,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await retryPipelineStage(
+          connection,
+          await withResolvedRun(ctx, connection, args),
         );
       },
     }),

@@ -6,6 +6,8 @@ export { createWorkItem } from './create-work-item/feature.ts';
 export { updateWorkItem } from './update-work-item/feature.ts';
 export { manageWorkItemLink } from './manage-work-item-link/feature.ts';
 export { getWorkItemComments } from './get-work-item-comments/feature.ts';
+export { addWorkItemComment } from './add-work-item-comment/feature.ts';
+export { getWorkItemRevisions } from './get-work-item-revisions/feature.ts';
 export { createWorkItemAttachment } from './create-work-item-attachment/feature.ts';
 export { getWorkItemAttachment } from './get-work-item-attachment/feature.ts';
 export { deleteWorkItemAttachment } from './delete-work-item-attachment/feature.ts';
@@ -13,11 +15,13 @@ export { deleteWorkItemAttachment } from './delete-work-item-attachment/feature.
 import { defineTool } from '../../shared/registry/tool-registry.ts';
 import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
 import {
+  AddWorkItemCommentSchema,
   CreateWorkItemAttachmentSchema,
   CreateWorkItemSchema,
   DeleteWorkItemAttachmentSchema,
   GetWorkItemAttachmentSchema,
   GetWorkItemCommentsSchema,
+  GetWorkItemRevisionsSchema,
   GetWorkItemSchema,
   ListWorkItemsSchema,
   ManageWorkItemLinkSchema,
@@ -29,6 +33,8 @@ import { createWorkItem } from './create-work-item/feature.ts';
 import { updateWorkItem } from './update-work-item/feature.ts';
 import { manageWorkItemLink } from './manage-work-item-link/feature.ts';
 import { getWorkItemComments } from './get-work-item-comments/feature.ts';
+import { addWorkItemComment } from './add-work-item-comment/feature.ts';
+import { getWorkItemRevisions } from './get-work-item-revisions/feature.ts';
 import { createWorkItemAttachment } from './create-work-item-attachment/feature.ts';
 import { getWorkItemAttachment } from './get-work-item-attachment/feature.ts';
 import { deleteWorkItemAttachment } from './delete-work-item-attachment/feature.ts';
@@ -156,6 +162,42 @@ export const workItemsFeature: FeatureModule = {
           includeDeleted: args.includeDeleted,
           expand: args.expand,
           order: args.order,
+        });
+      },
+    }),
+    defineTool({
+      name: 'add_work_item_comment',
+      description:
+        'Add a comment to a specific work item. Supports Markdown or HTML formatting on Azure DevOps Services and gracefully falls back on older Azure DevOps Server instances.',
+      schema: AddWorkItemCommentSchema,
+      readOnly: false,
+      destructive: false,
+      idempotent: false,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await addWorkItemComment(connection, {
+          workItemId: args.workItemId,
+          text: args.text,
+          projectId: ctx.resolveOptionalProjectId(args.projectId),
+          format: args.format,
+        });
+      },
+    }),
+    defineTool({
+      name: 'get_work_item_revisions',
+      description:
+        'Get revision history for a work item, or fetch a single specific revision by revisionNumber',
+      schema: GetWorkItemRevisionsSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await getWorkItemRevisions(connection, {
+          workItemId: args.workItemId,
+          projectId: ctx.resolveOptionalProjectId(args.projectId),
+          revisionNumber: args.revisionNumber,
+          top: args.top,
+          skip: args.skip,
+          expand: args.expand,
         });
       },
     }),

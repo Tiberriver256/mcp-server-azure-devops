@@ -407,3 +407,164 @@ export const MergePullRequestSchema = z
       });
     }
   });
+
+/**
+ * Schema for casting or resetting a vote on a pull request
+ */
+export const VotePullRequestSchema = z.object({
+  projectId: z
+    .string()
+    .optional()
+    .describe(
+      'The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT; derived from pullRequestId when omitted and no default project is configured)',
+    ),
+  organizationId: z.string().optional().describe(defaultOrgDesc),
+  repositoryId: z
+    .string()
+    .optional()
+    .describe(
+      'The ID or name of the repository (optional; derived from pullRequestId when omitted)',
+    ),
+  pullRequestId: z
+    .number()
+    .int()
+    .positive()
+    .describe('The ID of the pull request to vote on'),
+  vote: z
+    .union([
+      z.literal(10),
+      z.literal(5),
+      z.literal(0),
+      z.literal(-5),
+      z.literal(-10),
+      z.enum([
+        'approved',
+        'approvedWithSuggestions',
+        'noVote',
+        'waitingForAuthor',
+        'rejected',
+      ]),
+    ])
+    .describe(
+      'Vote to cast: 10/"approved", 5/"approvedWithSuggestions", 0/"noVote" (reset vote), -5/"waitingForAuthor", or -10/"rejected"',
+    ),
+  reviewerId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe(
+      'Reviewer GUID, email, uniqueName, or display name (optional; defaults to the authenticated caller)',
+    ),
+  isRequired: z
+    .boolean()
+    .optional()
+    .describe(
+      'Whether the reviewer is required (optional; preserves existing required status when omitted)',
+    ),
+  isReapprove: z
+    .boolean()
+    .optional()
+    .describe('Whether to mark the vote as a re-approval'),
+  hasDeclined: z
+    .boolean()
+    .optional()
+    .describe('Whether the reviewer has declined the review'),
+});
+
+const ReviewerEntrySchema = z.union([
+  z
+    .string()
+    .trim()
+    .min(1)
+    .describe('Reviewer GUID, email, uniqueName, or display name'),
+  z
+    .object({
+      id: z
+        .string()
+        .trim()
+        .min(1)
+        .optional()
+        .describe('Reviewer GUID, email, uniqueName, or display name'),
+      reviewer: z
+        .string()
+        .trim()
+        .min(1)
+        .optional()
+        .describe(
+          'Alias for id: reviewer GUID, email, uniqueName, or display name',
+        ),
+      isRequired: z
+        .boolean()
+        .optional()
+        .describe(
+          'Whether this reviewer is required (overrides top-level isRequired)',
+        ),
+    })
+    .refine((entry) => Boolean(entry.id ?? entry.reviewer), {
+      message: 'Reviewer object must specify id or reviewer',
+    }),
+]);
+
+/**
+ * Schema for listing, adding, updating, or removing pull request reviewers
+ */
+export const ManagePullRequestReviewersSchema = z
+  .object({
+    projectId: z
+      .string()
+      .optional()
+      .describe(
+        'The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT; derived from pullRequestId when omitted and no default project is configured)',
+      ),
+    organizationId: z.string().optional().describe(defaultOrgDesc),
+    repositoryId: z
+      .string()
+      .optional()
+      .describe(
+        'The ID or name of the repository (optional; derived from pullRequestId when omitted)',
+      ),
+    pullRequestId: z
+      .number()
+      .int()
+      .positive()
+      .describe('The ID of the pull request'),
+    action: z
+      .enum(['list', 'add', 'update', 'remove'])
+      .describe('Action to perform on pull request reviewers'),
+    reviewers: z
+      .array(ReviewerEntrySchema)
+      .optional()
+      .describe(
+        'List of reviewers (GUID, email, uniqueName, display name, or { id/reviewer, isRequired }) for add, update, or remove actions',
+      ),
+    reviewerId: z
+      .string()
+      .trim()
+      .min(1)
+      .optional()
+      .describe(
+        'Single reviewer GUID, email, uniqueName, or display name for add, update, or remove actions',
+      ),
+    isRequired: z
+      .boolean()
+      .optional()
+      .describe(
+        'Default isRequired flag for add/update when not specified per reviewer',
+      ),
+  })
+  .superRefine((data, ctx) => {
+    if (data.action !== 'list') {
+      const hasReviewers =
+        Array.isArray(data.reviewers) && data.reviewers.length > 0;
+      const hasSingleReviewer =
+        typeof data.reviewerId === 'string' && data.reviewerId.length > 0;
+      if (!hasReviewers && !hasSingleReviewer) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Action '${data.action}' requires at least one reviewer via 'reviewers' or 'reviewerId'`,
+          path: ['reviewers'],
+        });
+      }
+    }
+  });

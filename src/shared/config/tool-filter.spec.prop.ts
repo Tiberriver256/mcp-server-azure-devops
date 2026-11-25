@@ -42,6 +42,8 @@ const sampleRegistry: Record<ToolsetName, readonly ToolLike[]> = {
     { name: 'tp_read', readOnly: true },
     { name: 'tp_write', readOnly: false },
   ],
+  work: [{ name: 'wk_iter_read', readOnly: true }],
+  analytics: [{ name: 'an_read', readOnly: true }],
 };
 
 const ALL_TOOL_NAMES = TOOLSET_NAMES.flatMap((ts) =>

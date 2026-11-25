@@ -16,6 +16,11 @@ export {
   normalizeGitDiffPath,
 } from './create-commit/feature.ts';
 export { listCommits } from './list-commits/feature.ts';
+export {
+  listBranches,
+  normalizeBranchFilter,
+  isLegacyRefsApiVersion,
+} from './list-branches/feature.ts';
 
 import { defineTool } from '../../shared/registry/tool-registry.ts';
 import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
@@ -28,6 +33,7 @@ import {
   GetRepositoryDetailsSchema,
   GetRepositorySchema,
   GetRepositoryTreeSchema,
+  ListBranchesSchema,
   ListCommitsSchema,
   ListRepositoriesSchema,
 } from './schemas.ts';
@@ -43,6 +49,7 @@ import { getRepositoryTree } from './get-repository-tree/feature.ts';
 import { createBranch } from './create-branch/feature.ts';
 import { createCommit } from './create-commit/feature.ts';
 import { listCommits } from './list-commits/feature.ts';
+import { listBranches } from './list-branches/feature.ts';
 
 export const repositoriesFeature: FeatureModule = {
   toolset: 'repositories',
@@ -197,6 +204,20 @@ export const repositoriesFeature: FeatureModule = {
       handler: async (ctx, args) => {
         const connection = await ctx.getWebApi(args.organizationId);
         return await listCommits(connection, {
+          ...args,
+          projectId: ctx.resolveProjectId(args.projectId),
+        });
+      },
+    }),
+    defineTool({
+      name: 'list_branches',
+      description:
+        'List branches in a Git repository with optional prefix/substring filters, includeMyBranches, commit statuses, continuation-token pagination, and ahead/behind branch statistics',
+      schema: ListBranchesSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await listBranches(connection, {
           ...args,
           projectId: ctx.resolveProjectId(args.projectId),
         });

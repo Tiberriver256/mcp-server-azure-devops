@@ -12,6 +12,8 @@ export const TOOLSET_NAMES = [
   'pipelines',
   'wikis',
   'test-plans',
+  'work',
+  'analytics',
 ] as const;
 
 export type ToolsetName = (typeof TOOLSET_NAMES)[number];
@@ -31,7 +33,7 @@ export const TOOLSET_PRESETS: Record<
 > = {
   'pr-review': ['users', 'projects', 'repositories', 'pull-requests'],
   'ci-debug': ['projects', 'pipelines', 'pull-requests'],
-  boards: ['users', 'projects', 'work-items', 'search'],
+  boards: ['users', 'projects', 'work-items', 'search', 'work'],
   core: [
     'users',
     'organizations',
@@ -81,6 +83,11 @@ const TOOLSET_ALIASES = new Map<string, ToolsetName>([
   ['test-plans', 'test-plans'],
   ['test_plans', 'test-plans'],
   ['testplans', 'test-plans'],
+  ['work', 'work'],
+  ['sprints', 'work'],
+  ['iterations', 'work'],
+  ['analytics', 'analytics'],
+  ['odata', 'analytics'],
 ]);
 
 const TOOLSET_PRESET_ALIASES = new Map<string, ToolsetPresetName>([

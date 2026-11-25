@@ -233,3 +233,85 @@ export const ListCommitsSchema = z.object({
     .optional()
     .describe('Number of commits to skip from the newest'),
 });
+
+/**
+ * Schema for listing branches in a repository
+ */
+export const ListBranchesSchema = z
+  .object({
+    projectId: z.string().optional().describe(defaultProjectDesc),
+    organizationId: z.string().optional().describe(defaultOrgDesc),
+    repositoryId: z
+      .string()
+      .trim()
+      .min(1)
+      .describe('The ID or name of the repository'),
+    filter: z
+      .string()
+      .optional()
+      .describe(
+        'Optional branch name prefix filter (e.g., "feature/" or "heads/feature/"). Automatically scoped to heads/. Cannot be combined with includeMyBranches: true.',
+      ),
+    filterContains: z
+      .string()
+      .optional()
+      .describe('Optional substring filter for branch names'),
+    includeMyBranches: z
+      .boolean()
+      .optional()
+      .describe(
+        'Return only branches created by the authenticated caller. Cannot be combined with filter.',
+      ),
+    includeStatuses: z
+      .boolean()
+      .optional()
+      .describe('Include Git commit statuses on each branch'),
+    latestStatusesOnly: z
+      .boolean()
+      .optional()
+      .describe(
+        'Return only the latest status per context (requires includeStatuses: true)',
+      ),
+    includeStats: z
+      .boolean()
+      .optional()
+      .describe(
+        'Enrich branches with aheadCount, behindCount, isBaseVersion, and tip commit from stats/branches',
+      ),
+    top: z
+      .number()
+      .int()
+      .min(1)
+      .max(1000)
+      .optional()
+      .describe(
+        'Maximum number of branches to return per page (1–1000; supported on Azure DevOps Services and Server 2020+)',
+      ),
+    continuationToken: z
+      .string()
+      .optional()
+      .describe(
+        'Continuation token from a previous list_branches response (supported on Azure DevOps Services and Server 2020+)',
+      ),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.includeMyBranches === true &&
+      typeof data.filter === 'string' &&
+      data.filter.trim().length > 0
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'Cannot combine filter with includeMyBranches: true (mutually exclusive in Azure DevOps Git Refs API)',
+        path: ['filter'],
+      });
+    }
+    if (data.latestStatusesOnly === true && data.includeStatuses !== true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'latestStatusesOnly requires includeStatuses to be true',
+        path: ['latestStatusesOnly'],
+      });
+    }
+  });

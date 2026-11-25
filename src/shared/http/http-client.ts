@@ -44,6 +44,32 @@ export function sanitizeUrlForError(rawUrl: string): string {
 }
 
 /**
+ * Return true iff both URLs are valid http/https URLs sharing the exact same
+ * scheme, hostname, and effective port (RFC 6454 origin equality).
+ * Guards pagination tokens, @odata.nextLink, and attachment downloads against SSRF
+ * or Authorization header forwarding to untrusted hosts.
+ */
+export function isSameOrigin(targetUrl: string, baseUrl: string): boolean {
+  try {
+    const target = new URL(targetUrl);
+    const base = new URL(baseUrl);
+    if (
+      (target.protocol !== 'http:' && target.protocol !== 'https:') ||
+      (base.protocol !== 'http:' && base.protocol !== 'https:') ||
+      target.username !== '' ||
+      target.password !== '' ||
+      base.username !== '' ||
+      base.password !== ''
+    ) {
+      return false;
+    }
+    return target.origin === base.origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Typed HTTP error produced by HttpClient.
  * Intentionally omits request headers and authorization credentials so
  * secrets can never leak into logs or serialized Error.cause chains.

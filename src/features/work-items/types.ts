@@ -1,6 +1,7 @@
 import type {
   WorkItem,
   WorkItemReference,
+  Comment,
   CommentList,
 } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
 
@@ -19,6 +20,13 @@ export interface ListWorkItemsOptions {
 }
 
 export type DescriptionFormat = 'html' | 'markdown';
+export type CommentTextFormat = 'markdown' | 'html';
+export type WorkItemExpandOption =
+  | 'none'
+  | 'relations'
+  | 'fields'
+  | 'links'
+  | 'all';
 
 /**
  * Options for creating a work item
@@ -68,6 +76,48 @@ export interface GetWorkItemCommentsOptions {
 }
 
 /**
+ * Options for adding a comment to a work item
+ */
+export interface AddWorkItemCommentOptions {
+  workItemId: number;
+  text: string;
+  projectId?: string;
+  format?: CommentTextFormat;
+}
+
+/**
+ * Result returned when adding a comment falls back to patching System.History
+ * (e.g., on Azure DevOps Server 2019 RTM where the Comments CRUD API does not exist).
+ */
+export interface AddWorkItemCommentFallbackResult {
+  workItemId: number;
+  text: string;
+  version?: number;
+  url?: string;
+  fallback: true;
+  fallbackMethod: 'System.History';
+}
+
+/**
+ * Result of adding a comment to a work item
+ */
+export type AddWorkItemCommentResult =
+  | Comment
+  | AddWorkItemCommentFallbackResult;
+
+/**
+ * Options for getting work item revisions
+ */
+export interface GetWorkItemRevisionsOptions {
+  workItemId: number;
+  projectId?: string;
+  revisionNumber?: number;
+  top?: number;
+  skip?: number;
+  expand?: WorkItemExpandOption;
+}
+
+/**
  * Options for creating an attachment on a work item
  */
 export interface CreateWorkItemAttachmentOptions {
@@ -101,5 +151,5 @@ export interface DeleteWorkItemAttachmentOptions {
   attachmentId: string;
 }
 
-// Re-export WorkItem, WorkItemReference and CommentList types for convenience
-export type { WorkItem, WorkItemReference, CommentList };
+// Re-export WorkItem, WorkItemReference, Comment and CommentList types for convenience
+export type { WorkItem, WorkItemReference, Comment, CommentList };

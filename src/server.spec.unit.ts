@@ -43,7 +43,7 @@ void describe('createAzureDevOpsServer deep seam tests', () => {
     return handler;
   }
 
-  void it('registers all 60 tools across 10 toolsets with explicit boolean readOnly', () => {
+  void it('registers all 75 tools across 12 toolsets with explicit boolean readOnly', () => {
     const registry = getToolRegistry();
     let total = 0;
     for (const toolset of TOOLSET_NAMES) {
@@ -53,7 +53,7 @@ void describe('createAzureDevOpsServer deep seam tests', () => {
         total += 1;
       }
     }
-    assert.strictEqual(total, 60);
+    assert.strictEqual(total, 75);
   });
 
   void it('filters ListTools by toolsets and disabledTools and emits spec-compliant MCP tools', async () => {
@@ -77,7 +77,7 @@ void describe('createAzureDevOpsServer deep seam tests', () => {
     const parsed = ListToolsResultSchema.parse(result);
     assert.deepStrictEqual(
       parsed.tools.map((t) => t.name),
-      ['get_me', 'list_projects', 'get_project'],
+      ['get_me', 'list_projects', 'get_project', 'list_teams'],
     );
     for (const tool of result.tools) {
       assert.strictEqual(Object.hasOwn(tool, 'readOnly'), false);

@@ -3,6 +3,7 @@ import type {
   Comment,
   GitPullRequestCommentThread,
   CommentPosition,
+  IdentityRefWithVote,
 } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
 
 export type PullRequest = GitPullRequest;
@@ -179,3 +180,122 @@ export interface MergePullRequestOptions {
   autoCompleteIgnoreConfigIds?: number[];
   lastMergeSourceCommitId?: string;
 }
+
+/**
+ * Friendly string labels for Azure DevOps pull request votes
+ */
+export type PullRequestVoteString =
+  | 'approved'
+  | 'approvedWithSuggestions'
+  | 'noVote'
+  | 'waitingForAuthor'
+  | 'rejected';
+
+/**
+ * Exact numeric Azure DevOps pull request vote values
+ */
+export type PullRequestNumericVote = 10 | 5 | 0 | -5 | -10;
+
+/**
+ * Accepted vote input (numeric or friendly string)
+ */
+export type PullRequestVoteInput =
+  | PullRequestNumericVote
+  | PullRequestVoteString;
+
+/**
+ * Options for voting on a pull request
+ */
+export interface VotePullRequestOptions {
+  projectId?: string;
+  organizationId?: string;
+  repositoryId?: string;
+  pullRequestId: number;
+  vote: PullRequestVoteInput;
+  reviewerId?: string;
+  isRequired?: boolean;
+  isReapprove?: boolean;
+  hasDeclined?: boolean;
+}
+
+/**
+ * Response returned by vote_pull_request
+ */
+export interface VotePullRequestResponse extends IdentityRefWithVote {
+  pullRequestId: number;
+  repositoryId: string;
+  voteLabel: PullRequestVoteString;
+}
+
+/**
+ * Supported actions for managing pull request reviewers
+ */
+export type ManagePullRequestReviewersAction =
+  | 'list'
+  | 'add'
+  | 'update'
+  | 'remove';
+
+/**
+ * Reviewer entry accepted in manage_pull_request_reviewers
+ */
+export type ReviewerInput =
+  | string
+  | {
+      id?: string;
+      reviewer?: string;
+      isRequired?: boolean;
+    };
+
+/**
+ * Options for managing pull request reviewers
+ */
+export interface ManagePullRequestReviewersOptions {
+  projectId?: string;
+  organizationId?: string;
+  repositoryId?: string;
+  pullRequestId: number;
+  action: ManagePullRequestReviewersAction;
+  reviewers?: ReviewerInput[];
+  reviewerId?: string;
+  isRequired?: boolean;
+}
+
+/**
+ * Per-reviewer outcome for add/update/remove mutations
+ */
+export interface ReviewerMutationResult {
+  input: string;
+  id?: string;
+  status: 'succeeded' | 'failed';
+  reviewer?: IdentityRefWithVote;
+  error?: string;
+}
+
+/**
+ * Response for manage_pull_request_reviewers list action
+ */
+export interface ManagePullRequestReviewersListResponse {
+  action: 'list';
+  pullRequestId: number;
+  repositoryId: string;
+  count: number;
+  reviewers: IdentityRefWithVote[];
+}
+
+/**
+ * Response for manage_pull_request_reviewers add/update/remove actions
+ */
+export interface ManagePullRequestReviewersMutationResponse {
+  action: 'add' | 'update' | 'remove';
+  pullRequestId: number;
+  repositoryId: string;
+  results: ReviewerMutationResult[];
+  succeeded: ReviewerMutationResult[];
+  failed: ReviewerMutationResult[];
+  hasErrors: boolean;
+}
+
+export type ManagePullRequestReviewersResponse =
+  | ManagePullRequestReviewersListResponse
+  | ManagePullRequestReviewersMutationResponse;

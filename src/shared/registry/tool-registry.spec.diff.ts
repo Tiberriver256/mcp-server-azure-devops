@@ -27,7 +27,7 @@ const EXPECTED_ANNOTATION_KEYS = [
 ];
 
 void describe('tool-registry contract differential tests: Zod definitions vs MCP ListTools JSON Schema', () => {
-  void it('validates all 60 tools against MCP ListToolsResultSchema with full annotations, invariants, and zero leaked internals', async () => {
+  void it('validates all 75 tools against MCP ListToolsResultSchema with full annotations, invariants, and zero leaked internals', async () => {
     const server = createAzureDevOpsServer({
       organizationUrl: 'https://dev.azure.com/contract-org',
       authMethod: AuthenticationMethod.PersonalAccessToken,
@@ -52,7 +52,7 @@ void describe('tool-registry contract differential tests: Zod definitions vs MCP
 
     // 1. Validate against official MCP SDK ListToolsResultSchema
     const mcpResult = ListToolsResultSchema.parse(rawResult);
-    assert.strictEqual(mcpResult.tools.length, 60);
+    assert.strictEqual(mcpResult.tools.length, 75);
 
     // 2. Build independent catalog from feature modules
     const modules = getFeatureModules();
@@ -65,11 +65,11 @@ void describe('tool-registry contract differential tests: Zod definitions vs MCP
     const registeredList = TOOLSET_NAMES.flatMap(
       (ts) => registeredRegistry[ts],
     );
-    assert.strictEqual(registeredList.length, 60);
+    assert.strictEqual(registeredList.length, 75);
 
     // 3. No duplicate tool names across all toolsets
     const names = registeredList.map((t) => t.name);
-    assert.strictEqual(new Set(names).size, 60);
+    assert.strictEqual(new Set(names).size, 75);
     assert.deepStrictEqual(
       mcpResult.tools.map((t) => t.name),
       names,
@@ -177,6 +177,7 @@ void describe('tool-registry contract differential tests: Zod definitions vs MCP
     > = {
       // Additive non-destructive
       create_work_item: { destructiveHint: false, idempotentHint: false },
+      add_work_item_comment: { destructiveHint: false, idempotentHint: false },
       create_work_item_attachment: {
         destructiveHint: false,
         idempotentHint: false,
@@ -193,6 +194,7 @@ void describe('tool-registry contract differential tests: Zod definitions vs MCP
       create_test_suite: { destructiveHint: false, idempotentHint: false },
       create_test_case: { destructiveHint: false, idempotentHint: false },
       // Idempotent non-destructive
+      vote_pull_request: { destructiveHint: false, idempotentHint: true },
       update_pull_request_thread_status: {
         destructiveHint: false,
         idempotentHint: true,
@@ -212,7 +214,12 @@ void describe('tool-registry contract differential tests: Zod definitions vs MCP
       get_work_item_attachment: { destructiveHint: true, idempotentHint: true },
       merge_pull_request: { destructiveHint: true, idempotentHint: false },
       update_pull_request: { destructiveHint: true, idempotentHint: true },
+      manage_pull_request_reviewers: {
+        destructiveHint: true,
+        idempotentHint: true,
+      },
       trigger_pipeline: { destructiveHint: true, idempotentHint: false },
+      retry_pipeline_stage: { destructiveHint: true, idempotentHint: false },
       update_wiki_page: { destructiveHint: true, idempotentHint: true },
       remove_test_cases_from_suite: {
         destructiveHint: true,

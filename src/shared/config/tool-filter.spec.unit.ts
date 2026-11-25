@@ -50,6 +50,8 @@ function makeRegistry(): Record<ToolsetName, ToolLike[]> {
       makeTool('list_test_plans', true),
       makeTool('create_test_plan', false),
     ],
+    work: [makeTool('list_iterations', true)],
+    analytics: [makeTool('query_analytics', true)],
   };
 }
 
@@ -438,6 +440,7 @@ void describe('tool-filter', () => {
           'create_work_item',
           'unmarked_write_tool',
           'search_code',
+          'list_iterations',
         ],
       );
 

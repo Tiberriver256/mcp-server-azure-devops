@@ -13,6 +13,12 @@ export {
 } from './get-pull-request-checks/feature.ts';
 export { updatePullRequestThreadStatus } from './update-pull-request-thread-status/feature.ts';
 export { mergePullRequest } from './merge-pull-request/feature.ts';
+export {
+  votePullRequest,
+  normalizePullRequestVote,
+  getPullRequestVoteLabel,
+} from './vote-pull-request/feature.ts';
+export { managePullRequestReviewers } from './manage-pull-request-reviewers/feature.ts';
 
 import { defineTool } from '../../shared/registry/tool-registry.ts';
 import type { FeatureModule } from '../../shared/registry/tool-registry.ts';
@@ -24,9 +30,11 @@ import {
   GetPullRequestCommentsSchema,
   GetPullRequestSchema,
   ListPullRequestsSchema,
+  ManagePullRequestReviewersSchema,
   MergePullRequestSchema,
   UpdatePullRequestSchema,
   UpdatePullRequestThreadStatusSchema,
+  VotePullRequestSchema,
 } from './schemas.ts';
 import { createPullRequest } from './create-pull-request/feature.ts';
 import { getPullRequest } from './get-pull-request/feature.ts';
@@ -38,6 +46,8 @@ import { getPullRequestChanges } from './get-pull-request-changes/feature.ts';
 import { getPullRequestChecks } from './get-pull-request-checks/feature.ts';
 import { updatePullRequestThreadStatus } from './update-pull-request-thread-status/feature.ts';
 import { mergePullRequest } from './merge-pull-request/feature.ts';
+import { votePullRequest } from './vote-pull-request/feature.ts';
+import { managePullRequestReviewers } from './manage-pull-request-reviewers/feature.ts';
 
 export const pullRequestsFeature: FeatureModule = {
   toolset: 'pull-requests',
@@ -241,6 +251,30 @@ export const pullRequestsFeature: FeatureModule = {
           ...args,
           projectId: ctx.resolveOptionalProjectId(args.projectId),
         });
+      },
+    }),
+    defineTool({
+      name: 'vote_pull_request',
+      description:
+        'Cast or reset a reviewer vote on a pull request (10/approved, 5/approvedWithSuggestions, 0/noVote, -5/waitingForAuthor, -10/rejected). Auto-derives repositoryId and authenticated caller when omitted, and preserves existing isRequired status unless explicitly overridden.',
+      schema: VotePullRequestSchema,
+      readOnly: false,
+      destructive: false,
+      idempotent: true,
+      handler: async (ctx, args) => {
+        return await votePullRequest(ctx, args);
+      },
+    }),
+    defineTool({
+      name: 'manage_pull_request_reviewers',
+      description:
+        'List, add, update (required/optional), or remove reviewers on a pull request. Resolves reviewer emails/names to Azure DevOps GUIDs across Cloud and On-Prem Server and reports explicit per-reviewer results.',
+      schema: ManagePullRequestReviewersSchema,
+      readOnly: false,
+      destructive: true,
+      idempotent: true,
+      handler: async (ctx, args) => {
+        return await managePullRequestReviewers(ctx, args);
       },
     }),
   ],

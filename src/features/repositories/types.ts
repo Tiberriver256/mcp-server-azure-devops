@@ -1,9 +1,12 @@
 import type {
   GitRepository,
   GitBranchStats,
+  GitCommitRef,
   GitRef,
+  GitStatus,
   GitItem,
 } from 'azure-devops-node-api/interfaces/GitInterfaces.js';
+import type { IdentityRef } from 'azure-devops-node-api/interfaces/common/VSSInterfaces.js';
 
 /**
  * Options for listing repositories
@@ -179,6 +182,48 @@ export interface RepositoryTreeResponse {
  */
 export interface AllRepositoriesTreeResponse {
   repositories: RepositoryTreeResponse[];
+}
+
+/**
+ * Options for listing branches in a repository
+ */
+export interface ListBranchesOptions {
+  projectId: string;
+  repositoryId: string;
+  filter?: string;
+  filterContains?: string;
+  includeMyBranches?: boolean;
+  includeStatuses?: boolean;
+  latestStatusesOnly?: boolean;
+  includeStats?: boolean;
+  top?: number;
+  continuationToken?: string;
+}
+
+/**
+ * Normalized branch item returned by list_branches
+ */
+export interface BranchInfo {
+  name: string;
+  refName: string;
+  objectId?: string;
+  creator?: IdentityRef;
+  isLocked: boolean;
+  isLockedBy?: IdentityRef;
+  statuses?: GitStatus[];
+  aheadCount?: number;
+  behindCount?: number;
+  isBaseVersion?: boolean;
+  commit?: GitCommitRef;
+}
+
+/**
+ * Paginated response returned by list_branches
+ */
+export interface ListBranchesResponse {
+  branches: BranchInfo[];
+  count: number;
+  continuationToken?: string;
 }
 
 // Re-export GitRepository type for convenience

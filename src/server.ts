@@ -52,6 +52,8 @@ import { pullRequestsFeature } from './features/pull-requests/index.ts';
 import { pipelinesFeature } from './features/pipelines/index.ts';
 import { wikisFeature } from './features/wikis/index.ts';
 import { testPlansFeature } from './features/test-plans/index.ts';
+import { workFeature } from './features/work/index.ts';
+import { analyticsFeature } from './features/analytics/index.ts';
 
 export type AzureDevOpsServer = Server;
 
@@ -66,6 +68,8 @@ const FEATURE_MODULES: readonly FeatureModule[] = [
   pipelinesFeature,
   wikisFeature,
   testPlansFeature,
+  workFeature,
+  analyticsFeature,
 ];
 
 /**
@@ -87,6 +91,8 @@ export function getRegisteredToolRegistry(): Record<
     pipelines: pipelinesFeature.tools,
     wikis: wikisFeature.tools,
     'test-plans': testPlansFeature.tools,
+    work: workFeature.tools,
+    analytics: analyticsFeature.tools,
   };
 }
 
@@ -106,6 +112,8 @@ export function getToolRegistry(): Record<ToolsetName, ToolDefinition[]> {
     pipelines: registered.pipelines.map((t) => t.toDefinition()),
     wikis: registered.wikis.map((t) => t.toDefinition()),
     'test-plans': registered['test-plans'].map((t) => t.toDefinition()),
+    work: registered.work.map((t) => t.toDefinition()),
+    analytics: registered.analytics.map((t) => t.toDefinition()),
   };
 }
 
