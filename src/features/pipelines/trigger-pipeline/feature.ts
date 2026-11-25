@@ -59,6 +59,13 @@ export async function triggerPipeline(
       pipelineId,
     );
 
+    // typed-rest-client resolves HTTP 404 Not Found to null instead of rejecting
+    if (!result) {
+      throw new AzureDevOpsResourceNotFoundError(
+        `Pipeline ${pipelineId} not found in project ${projectId}`,
+      );
+    }
+
     return result;
   } catch (error) {
     // Handle specific error types
