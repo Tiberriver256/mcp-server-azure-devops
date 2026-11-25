@@ -24,6 +24,7 @@ export interface ParsedRuntimeCliOptions extends ToolFilterOptions {
   enableJsonResponse?: boolean;
   allowedHosts?: string[];
   allowedOrigins?: string[];
+  trustedProxies?: string[];
   httpAuthToken?: string;
   allowPerRequestPat?: boolean;
   allowUnauthenticated?: boolean;
@@ -41,6 +42,7 @@ export interface ResolvedServerRuntimeOptions {
   readonly enableJsonResponse: boolean;
   readonly allowedHosts?: readonly string[];
   readonly allowedOrigins?: readonly string[];
+  readonly trustedProxies?: readonly string[];
   readonly httpAuthToken?: string;
   readonly allowPerRequestPat: boolean;
   readonly allowUnauthenticated: boolean;
@@ -327,6 +329,23 @@ export function parseCliRuntimeArgs(argv: string[]): ParsedRuntimeCliOptions {
         i = nextIdx;
         break;
       }
+      case '--trusted-proxies': {
+        const { value, nextIdx } = readRequiredStringFlag(
+          argv,
+          flag,
+          inlineValue,
+          i,
+        );
+        const parsed = parseCsvList(value);
+        if (!parsed) {
+          throw new AzureDevOpsValidationError(
+            `Flag '${flag}' requires at least one non-empty value`,
+          );
+        }
+        runtime.trustedProxies = parsed;
+        i = nextIdx;
+        break;
+      }
       case '--http-auth-token': {
         const { value, nextIdx } = readRequiredStringFlag(
           argv,
@@ -454,6 +473,9 @@ export function resolveServerRuntimeOptions(
   const allowedOrigins =
     cli.allowedOrigins ?? parseCsvList(env.AZURE_DEVOPS_ALLOWED_ORIGINS);
 
+  const trustedProxies =
+    cli.trustedProxies ?? parseCsvList(env.AZURE_DEVOPS_TRUSTED_PROXIES);
+
   const httpAuthToken =
     cli.httpAuthToken ??
     (env.AZURE_DEVOPS_HTTP_AUTH_TOKEN?.trim() || undefined);
@@ -504,6 +526,7 @@ export function resolveServerRuntimeOptions(
     enableJsonResponse,
     allowedHosts,
     allowedOrigins,
+    trustedProxies,
     httpAuthToken,
     allowPerRequestPat,
     allowUnauthenticated,

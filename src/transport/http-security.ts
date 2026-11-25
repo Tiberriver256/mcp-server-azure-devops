@@ -613,3 +613,81 @@ export class SlidingWindowRateLimiter {
     }
   }
 }
+
+function normalizeClientIp(raw: string): string {
+  let value = raw.trim().toLowerCase();
+  if (value.startsWith('[') && value.endsWith(']')) {
+    value = value.slice(1, -1);
+  }
+  if (value.startsWith('::ffff:')) {
+    const v4 = value.slice('::ffff:'.length);
+    if (v4.includes('.')) {
+      return v4;
+    }
+  }
+  return value;
+}
+
+/**
+ * Normalizes a list of operator-declared trusted reverse-proxy IP addresses
+ * into a lookup set (`::ffff:127.0.0.1` -> `127.0.0.1`, lowercase trimmed).
+ */
+export function normalizeTrustedProxies(
+  proxies?: readonly string[],
+): ReadonlySet<string> {
+  const set = new Set<string>();
+  if (!proxies) {
+    return set;
+  }
+  for (const raw of proxies) {
+    const normalized = normalizeClientIp(raw);
+    if (normalized.length > 0) {
+      set.add(normalized);
+    }
+  }
+  return set;
+}
+
+/**
+ * Resolves the per-client rate-limit key for an incoming HTTP request.
+ *
+ * - By default (`trustedProxies` empty or `remoteAddress` not in `trustedProxies`),
+ *   strictly uses `req.socket.remoteAddress` and ignores spoofable `X-Forwarded-For`.
+ * - When `remoteAddress` IS an operator-declared trusted proxy, walks `X-Forwarded-For`
+ *   right-to-left and returns the rightmost IP not in `trustedProxies` so a client
+ *   cannot spoof its rate-limit key by prepending fake addresses, while clients behind
+ *   a reverse proxy get independent rate-limit and auth-lockout buckets.
+ */
+export function resolveClientRateLimitKey(
+  req: IncomingMessage,
+  trustedProxies?: ReadonlySet<string>,
+): string {
+  const rawRemote = req.socket?.remoteAddress;
+  const remoteIp = rawRemote ? normalizeClientIp(rawRemote) : 'unknown';
+  if (
+    !trustedProxies ||
+    trustedProxies.size === 0 ||
+    !trustedProxies.has(remoteIp)
+  ) {
+    return remoteIp;
+  }
+
+  const xffHeader = req.headers['x-forwarded-for'];
+  const xffRaw = Array.isArray(xffHeader) ? xffHeader.join(',') : xffHeader;
+  if (typeof xffRaw !== 'string' || xffRaw.trim().length === 0) {
+    return remoteIp;
+  }
+
+  const hops = xffRaw
+    .split(',')
+    .map((part) => normalizeClientIp(part))
+    .filter((part) => part.length > 0);
+
+  for (let i = hops.length - 1; i >= 0; i -= 1) {
+    if (!trustedProxies.has(hops[i])) {
+      return hops[i];
+    }
+  }
+
+  return hops[0] ?? remoteIp;
+}

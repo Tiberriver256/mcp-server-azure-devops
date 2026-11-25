@@ -1846,4 +1846,109 @@ void describe('startStreamableHttpServer', () => {
     const reqRetry = Number(throttled.headers['retry-after']);
     assert.ok(Number.isInteger(reqRetry) && reqRetry >= 1);
   });
+
+  void it('isolates per-client rate limits and auth lockouts behind trustedProxies using rightmost untrusted X-Forwarded-For hop', async (t) => {
+    const authToken = 'mcp-proxy-secret';
+    const started = await startStreamableHttpServer({
+      host: '127.0.0.1',
+      port: 0,
+      mode: 'stateless',
+      enableJsonResponse: true,
+      authToken,
+      trustedProxies: ['127.0.0.1'],
+      mcpRateLimitPerMinute: 20,
+      mcpAuthFailLimitPerMinute: 2,
+      mcpRateLimitWindowMs: 60_000,
+      version: '1.0.0',
+      createServer: (o) => ({ server: createTestMcpServer(o) }),
+    });
+    t.after(() => started.close());
+
+    const baseUrl = `http://127.0.0.1:${started.port}`;
+
+    // Attacker (198.51.100.10) triggers auth lockout even while trying to prepend spoofed IPs
+    for (let i = 1; i <= 2; i += 1) {
+      const fail = await sendHttpRequest(baseUrl, '/mcp', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json, text/event-stream',
+          Authorization: `Bearer wrong-${i}`,
+          'X-Forwarded-For': `10.0.0.${i}, 198.51.100.10`,
+        },
+        body: makeInitBody(),
+      });
+      assert.equal(fail.status, 401);
+    }
+
+    // Attacker is locked out with 429 regardless of prepended spoofed XFF entries
+    const attackerLocked = await sendHttpRequest(baseUrl, '/mcp', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json, text/event-stream',
+        Authorization: `Bearer ${authToken}`,
+        'X-Forwarded-For': '192.0.2.99, 198.51.100.10',
+      },
+      body: makeInitBody(),
+    });
+    assert.equal(attackerLocked.status, 429);
+
+    // Legitimate client (203.0.113.50) behind the same proxy is NOT locked out
+    const legitimate = await sendHttpRequest(baseUrl, '/mcp', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json, text/event-stream',
+        Authorization: `Bearer ${authToken}`,
+        'X-Forwarded-For': '203.0.113.50',
+      },
+      body: makeInitBody(),
+    });
+    assert.equal(legitimate.status, 200);
+  });
+
+  void it('enforces Host/Origin DNS-rebinding protection and rate limiting on /healthz and /readyz', async (t) => {
+    const started = await startStreamableHttpServer({
+      host: '127.0.0.1',
+      port: 0,
+      mode: 'stateful',
+      mcpRateLimitPerMinute: 2,
+      mcpRateLimitWindowMs: 60_000,
+      version: '1.0.0',
+      createServer: (o) => ({ server: createTestMcpServer(o) }),
+    });
+    t.after(() => started.close());
+
+    const baseUrl = `http://127.0.0.1:${started.port}`;
+
+    for (const path of ['/healthz', '/readyz']) {
+      const forgedHost = await sendHttpRequest(baseUrl, path, {
+        method: 'GET',
+        headers: { Host: 'evil.rebound.example:3000' },
+      });
+      assert.equal(forgedHost.status, 403);
+
+      const forgedOrigin = await sendHttpRequest(baseUrl, path, {
+        method: 'GET',
+        headers: { Origin: 'https://evil.example' },
+      });
+      assert.equal(forgedOrigin.status, 403);
+    }
+
+    // Valid loopback requests succeed up to the rate limit, then return 429 + Retry-After
+    const okHealth = await sendHttpRequest(baseUrl, '/healthz', {
+      method: 'GET',
+    });
+    assert.equal(okHealth.status, 200);
+
+    const okReady = await sendHttpRequest(baseUrl, '/readyz', {
+      method: 'GET',
+    });
+    assert.equal(okReady.status, 200);
+
+    const throttledHealth = await sendHttpRequest(baseUrl, '/healthz', {
+      method: 'GET',
+    });
+    assert.equal(throttledHealth.status, 429);
+    const retryAfter = Number(throttledHealth.headers['retry-after']);
+    assert.ok(Number.isInteger(retryAfter) && retryAfter >= 1);
+  });
 });

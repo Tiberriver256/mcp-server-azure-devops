@@ -18,7 +18,9 @@ import {
   MAX_MCP_BODY_BYTES,
   MAX_WEBHOOK_BODY_BYTES,
   SlidingWindowRateLimiter,
+  normalizeTrustedProxies,
   readBoundedBody,
+  resolveClientRateLimitKey,
   validateHostAndOrigin,
   validateHttpServerSecurityConfig,
   verifyHttpBearerAuth,
@@ -57,6 +59,12 @@ export interface StreamableHttpTransportOptions {
   allowedHosts?: string[];
   /** Additional allowed Origin header origins beyond loopback defaults. */
   allowedOrigins?: string[];
+  /**
+   * Operator-declared reverse-proxy IPs whose `X-Forwarded-For` header may be
+   * parsed right-to-left (picking the rightmost untrusted hop) for per-client
+   * rate limiting and auth-failure lockouts. Empty by default.
+   */
+  trustedProxies?: string[];
   /** Optional Bearer / X-API-Key authentication token for the MCP endpoint. */
   authToken?: string;
   /** Opt-in support for per-request/session `X-Azure-DevOps-PAT` header (default: false). */
@@ -434,6 +442,7 @@ export async function startStreamableHttpServer(
 
   const sessions = new Map<string, StatefulSessionEntry>();
   const activeStatelessCleanups = new Set<() => Promise<void>>();
+  const trustedProxySet = normalizeTrustedProxies(options.trustedProxies);
   const webhookRequestLimiter = new SlidingWindowRateLimiter({
     limit: webhookRateLimitPerMinute,
     windowMs: webhookRateLimitWindowMs,
@@ -565,8 +574,9 @@ export async function startStreamableHttpServer(
     }
 
     // 2. Per-IP sliding-window rate limits BEFORE reading body or running HMAC
-    // Key strictly by socket remoteAddress (never trust spoofable X-Forwarded-For).
-    const clientKey = req.socket?.remoteAddress || 'unknown';
+    // Uses socket remoteAddress by default; only consults X-Forwarded-For when
+    // the immediate peer is an operator-declared trusted proxy.
+    const clientKey = resolveClientRateLimitKey(req, trustedProxySet);
     const authLockout = webhookAuthFailLimiter.check(clientKey);
     if (!authLockout.allowed) {
       sendJson(
@@ -1050,8 +1060,9 @@ export async function startStreamableHttpServer(
     }
 
     // 2. Per-IP sliding-window rate limits & auth-failure lockout BEFORE auth/body read
-    // Key strictly by socket remoteAddress (never trust spoofable X-Forwarded-For).
-    const clientKey = req.socket?.remoteAddress || 'unknown';
+    // Uses socket remoteAddress by default; only consults X-Forwarded-For when
+    // the immediate peer is an operator-declared trusted proxy.
+    const clientKey = resolveClientRateLimitKey(req, trustedProxySet);
     const authLockout = mcpAuthFailLimiter.check(clientKey);
     if (!authLockout.allowed) {
       sendJsonRpcError(
@@ -1085,7 +1096,7 @@ export async function startStreamableHttpServer(
       return;
     }
 
-    // 3. Per-request PAT extraction & fail-closed requirement BEFORE reading body
+    // 4. Per-request PAT extraction & fail-closed requirement BEFORE reading body
     const patResult = extractPerRequestPat(req, allowPerRequestPat);
     if (!patResult.ok) {
       sendJsonRpcError(res, 401, -32000, patResult.reason);
@@ -1101,7 +1112,7 @@ export async function startStreamableHttpServer(
       return;
     }
 
-    // 4. Reject new work while draining
+    // 5. Reject new work while draining
     if (draining) {
       sendJsonRpcError(res, 503, -32000, 'Server is shutting down');
       return;
@@ -1114,6 +1125,39 @@ export async function startStreamableHttpServer(
     }
   }
 
+  function guardHealthEndpoint(
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): boolean {
+    const securityResult = validateHostAndOrigin(req, {
+      allowedHosts: options.allowedHosts,
+      allowedOrigins: options.allowedOrigins,
+    });
+    if (!securityResult.ok) {
+      sendJson(
+        res,
+        securityResult.status,
+        { error: securityResult.reason },
+        { Connection: 'close' },
+      );
+      return false;
+    }
+
+    const clientKey = resolveClientRateLimitKey(req, trustedProxySet);
+    const rateLimit = mcpRequestLimiter.consume(clientKey);
+    if (!rateLimit.allowed) {
+      sendJson(
+        res,
+        429,
+        { error: 'Too Many Requests: health endpoint rate limit exceeded' },
+        { 'Retry-After': String(rateLimit.retryAfterSeconds) },
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   async function handleRequest(
     req: IncomingMessage,
     res: ServerResponse,
@@ -1122,6 +1166,9 @@ export async function startStreamableHttpServer(
     const method = (req.method ?? 'GET').toUpperCase();
 
     if (pathname === HEALTHZ_PATH) {
+      if (!guardHealthEndpoint(req, res)) {
+        return;
+      }
       if (method !== 'GET') {
         sendJson(res, 405, { error: 'Method Not Allowed' }, { Allow: 'GET' });
         return;
@@ -1131,6 +1178,9 @@ export async function startStreamableHttpServer(
     }
 
     if (pathname === READYZ_PATH) {
+      if (!guardHealthEndpoint(req, res)) {
+        return;
+      }
       if (method !== 'GET') {
         sendJson(res, 405, { error: 'Method Not Allowed' }, { Allow: 'GET' });
         return;

@@ -313,6 +313,9 @@ async function main() {
         allowedOrigins: runtime.allowedOrigins
           ? [...runtime.allowedOrigins]
           : undefined,
+        trustedProxies: runtime.trustedProxies
+          ? [...runtime.trustedProxies]
+          : undefined,
         authToken: runtime.httpAuthToken,
         allowPerRequestPat: runtime.allowPerRequestPat,
         requirePerRequestPat,
