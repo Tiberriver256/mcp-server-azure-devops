@@ -280,5 +280,23 @@ void describe('http-security', () => {
         assert.equal(res.status, 413);
       }
     });
+
+    void it('rejects cleanly if the request closes before body completes', async () => {
+      const stream = new Readable({
+        read() {
+          // Intentionally keep open until closed prematurely
+        },
+      });
+      const req = Object.assign(stream, {
+        headers: {},
+        complete: false,
+      }) as unknown as IncomingMessage;
+
+      const bodyPromise = readBoundedBody(req, 100);
+      stream.push('partial');
+      stream.emit('close');
+
+      await assert.rejects(bodyPromise, /closed before body completed/i);
+    });
   });
 });

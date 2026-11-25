@@ -115,7 +115,7 @@ Before submitting a PR, ensure:
 ## Project Architecture
 
 - **TypeScript 7** with strict, erasable configuration (`tsconfig.json` targeting `ES2024`, `erasableSyntaxOnly: true`, CJS `dist/` output; use explicit `.ts` / `/index.ts` relative imports, `.js` for `azure-devops-node-api` / `typed-rest-client` subpaths, and `as const` objects instead of `enum` — no `@/` path aliases)
-- **Declarative Feature Modules (`src/features/*`)**: Each of the 10 toolsets (`users`, `organizations`, `projects`, `repositories`, `work-items`, `search`, `pull-requests`, `pipelines`, `wikis`, `test-plans`) exports a `FeatureModule` built with `defineTool(...)`.
+- **Declarative Feature Modules (`src/features/*`)**: Each of the 13 toolsets (`users`, `organizations`, `projects`, `repositories`, `work-items`, `search`, `pull-requests`, `pipelines`, `wikis`, `test-plans`, `work`, `analytics`, `events`) exports a `FeatureModule` built with `defineTool(...)`.
 - **Deep Shared Seams (`src/shared/*`)**:
   - `src/shared/session/azure-devops-session.ts` — Single cached `AzureDevOpsSession` (`ToolContext`) per server instance (caches `WebApi` connections, manages config/project resolution, provides `requestAzureDevOps`).
   - `src/shared/auth/auth-factory.ts` — Lazy-loads `@azure/identity` (only for non-PAT) and `azure-devops-node-api`, caches/refreshes Entra tokens, deduplicates in-flight token refreshes.

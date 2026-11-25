@@ -314,6 +314,7 @@ export function readBoundedBody(
       req.off('end', onEnd);
       req.off('error', onError);
       req.off('aborted', onAborted);
+      req.off('close', onClose);
     };
 
     const onData = (chunk: Buffer | string) => {
@@ -371,9 +372,20 @@ export function readBoundedBody(
       reject(new Error('Request aborted before body completed'));
     };
 
+    const onClose = () => {
+      if (settled || req.complete) {
+        return;
+      }
+      settled = true;
+      chunks.length = 0;
+      cleanup();
+      reject(new Error('Request closed before body completed'));
+    };
+
     req.on('data', onData);
     req.on('end', onEnd);
     req.on('error', onError);
     req.on('aborted', onAborted);
+    req.on('close', onClose);
   });
 }
