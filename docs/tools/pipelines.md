@@ -60,25 +60,22 @@ Lists pipelines in a project.
 Returns an array of pipeline objects:
 
 ```json
-{
-  "count": 2,
-  "value": [
-    {
-      "id": 4,
-      "revision": 2,
-      "name": "Node.js build pipeline",
-      "folder": "\\",
-      "url": "https://dev.azure.com/organization/project/_apis/pipelines/4"
-    },
-    {
-      "id": 1,
-      "revision": 1,
-      "name": "Sample Pipeline",
-      "folder": "\\",
-      "url": "https://dev.azure.com/organization/project/_apis/pipelines/1"
-    }
-  ]
-}
+[
+  {
+    "id": 4,
+    "revision": 2,
+    "name": "Node.js build pipeline",
+    "folder": "\\",
+    "url": "https://dev.azure.com/organization/project/_apis/pipelines/4"
+  },
+  {
+    "id": 1,
+    "revision": 1,
+    "name": "Sample Pipeline",
+    "folder": "\\",
+    "url": "https://dev.azure.com/organization/project/_apis/pipelines/1"
+  }
+]
 ```
 
 ### Error Handling

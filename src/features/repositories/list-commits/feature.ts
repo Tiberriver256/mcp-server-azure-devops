@@ -1,27 +1,16 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type { GitChange } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { GitVersionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { createTwoFilesPatch } from 'diff';
 import { AzureDevOpsError } from '../../../shared/errors';
+import { buildGitChangesDiffs } from '../../../shared/utils/git-diff';
 import type {
   CommitWithContent,
   ListCommitsOptions,
   ListCommitsResponse,
 } from '../types';
 
-async function streamToString(stream: NodeJS.ReadableStream): Promise<string> {
-  const chunks: Buffer[] = [];
-  return await new Promise<string>((resolve, reject) => {
-    stream.on('data', (c: Buffer | Uint8Array | string) =>
-      chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)),
-    );
-    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-    stream.on('error', (err) => reject(err));
-  });
-}
-
 /**
- * List commits on a branch including their file level diffs
+ * List commits on a branch including their file-level diffs with bounded
+ * concurrency, blob size limits, and binary file guards.
  */
 export async function listCommits(
   connection: WebApi,
@@ -46,18 +35,6 @@ export async function listCommits(
       return { commits: [] };
     }
 
-    const getBlobText = async (objId?: string): Promise<string> => {
-      if (!objId) {
-        return '';
-      }
-      const stream = await gitApi.getBlobContent(
-        options.repositoryId,
-        objId,
-        options.projectId,
-      );
-      return stream ? await streamToString(stream) : '';
-    };
-
     const commitsWithContent: CommitWithContent[] = [];
 
     for (const commit of commits) {
@@ -72,22 +49,11 @@ export async function listCommits(
         options.projectId,
       );
       const changeEntries = commitChanges?.changes ?? [];
-
-      const files = await Promise.all(
-        changeEntries.map(async (entry: GitChange) => {
-          const path = entry.item?.path || entry.originalPath || '';
-          const [oldContent, newContent] = await Promise.all([
-            getBlobText(entry.item?.originalObjectId),
-            getBlobText(entry.item?.objectId),
-          ]);
-          const patch = createTwoFilesPatch(
-            entry.originalPath || path,
-            path,
-            oldContent,
-            newContent,
-          );
-          return { path, patch };
-        }),
+      const files = await buildGitChangesDiffs(
+        gitApi,
+        options.repositoryId,
+        options.projectId,
+        changeEntries,
       );
 
       commitsWithContent.push({

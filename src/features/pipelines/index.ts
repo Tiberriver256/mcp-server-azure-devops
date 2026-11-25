@@ -1,53 +1,58 @@
-// Re-export types
 export * from './types';
-
-// Re-export features
-export * from './list-pipelines';
-export * from './get-pipeline';
-export * from './list-pipeline-runs';
-export * from './get-pipeline-run';
-export * from './download-pipeline-artifact';
-export * from './pipeline-timeline';
-export * from './get-pipeline-log';
-export * from './trigger-pipeline';
+export { listPipelines } from './list-pipelines/feature';
+export { ListPipelinesSchema } from './list-pipelines/schema';
+export { getPipeline } from './get-pipeline/feature';
+export { GetPipelineSchema } from './get-pipeline/schema';
+export {
+  listPipelineRuns,
+  normalizeBranch,
+} from './list-pipeline-runs/feature';
+export { ListPipelineRunsSchema } from './list-pipeline-runs/schema';
+export { getPipelineRun } from './get-pipeline-run/feature';
+export { GetPipelineRunSchema } from './get-pipeline-run/schema';
+export {
+  downloadPipelineArtifact,
+  normalizeArtifactPath,
+  buildContainerPathCandidates,
+  selectZipEntry,
+} from './download-pipeline-artifact/feature';
+export { DownloadPipelineArtifactSchema } from './download-pipeline-artifact/schema';
+export { getPipelineTimeline } from './pipeline-timeline/feature';
+export { GetPipelineTimelineSchema } from './pipeline-timeline/schema';
+export { getPipelineLog } from './get-pipeline-log/feature';
+export { GetPipelineLogSchema } from './get-pipeline-log/schema';
+export { triggerPipeline } from './trigger-pipeline/feature';
+export { TriggerPipelineSchema } from './trigger-pipeline/schema';
 export * from './run-reference';
 
-// Export tool definitions
-export * from './tool-definitions';
-
-import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import type { WebApi } from 'azure-devops-node-api';
-import type {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
-import { ListPipelinesSchema } from './list-pipelines';
-import { GetPipelineSchema } from './get-pipeline';
-import { ListPipelineRunsSchema } from './list-pipeline-runs';
-import { GetPipelineRunSchema } from './get-pipeline-run';
-import { DownloadPipelineArtifactSchema } from './download-pipeline-artifact';
-import { GetPipelineTimelineSchema } from './pipeline-timeline';
-import { GetPipelineLogSchema } from './get-pipeline-log';
-import { TriggerPipelineSchema } from './trigger-pipeline';
-import { listPipelines } from './list-pipelines';
-import { getPipeline } from './get-pipeline';
-import { listPipelineRuns } from './list-pipeline-runs';
-import { getPipelineRun } from './get-pipeline-run';
-import { downloadPipelineArtifact } from './download-pipeline-artifact';
-import { getPipelineTimeline } from './pipeline-timeline';
-import { getPipelineLog } from './get-pipeline-log';
-import { triggerPipeline } from './trigger-pipeline';
-import { defaultProject } from '../../utils/environment';
+import { AzureDevOpsValidationError } from '../../shared/errors';
+import { defineTool } from '../../shared/registry/tool-registry';
+import type { FeatureModule } from '../../shared/registry/tool-registry';
+import type { ToolContext } from '../../shared/session/azure-devops-session';
+import { ListPipelinesSchema } from './list-pipelines/schema';
+import { GetPipelineSchema } from './get-pipeline/schema';
+import { ListPipelineRunsSchema } from './list-pipeline-runs/schema';
+import { GetPipelineRunSchema } from './get-pipeline-run/schema';
+import { DownloadPipelineArtifactSchema } from './download-pipeline-artifact/schema';
+import { GetPipelineTimelineSchema } from './pipeline-timeline/schema';
+import { GetPipelineLogSchema } from './get-pipeline-log/schema';
+import { TriggerPipelineSchema } from './trigger-pipeline/schema';
+import { listPipelines } from './list-pipelines/feature';
+import { getPipeline } from './get-pipeline/feature';
+import { listPipelineRuns } from './list-pipeline-runs/feature';
+import { getPipelineRun } from './get-pipeline-run/feature';
+import { downloadPipelineArtifact } from './download-pipeline-artifact/feature';
+import { getPipelineTimeline } from './pipeline-timeline/feature';
+import { getPipelineLog } from './get-pipeline-log/feature';
+import { triggerPipeline } from './trigger-pipeline/feature';
 import type { RunReferenceInput } from './run-reference';
 import { resolvePipelineReference, resolveRunReference } from './run-reference';
 
-/**
- * Replaces the human-friendly identifiers (pipelineName, buildNumber) in tool
- * arguments with the numeric pipelineId/runId that the features expect.
- */
 async function withResolvedRun<
   T extends RunReferenceInput & { projectId?: string },
 >(
+  ctx: ToolContext,
   connection: WebApi,
   args: T,
 ): Promise<
@@ -62,7 +67,7 @@ async function withResolvedRun<
     buildNumber: _buildNumber,
     ...rest
   } = args;
-  const projectId = args.projectId ?? defaultProject;
+  const projectId = ctx.resolveProjectId(args.projectId);
   const resolved = await resolveRunReference(connection, projectId, args);
   return {
     ...rest,
@@ -72,145 +77,150 @@ async function withResolvedRun<
   };
 }
 
-/**
- * Replaces a pipelineName in tool arguments with the numeric pipelineId that
- * the features expect.
- */
 async function withResolvedPipeline<
   T extends Pick<RunReferenceInput, 'pipelineId' | 'pipelineName'> & {
     projectId?: string;
   },
 >(
+  ctx: ToolContext,
   connection: WebApi,
   args: T,
 ): Promise<
   Omit<T, 'pipelineName'> & { projectId: string; pipelineId: number }
 > {
   const { pipelineName: _pipelineName, ...rest } = args;
-  const projectId = args.projectId ?? defaultProject;
+  const projectId = ctx.resolveProjectId(args.projectId);
   const pipelineId = await resolvePipelineReference(
     connection,
     projectId,
     args,
   );
   if (typeof pipelineId !== 'number') {
-    throw new Error('Either pipelineId or pipelineName is required');
+    throw new AzureDevOpsValidationError(
+      'Either pipelineId or pipelineName is required',
+    );
   }
   return { ...rest, projectId, pipelineId };
 }
 
-/**
- * Checks if the request is for the pipelines feature
- */
-export const isPipelinesRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return [
-    'list_pipelines',
-    'get_pipeline',
-    'list_pipeline_runs',
-    'get_pipeline_run',
-    'download_pipeline_artifact',
-    'pipeline_timeline',
-    'get_pipeline_log',
-    'trigger_pipeline',
-  ].includes(toolName);
-};
-
-/**
- * Handles pipelines feature requests
- */
-export const handlePipelinesRequest: RequestHandler = async (
-  connection: WebApi,
-  request: CallToolRequest,
-): Promise<{ content: Array<{ type: string; text: string }> }> => {
-  switch (request.params.name) {
-    case 'list_pipelines': {
-      const args = ListPipelinesSchema.parse(request.params.arguments);
-      const result = await listPipelines(connection, {
-        ...args,
-        projectId: args.projectId ?? defaultProject,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'get_pipeline': {
-      const args = GetPipelineSchema.parse(request.params.arguments);
-      const result = await getPipeline(
-        connection,
-        await withResolvedPipeline(connection, args),
-      );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'list_pipeline_runs': {
-      const args = ListPipelineRunsSchema.parse(request.params.arguments);
-      const result = await listPipelineRuns(
-        connection,
-        await withResolvedPipeline(connection, args),
-      );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'get_pipeline_run': {
-      const args = GetPipelineRunSchema.parse(request.params.arguments);
-      const result = await getPipelineRun(
-        connection,
-        await withResolvedRun(connection, args),
-      );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'download_pipeline_artifact': {
-      const args = DownloadPipelineArtifactSchema.parse(
-        request.params.arguments,
-      );
-      const result = await downloadPipelineArtifact(
-        connection,
-        await withResolvedRun(connection, args),
-      );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'pipeline_timeline': {
-      const args = GetPipelineTimelineSchema.parse(request.params.arguments);
-      const result = await getPipelineTimeline(
-        connection,
-        await withResolvedRun(connection, args),
-      );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'get_pipeline_log': {
-      const args = GetPipelineLogSchema.parse(request.params.arguments);
-      const result = await getPipelineLog(
-        connection,
-        await withResolvedRun(connection, args),
-      );
-      const text =
-        typeof result === 'string' ? result : JSON.stringify(result, null, 2);
-      return {
-        content: [{ type: 'text', text }],
-      };
-    }
-    case 'trigger_pipeline': {
-      const args = TriggerPipelineSchema.parse(request.params.arguments);
-      const result = await triggerPipeline(
-        connection,
-        await withResolvedPipeline(connection, args),
-      );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    default:
-      throw new Error(`Unknown pipelines tool: ${request.params.name}`);
-  }
+export const pipelinesFeature: FeatureModule = {
+  toolset: 'pipelines',
+  tools: [
+    defineTool({
+      name: 'list_pipelines',
+      description: 'List pipelines in a project',
+      schema: ListPipelinesSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await listPipelines(connection, {
+          ...args,
+          projectId: ctx.resolveProjectId(args.projectId),
+        });
+      },
+    }),
+    defineTool({
+      name: 'get_pipeline',
+      description:
+        'Get details of a specific pipeline, identified by pipelineId or pipelineName',
+      schema: GetPipelineSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await getPipeline(
+          connection,
+          await withResolvedPipeline(ctx, connection, args),
+        );
+      },
+    }),
+    defineTool({
+      name: 'list_pipeline_runs',
+      description:
+        'List recent runs for a pipeline, identified by pipelineId or pipelineName',
+      schema: ListPipelineRunsSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await listPipelineRuns(
+          connection,
+          await withResolvedPipeline(ctx, connection, args),
+          ctx,
+        );
+      },
+    }),
+    defineTool({
+      name: 'get_pipeline_run',
+      description:
+        'Get details for a specific pipeline run. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
+      schema: GetPipelineRunSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await getPipelineRun(
+          connection,
+          await withResolvedRun(ctx, connection, args),
+          ctx,
+        );
+      },
+    }),
+    defineTool({
+      name: 'download_pipeline_artifact',
+      description:
+        'Download a file from a pipeline run artifact and return its textual content. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
+      schema: DownloadPipelineArtifactSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await downloadPipelineArtifact(
+          connection,
+          await withResolvedRun(ctx, connection, args),
+          ctx,
+        );
+      },
+    }),
+    defineTool({
+      name: 'pipeline_timeline',
+      description:
+        'Retrieve the timeline of stages and jobs for a pipeline run, to reduce the amount of data returned, you can filter by state and result. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
+      schema: GetPipelineTimelineSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await getPipelineTimeline(
+          connection,
+          await withResolvedRun(ctx, connection, args),
+          ctx,
+        );
+      },
+    }),
+    defineTool({
+      name: 'get_pipeline_log',
+      description:
+        'Retrieve a specific pipeline log using the timeline log identifier. The run can be identified by runId or by pipelineName (or pipelineId) plus buildNumber.',
+      schema: GetPipelineLogSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await getPipelineLog(
+          connection,
+          await withResolvedRun(ctx, connection, args),
+          ctx,
+        );
+      },
+    }),
+    defineTool({
+      name: 'trigger_pipeline',
+      description:
+        'Trigger a pipeline run. The pipeline can be identified by pipelineId or pipelineName.',
+      schema: TriggerPipelineSchema,
+      readOnly: false,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await triggerPipeline(
+          connection,
+          await withResolvedPipeline(ctx, connection, args),
+        );
+      },
+    }),
+  ],
 };

@@ -8,23 +8,50 @@ import {
   VersionControlChangeType,
   ItemContentType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { applyPatch, parsePatch, createTwoFilesPatch } from 'diff';
+import { applyPatch, parsePatch } from 'diff';
 import { AzureDevOpsError } from '../../../shared/errors';
+import { streamToString } from '../../../shared/utils/stream';
 import type { CreateCommitOptions } from '../types';
 
-async function streamToString(stream: NodeJS.ReadableStream): Promise<string> {
-  const chunks: Buffer[] = [];
-  return await new Promise<string>((resolve, reject) => {
-    stream.on('data', (c: Buffer | Uint8Array | string) =>
-      chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)),
-    );
-    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-    stream.on('error', (err) => reject(err));
-  });
+/**
+ * Strip a single leading git diff `a/` or `b/` prefix without mangling
+ * nested paths such as `a/b/foo.ts`.
+ */
+export function normalizeGitDiffPath(
+  filePath?: string | null,
+): string | undefined {
+  if (!filePath || filePath === '/dev/null') {
+    return undefined;
+  }
+  if (filePath.startsWith('a/') || filePath.startsWith('b/')) {
+    return filePath.slice(2);
+  }
+  return filePath;
 }
 
 /**
- * Create a commit with multiple file changes
+ * Perform a literal first-occurrence search/replace without interpreting
+ * special String.prototype.replace substitution patterns (`$&`, `$$`, `$'`, `` $` ``).
+ */
+export function applyLiteralSearchReplace(
+  content: string,
+  search: string,
+  replace: string,
+  filePath: string,
+): string {
+  const index = content.indexOf(search);
+  if (index === -1) {
+    throw new AzureDevOpsError(
+      `Search string not found in ${filePath}. The file may have been modified since you last read it.`,
+    );
+  }
+  return (
+    content.slice(0, index) + replace + content.slice(index + search.length)
+  );
+}
+
+/**
+ * Create a commit with multiple file changes.
  */
 export async function createCommit(
   connection: WebApi,
@@ -45,11 +72,9 @@ export async function createCommit(
     const changes: GitChange[] = [];
 
     for (const file of options.changes) {
-      // Handle search/replace format by generating a patch
-      let patchString = file.patch;
-
+      // Fast path for search/replace mode: single fetch + literal replacement (no double-fetch or diff round-trip)
       if (
-        !patchString &&
+        !file.patch &&
         file.search !== undefined &&
         file.replace !== undefined
       ) {
@@ -59,8 +84,8 @@ export async function createCommit(
           );
         }
 
-        // Fetch current file content
         let currentContent = '';
+        let fileExists = true;
         try {
           const stream = await gitApi.getItemContent(
             options.repositoryId,
@@ -76,37 +101,37 @@ export async function createCommit(
           );
           currentContent = stream ? await streamToString(stream) : '';
         } catch {
-          // File might not exist (new file scenario) - treat as empty
+          fileExists = false;
           currentContent = '';
         }
 
-        // Perform the replacement
-        if (!currentContent.includes(file.search)) {
-          throw new AzureDevOpsError(
-            `Search string not found in ${file.path}. The file may have been modified since you last read it.`,
-          );
-        }
-
-        const newContent = currentContent.replace(file.search, file.replace);
-
-        // Generate proper unified diff
-        patchString = createTwoFilesPatch(
-          file.path,
-          file.path,
+        const newContent = applyLiteralSearchReplace(
           currentContent,
-          newContent,
-          undefined,
-          undefined,
+          file.search,
+          file.replace,
+          file.path,
         );
+
+        changes.push({
+          changeType: fileExists
+            ? VersionControlChangeType.Edit
+            : VersionControlChangeType.Add,
+          item: { path: file.path },
+          newContent: {
+            content: newContent,
+            contentType: ItemContentType.RawText,
+          },
+        });
+        continue;
       }
 
-      if (!patchString) {
+      if (!file.patch) {
         throw new AzureDevOpsError(
           'Either patch or both search and replace must be provided for each change',
         );
       }
 
-      const patches = parsePatch(patchString);
+      const patches = parsePatch(file.patch);
       if (patches.length !== 1) {
         throw new AzureDevOpsError(
           `Expected a single file diff for change but received ${patches.length}`,
@@ -114,16 +139,8 @@ export async function createCommit(
       }
 
       const patch = patches[0];
-
-      const normalizePath = (path?: string | null): string | undefined => {
-        if (!path || path === '/dev/null') {
-          return undefined;
-        }
-        return path.replace(/^a\//, '').replace(/^b\//, '');
-      };
-
-      const oldPath = normalizePath(patch.oldFileName);
-      const newPath = normalizePath(patch.newFileName);
+      const oldPath = normalizeGitDiffPath(patch.oldFileName);
+      const newPath = normalizeGitDiffPath(patch.newFileName);
       const targetPath = file.path ?? newPath ?? oldPath;
 
       if (!targetPath) {

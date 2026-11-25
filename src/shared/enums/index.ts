@@ -6,44 +6,41 @@ import {
   PullRequestStatus,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
+export interface EnumMapper {
+  readonly keys: readonly string[];
+  toEnum: (value: string) => number | undefined;
+  toString: (value: number) => string;
+}
+
 /**
- * Generic enum mapper that creates bidirectional mappings between strings and numeric enums
+ * Generic enum mapper that creates prototype-safe bidirectional mappings
+ * between case-insensitive strings and numeric enums.
  */
 function createEnumMapper(
   mappings: Record<string, number>,
   defaultStringValue = 'unknown',
-) {
-  const normalizedMappings = Object.entries(mappings).reduce(
-    (acc, [key, value]) => {
-      acc[key.toLowerCase()] = value;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
+): EnumMapper {
+  const normalizedMappings = new Map<string, number>();
+  const reverseMap = new Map<number, string>();
+  const keys: string[] = [];
 
-  // Create reverse mapping from enum values to strings
-  const reverseMap = Object.entries(mappings).reduce(
-    (acc, [key, value]) => {
-      acc[value] = key;
-      return acc;
-    },
-    {} as Record<number, string>,
-  );
+  for (const [key, value] of Object.entries(mappings)) {
+    keys.push(key);
+    normalizedMappings.set(key.toLowerCase(), value);
+    reverseMap.set(value, key);
+  }
 
   return {
+    keys,
     toEnum: (value: string): number | undefined => {
-      const lowerValue = value.toLowerCase();
-      return normalizedMappings[lowerValue];
+      return normalizedMappings.get(value.toLowerCase());
     },
     toString: (value: number): string => {
-      return reverseMap[value] ?? defaultStringValue;
+      return reverseMap.get(value) ?? defaultStringValue;
     },
   };
 }
 
-/**
- * CommentThreadStatus enum mappings
- */
 export const commentThreadStatusMapper = createEnumMapper({
   unknown: CommentThreadStatus.Unknown,
   active: CommentThreadStatus.Active,
@@ -54,9 +51,6 @@ export const commentThreadStatusMapper = createEnumMapper({
   pending: CommentThreadStatus.Pending,
 });
 
-/**
- * CommentType enum mappings
- */
 export const commentTypeMapper = createEnumMapper({
   unknown: CommentType.Unknown,
   text: CommentType.Text,
@@ -64,18 +58,12 @@ export const commentTypeMapper = createEnumMapper({
   system: CommentType.System,
 });
 
-/**
- * PullRequestStatus enum mappings
- */
 export const pullRequestStatusMapper = createEnumMapper({
   active: PullRequestStatus.Active,
   abandoned: PullRequestStatus.Abandoned,
   completed: PullRequestStatus.Completed,
 });
 
-/**
- * GitPullRequestMergeStrategy enum mappings
- */
 export const pullRequestMergeStrategyMapper = createEnumMapper({
   noFastForward: GitPullRequestMergeStrategy.NoFastForward,
   squash: GitPullRequestMergeStrategy.Squash,
@@ -83,18 +71,12 @@ export const pullRequestMergeStrategyMapper = createEnumMapper({
   rebaseMerge: GitPullRequestMergeStrategy.RebaseMerge,
 });
 
-/**
- * GitVersionType enum mappings
- */
 export const gitVersionTypeMapper = createEnumMapper({
   branch: GitVersionType.Branch,
   commit: GitVersionType.Commit,
   tag: GitVersionType.Tag,
 });
 
-/**
- * Transform comment thread status from numeric to string
- */
 export function transformCommentThreadStatus(
   status?: number,
 ): string | undefined {
@@ -103,16 +85,10 @@ export function transformCommentThreadStatus(
     : undefined;
 }
 
-/**
- * Transform comment type from numeric to string
- */
 export function transformCommentType(type?: number): string | undefined {
   return type !== undefined ? commentTypeMapper.toString(type) : undefined;
 }
 
-/**
- * Transform pull request status from numeric to string
- */
 export function transformPullRequestStatus(
   status?: number,
 ): string | undefined {

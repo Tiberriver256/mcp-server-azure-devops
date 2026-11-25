@@ -2,6 +2,31 @@
 
 This document describes the tools available for working with Azure DevOps Git repositories.
 
+## get_repository
+
+Gets basic metadata for a single Git repository by ID or name.
+
+### Parameters
+
+| Parameter        | Type   | Required | Description                                                               |
+| ---------------- | ------ | -------- | ------------------------------------------------------------------------- |
+| `repositoryId`   | string | Yes      | The ID or name of the repository                                          |
+| `projectId`      | string | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`) |
+| `organizationId` | string | No       | Optional Azure DevOps Services organization override                      |
+
+### Response
+
+Returns a `GitRepository` object (`id`, `name`, `url`, `project`, `defaultBranch`, `size`, `remoteUrl`, `sshUrl`, `webUrl`).
+
+### Example Usage
+
+```typescript
+const repo = await mcpClient.callTool('get_repository', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+});
+```
+
 ## get_repository_details
 
 Gets detailed information about a specific Git repository, including optional branch statistics and refs.
@@ -14,23 +39,24 @@ The `get_repository_details` tool retrieves comprehensive information about a sp
 
 ```json
 {
-  "projectId": "MyProject", // Required: The ID or name of the project
-  "repositoryId": "MyRepo", // Required: The ID or name of the repository
-  "includeStatistics": true, // Optional: Whether to include branch statistics (default: false)
-  "includeRefs": true, // Optional: Whether to include repository refs (default: false)
-  "refFilter": "heads/", // Optional: Filter for refs (e.g., "heads/" or "tags/")
-  "branchName": "main" // Optional: Name of specific branch to get statistics for
+  "projectId": "MyProject",
+  "repositoryId": "MyRepo",
+  "includeStatistics": true,
+  "includeRefs": true,
+  "refFilter": "heads/",
+  "branchName": "main"
 }
 ```
 
-| Parameter | Type | Required | Description |
-| --------- | ---- | -------- | ----------- |
-| `projectId` | string | Yes | The ID or name of the project containing the repository |
-| `repositoryId` | string | Yes | The ID or name of the repository to get details for |
-| `includeStatistics` | boolean | No | Whether to include branch statistics (default: false) |
-| `includeRefs` | boolean | No | Whether to include repository refs (default: false) |
-| `refFilter` | string | No | Optional filter for refs (e.g., "heads/" or "tags/") |
-| `branchName` | string | No | Name of specific branch to get statistics for (if includeStatistics is true) |
+| Parameter           | Type    | Required | Description                                                                   |
+| ------------------- | ------- | -------- | ----------------------------------------------------------------------------- |
+| `repositoryId`      | string  | Yes      | The ID or name of the repository to get details for                           |
+| `projectId`         | string  | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)    |
+| `organizationId`    | string  | No       | Optional Azure DevOps Services organization override                          |
+| `includeStatistics` | boolean | No       | Whether to include branch statistics (default: `false`)                       |
+| `includeRefs`       | boolean | No       | Whether to include repository refs (default: `false`)                         |
+| `refFilter`         | string  | No       | Optional filter for refs (e.g., `"heads/"` or `"tags/"`)                      |
+| `branchName`        | string  | No       | Name of specific branch to get statistics for (when `includeStatistics: true`) |
 
 ### Response
 
@@ -445,11 +471,11 @@ Key features:
 }
 ```
 
-- `organizationId` (string, required): The ID or name of the Azure DevOps organization.
-- `projectId` (string, required): The ID or name of the project containing the repositories.
-- `repositoryPattern` (string, optional): Pattern to filter repositories by name (PowerShell wildcard).
-- `depth` (number, optional, default: 0): Maximum depth to traverse in each repository's file hierarchy. Use 0 for unlimited depth (more efficient server-side recursion), or a specific number (1-10) for limited depth.
-- `pattern` (string, optional): Pattern to filter files by name (PowerShell wildcard). Note: Directories are always shown regardless of this filter.
+- `organizationId` (string, optional): The ID or name of the Azure DevOps Services organization (defaults to configured organization).
+- `projectId` (string, optional): The ID or name of the project containing the repositories (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`).
+- `repositoryPattern` (string, optional): Glob pattern to filter repositories by name (supports `*`, `?`, `{a,b}`, and `!` negation).
+- `depth` (number, optional, default: 0): Maximum depth to traverse in each repository's file hierarchy. Use `0` for unlimited depth (server-side recursion), or `1`–`10` for limited depth.
+- `pattern` (string, optional): Glob pattern to filter files by name. Directories are always shown regardless of this filter.
 
 ### Response
 
@@ -461,88 +487,47 @@ Repo-API-1/
   |   |-- config.yaml
   |   `-- utils/
   `-- deploy.yaml
-1 directory, 2 files
+1 directories, 2 files
 
 Repo-API-Gateway/
   |-- charts/
   |   `-- values.yaml
   `-- README.md
-1 directory, 2 files
+1 directories, 2 files
 
 Repo-Data-Service/
   (Repository is empty or default branch not found)
 0 directories, 0 files
 ```
 
-### Examples
-
-#### Basic Example - View All Repositories with Maximum Depth
-
-```javascript
-const result = await mcpClient.callTool('get_all_repositories_tree', {
-  organizationId: 'MyOrg',
-  projectId: 'MyProject'
-});
-console.log(result);
-```
-
-#### Filter Repositories by Name Pattern
-
-```javascript
-const result = await mcpClient.callTool('get_all_repositories_tree', {
-  organizationId: 'MyOrg',
-  projectId: 'MyProject',
-  repositoryPattern: 'API*'
-});
-console.log(result);
-```
-
-#### Limited Depth and File Pattern Filter
-
-```javascript
-const result = await mcpClient.callTool('get_all_repositories_tree', {
-  organizationId: 'MyOrg',
-  projectId: 'MyProject',
-  depth: 1,  // Only one level deep
-  pattern: '*.yaml'
-});
-console.log(result);
-```
-
-### Performance Considerations
-
-- For maximum depth (depth=0), the tool uses server-side recursion (VersionControlRecursionType.Full) which is more efficient for retrieving deep directory structures.
-- For limited depth (depth=1 to 10), the tool uses client-side recursion which is better for controlled exploration.
-- When viewing very large repositories, consider using a limited depth or file pattern to reduce response time.
-
 ### Related Tools
 
 - `list_repositories`: Lists all repositories in a project (summary only)
+- `get_repository`: Gets basic metadata about a single repository
 - `get_repository_details`: Gets detailed info about a single repository
-- `get_repository_tree`: Explores structure within a single repository (more detailed)
+- `get_repository_tree`: Explores structure within a single repository
 - `get_file_content`: Gets content of a specific file
-- `get_repository_tree`: Explore the tree for a single repository
 - `create_branch`: Create a branch from an existing one
 - `create_commit`: Apply file additions, updates, or deletions in a single commit (supports unified diffs or search/replace instructions)
+- `list_commits`: List recent commits on a branch with diff summaries
 
 ## get_repository_tree
 
-Lists files and folders from any point in a repository. You can specify a repository name or path to start from and limit how deep the tree goes.
+Lists files and folders from any point in a single repository with configurable path and depth.
 
 ### Parameters
 
-```json
-{
-  "projectId": "MyProject",
-  "repositoryId": "MyRepo",
-  "path": "src/utils",        // Optional path to start from
-  "depth": 2                   // Optional maximum depth
-}
-```
+| Parameter        | Type    | Required | Description                                                                   |
+| ---------------- | ------- | -------- | ----------------------------------------------------------------------------- |
+| `repositoryId`   | string  | Yes      | The ID or name of the repository                                              |
+| `projectId`      | string  | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)    |
+| `organizationId` | string  | No       | Optional Azure DevOps Services organization override                          |
+| `path`           | string  | No       | Directory path to start from (default: `"/"`)                                 |
+| `depth`          | integer | No       | Maximum traversal depth (`0` for unlimited, `1`–`10` for limited, default: `0`) |
 
 ### Response
 
-Returns a formatted tree showing directories and files starting from the requested location.
+Returns a JSON object (`{ name, tree, stats }`) containing the tree entries (`name`, `path`, `isFolder`, `level`) and directory/file counts.
 
 ## create_branch
 
@@ -550,27 +535,35 @@ Creates a new branch from an existing branch's latest commit.
 
 ### Parameters
 
-```json
-{
-  "projectId": "MyProject",
-  "repositoryId": "MyRepo",
-  "sourceBranch": "main",
-  "newBranch": "feature-branch"
-}
-```
+| Parameter        | Type   | Required | Description                                                                |
+| ---------------- | ------ | -------- | -------------------------------------------------------------------------- |
+| `repositoryId`   | string | Yes      | The ID or name of the repository                                           |
+| `sourceBranch`   | string | Yes      | Existing source branch name (e.g., `"main"`)                               |
+| `newBranch`      | string | Yes      | Name of the new branch to create (e.g., `"feature/my-change"`)             |
+| `projectId`      | string | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`) |
+| `organizationId` | string | No       | Optional Azure DevOps Services organization override                       |
 
 ### Response
 
-Returns the newly created branch reference.
+Returns confirmation text (`Branch '<newBranch>' created from '<sourceBranch>'`).
 
 ## create_commit
 
 Commits multiple file changes to a branch, supporting additions, modifications, and deletions (renames are not currently supported).
 
-- ⚠️ Azure DevOps accepts only one change entry per file path in a commit request. Combine all edits to the same file into a single change object before calling this tool.
+- Azure DevOps accepts only one change entry per file path in a commit request. Combine all edits to the same file into a single change object before calling this tool.
 - For sparse or unrelated edits within the same file, prefer splitting work into multiple commits so each request stays focused.
 
 ### Parameters
+
+| Parameter        | Type     | Required | Description                                                                |
+| ---------------- | -------- | -------- | -------------------------------------------------------------------------- |
+| `repositoryId`   | string   | Yes      | The ID or name of the repository                                           |
+| `branchName`     | string   | Yes      | Target branch to commit to                                                 |
+| `commitMessage`  | string   | Yes      | Commit message                                                             |
+| `changes`        | object[] | Yes      | Non-empty array of file changes (`patch` or `path` + `search` + `replace`) |
+| `projectId`      | string   | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`) |
+| `organizationId` | string   | No       | Optional Azure DevOps Services organization override                       |
 
 ```json
 {
@@ -580,31 +573,57 @@ Commits multiple file changes to a branch, supporting additions, modifications, 
   "commitMessage": "feat: demo commit",
   "changes": [
     {
-      "path": "src/new.ts", // Optional override when the diff header does not reflect the desired path
-      "patch": "diff --git a/src/new.ts b/src/new.ts\n--- /dev/null\n+++ b/src/new.ts\n@@\n+console.log('hi');\n"
+      "path": "src/new.ts",
+      "patch": "diff --git a/src/new.ts b/src/new.ts\n--- /dev/null\n+++ b/src/new.ts\n@@ -0,0 +1,1 @@\n+console.log('hi');\n"
     },
     {
-      "patch": "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@\n-Old content\n+New content\n"
+      "patch": "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@ -1,1 +1,1 @@\n-Old content\n+New content\n"
     },
     {
-      "patch": "diff --git a/old.txt b/old.txt\n--- a/old.txt\n+++ /dev/null\n@@\n-This file will be deleted\n"
+      "patch": "diff --git a/old.txt b/old.txt\n--- a/old.txt\n+++ /dev/null\n@@ -1,1 +0,0 @@\n-This file will be deleted\n"
     },
     {
-      "path": "src/index.ts", // Required when using search/replace
-      "search": "return axios.post(apiUrl, payload, requestConfig);",
-      "replace": "return axios.post(apiUrl, payload, requestConfig).then(res => handleResponse(res));"
+      "path": "src/index.ts",
+      "search": "const timeout = 5000;",
+      "replace": "const timeout = 10000;"
     }
   ]
 }
 ```
 
-- `branchName` identifies the branch to update.
-- Provide `path` only when the diff header cannot be trusted (for example, when generated without `a/` and `b/` prefixes). For search/replace changes, `path` is required so the server can load the file.
-- Each entry in `changes` can be either a unified diff (`patch`) or a search/replace pair (`search` and `replace`). `/dev/null` still indicates file creation or deletion for diff-based changes.
-- Instead of crafting diffs manually you can supply `search` and `replace` text. The server confirms the search string exists in the latest version of the file, applies the replacement, and generates the diff automatically.
-- Diffs (including ones generated from search/replace) must be based on the latest branch head to avoid merge conflicts during commit creation.
-- If the search text cannot be found, the request fails so you can review upstream modifications before retrying.
+- Each entry in `changes` can be either a unified diff (`patch` with valid `@@ -oldStart,oldLines +newStart,newLines @@` hunk headers) or a literal search/replace pair (`path`, `search`, and `replace`).
+- Search/replace performs a single fetch and literal replacement (special `$&`/`$$` sequences are treated literally), failing cleanly if `search` is not found on the latest branch head.
 
 ### Response
 
-Returns the commit ID after applying the changes.
+Returns confirmation text (`Changes committed to branch '<branchName>'`).
+
+## list_commits
+
+Lists recent commits on a repository branch along with changed file paths and unified diffs.
+
+### Parameters
+
+| Parameter        | Type    | Required | Description                                                                |
+| ---------------- | ------- | -------- | -------------------------------------------------------------------------- |
+| `repositoryId`   | string  | Yes      | The ID or name of the repository                                           |
+| `branchName`     | string  | Yes      | Branch name to inspect (e.g., `"main"`)                                    |
+| `projectId`      | string  | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`) |
+| `organizationId` | string  | No       | Optional Azure DevOps Services organization override                       |
+| `top`            | integer | No       | Maximum number of commits to return (default: `10`)                        |
+| `skip`           | integer | No       | Number of commits to skip for pagination                                   |
+
+### Response
+
+Returns an array of commit objects, each including metadata (`commitId`, `comment`, `author`, `committer`) and a `files` array of `{ path, patch }` diffs (binary files and blobs exceeding 2 MiB are skipped gracefully).
+
+### Example Usage
+
+```typescript
+const commits = await mcpClient.callTool('list_commits', {
+  projectId: 'MyProject',
+  repositoryId: 'MyRepo',
+  branchName: 'main',
+  top: 5,
+});
+```

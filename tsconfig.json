@@ -15,9 +15,6 @@
     "noImplicitAny": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "paths": {
-      "@/*": ["./src/*"]
-    },
     "rootDir": "./src",
     "types": ["node"]
   },
@@ -26,7 +23,11 @@
     "node_modules",
     "dist",
     "**/*.spec.unit.ts",
+    "**/*.spec.prop.ts",
+    "**/*.spec.diff.ts",
     "**/*.spec.int.ts",
-    "**/*.spec.e2e.ts"
+    "**/*.spec.e2e.ts",
+    "**/__test__/**",
+    "src/shared/test/**"
   ]
 }

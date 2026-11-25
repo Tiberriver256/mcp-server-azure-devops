@@ -108,7 +108,7 @@ describe('triggerPipeline unit', () => {
     ).rejects.toThrow('Failed to authenticate');
   });
 
-  test('should handle resource not found errors', async () => {
+  test('should handle resource not found errors and null 404 responses', async () => {
     // Arrange
     const notFoundError = new Error('Pipeline not found');
     mockPipelinesApi.runPipeline.mockRejectedValue(notFoundError);
@@ -126,6 +126,40 @@ describe('triggerPipeline unit', () => {
         pipelineId: 999,
       }),
     ).rejects.toThrow('Pipeline or project not found');
+
+    // typed-rest-client resolves HTTP 404 to null instead of rejecting
+    mockPipelinesApi.runPipeline.mockResolvedValue(null);
+    await expect(
+      triggerPipeline(mockConnection, {
+        projectId: 'testproject',
+        pipelineId: 999999,
+      }),
+    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+  });
+
+  test('does not double-prefix refs/heads/ branch values', async () => {
+    const mockRun = { id: 124, name: 'Run 124' };
+    mockPipelinesApi.runPipeline.mockResolvedValue(mockRun);
+
+    await triggerPipeline(mockConnection, {
+      projectId: 'testproject',
+      pipelineId: 4,
+      branch: 'refs/heads/release/1.0',
+    });
+
+    expect(mockPipelinesApi.runPipeline).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resources: {
+          repositories: {
+            self: {
+              refName: 'refs/heads/release/1.0',
+            },
+          },
+        },
+      }),
+      'testproject',
+      4,
+    );
   });
 
   test('should wrap other errors', async () => {

@@ -1,208 +1,137 @@
-import type { WebApi } from 'azure-devops-node-api';
-import axios from 'axios';
+import { AuthenticationMethod } from '../../../shared/auth';
+import {
+  AzureDevOpsAuthenticationError,
+  AzureDevOpsPermissionError,
+  AzureDevOpsResourceNotFoundError,
+  AzureDevOpsValidationError,
+} from '../../../shared/errors';
+import { HttpError } from '../../../shared/http/http-client';
+import type { HttpRequestOptions } from '../../../shared/http/http-client';
+import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session';
 import { searchWiki } from './feature';
-import { AzureDevOpsValidationError } from '../../../shared/errors';
 
-// Mock Azure Identity
-jest.mock('@azure/identity', () => {
-  const mockGetToken = jest.fn().mockResolvedValue({ token: 'mock-token' });
-  return {
-    DefaultAzureCredential: jest.fn().mockImplementation(() => ({
-      getToken: mockGetToken,
-    })),
-    AzureCliCredential: jest.fn().mockImplementation(() => ({
-      getToken: mockGetToken,
-    })),
+function makeContext(
+  handler: (
+    req: HttpRequestOptions,
+  ) => Promise<{ status: number; data: unknown }>,
+  organizationUrl = 'https://dev.azure.com/test-org',
+  defaultProject?: string,
+) {
+  const http = {
+    request: async <T = unknown>(req: HttpRequestOptions) => {
+      const res = await handler(req);
+      return { status: res.status, headers: {}, data: res.data as T };
+    },
+    get: <T = unknown>(
+      url: string,
+      opts?: Omit<HttpRequestOptions, 'method' | 'url' | 'body'>,
+    ) => http.request<T>({ ...opts, method: 'GET', url }),
+    post: <T = unknown>(
+      url: string,
+      body?: unknown,
+      opts?: Omit<HttpRequestOptions, 'method' | 'url' | 'body'>,
+    ) => http.request<T>({ ...opts, method: 'POST', url, body }),
+    put: <T = unknown>(
+      url: string,
+      body?: unknown,
+      opts?: Omit<HttpRequestOptions, 'method' | 'url' | 'body'>,
+    ) => http.request<T>({ ...opts, method: 'PUT', url, body }),
   };
-});
 
-// Mock axios
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+  return createAzureDevOpsSession(
+    {
+      organizationUrl,
+      authMethod: AuthenticationMethod.PersonalAccessToken,
+      personalAccessToken: 'test-pat',
+      defaultProject,
+    },
+    { httpClient: http },
+  );
+}
 
-describe('searchWiki unit', () => {
-  // Mock WebApi connection
-  const baseMockConnection = {
-    _getHttpClient: jest.fn().mockReturnValue({
-      getAuthorizationHeader: jest.fn().mockReturnValue('Bearer mock-token'),
-    }),
-    getCoreApi: jest.fn().mockImplementation(() => ({
-      getProjects: jest
-        .fn()
-        .mockResolvedValue([{ name: 'TestProject', id: 'project-id' }]),
-    })),
-    serverUrl: 'https://dev.azure.com/testorg',
-  };
-  const mockConnection = baseMockConnection as unknown as WebApi;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  test('should return wiki search results with project ID', async () => {
-    // Arrange
-    const mockSearchResponse = {
-      data: {
-        count: 1,
-        results: [
-          {
-            fileName: 'Example Page',
-            path: '/Example Page',
-            collection: {
-              name: 'DefaultCollection',
-            },
-            project: {
-              name: 'TestProject',
-              id: 'project-id',
-            },
-            hits: [
-              {
-                content: 'This is an example page',
-                charOffset: 5,
-                length: 7,
-              },
-            ],
-          },
-        ],
-      },
-    };
-
-    mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
-
-    // Act
-    const result = await searchWiki(mockConnection, {
-      searchText: 'example',
-      projectId: 'TestProject',
+describe('searchWiki', () => {
+  it('supports org-wide search on Services and merges project filters', async () => {
+    let captured: HttpRequestOptions | undefined;
+    const ctx = makeContext(async (req) => {
+      captured = req;
+      return {
+        status: 200,
+        data: { count: 1, results: [], facets: {}, infoCode: 0 },
+      };
     });
 
-    // Assert
-    expect(result).toBeDefined();
-    expect(result.count).toBe(1);
-    expect(result.results).toHaveLength(1);
-    expect(result.results[0].fileName).toBe('Example Page');
-    expect(mockedAxios.post).toHaveBeenCalledTimes(1);
-    expect(mockedAxios.post).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'https://almsearch.dev.azure.com/testorg/TestProject/_apis/search/wikisearchresults',
-      ),
-      expect.objectContaining({
-        searchText: 'example',
-        filters: expect.objectContaining({
-          Project: ['TestProject'],
-        }),
-      }),
-      expect.any(Object),
+    await searchWiki(ctx, {
+      searchText: 'onboarding',
+      filters: { Project: ['ExtraProj'] },
+    });
+
+    expect(captured?.url).toBe(
+      'https://almsearch.dev.azure.com/test-org/_apis/search/wikisearchresults',
+    );
+    expect(
+      (captured?.body as { filters?: { Project: string[] } } | undefined)
+        ?.filters,
+    ).toEqual({
+      Project: ['ExtraProj'],
+    });
+  });
+
+  it('requires projectId for Azure DevOps Server on-prem wiki search when no defaultProject is configured', async () => {
+    const ctx = makeContext(
+      async () => ({ status: 200, data: {} }),
+      'https://ado.local/tfs/DefaultCollection',
+    );
+
+    await expect(searchWiki(ctx, { searchText: 'onboarding' })).rejects.toThrow(
+      AzureDevOpsValidationError,
     );
   });
 
-  test('should perform organization-wide wiki search when projectId is not provided', async () => {
-    // Arrange
-    const mockSearchResponse = {
-      data: {
-        count: 2,
-        results: [
-          {
-            fileName: 'Example Page 1',
-            path: '/Example Page 1',
-            collection: {
-              name: 'DefaultCollection',
-            },
-            project: {
-              name: 'Project1',
-              id: 'project-id-1',
-            },
-            hits: [
-              {
-                content: 'This is an example page',
-                charOffset: 5,
-                length: 7,
-              },
-            ],
-          },
-          {
-            fileName: 'Example Page 2',
-            path: '/Example Page 2',
-            collection: {
-              name: 'DefaultCollection',
-            },
-            project: {
-              name: 'Project2',
-              id: 'project-id-2',
-            },
-            hits: [
-              {
-                content: 'This is another example page',
-                charOffset: 5,
-                length: 7,
-              },
-            ],
-          },
-        ],
+  it('falls back to defaultProject on Azure DevOps Server without duplicating project segment on project-suffixed URLs', async () => {
+    const urls: string[] = [];
+    const collectionCtx = makeContext(
+      async (req) => {
+        urls.push(req.url);
+        return { status: 200, data: { count: 0, results: [], facets: {} } };
       },
-    };
-
-    mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
-
-    // Act
-    const result = await searchWiki(mockConnection, {
-      searchText: 'example',
-    });
-
-    // Assert
-    expect(result).toBeDefined();
-    expect(result.count).toBe(2);
-    expect(result.results).toHaveLength(2);
-    expect(result.results[0].project.name).toBe('Project1');
-    expect(result.results[1].project.name).toBe('Project2');
-    expect(mockedAxios.post).toHaveBeenCalledTimes(1);
-    expect(mockedAxios.post).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'https://almsearch.dev.azure.com/testorg/_apis/search/wikisearchresults',
-      ),
-      expect.not.objectContaining({
-        filters: expect.objectContaining({
-          Project: expect.anything(),
-        }),
-      }),
-      expect.any(Object),
+      'https://ado.local/tfs/DefaultCollection',
+      'My Project',
     );
+    await searchWiki(collectionCtx, { searchText: 'onboarding' });
+
+    const projectSuffixedCtx = makeContext(
+      async (req) => {
+        urls.push(req.url);
+        return { status: 200, data: { count: 0, results: [], facets: {} } };
+      },
+      'https://ado.local/tfs/DefaultCollection/MyProject',
+      'MyProject',
+    );
+    await searchWiki(projectSuffixedCtx, { searchText: 'onboarding' });
+
+    expect(urls).toEqual([
+      'https://ado.local/tfs/DefaultCollection/My%20Project/_apis/search/wikisearchresults',
+      'https://ado.local/tfs/DefaultCollection/MyProject/_apis/search/wikisearchresults',
+    ]);
   });
 
-  test('should build server search URL when using Azure DevOps Server', async () => {
-    const serverConnection = {
-      ...baseMockConnection,
-      serverUrl: 'https://ado.local/tfs/DefaultCollection',
-    } as unknown as WebApi;
-
-    mockedAxios.post.mockResolvedValueOnce({
-      data: {
-        count: 0,
-        results: [],
-      },
+  it.each([
+    [400, AzureDevOpsValidationError],
+    [401, AzureDevOpsAuthenticationError],
+    [403, AzureDevOpsPermissionError],
+    [404, AzureDevOpsResourceNotFoundError],
+  ] as const)('maps HTTP %d to %p', async (status, ErrorClass) => {
+    const ctx = makeContext(async (req) => {
+      throw new HttpError({
+        message: `HTTP ${status}`,
+        status,
+        statusText: 'Error',
+        url: req.url,
+      });
     });
-
-    await searchWiki(serverConnection, {
-      searchText: 'example',
-      projectId: 'ProjectX',
-    });
-
-    expect(mockedAxios.post).toHaveBeenCalledWith(
-      'https://ado.local/tfs/DefaultCollection/ProjectX/_apis/search/wikisearchresults?api-version=7.1',
-      expect.any(Object),
-      expect.any(Object),
-    );
-  });
-
-  test('should require projectId for server wiki search', async () => {
-    const serverConnection = {
-      ...baseMockConnection,
-      serverUrl: 'https://ado.local/tfs/DefaultCollection',
-    } as unknown as WebApi;
 
     await expect(
-      searchWiki(serverConnection, {
-        searchText: 'example',
-      }),
-    ).rejects.toThrow(AzureDevOpsValidationError);
+      searchWiki(ctx, { searchText: 'x', projectId: 'proj1' }),
+    ).rejects.toThrow(ErrorClass);
   });
 });

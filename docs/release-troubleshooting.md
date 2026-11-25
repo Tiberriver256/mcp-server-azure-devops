@@ -68,10 +68,10 @@ Use this when a GitHub release exists but npm publish failed. This will publish 
 
 **Steps**:
 
-1. Go to the [Actions tab](../../actions/workflows/release-please.yml) in GitHub
+1. Go to the [Actions tab](https://github.com/Tiberriver256/mcp-server-azure-devops/actions/workflows/release-please.yml) in GitHub
 2. Click "Run workflow" dropdown (you'll see this on the right side)
 3. Enter the **full git tag** in the "tag" field (e.g., `mcp-server-azure-devops-v0.1.44`)
-   - Find tags in the [releases page](../../releases) or [tags page](../../tags)
+   - Find tags on the [releases page](https://github.com/Tiberriver256/mcp-server-azure-devops/releases) or [tags page](https://github.com/Tiberriver256/mcp-server-azure-devops/tags)
 4. Click "Run workflow"
 
 **What this does**:

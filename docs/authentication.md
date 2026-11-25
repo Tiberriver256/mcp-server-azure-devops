@@ -32,6 +32,8 @@ PAT authentication is the simplest method and works well for personal use or tes
      - **Project and Team**: Read
      - **Graph**: Read
      - **Release**: Read & Execute
+     - **Wiki**: Read & Write (if using Wiki tools)
+     - **Test Management**: Read & Write (if using Test Plans tools; write operations also require Basic + Test Plans or Visual Studio Enterprise license)
    - Click "Create" and copy the generated token
 
 2. **Configure your `.env` file**:
@@ -149,7 +151,7 @@ Azure CLI authentication uses the `AzureCliCredential` class from the `@azure/id
 | `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                                        | Only with service principals | -                |
 | `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                                   | Only with service principals | -                |
 | `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                                    | Only with service principals | -                |
-| `LOG_LEVEL`                    | Logging level (debug, info, warn, error)                                           | No                           | info             |
+| `AZURE_DEVOPS_LOG_LEVEL`       | Stderr logging threshold (`debug`, `info`, `warn`, `error`); `debug` also prints sanitized startup config (falls back to `LOG_LEVEL`) | No                           | `info`           |
 
 ### REST API version
 

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { defaultOrg, defaultProject } from '../../utils/environment';
 
 /**
  * Schema for searching code in Azure DevOps repositories
@@ -9,12 +8,14 @@ export const SearchCodeSchema = z.object({
   organizationId: z
     .string()
     .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+    .describe(
+      'The ID or name of the organization (defaults to configured organization)',
+    ),
   projectId: z
     .string()
     .optional()
     .describe(
-      `The ID or name of the project to search in (Default: ${defaultProject}). If not provided, the default project will be used.`,
+      'The ID or name of the project to search in (defaults to AZURE_DEVOPS_DEFAULT_PROJECT)',
     ),
   filters: z
     .object({
@@ -64,7 +65,9 @@ export const SearchWikiSchema = z.object({
   organizationId: z
     .string()
     .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+    .describe(
+      'The ID or name of the organization (defaults to configured organization)',
+    ),
   projectId: z
     .string()
     .optional()
@@ -107,7 +110,9 @@ export const SearchWorkItemsSchema = z.object({
   organizationId: z
     .string()
     .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+    .describe(
+      'The ID or name of the organization (defaults to configured organization)',
+    ),
   projectId: z
     .string()
     .optional()

@@ -4,7 +4,7 @@ import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { defaultProject } from '../../../utils/environment';
+import { normalizeBranch, resolvePipelineProjectId } from '../helpers';
 import type { Run, TriggerPipelineOptions } from '../types';
 
 /**
@@ -20,14 +20,9 @@ export async function triggerPipeline(
 ): Promise<Run> {
   try {
     const pipelinesApi = await connection.getPipelinesApi();
-    const {
-      projectId = defaultProject,
-      pipelineId,
-      branch,
-      variables,
-      templateParameters,
-      stagesToSkip,
-    } = options;
+    const projectId = resolvePipelineProjectId(options.projectId);
+    const { pipelineId, branch, variables, templateParameters, stagesToSkip } =
+      options;
 
     // Prepare run parameters
     const runParameters: Record<string, unknown> = {};
@@ -47,9 +42,10 @@ export async function triggerPipeline(
       runParameters.stagesToSkip = stagesToSkip;
     }
 
-    // Prepare resources (including branch)
-    const resources: Record<string, unknown> = branch
-      ? { repositories: { self: { refName: `refs/heads/${branch}` } } }
+    // Prepare resources (including normalized branch ref)
+    const refName = normalizeBranch(branch);
+    const resources: Record<string, unknown> = refName
+      ? { repositories: { self: { refName } } }
       : {};
 
     // Add resources to run parameters if not empty
@@ -62,6 +58,13 @@ export async function triggerPipeline(
       projectId,
       pipelineId,
     );
+
+    // typed-rest-client resolves HTTP 404 Not Found to null instead of rejecting
+    if (!result) {
+      throw new AzureDevOpsResourceNotFoundError(
+        `Pipeline ${pipelineId} not found in project ${projectId}`,
+      );
+    }
 
     return result;
   } catch (error) {

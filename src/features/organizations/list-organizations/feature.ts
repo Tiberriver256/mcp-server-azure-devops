@@ -1,69 +1,51 @@
-import axios from 'axios';
 import type { AzureDevOpsConfig } from '../../../shared/types';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsValidationError,
 } from '../../../shared/errors';
-import { DefaultAzureCredential, AzureCliCredential } from '@azure/identity';
-import { AuthenticationMethod } from '../../../shared/auth';
-import type { Organization } from '../types';
-import { AZURE_DEVOPS_RESOURCE_ID } from '../types';
 import { isAzureDevOpsServicesUrl } from '../../../shared/azure-devops-url';
+import {
+  isHttpError,
+  mapHttpErrorToAzureDevOpsError,
+} from '../../../shared/http/http-client';
+import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session';
+import type { ToolContext } from '../../../shared/session/azure-devops-session';
+import type { Organization } from '../types';
+
+interface AzureDevOpsAccountRecord {
+  accountId: string;
+  accountName: string;
+  accountUri: string;
+}
 
 /**
  * Lists all Azure DevOps organizations accessible to the authenticated user
- *
- * Note: This function uses Axios directly rather than the Azure DevOps Node API
- * because the WebApi client doesn't support the organizations endpoint.
- *
- * @param config The Azure DevOps configuration
- * @returns Array of organizations
- * @throws {AzureDevOpsAuthenticationError} If authentication fails
+ * (Azure DevOps Services only).
  */
 export async function listOrganizations(
-  config: AzureDevOpsConfig,
+  configOrContext: AzureDevOpsConfig | ToolContext,
 ): Promise<Organization[]> {
   try {
-    if (!isAzureDevOpsServicesUrl(config.organizationUrl)) {
+    const isContext = 'requestAzureDevOps' in configOrContext;
+    const organizationUrl = isContext
+      ? configOrContext.config.organizationUrl
+      : configOrContext.organizationUrl;
+
+    if (!isAzureDevOpsServicesUrl(organizationUrl)) {
       throw new AzureDevOpsValidationError(
         'The list_organizations endpoint is only available for Azure DevOps Services',
       );
     }
 
-    // Determine auth method and create appropriate authorization header
-    let authHeader: string;
+    const ctx = isContext
+      ? configOrContext
+      : createAzureDevOpsSession(configOrContext);
 
-    if (config.authMethod === AuthenticationMethod.PersonalAccessToken) {
-      // PAT authentication
-      if (!config.personalAccessToken) {
-        throw new AzureDevOpsAuthenticationError(
-          'Personal Access Token (PAT) is required when using PAT authentication',
-        );
-      }
-      authHeader = createBasicAuthHeader(config.personalAccessToken);
-    } else {
-      // Azure Identity authentication (DefaultAzureCredential or AzureCliCredential)
-      const credential =
-        config.authMethod === AuthenticationMethod.AzureCli
-          ? new AzureCliCredential()
-          : new DefaultAzureCredential();
-
-      const token = await credential.getToken(
-        `${AZURE_DEVOPS_RESOURCE_ID}/.default`,
-      );
-
-      if (!token || !token.token) {
-        throw new AzureDevOpsAuthenticationError(
-          'Failed to acquire Azure Identity token',
-        );
-      }
-
-      authHeader = `Bearer ${token.token}`;
-    }
+    const authHeader = await ctx.getAuthHeader();
 
     // Step 1: Get the user profile to get the publicAlias
-    const profileResponse = await axios.get<{ publicAlias?: string }>(
+    const profileResponse = await ctx.http.get<{ publicAlias?: string }>(
       'https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=6.0',
       {
         headers: {
@@ -73,24 +55,21 @@ export async function listOrganizations(
       },
     );
 
-    // Extract the publicAlias
-    const publicAlias = profileResponse.data.publicAlias;
-    if (!publicAlias) {
+    const publicAlias =
+      profileResponse.data && typeof profileResponse.data === 'object'
+        ? profileResponse.data.publicAlias
+        : undefined;
+    if (typeof publicAlias !== 'string' || publicAlias.length === 0) {
       throw new AzureDevOpsAuthenticationError(
         'Unable to get user publicAlias from profile',
       );
     }
 
-    // Define the shape of the API response
-    interface AzureDevOpsOrganization {
-      accountId: string;
-      accountName: string;
-      accountUri: string;
-    }
-
     // Step 2: Get organizations using the publicAlias
-    const orgsResponse = await axios.get<{ value: AzureDevOpsOrganization[] }>(
-      `https://app.vssps.visualstudio.com/_apis/accounts?memberId=${publicAlias}&api-version=6.0`,
+    const orgsResponse = await ctx.http.get<{
+      value?: AzureDevOpsAccountRecord[];
+    }>(
+      `https://app.vssps.visualstudio.com/_apis/accounts?memberId=${encodeURIComponent(publicAlias)}&api-version=6.0`,
       {
         headers: {
           Authorization: authHeader,
@@ -99,26 +78,33 @@ export async function listOrganizations(
       },
     );
 
-    // Transform the response
+    if (
+      !orgsResponse.data ||
+      typeof orgsResponse.data !== 'object' ||
+      !Array.isArray(orgsResponse.data.value)
+    ) {
+      throw new AzureDevOpsError(
+        'Unexpected response format from Azure DevOps accounts endpoint',
+      );
+    }
+
     return orgsResponse.data.value.map((org) => ({
       id: org.accountId,
       name: org.accountName,
       url: org.accountUri,
     }));
   } catch (error) {
-    // Handle profile API errors as authentication errors
-    if (axios.isAxiosError(error) && error.config?.url?.includes('profile')) {
-      const status = error.response?.status;
-      const details = status
-        ? `${error.message} (status ${status})`
-        : error.message;
-      throw new AzureDevOpsAuthenticationError(
-        `Authentication failed: ${details}`,
-      );
-    } else if (
+    if (error instanceof AzureDevOpsError) {
+      throw error;
+    }
+
+    if (isHttpError(error)) {
+      throw mapHttpErrorToAzureDevOpsError(error, 'listing organizations');
+    }
+
+    if (
       error instanceof Error &&
-      (error.message.includes('profile') ||
-        error.message.includes('Unauthorized') ||
+      (error.message.includes('Unauthorized') ||
         error.message.includes('Authentication'))
     ) {
       throw new AzureDevOpsAuthenticationError(
@@ -126,23 +112,8 @@ export async function listOrganizations(
       );
     }
 
-    if (error instanceof AzureDevOpsError) {
-      throw error;
-    }
-
-    throw new AzureDevOpsAuthenticationError(
+    throw new AzureDevOpsError(
       `Failed to list organizations: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
-}
-
-/**
- * Creates a Basic Auth header for the Azure DevOps API
- *
- * @param pat Personal Access Token
- * @returns Basic Auth header value
- */
-function createBasicAuthHeader(pat: string): string {
-  const token = Buffer.from(`:${pat}`).toString('base64');
-  return `Basic ${token}`;
 }

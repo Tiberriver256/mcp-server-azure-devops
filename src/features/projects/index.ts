@@ -1,89 +1,68 @@
-// Re-export schemas and types
 export * from './schemas';
 export * from './types';
+export { getProject } from './get-project/feature';
+export { getProjectDetails } from './get-project-details/feature';
+export { listProjects } from './list-projects/feature';
 
-// Re-export features
-export * from './get-project';
-export * from './get-project-details';
-export * from './list-projects';
-
-// Export tool definitions
-export * from './tool-definitions';
-
-// New exports for request handling
-import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import type { WebApi } from 'azure-devops-node-api';
-import type {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
-import { defaultProject } from '../../utils/environment';
+import { defineTool } from '../../shared/registry/tool-registry';
+import type { FeatureModule } from '../../shared/registry/tool-registry';
 import {
   GetProjectSchema,
   GetProjectDetailsSchema,
   ListProjectsSchema,
 } from './schemas';
-import { getProject } from './get-project';
-import { getProjectDetails } from './get-project-details';
-import { listProjects } from './list-projects';
+import { getProject } from './get-project/feature';
+import { getProjectDetails } from './get-project-details/feature';
+import { listProjects } from './list-projects/feature';
 
-/**
- * Checks if the request is for the projects feature
- */
-export const isProjectsRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return ['list_projects', 'get_project', 'get_project_details'].includes(
-    toolName,
-  );
-};
-
-/**
- * Handles projects feature requests
- */
-export const handleProjectsRequest: RequestHandler = async (
-  connection: WebApi,
-  request: CallToolRequest,
-): Promise<{ content: Array<{ type: string; text: string }> }> => {
-  switch (request.params.name) {
-    case 'list_projects': {
-      const args = ListProjectsSchema.parse(request.params.arguments);
-      const result = await listProjects(connection, {
-        stateFilter: args.stateFilter,
-        top: args.top,
-        skip: args.skip,
-        continuationToken: args.continuationToken,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'get_project': {
-      const args = GetProjectSchema.parse(request.params.arguments);
-      const result = await getProject(
-        connection,
-        args.projectId ?? defaultProject,
-      );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'get_project_details': {
-      const args = GetProjectDetailsSchema.parse(request.params.arguments);
-      const result = await getProjectDetails(connection, {
-        projectId: args.projectId ?? defaultProject,
-        includeProcess: args.includeProcess,
-        includeWorkItemTypes: args.includeWorkItemTypes,
-        includeFields: args.includeFields,
-        includeTeams: args.includeTeams,
-        expandTeamIdentity: args.expandTeamIdentity,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    default:
-      throw new Error(`Unknown projects tool: ${request.params.name}`);
-  }
+export const projectsFeature: FeatureModule = {
+  toolset: 'projects',
+  tools: [
+    defineTool({
+      name: 'list_projects',
+      description: 'List all projects in an organization',
+      schema: ListProjectsSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await listProjects(connection, {
+          stateFilter: args.stateFilter,
+          top: args.top,
+          skip: args.skip,
+          continuationToken: args.continuationToken,
+        });
+      },
+    }),
+    defineTool({
+      name: 'get_project',
+      description: 'Get details of a specific project',
+      schema: GetProjectSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await getProject(
+          connection,
+          ctx.resolveProjectId(args.projectId),
+        );
+      },
+    }),
+    defineTool({
+      name: 'get_project_details',
+      description:
+        'Get comprehensive details of a project including process, work item types, and teams',
+      schema: GetProjectDetailsSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await getProjectDetails(connection, {
+          projectId: ctx.resolveProjectId(args.projectId),
+          includeProcess: args.includeProcess,
+          includeWorkItemTypes: args.includeWorkItemTypes,
+          includeFields: args.includeFields,
+          includeTeams: args.includeTeams,
+          expandTeamIdentity: args.expandTeamIdentity,
+        });
+      },
+    }),
+  ],
 };

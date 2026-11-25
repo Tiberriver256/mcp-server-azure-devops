@@ -1,443 +1,140 @@
-import { WebApi } from 'azure-devops-node-api';
-import axios from 'axios';
-import { searchWorkItems } from './feature';
+import { AuthenticationMethod } from '../../../shared/auth';
 import {
-  AzureDevOpsError,
+  AzureDevOpsAuthenticationError,
+  AzureDevOpsPermissionError,
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsValidationError,
-  AzureDevOpsPermissionError,
 } from '../../../shared/errors';
-import type { SearchWorkItemsOptions, WorkItemSearchResponse } from '../types';
+import { HttpError } from '../../../shared/http/http-client';
+import type { HttpRequestOptions } from '../../../shared/http/http-client';
+import { createAzureDevOpsSession } from '../../../shared/session/azure-devops-session';
+import { searchWorkItems } from './feature';
 
-// Mock axios
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+function makeContext(
+  handler: (
+    req: HttpRequestOptions,
+  ) => Promise<{ status: number; data: unknown }>,
+  organizationUrl = 'https://dev.azure.com/test-org',
+  defaultProject?: string,
+) {
+  const http = {
+    request: async <T = unknown>(req: HttpRequestOptions) => {
+      const res = await handler(req);
+      return { status: res.status, headers: {}, data: res.data as T };
+    },
+    get: <T = unknown>(
+      url: string,
+      opts?: Omit<HttpRequestOptions, 'method' | 'url' | 'body'>,
+    ) => http.request<T>({ ...opts, method: 'GET', url }),
+    post: <T = unknown>(
+      url: string,
+      body?: unknown,
+      opts?: Omit<HttpRequestOptions, 'method' | 'url' | 'body'>,
+    ) => http.request<T>({ ...opts, method: 'POST', url, body }),
+    put: <T = unknown>(
+      url: string,
+      body?: unknown,
+      opts?: Omit<HttpRequestOptions, 'method' | 'url' | 'body'>,
+    ) => http.request<T>({ ...opts, method: 'PUT', url, body }),
+  };
 
-// Mock @azure/identity
-jest.mock('@azure/identity', () => ({
-  DefaultAzureCredential: jest.fn().mockImplementation(() => ({
-    getToken: jest
-      .fn()
-      .mockResolvedValue({ token: 'mock-azure-identity-token' }),
-  })),
-  AzureCliCredential: jest.fn(),
-}));
-
-// Mock WebApi
-jest.mock('azure-devops-node-api');
-const MockedWebApi = WebApi as jest.MockedClass<typeof WebApi>;
+  return createAzureDevOpsSession(
+    {
+      organizationUrl,
+      authMethod: AuthenticationMethod.PersonalAccessToken,
+      personalAccessToken: 'test-pat',
+      defaultProject,
+    },
+    { httpClient: http },
+  );
+}
 
 describe('searchWorkItems', () => {
-  let connection: WebApi;
-  let options: SearchWorkItemsOptions;
-  let mockResponse: WorkItemSearchResponse;
-
-  beforeEach(() => {
-    // Reset mocks
-    jest.clearAllMocks();
-
-    // Mock environment variables
-    process.env.AZURE_DEVOPS_AUTH_METHOD = 'pat';
-    process.env.AZURE_DEVOPS_PAT = 'mock-pat';
-
-    // Set up connection mock
-    // Create a mock auth handler that implements IRequestHandler
-    const mockAuthHandler = {
-      prepareRequest: jest.fn(),
-      canHandleAuthentication: jest.fn().mockReturnValue(true),
-      handleAuthentication: jest.fn(),
-    };
-    connection = new MockedWebApi(
-      'https://dev.azure.com/mock-org',
-      mockAuthHandler,
-    );
-    (connection as any).serverUrl = 'https://dev.azure.com/mock-org';
-    (connection.getCoreApi as jest.Mock).mockResolvedValue({
-      getProjects: jest.fn().mockResolvedValue([]),
+  it('constructs project-scoped and org-wide search requests accurately', async () => {
+    let captured: HttpRequestOptions | undefined;
+    const ctx = makeContext(async (req) => {
+      captured = req;
+      return { status: 200, data: { count: 0, results: [], facets: {} } };
     });
 
-    // Set up options
-    options = {
-      searchText: 'test query',
-      projectId: 'mock-project',
-      top: 50,
-      skip: 0,
-      includeFacets: true,
-    };
+    await searchWorkItems(ctx, {
+      searchText: 'crash',
+      projectId: 'MyProj',
+      filters: { 'System.State': ['Active'] },
+      top: 25,
+    });
 
-    // Set up mock response
-    mockResponse = {
-      count: 2,
-      results: [
-        {
-          project: {
-            id: 'project-id-1',
-            name: 'mock-project',
-          },
-          fields: {
-            'system.id': '42',
-            'system.workitemtype': 'Bug',
-            'system.title': 'Test Bug',
-            'system.state': 'Active',
-            'system.assignedto': 'Test User',
-          },
-          hits: [
-            {
-              fieldReferenceName: 'system.title',
-              highlights: ['Test <b>Bug</b>'],
-            },
-          ],
-          url: 'https://dev.azure.com/mock-org/mock-project/_workitems/edit/42',
-        },
-        {
-          project: {
-            id: 'project-id-1',
-            name: 'mock-project',
-          },
-          fields: {
-            'system.id': '43',
-            'system.workitemtype': 'Task',
-            'system.title': 'Test Task',
-            'system.state': 'New',
-            'system.assignedto': 'Test User',
-          },
-          hits: [
-            {
-              fieldReferenceName: 'system.title',
-              highlights: ['Test <b>Task</b>'],
-            },
-          ],
-          url: 'https://dev.azure.com/mock-org/mock-project/_workitems/edit/43',
-        },
-      ],
-      facets: {
-        'System.WorkItemType': [
-          {
-            name: 'Bug',
-            id: 'Bug',
-            resultCount: 1,
-          },
-          {
-            name: 'Task',
-            id: 'Task',
-            resultCount: 1,
-          },
-        ],
+    expect(captured?.url).toBe(
+      'https://almsearch.dev.azure.com/test-org/MyProj/_apis/search/workitemsearchresults',
+    );
+    expect(captured?.body).toMatchObject({
+      searchText: 'crash',
+      $top: 25,
+      filters: {
+        'System.TeamProject': ['MyProj'],
+        'System.State': ['Active'],
       },
-    };
-
-    // Mock axios response
-    mockedAxios.post.mockResolvedValue({ data: mockResponse });
-  });
-
-  afterEach(() => {
-    // Clean up environment variables
-    delete process.env.AZURE_DEVOPS_AUTH_METHOD;
-    delete process.env.AZURE_DEVOPS_PAT;
-  });
-
-  it('should search work items with the correct parameters', async () => {
-    // Act
-    const result = await searchWorkItems(connection, options);
-
-    // Assert
-    expect(mockedAxios.post).toHaveBeenCalledWith(
-      'https://almsearch.dev.azure.com/mock-org/mock-project/_apis/search/workitemsearchresults?api-version=7.1',
-      {
-        searchText: 'test query',
-        $skip: 0,
-        $top: 50,
-        filters: {
-          'System.TeamProject': ['mock-project'],
-        },
-        includeFacets: true,
-      },
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: expect.stringContaining('Basic'),
-          'Content-Type': 'application/json',
-        }),
-      }),
-    );
-    expect(result).toEqual(mockResponse);
-  });
-
-  it('should include filters when provided', async () => {
-    // Arrange
-    options.filters = {
-      'System.WorkItemType': ['Bug', 'Task'],
-      'System.State': ['Active'],
-    };
-
-    // Act
-    await searchWorkItems(connection, options);
-
-    // Assert
-    expect(mockedAxios.post).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        filters: {
-          'System.TeamProject': ['mock-project'],
-          'System.WorkItemType': ['Bug', 'Task'],
-          'System.State': ['Active'],
-        },
-      }),
-      expect.any(Object),
-    );
-  });
-
-  it('should include orderBy when provided', async () => {
-    // Arrange
-    options.orderBy = [{ field: 'System.CreatedDate', sortOrder: 'ASC' }];
-
-    // Act
-    await searchWorkItems(connection, options);
-
-    // Assert
-    expect(mockedAxios.post).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        $orderBy: [{ field: 'System.CreatedDate', sortOrder: 'ASC' }],
-      }),
-      expect.any(Object),
-    );
-  });
-
-  it('should handle 404 errors correctly', async () => {
-    // Arrange - Mock the implementation to throw the specific error
-    mockedAxios.post.mockImplementation(() => {
-      throw new AzureDevOpsResourceNotFoundError(
-        'Resource not found: Project not found',
-      );
     });
-
-    // Act & Assert
-    await expect(searchWorkItems(connection, options)).rejects.toThrow(
-      AzureDevOpsResourceNotFoundError,
-    );
   });
 
-  it('should handle 400 errors correctly', async () => {
-    // Arrange - Mock the implementation to throw the specific error
-    mockedAxios.post.mockImplementation(() => {
-      throw new AzureDevOpsValidationError('Invalid request: Invalid query');
-    });
-
-    // Act & Assert
-    await expect(searchWorkItems(connection, options)).rejects.toThrow(
+  it('requires projectId on Azure DevOps Server when no defaultProject is configured', async () => {
+    const ctx = makeContext(
+      async () => ({ status: 200, data: {} }),
+      'https://ado.local/tfs/DefaultCollection',
+    );
+    await expect(searchWorkItems(ctx, { searchText: 'bug' })).rejects.toThrow(
       AzureDevOpsValidationError,
     );
   });
 
-  it('should handle 401/403 errors correctly', async () => {
-    // Arrange - Mock the implementation to throw the specific error
-    mockedAxios.post.mockImplementation(() => {
-      throw new AzureDevOpsPermissionError(
-        'Permission denied: Permission denied',
-      );
-    });
-
-    // Act & Assert
-    await expect(searchWorkItems(connection, options)).rejects.toThrow(
-      AzureDevOpsPermissionError,
-    );
-  });
-
-  it('should handle other axios errors correctly', async () => {
-    // Arrange - Mock the implementation to throw the specific error
-    mockedAxios.post.mockImplementation(() => {
-      throw new AzureDevOpsError(
-        'Azure DevOps API error: Internal server error',
-      );
-    });
-
-    // Act & Assert
-    await expect(searchWorkItems(connection, options)).rejects.toThrow(
-      AzureDevOpsError,
-    );
-  });
-
-  it('should handle non-axios errors correctly', async () => {
-    // Arrange
-    mockedAxios.post.mockRejectedValue(new Error('Network error'));
-
-    // Act & Assert
-    await expect(searchWorkItems(connection, options)).rejects.toThrow(
-      AzureDevOpsError,
-    );
-  });
-
-  it('should throw an error if organization cannot be extracted', async () => {
-    // Arrange
-    (connection as any).serverUrl = 'https://invalid-url';
-
-    // Act & Assert
-    await expect(searchWorkItems(connection, options)).rejects.toThrow(
-      AzureDevOpsValidationError,
-    );
-  });
-
-  it('should use Azure Identity authentication when AZURE_DEVOPS_AUTH_METHOD is azure-identity', async () => {
-    // Mock environment variables
-    const originalEnv = process.env.AZURE_DEVOPS_AUTH_METHOD;
-    process.env.AZURE_DEVOPS_AUTH_METHOD = 'azure-identity';
-
-    // Mock the WebApi connection
-    const mockConnection = {
-      serverUrl: 'https://dev.azure.com/testorg',
-      getCoreApi: jest.fn().mockResolvedValue({
-        getProjects: jest.fn().mockResolvedValue([]),
-      }),
-    };
-
-    // Mock axios post
-    const mockResponse = {
-      data: {
-        count: 0,
-        results: [],
+  it('falls back to defaultProject on Azure DevOps Server without duplicating project segment on project-suffixed URLs', async () => {
+    const urls: string[] = [];
+    const collectionCtx = makeContext(
+      async (req) => {
+        urls.push(req.url);
+        return { status: 200, data: { count: 0, results: [], facets: {} } };
       },
-    };
-    (axios.post as jest.Mock).mockResolvedValueOnce(mockResponse);
-
-    // Call the function
-    await searchWorkItems(mockConnection as unknown as WebApi, {
-      projectId: 'testproject',
-      searchText: 'test query',
-    });
-
-    // Verify the axios post was called with a Bearer token
-    expect(axios.post).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.any(Object),
-      {
-        headers: {
-          Authorization: 'Bearer mock-azure-identity-token',
-          'Content-Type': 'application/json',
-        },
-      },
+      'https://ado.local/tfs/DefaultCollection',
+      'My Project',
     );
+    await searchWorkItems(collectionCtx, { searchText: 'bug' });
 
-    // Cleanup
-    process.env.AZURE_DEVOPS_AUTH_METHOD = originalEnv;
-  });
-
-  test('should perform organization-wide work item search when projectId is not provided', async () => {
-    // Arrange
-    const mockSearchResponse = {
-      data: {
-        count: 2,
-        results: [
-          {
-            id: 1,
-            fields: {
-              'System.Title': 'Test Bug 1',
-              'System.State': 'Active',
-              'System.WorkItemType': 'Bug',
-              'System.TeamProject': 'Project1',
-            },
-            project: {
-              name: 'Project1',
-              id: 'project-id-1',
-            },
-          },
-          {
-            id: 2,
-            fields: {
-              'System.Title': 'Test Bug 2',
-              'System.State': 'Active',
-              'System.WorkItemType': 'Bug',
-              'System.TeamProject': 'Project2',
-            },
-            project: {
-              name: 'Project2',
-              id: 'project-id-2',
-            },
-          },
-        ],
+    const projectSuffixedCtx = makeContext(
+      async (req) => {
+        urls.push(req.url);
+        return { status: 200, data: { count: 0, results: [], facets: {} } };
       },
-    };
-
-    mockedAxios.post.mockResolvedValueOnce(mockSearchResponse);
-
-    // Act
-    const result = await searchWorkItems(connection, {
-      searchText: 'bug',
-    });
-
-    // Assert
-    expect(result).toBeDefined();
-    expect(result.count).toBe(2);
-    expect(result.results).toHaveLength(2);
-    expect(result.results[0].fields['System.TeamProject']).toBe('Project1');
-    expect(result.results[1].fields['System.TeamProject']).toBe('Project2');
-    expect(mockedAxios.post).toHaveBeenCalledTimes(1);
-    expect(mockedAxios.post).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'https://almsearch.dev.azure.com/mock-org/_apis/search/workitemsearchresults',
-      ),
-      expect.not.objectContaining({
-        filters: expect.objectContaining({
-          'System.TeamProject': expect.anything(),
-        }),
-      }),
-      expect.any(Object),
+      'https://ado.local/tfs/DefaultCollection/MyProject',
+      'MyProject',
     );
+    await searchWorkItems(projectSuffixedCtx, { searchText: 'bug' });
+
+    expect(urls).toEqual([
+      'https://ado.local/tfs/DefaultCollection/My%20Project/_apis/search/workitemsearchresults',
+      'https://ado.local/tfs/DefaultCollection/MyProject/_apis/search/workitemsearchresults',
+    ]);
   });
 
-  it('should use organizationId override for services search', async () => {
-    mockedAxios.post.mockResolvedValueOnce({
-      data: {
-        count: 0,
-        results: [],
-      },
-    });
+  it.each([
+    [400, AzureDevOpsValidationError],
+    [401, AzureDevOpsAuthenticationError],
+    [403, AzureDevOpsPermissionError],
+    [404, AzureDevOpsResourceNotFoundError],
+  ] as const)(
+    'maps actual HTTP %d responses to %p (not mocked AzureDevOpsError)',
+    async (status, ErrorClass) => {
+      const ctx = makeContext(async (req) => {
+        throw new HttpError({
+          message: `HTTP ${status}`,
+          status,
+          statusText: 'Error',
+          url: req.url,
+        });
+      });
 
-    await searchWorkItems(connection, {
-      searchText: 'override',
-      projectId: 'mock-project',
-      organizationId: 'override-org',
-    });
-
-    expect(mockedAxios.post).toHaveBeenCalledWith(
-      'https://almsearch.dev.azure.com/override-org/mock-project/_apis/search/workitemsearchresults?api-version=7.1',
-      expect.any(Object),
-      expect.any(Object),
-    );
-  });
-
-  it('should build server search URL when using Azure DevOps Server', async () => {
-    const serverConnection = Object.assign({}, connection, {
-      serverUrl: 'https://ado.local/tfs/DefaultCollection',
-    });
-
-    mockedAxios.post.mockResolvedValueOnce({
-      data: {
-        count: 0,
-        results: [],
-      },
-    });
-
-    await searchWorkItems(serverConnection, {
-      searchText: 'server',
-      projectId: 'ProjectX',
-    });
-
-    expect(mockedAxios.post).toHaveBeenCalledWith(
-      'https://ado.local/tfs/DefaultCollection/ProjectX/_apis/search/workitemsearchresults?api-version=7.1',
-      expect.any(Object),
-      expect.any(Object),
-    );
-  });
-
-  it('should require projectId for server work item search', async () => {
-    const serverConnection = Object.assign({}, connection, {
-      serverUrl: 'https://ado.local/tfs/DefaultCollection',
-    });
-
-    await expect(
-      searchWorkItems(serverConnection, {
-        searchText: 'server',
-      }),
-    ).rejects.toThrow(AzureDevOpsValidationError);
-  });
+      await expect(
+        searchWorkItems(ctx, { searchText: 'x', projectId: 'MyProj' }),
+      ).rejects.toThrow(ErrorClass);
+    },
+  );
 });

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { defaultProject } from '../../../utils/environment';
 import { pipelineNameField, refinePipelineReference } from '../run-reference';
 
 /**
@@ -11,7 +10,9 @@ export const GetPipelineSchema = z
     projectId: z
       .string()
       .optional()
-      .describe(`The ID or name of the project (Default: ${defaultProject})`),
+      .describe(
+        'The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT)',
+      ),
     // The ID of the pipeline to retrieve
     pipelineId: z
       .number()

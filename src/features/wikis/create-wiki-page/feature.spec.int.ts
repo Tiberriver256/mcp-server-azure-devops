@@ -1,13 +1,13 @@
 import type { WebApi } from 'azure-devops-node-api';
 import { createWikiPage } from './feature';
-import type { CreateWikiPageSchema } from './schema';
+import type { CreateWikiPageSchema } from '../schemas';
 import { getWikiPage } from '../get-wiki-page/feature';
 import { getWikis } from '../get-wikis/feature';
 import {
   getTestConnection,
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
-import { getOrgNameFromUrl } from '@/utils/environment';
+import { getOrgNameFromUrl } from '@/shared/azure-devops-url';
 import { AzureDevOpsError } from '@/shared/errors/azure-devops-errors';
 import type { z } from 'zod';
 
@@ -22,7 +22,7 @@ describeOrSkip('createWikiPage Integration Tests', () => {
   let connection: WebApi;
   let projectName: string;
   let orgUrl: string;
-  let organizationId: string;
+  let organizationId: string | undefined;
   const testPagePath = '/IntegrationTestPage';
   const testPagePathSub = '/IntegrationTestPage/SubPage';
   const testPagePathDefault = '/DefaultPathPage';

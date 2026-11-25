@@ -1,11 +1,8 @@
 import type { WebApi } from 'azure-devops-node-api';
-import type {
-  GitPullRequestIterationChanges,
-  GitChange,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+import type { GitPullRequestIterationChanges } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import type { PolicyEvaluationRecord } from 'azure-devops-node-api/interfaces/PolicyInterfaces';
 import { AzureDevOpsError } from '../../../shared/errors';
-import { createTwoFilesPatch } from 'diff';
+import { buildGitChangesDiffs } from '../../../shared/utils/git-diff';
 
 export interface PullRequestChangesOptions {
   projectId: string;
@@ -22,7 +19,8 @@ export interface PullRequestChangesResponse {
 }
 
 /**
- * Retrieve changes and policy evaluation status for a pull request
+ * Retrieve changes and policy evaluation status for a pull request with
+ * bounded concurrency, size caps, and binary guards.
  */
 export async function getPullRequestChanges(
   connection: WebApi,
@@ -51,55 +49,32 @@ export async function getPullRequestChanges(
         'Latest pull request iteration is missing an ID',
       );
     }
-    const changes = await gitApi.getPullRequestIterationChanges(
-      options.repositoryId,
-      options.pullRequestId,
-      latest.id,
-      options.projectId,
-    );
 
-    const policyApi = await connection.getPolicyApi();
-    const artifactId = `vstfs:///CodeReview/CodeReviewId/${options.projectId}/${options.pullRequestId}`;
+    const [changes, policyApi] = await Promise.all([
+      gitApi.getPullRequestIterationChanges(
+        options.repositoryId,
+        options.pullRequestId,
+        latest.id,
+        options.projectId,
+      ),
+      connection.getPolicyApi(),
+    ]);
+
+    // Policy evaluations require the project GUID in vstfs:///CodeReview/CodeReviewId/{projectGuid}/{prId}
+    const projectGuid =
+      pullRequest?.repository?.project?.id ?? options.projectId;
+    const artifactId = `vstfs:///CodeReview/CodeReviewId/${projectGuid}/${options.pullRequestId}`;
     const evaluations = await policyApi.getPolicyEvaluations(
       options.projectId,
       artifactId,
     );
 
     const changeEntries = changes.changeEntries ?? [];
-
-    const getBlobText = async (objId?: string): Promise<string> => {
-      if (!objId) {
-        return '';
-      }
-      const stream = await gitApi.getBlobContent(
-        options.repositoryId,
-        objId,
-        options.projectId,
-      );
-
-      const chunks: Uint8Array[] = [];
-      return await new Promise<string>((resolve, reject) => {
-        stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-        stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-        stream.on('error', reject);
-      });
-    };
-
-    const files = await Promise.all(
-      changeEntries.map(async (entry: GitChange) => {
-        const path = entry.item?.path || entry.originalPath || '';
-        const [oldContent, newContent] = await Promise.all([
-          getBlobText(entry.item?.originalObjectId),
-          getBlobText(entry.item?.objectId),
-        ]);
-        const patch = createTwoFilesPatch(
-          entry.originalPath || path,
-          path,
-          oldContent,
-          newContent,
-        );
-        return { path, patch };
-      }),
+    const files = await buildGitChangesDiffs(
+      gitApi,
+      options.repositoryId,
+      options.projectId,
+      changeEntries,
     );
 
     return {

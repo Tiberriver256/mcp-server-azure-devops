@@ -3,6 +3,8 @@ import {
   AzureDevOpsResourceNotFoundError,
   AzureDevOpsError,
 } from '../../../shared/errors';
+import { logError } from '../../../shared/logging';
+import { mapWithConcurrency } from '../../../shared/utils/concurrency';
 import type {
   TeamProject,
   WebApiTeam,
@@ -190,19 +192,30 @@ export async function getProjectDetails(
 
         // If fields are requested, get the field definitions from the API
         if (includeFields) {
+          const fallbackFields = [
+            {
+              name: 'Title',
+              referenceName: 'System.Title',
+              type: 'string',
+              required: true,
+            },
+            {
+              name: 'Description',
+              referenceName: 'System.Description',
+              type: 'html',
+              required: false,
+            },
+          ];
+
           try {
-            // Instead of getting all fields and applying them to all work item types,
-            // let's get the fields specific to each work item type
-            for (const wit of processWorkItemTypes) {
+            await mapWithConcurrency(processWorkItemTypes, 6, async (wit) => {
               try {
-                // Get fields specific to this work item type using the specialized method
                 const typeSpecificFields =
                   await workItemTrackingApi.getWorkItemTypeFieldsWithReferences(
                     projectId,
                     wit.name,
                   );
 
-                // Map the fields to our format
                 wit.fields = typeSpecificFields.map(
                   (field: WorkItemTypeField) => ({
                     name: field.name || 'Unknown',
@@ -215,47 +228,27 @@ export async function getProjectDetails(
                   }),
                 );
               } catch (typeFieldError) {
-                console.error(
-                  `Error fetching fields for work item type ${wit.name}:`,
-                  typeFieldError,
+                logError(
+                  `Error fetching fields for work item type ${wit.name}: ${
+                    typeFieldError instanceof Error
+                      ? typeFieldError.message
+                      : String(typeFieldError)
+                  }`,
                 );
-
-                // Fallback to basic fields
-                wit.fields = [
-                  {
-                    name: 'Title',
-                    referenceName: 'System.Title',
-                    type: 'string',
-                    required: true,
-                  },
-                  {
-                    name: 'Description',
-                    referenceName: 'System.Description',
-                    type: 'html',
-                    required: false,
-                  },
-                ];
+                wit.fields = fallbackFields.map((field) => ({ ...field }));
               }
-            }
+            });
           } catch (fieldError) {
-            console.error('Error in field processing:', fieldError);
+            logError(
+              `Error in field processing: ${
+                fieldError instanceof Error
+                  ? fieldError.message
+                  : String(fieldError)
+              }`,
+            );
 
-            // Fallback to default fields if API call fails
             processWorkItemTypes.forEach((wit) => {
-              wit.fields = [
-                {
-                  name: 'Title',
-                  referenceName: 'System.Title',
-                  type: 'string',
-                  required: true,
-                },
-                {
-                  name: 'Description',
-                  referenceName: 'System.Description',
-                  type: 'html',
-                  required: false,
-                },
-              ];
+              wit.fields = fallbackFields.map((field) => ({ ...field }));
             });
           }
         }

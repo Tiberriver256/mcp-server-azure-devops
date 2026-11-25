@@ -47,11 +47,7 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - name: Install Dependencies
-        run: |
-          # Refresh lockfile when package.json and package-lock.json disagree (e.g. mid-migration PRs),
-          # then install exactly from the refreshed lock. Ignore scripts on lock-only so husky is not required yet.
-          npm install --package-lock-only --ignore-scripts
-          npm ci
+        run: npm ci
       - name: Security Audit
         run: npm audit --audit-level=high
       - name: Format Check
@@ -60,6 +56,8 @@ jobs:
         run: npm run lint
       - name: Build
         run: npm run build
+      - name: Typecheck Tests
+        run: npm run typecheck:tests
       - name: Unit Tests
         run: npm run test:unit
       - name: Integration Tests

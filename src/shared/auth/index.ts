@@ -1,16 +1,13 @@
-/**
- * Authentication module for Azure DevOps
- *
- * This module provides authentication functionality for Azure DevOps API.
- * It supports multiple authentication methods:
- * - Personal Access Token (PAT)
- * - Azure Identity (DefaultAzureCredential)
- * - Azure CLI (AzureCliCredential)
- */
-
 export {
+  AZURE_DEVOPS_RESOURCE_ID,
   AuthenticationMethod,
-  AuthConfig,
+  classifyConnectionError,
   createAuthClient,
+  createAuthProvider,
+  createBasicAuthHeader,
+  formatOrgUrlForLog,
+  isCredentialAuthFailure,
+  isLocationLookupFailure,
+  normalizeAuthMethod,
 } from './auth-factory';
-export { AzureDevOpsClient } from './client-factory';
+export type { AuthConfig, AuthProvider } from './auth-factory';

@@ -1,5 +1,5 @@
-import type { ToolDefinition } from '../types/tool-definition';
 import { AzureDevOpsValidationError } from '../errors';
+import { logWarn } from '../logging';
 
 export const TOOLSET_NAMES = [
   'users',
@@ -16,40 +16,45 @@ export const TOOLSET_NAMES = [
 
 export type ToolsetName = (typeof TOOLSET_NAMES)[number];
 
+export interface ToolLike {
+  readonly name: string;
+  readonly readOnly?: boolean;
+}
+
 export interface ToolFilterOptions {
-  toolsets?: string[];
-  enabledTools?: string[];
-  disabledTools?: string[];
+  toolsets?: readonly string[];
+  enabledTools?: readonly string[];
+  disabledTools?: readonly string[];
   readOnly?: boolean;
 }
 
-export interface ResolvedToolCatalog {
-  tools: ToolDefinition[];
+export interface ResolvedToolCatalog<T extends ToolLike = ToolLike> {
+  tools: T[];
   enabledToolNames: Set<string>;
   allToolNames: Set<string>;
   readOnlyBlockedNames: Set<string>;
 }
 
-const TOOLSET_ALIASES: Record<string, ToolsetName> = {
-  users: 'users',
-  organizations: 'organizations',
-  projects: 'projects',
-  repositories: 'repositories',
-  repos: 'repositories',
-  'work-items': 'work-items',
-  work_items: 'work-items',
-  workitems: 'work-items',
-  search: 'search',
-  'pull-requests': 'pull-requests',
-  pull_requests: 'pull-requests',
-  pullrequests: 'pull-requests',
-  prs: 'pull-requests',
-  pipelines: 'pipelines',
-  wikis: 'wikis',
-  'test-plans': 'test-plans',
-  test_plans: 'test-plans',
-  testplans: 'test-plans',
-};
+const TOOLSET_ALIASES = new Map<string, ToolsetName>([
+  ['users', 'users'],
+  ['organizations', 'organizations'],
+  ['projects', 'projects'],
+  ['repositories', 'repositories'],
+  ['repos', 'repositories'],
+  ['work-items', 'work-items'],
+  ['work_items', 'work-items'],
+  ['workitems', 'work-items'],
+  ['search', 'search'],
+  ['pull-requests', 'pull-requests'],
+  ['pull_requests', 'pull-requests'],
+  ['pullrequests', 'pull-requests'],
+  ['prs', 'pull-requests'],
+  ['pipelines', 'pipelines'],
+  ['wikis', 'wikis'],
+  ['test-plans', 'test-plans'],
+  ['test_plans', 'test-plans'],
+  ['testplans', 'test-plans'],
+]);
 
 /**
  * Parse a comma-separated string into a deduplicated list of trimmed non-empty entries.
@@ -201,7 +206,7 @@ export function normalizeToolsetName(raw: string): ToolsetName | 'all' {
   if (key === 'all') {
     return 'all';
   }
-  const canonical = TOOLSET_ALIASES[key];
+  const canonical = TOOLSET_ALIASES.get(key);
   if (!canonical) {
     throw new AzureDevOpsValidationError(
       `Unknown toolset '${raw}'. Valid toolsets are: all, ${TOOLSET_NAMES.join(', ')}`,
@@ -219,11 +224,11 @@ export function normalizeToolsetName(raw: string): ToolsetName | 'all' {
  * 3. Explicit denylist (`disabledTools`, removes matching tools)
  * 4. Read-only mode (`readOnly: true`, fail-closed: only tools with `readOnly === true` remain)
  */
-export function resolveEnabledTools(
-  registry: Record<ToolsetName, ToolDefinition[]>,
+export function resolveEnabledTools<T extends ToolLike>(
+  registry: Record<ToolsetName, readonly T[]>,
   options: ToolFilterOptions = {},
-): ResolvedToolCatalog {
-  const allTools: ToolDefinition[] = [];
+): ResolvedToolCatalog<T> {
+  const allTools: T[] = [];
   for (const toolset of TOOLSET_NAMES) {
     allTools.push(...registry[toolset]);
   }
@@ -239,7 +244,7 @@ export function resolveEnabledTools(
     }
   }
 
-  let candidateTools: ToolDefinition[] = [];
+  let candidateTools: T[] = [];
   for (const toolset of selectedToolsets) {
     candidateTools.push(...registry[toolset]);
   }
@@ -265,9 +270,7 @@ export function resolveEnabledTools(
       (name) => !allToolNames.has(name),
     );
     if (unknown.length > 0) {
-      process.stderr.write(
-        `WARNING: Unrecognized tool(s) in disabledTools: ${unknown.join(', ')}\n`,
-      );
+      logWarn(`Unrecognized tool(s) in disabledTools: ${unknown.join(', ')}`);
     }
     candidateTools = candidateTools.filter((tool) => !blocked.has(tool.name));
   }
@@ -275,7 +278,7 @@ export function resolveEnabledTools(
   // 4. Read-only mode (fail-closed: must be explicitly readOnly === true)
   const readOnlyBlockedNames = new Set<string>();
   if (options.readOnly) {
-    const readOnlyTools: ToolDefinition[] = [];
+    const readOnlyTools: T[] = [];
     for (const tool of candidateTools) {
       if (tool.readOnly === true) {
         readOnlyTools.push(tool);

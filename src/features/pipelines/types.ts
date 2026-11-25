@@ -1,5 +1,5 @@
 // Re-export the Pipeline interface from the Azure DevOps API
-import {
+import type {
   Pipeline,
   Run,
 } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
@@ -141,4 +141,4 @@ export interface GetPipelineLogOptions {
 
 export type PipelineLogContent = unknown;
 
-export { Pipeline, Run };
+export type { Pipeline, Run };

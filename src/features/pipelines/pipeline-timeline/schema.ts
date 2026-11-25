@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { defaultProject } from '../../../utils/environment';
 import {
   buildNumberField,
   pipelineNameField,
@@ -11,7 +10,9 @@ export const GetPipelineTimelineSchema = z
     projectId: z
       .string()
       .optional()
-      .describe(`The ID or name of the project (Default: ${defaultProject})`),
+      .describe(
+        'The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT)',
+      ),
     runId: z
       .number()
       .int()

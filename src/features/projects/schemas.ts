@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { defaultProject, defaultOrg } from '../../utils/environment';
 
 /**
  * Schema for getting a project
@@ -8,11 +7,15 @@ export const GetProjectSchema = z.object({
   projectId: z
     .string()
     .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+    .describe(
+      'The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT)',
+    ),
   organizationId: z
     .string()
     .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+    .describe(
+      'The ID or name of the organization (defaults to configured organization)',
+    ),
 });
 
 /**
@@ -22,11 +25,15 @@ export const GetProjectDetailsSchema = z.object({
   projectId: z
     .string()
     .optional()
-    .describe(`The ID or name of the project (Default: ${defaultProject})`),
+    .describe(
+      'The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT)',
+    ),
   organizationId: z
     .string()
     .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+    .describe(
+      'The ID or name of the organization (defaults to configured organization)',
+    ),
   includeProcess: z
     .boolean()
     .optional()
@@ -61,7 +68,9 @@ export const ListProjectsSchema = z.object({
   organizationId: z
     .string()
     .optional()
-    .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
+    .describe(
+      'The ID or name of the organization (defaults to configured organization)',
+    ),
   stateFilter: z
     .number()
     .optional()

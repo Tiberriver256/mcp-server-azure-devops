@@ -33,17 +33,17 @@ export interface AzureDevOpsConfig {
   /**
    * Optional list of toolsets to enable (e.g., ['work-items', 'pull-requests'] or ['all'])
    */
-  toolsets?: string[];
+  toolsets?: readonly string[];
 
   /**
    * Optional explicit allowlist of tool names to enable
    */
-  enabledTools?: string[];
+  enabledTools?: readonly string[];
 
   /**
    * Optional explicit denylist of tool names to disable
    */
-  disabledTools?: string[];
+  disabledTools?: readonly string[];
 
   /**
    * When true, only tools explicitly marked read-only are exposed and callable

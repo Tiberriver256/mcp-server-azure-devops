@@ -1,45 +1,35 @@
-import * as azureDevOpsClient from '../../../clients/azure-devops';
-import { UpdateWikiPageSchema } from './schema';
 import type { z } from 'zod';
-import { defaultOrg, defaultProject } from '../../../utils/environment';
+import type { ToolContext } from '../../../shared/session/azure-devops-session';
+import { UpdateWikiPageSchema } from '../schemas';
+import { createWikiClient } from '../wiki-client';
 
-/**
- * Options for updating a wiki page
- */
 export type UpdateWikiPageOptions = z.infer<typeof UpdateWikiPageSchema>;
 
 /**
- * Updates a wiki page in Azure DevOps
- * @param options - The options for updating the wiki page
- * @returns The updated wiki page
+ * Updates a wiki page in Azure DevOps.
  */
-export async function updateWikiPage(options: UpdateWikiPageOptions) {
-  const validatedOptions = UpdateWikiPageSchema.parse(options);
+export async function updateWikiPage(
+  options: UpdateWikiPageOptions,
+  ctx?: ToolContext,
+) {
+  const validated = UpdateWikiPageSchema.parse(options);
+  const organizationId = validated.organizationId ?? undefined;
+  const projectId = ctx
+    ? ctx.resolveProjectId(validated.projectId ?? undefined)
+    : (validated.projectId ?? '');
 
-  const { organizationId, projectId, wikiId, pagePath, content, comment } =
-    validatedOptions;
-
-  // Create the client
-  const client = await azureDevOpsClient.getWikiClient({
-    organizationId: organizationId ?? defaultOrg,
-    projectId: projectId ?? defaultProject,
+  const client = createWikiClient(ctx, {
+    organizationId,
+    projectId,
   });
 
-  // Prepare the wiki page content
-  const wikiPageContent = {
-    content,
-  };
-
-  // Update the wiki page
-  const updatedPage = await client.updatePage(
-    wikiPageContent,
-    projectId ?? defaultProject,
-    wikiId,
-    pagePath,
+  return await client.updatePage(
+    { content: validated.content },
+    projectId,
+    validated.wikiId,
+    validated.pagePath,
     {
-      comment: comment ?? undefined,
+      comment: validated.comment ?? undefined,
     },
   );
-
-  return updatedPage;
 }

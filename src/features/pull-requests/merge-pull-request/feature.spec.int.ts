@@ -10,7 +10,7 @@ import {
   getTestConnection,
   shouldSkipIntegrationTest,
 } from '@/shared/test/test-helpers';
-import { createPullRequest } from '../create-pull-request';
+import { createPullRequest } from '../create-pull-request/feature';
 import { mergePullRequest } from './feature';
 
 const EMPTY_OBJECT_ID = '0000000000000000000000000000000000000000';

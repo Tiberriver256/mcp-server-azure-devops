@@ -1,93 +1,118 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import type { WebApi } from 'azure-devops-node-api';
 import { createWorkItemAttachment } from './feature';
 import { AzureDevOpsError } from '../../../shared/errors';
-import * as fs from 'fs';
+import { streamToString } from '../../../shared/utils/stream';
 
-// Mock the fs module
-jest.mock('fs');
-const mockedFs = jest.mocked(fs);
-
-// Unit tests should only focus on isolated logic
-// No real connections, HTTP requests, or dependencies
 describe('createWorkItemAttachment unit', () => {
+  let tempDir: string;
+  let sampleFile: string;
+
   beforeEach(() => {
-    // Reset all mocks before each test
-    jest.clearAllMocks();
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ado-attach-upload-'));
+    sampleFile = path.join(tempDir, 'notes.txt');
+    fs.writeFileSync(sampleFile, 'streaming attachment payload', 'utf8');
   });
 
-  // Test for required filePath validation
-  test('should throw error when filePath is not provided', async () => {
-    // Arrange - mock connection, never used due to validation error
-    const mockConnection: any = {
-      getWorkItemTrackingApi: jest.fn(),
-    };
+  afterEach(() => {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  });
 
-    // Act & Assert
-    await expect(
-      createWorkItemAttachment(mockConnection, 123, {
-        filePath: '', // Empty file path
+  test('streams file content from disk and attaches relation to work item', async () => {
+    let streamedBody = '';
+    const createAttachment = jest.fn(
+      async (_headers: unknown, stream: NodeJS.ReadableStream) => {
+        streamedBody = await streamToString(stream);
+        return { url: 'https://dev.azure.com/org/_apis/wit/attachments/att-1' };
+      },
+    );
+    const updateWorkItem = jest.fn().mockResolvedValue({
+      id: 123,
+      relations: [{ rel: 'AttachedFile' }],
+    });
+
+    const mockConnection = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        createAttachment,
+        updateWorkItem,
       }),
+    } as unknown as WebApi;
+
+    const result = await createWorkItemAttachment(mockConnection, 123, {
+      filePath: sampleFile,
+      comment: 'Diagnostic log',
+    });
+
+    expect(streamedBody).toBe('streaming attachment payload');
+    expect(createAttachment).toHaveBeenCalledWith(
+      {},
+      expect.any(fs.ReadStream),
+      'notes.txt',
+      undefined,
+      undefined,
+    );
+    expect(updateWorkItem).toHaveBeenCalledWith(
+      {},
+      [
+        {
+          op: 'add',
+          path: '/relations/-',
+          value: {
+            rel: 'AttachedFile',
+            url: 'https://dev.azure.com/org/_apis/wit/attachments/att-1',
+            attributes: {
+              name: 'notes.txt',
+              comment: 'Diagnostic log',
+            },
+          },
+        },
+      ],
+      123,
+      undefined,
+      false,
+      false,
+      false,
+      expect.anything(),
+    );
+    expect(result.id).toBe(123);
+  });
+
+  test('throws when filePath is empty or file does not exist', async () => {
+    const mockConnection = {
+      getWorkItemTrackingApi: jest.fn(),
+    } as unknown as WebApi;
+
+    await expect(
+      createWorkItemAttachment(mockConnection, 123, { filePath: '' }),
     ).rejects.toThrow('File path is required');
+
+    const missing = path.join(tempDir, 'missing.txt');
+    await expect(
+      createWorkItemAttachment(mockConnection, 123, { filePath: missing }),
+    ).rejects.toThrow(`File does not exist: ${missing}`);
   });
 
-  // Test for file existence validation
-  test('should throw error when file does not exist', async () => {
-    // Arrange - mock file does not exist
-    mockedFs.existsSync.mockReturnValue(false);
+  test('propagates AzureDevOpsError and wraps unexpected errors', async () => {
+    const adoErrConn = {
+      getWorkItemTrackingApi: jest
+        .fn()
+        .mockRejectedValue(new AzureDevOpsError('Custom error')),
+    } as unknown as WebApi;
 
-    const mockConnection: any = {
-      getWorkItemTrackingApi: jest.fn(),
-    };
-
-    // Act & Assert
     await expect(
-      createWorkItemAttachment(mockConnection, 123, {
-        filePath: '/path/to/nonexistent/file.txt',
-      }),
-    ).rejects.toThrow('File does not exist: /path/to/nonexistent/file.txt');
-  });
-
-  // Test for error propagation
-  test('should propagate custom errors when thrown internally', async () => {
-    // Arrange - mock file exists
-    mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.readFileSync.mockReturnValue(Buffer.from('test content'));
-
-    const mockConnection: any = {
-      getWorkItemTrackingApi: jest.fn().mockImplementation(() => {
-        throw new AzureDevOpsError('Custom error');
-      }),
-    };
-
-    // Act & Assert
-    await expect(
-      createWorkItemAttachment(mockConnection, 123, {
-        filePath: '/path/to/file.txt',
-      }),
+      createWorkItemAttachment(adoErrConn, 123, { filePath: sampleFile }),
     ).rejects.toThrow(AzureDevOpsError);
 
+    const genericErrConn = {
+      getWorkItemTrackingApi: jest
+        .fn()
+        .mockRejectedValue(new Error('Unexpected error')),
+    } as unknown as WebApi;
+
     await expect(
-      createWorkItemAttachment(mockConnection, 123, {
-        filePath: '/path/to/file.txt',
-      }),
-    ).rejects.toThrow('Custom error');
-  });
-
-  test('should wrap unexpected errors in a friendly error message', async () => {
-    // Arrange - mock file exists
-    mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.readFileSync.mockReturnValue(Buffer.from('test content'));
-
-    const mockConnection: any = {
-      getWorkItemTrackingApi: jest.fn().mockImplementation(() => {
-        throw new Error('Unexpected error');
-      }),
-    };
-
-    // Act & Assert
-    await expect(
-      createWorkItemAttachment(mockConnection, 123, {
-        filePath: '/path/to/file.txt',
-      }),
+      createWorkItemAttachment(genericErrConn, 123, { filePath: sampleFile }),
     ).rejects.toThrow('Failed to create attachment: Unexpected error');
   });
 });

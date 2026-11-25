@@ -6,6 +6,7 @@ import type {
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { VersionControlRecursionType } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import { AzureDevOpsResourceNotFoundError } from '../../../shared/errors';
+import { streamToString } from '../../../shared/utils/stream';
 
 /**
  * Response format for file content
@@ -94,26 +95,7 @@ export async function getFileContent(
 
         // Convert the stream to a string
         if (contentStream) {
-          const chunks: Buffer[] = [];
-
-          // Listen for data events to collect chunks
-          contentStream.on('data', (chunk: Buffer | Uint8Array | string) => {
-            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-          });
-
-          // Use a promise to wait for the stream to finish
-          const content = await new Promise<string>((resolve, reject) => {
-            contentStream.on('end', () => {
-              // Concatenate all chunks and convert to string
-              const buffer = Buffer.concat(chunks);
-              resolve(buffer.toString('utf8'));
-            });
-
-            contentStream.on('error', (err) => {
-              reject(err);
-            });
-          });
-
+          const content = await streamToString(contentStream);
           return {
             content,
             isDirectory: false,

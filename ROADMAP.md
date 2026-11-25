@@ -12,22 +12,22 @@ See [Discussion #237](https://github.com/Tiberriver256/mcp-server-azure-devops/d
    (e.g. `https://server:8080/tfs/DefaultCollection`) is the primary path.
 2. **Features not yet available upstream** — small, broadly useful tools that
    work on both cloud and on-prem where the REST API allows it.
-3. **Stability for automation** — conservative dependency upgrades, integration
-   tests against real Azure DevOps, reproducible CI.
+3. **Stability for automation** — minimal runtime dependency footprint, property
+   and differential testing, integration tests against real Azure DevOps, and reproducible CI.
+
+## Completed milestones
+
+- [x] Keep dependencies secure: weekly Dependabot and `npm audit --audit-level=high` in CI.
+- [x] Upgrade `azure-devops-node-api` to v17 and `zod` to v4 (with native `z.toJSONSchema` input schemas).
+- [x] Eliminate unnecessary runtime dependencies (`axios`, `dotenv`, `minimatch`, `jszip`) in favor of Node.js 22+ built-ins (`fetch`, `process.loadEnvFile`, `path.posix.matchesGlob`, `zlib`).
+- [x] Deliver pipeline inspection/triggers, toolset filtering + fail-closed read-only mode, pull request merge/auto-complete, and Test Plans / Test Suites / Test Cases tools with on-prem compatibility.
+- [x] Unify server session, auth caching, declarative tool registry, and introduce property-based (`fast-check`) + differential test suites.
 
 ## Near term
 
-- [ ] Keep dependencies secure: weekly Dependabot, `npm audit --audit-level=high`
-  in CI (done), conservative minor bumps first.
-- [ ] Evaluate `azure-devops-node-api` v13 → v17 major upgrade on a dedicated
-  branch with full unit + integration runs (breaking-change risk, not in normal
-  dependency bumps).
-- [ ] Evaluate `zod` v3 → v4 and `dotenv` 16 → 17 majors separately.
-- [ ] Triage long-standing feature asks (pipeline builds, tool filtering /
-  read-only mode, test plans, Docker/HTTP transport) against the
-  "on-prem first, don't duplicate upstream" rule.
-- [ ] Prune stale bot/dependabot branches and keep the release-please flow
-  current.
+- [ ] Evaluate Docker / Streamable HTTP transport requests against the "on-prem first, don't duplicate upstream" rule.
+- [ ] Prune stale bot/dependabot branches and keep the release-please flow current.
+- [ ] Expand on-premises Azure DevOps Server version-matrix testing for REST `api-version` edge cases.
 
 ## Non-goals
 

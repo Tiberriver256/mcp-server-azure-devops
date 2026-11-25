@@ -27,6 +27,7 @@ All parameters are optional:
 
 | Parameter           | Type   | Required | Description                                                                             |
 | ------------------- | ------ | -------- | --------------------------------------------------------------------------------------- |
+| `organizationId`    | string | No       | Optional Azure DevOps Services organization override (defaults to configured org)       |
 | `stateFilter`       | number | No       | Filter on team project state (0: all, 1: well-formed, 2: creating, 3: deleting, 4: new) |
 | `top`               | number | No       | Maximum number of projects to return in a single request                                |
 | `skip`              | number | No       | Number of projects to skip, useful for pagination                                       |
@@ -106,9 +107,59 @@ console.log(wellFormedProjects);
 
 ### Implementation Details
 
-This tool uses the Azure DevOps Node API's Core API to retrieve projects:
+This tool uses the Azure DevOps Node API's Core API to retrieve projects via `coreApi.getProjects(...)`.
 
-1. It gets a connection to the Azure DevOps WebApi client
-2. It calls the `getCoreApi()` method to get a handle to the Core API
-3. It then calls `getProjects()` with any provided parameters to retrieve the list of projects
-4. The results are returned directly to the caller
+## get_project
+
+Gets basic metadata for a single Azure DevOps project by name or ID.
+
+### Parameters
+
+| Parameter        | Type   | Required | Description                                                                          |
+| ---------------- | ------ | -------- | ------------------------------------------------------------------------------------ |
+| `projectId`      | string | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)           |
+| `organizationId` | string | No       | Optional Azure DevOps Services organization override (defaults to configured org)    |
+
+### Response
+
+Returns a `TeamProject` object (`id`, `name`, `description`, `url`, `state`, `revision`, `visibility`, `capabilities`, `lastUpdateTime`).
+
+### Example Usage
+
+```typescript
+const project = await mcpClient.callTool('get_project', {
+  projectId: 'Project One',
+});
+```
+
+## get_project_details
+
+Gets comprehensive details for a project, optionally expanding process template info, work item types, type-specific fields, and project teams.
+
+### Parameters
+
+| Parameter              | Type    | Required | Description                                                                                 |
+| ---------------------- | ------- | -------- | ------------------------------------------------------------------------------------------- |
+| `projectId`            | string  | No       | The ID or name of the project (defaults to `AZURE_DEVOPS_DEFAULT_PROJECT`)                  |
+| `organizationId`       | string  | No       | Optional Azure DevOps Services organization override (defaults to configured org)           |
+| `includeProcess`       | boolean | No       | Include process template metadata (default: `false`)                                        |
+| `includeWorkItemTypes` | boolean | No       | Include work item types and hierarchy info (requires `includeProcess: true`, default: `false`) |
+| `includeFields`        | boolean | No       | Include field definitions per work item type (requires `includeWorkItemTypes: true`, default: `false`) |
+| `includeTeams`         | boolean | No       | Include associated teams (default: `false`)                                                 |
+| `expandTeamIdentity`   | boolean | No       | Expand team identity details when `includeTeams` is `true` (default: `false`)               |
+
+### Response
+
+Returns an extended `TeamProject` object with optional `process` (including `workItemTypes` and `hierarchyInfo`) and `teams` properties.
+
+### Example Usage
+
+```typescript
+const details = await mcpClient.callTool('get_project_details', {
+  projectId: 'Project One',
+  includeProcess: true,
+  includeWorkItemTypes: true,
+  includeFields: true,
+  includeTeams: true,
+});
+```

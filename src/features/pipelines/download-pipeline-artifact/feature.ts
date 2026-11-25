@@ -1,5 +1,3 @@
-import axios from 'axios';
-import JSZip from 'jszip';
 import type { WebApi } from 'azure-devops-node-api';
 import type { BuildArtifact } from 'azure-devops-node-api/interfaces/BuildInterfaces';
 import { GetArtifactExpandOptions } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
@@ -8,15 +6,30 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { defaultProject } from '../../../utils/environment';
-import { parseArtifactContainer } from '../artifacts';
-import { resolvePipelineId } from '../helpers';
+import {
+  createHttpClient,
+  isHttpError,
+  mapHttpErrorToAzureDevOpsError,
+} from '../../../shared/http/http-client';
+import type { ToolContext } from '../../../shared/session/azure-devops-session';
+import { streamToBuffer } from '../../../shared/utils/stream';
+import { readZipArchive } from '../../../shared/utils/zip-reader';
+import type {
+  ZipArchive,
+  ZipEntryMeta,
+} from '../../../shared/utils/zip-reader';
+import { MAX_ARTIFACT_ZIP_BYTES, parseArtifactContainer } from '../artifacts';
+import {
+  isSameOrigin,
+  resolvePipelineId,
+  resolvePipelineProjectId,
+} from '../helpers';
 import type {
   DownloadPipelineArtifactOptions,
   PipelineArtifactContent,
 } from '../types';
 
-function normalizeArtifactPath(artifactPath: string): {
+export function normalizeArtifactPath(artifactPath: string): {
   artifactName: string;
   relativePath: string;
 } {
@@ -61,7 +74,7 @@ function joinPaths(...parts: Array<string | undefined>): string {
     .join('/');
 }
 
-function buildContainerPathCandidates(
+export function buildContainerPathCandidates(
   artifactName: string,
   rootPath: string | undefined,
   relativePath: string,
@@ -76,19 +89,6 @@ function buildContainerPathCandidates(
   candidates.add(joinPaths(artifactName, rootPath, normalizedRelative));
 
   return Array.from(candidates).filter((candidate) => candidate.length > 0);
-}
-
-function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    stream.on('data', (chunk: Buffer | Uint8Array | string) => {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    });
-    stream.on('error', reject);
-    stream.on('end', () => {
-      resolve(Buffer.concat(chunks));
-    });
-  });
 }
 
 async function getContainerItemStream(
@@ -142,48 +142,68 @@ async function getContainerItemStream(
   return null;
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function normalizeZipPath(filePath: string): string {
+  return filePath.replace(/^[\\/]+|[\\/]+$/g, '').replace(/\\+/g, '/');
 }
 
-function normalizeZipPath(path: string): string {
-  return path.replace(/^[\\/]+|[\\/]+$/g, '').replace(/\\+/g, '/');
-}
-
-function selectZipEntry(
-  zip: JSZip,
+export function selectZipEntry(
+  zip: ZipArchive,
   relativePath: string,
   artifactName: string,
   rootPath?: string,
-): JSZip.JSZipObject | null {
+): ZipEntryMeta | null {
   const normalized = normalizeZipPath(relativePath);
+  const normalizedArtifactName = artifactName
+    ? normalizeZipPath(artifactName)
+    : '';
+  const normalizedRootPath = rootPath ? normalizeZipPath(rootPath) : '';
   const candidates = [normalized];
 
-  if (artifactName) {
-    candidates.push(`${artifactName}/${normalized}`);
+  if (normalizedArtifactName) {
+    candidates.push(`${normalizedArtifactName}/${normalized}`);
   }
 
-  if (rootPath) {
-    candidates.push(`${rootPath}/${normalized}`);
-    if (artifactName) {
-      candidates.push(`${artifactName}/${rootPath}/${normalized}`);
+  if (normalizedRootPath) {
+    candidates.push(`${normalizedRootPath}/${normalized}`);
+    if (normalizedArtifactName) {
+      candidates.push(
+        `${normalizedArtifactName}/${normalizedRootPath}/${normalized}`,
+      );
     }
   }
+
+  const fileEntries = (zip.entries ?? [])
+    .filter((entry) => !entry.isDirectory)
+    .map((entry) => ({
+      entry,
+      normalizedName: normalizeZipPath(entry.name),
+    }));
 
   for (const candidate of candidates) {
-    const match = zip.file(candidate);
-    if (match && !match.dir) {
-      return match;
+    const exact = zip.findEntry(candidate);
+    if (exact && !exact.isDirectory) {
+      return exact;
+    }
+    const normalizedMatch = fileEntries.find(
+      (item) => item.normalizedName === candidate,
+    );
+    if (normalizedMatch) {
+      return normalizedMatch.entry;
     }
   }
 
-  const fallbackMatches = zip
-    .file(new RegExp(`${escapeRegExp(normalized)}$`))
-    ?.filter((entry) => !entry.dir);
+  const suffix = `/${normalized}`;
+  const fallbackMatches = fileEntries.filter(
+    (item) =>
+      item.normalizedName === normalized ||
+      item.normalizedName.endsWith(suffix),
+  );
 
-  if (fallbackMatches && fallbackMatches.length > 0) {
-    fallbackMatches.sort((a, b) => a.name.length - b.name.length);
-    return fallbackMatches[0] ?? null;
+  if (fallbackMatches.length > 0) {
+    fallbackMatches.sort(
+      (a, b) => a.normalizedName.length - b.normalizedName.length,
+    );
+    return fallbackMatches[0]?.entry ?? null;
   }
 
   return null;
@@ -219,7 +239,7 @@ async function downloadFromContainer(
     );
   }
 
-  const buffer = await streamToBuffer(resolved.stream);
+  const buffer = await streamToBuffer(resolved.stream, MAX_ARTIFACT_ZIP_BYTES);
   return {
     artifact: artifactName,
     path: resolved.path,
@@ -235,6 +255,7 @@ async function downloadFromPipelineArtifact(
   artifact: BuildArtifact,
   relativePath: string,
   pipelineId?: number,
+  ctx?: ToolContext,
 ): Promise<PipelineArtifactContent> {
   const resolvedPipelineId = await resolvePipelineId(
     connection,
@@ -258,10 +279,9 @@ async function downloadFromPipelineArtifact(
     GetArtifactExpandOptions.SignedContent,
   );
 
+  const signedContentUrl = artifactDetails?.signedContent?.url;
   const downloadUrl =
-    artifactDetails?.signedContent?.url ||
-    artifact.resource?.downloadUrl ||
-    artifactDetails?.url;
+    signedContentUrl || artifact.resource?.downloadUrl || artifactDetails?.url;
 
   if (!downloadUrl) {
     throw new AzureDevOpsResourceNotFoundError(
@@ -269,11 +289,23 @@ async function downloadFromPipelineArtifact(
     );
   }
 
-  const response = await axios.get<ArrayBuffer>(downloadUrl, {
+  const httpClient = ctx?.http ?? createHttpClient();
+  const headers: Record<string, string> = {};
+  if (
+    ctx &&
+    !signedContentUrl &&
+    isSameOrigin(downloadUrl, connection.serverUrl)
+  ) {
+    headers.Authorization = await ctx.getAuthHeader();
+  }
+
+  const response = await httpClient.get<ArrayBuffer>(downloadUrl, {
+    headers,
     responseType: 'arraybuffer',
+    maxResponseBytes: MAX_ARTIFACT_ZIP_BYTES,
   });
 
-  const zip = await JSZip.loadAsync(response.data);
+  const zip = readZipArchive(response.data);
   const file = selectZipEntry(
     zip,
     relativePath,
@@ -287,7 +319,7 @@ async function downloadFromPipelineArtifact(
     );
   }
 
-  const content = await file.async('string');
+  const content = zip.readEntryText(file, MAX_ARTIFACT_ZIP_BYTES);
   return {
     artifact: artifactName,
     path: file.name,
@@ -298,9 +330,12 @@ async function downloadFromPipelineArtifact(
 export async function downloadPipelineArtifact(
   connection: WebApi,
   options: DownloadPipelineArtifactOptions,
+  ctx?: ToolContext,
 ): Promise<PipelineArtifactContent> {
   try {
-    const projectId = options.projectId ?? defaultProject;
+    const projectId = ctx
+      ? ctx.resolveProjectId(options.projectId)
+      : resolvePipelineProjectId(options.projectId);
     const runId = options.runId;
     const { artifactName, relativePath } = normalizeArtifactPath(
       options.artifactPath,
@@ -344,10 +379,18 @@ export async function downloadPipelineArtifact(
       artifact,
       relativePath,
       options.pipelineId,
+      ctx,
     );
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
       throw error;
+    }
+
+    if (isHttpError(error)) {
+      throw mapHttpErrorToAzureDevOpsError(
+        error,
+        'downloading pipeline artifact',
+      );
     }
 
     if (error instanceof Error) {

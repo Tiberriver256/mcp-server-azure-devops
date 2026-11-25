@@ -23,7 +23,7 @@ export default defineConfig({
     'oxc/number-arg-out-of-range': 'off', // Carried over from previous .oxlintrc.json
 
     // Stylistic / opinionated @nkzw & unicorn rules that don't match this codebase's conventions
-    'no-console': 'off', // CLI/server and integration tests intentionally log via console/stderr
+    'no-console': 'error', // Production code must use src/shared/logging.ts (stderr) to never corrupt MCP stdio JSON-RPC
     'object-shorthand': 'off', // Stylistic preference
     'import/no-namespace': 'off', // Namespace imports are used intentionally in feature handlers and mocks
     'typescript/array-type': 'off', // Both T[] and Array<T> are used across the codebase
@@ -56,14 +56,18 @@ export default defineConfig({
   overrides: [
     ...(cloudflare.overrides ?? []),
     {
-      // Carry forward test-file relaxations for this repo's *.spec.{unit,int,e2e}.ts convention
+      // Carry forward test-file relaxations for this repo's *.spec.{unit,prop,diff,int,e2e}.ts convention
       files: [
         '**/*.spec.unit.ts',
+        '**/*.spec.prop.ts',
+        '**/*.spec.diff.ts',
         '**/*.spec.int.ts',
         '**/*.spec.e2e.ts',
+        'src/shared/test/**/*.ts',
         'tests/**/*.ts',
       ],
       rules: {
+        'no-console': 'off',
         'typescript/no-explicit-any': 'off',
         'typescript/no-non-null-assertion': 'off',
         'typescript/no-unsafe-argument': 'off',

@@ -29,21 +29,17 @@ describe('test-plans helpers', () => {
       expect(resolveProjectId('  MyProject  ')).toBe('MyProject');
     });
 
-    it('throws AzureDevOpsValidationError when projectId is omitted and no default project is set', async () => {
+    it('throws AzureDevOpsValidationError when projectId is omitted and no default project is set', () => {
       const orig = process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
       delete process.env.AZURE_DEVOPS_DEFAULT_PROJECT;
       try {
-        jest.resetModules();
-        const mod = await import('./helpers');
-        const errorsMod = await import('../../shared/errors');
-        expect(() => mod.resolveProjectId(undefined)).toThrow(
-          errorsMod.AzureDevOpsValidationError,
+        expect(() => resolveProjectId(undefined)).toThrow(
+          AzureDevOpsValidationError,
         );
       } finally {
         if (orig !== undefined) {
           process.env.AZURE_DEVOPS_DEFAULT_PROJECT = orig;
         }
-        jest.resetModules();
       }
     });
   });

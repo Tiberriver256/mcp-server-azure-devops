@@ -88,7 +88,7 @@ write_env_file() {
     cat > .env << EOF
 # Azure DevOps MCP Server - Environment Variables
 
-# Azure DevOps Organization Name (selected from your available organizations)
+# Azure DevOps Organization Name (used by wiki integration tests; the MCP server reads AZURE_DEVOPS_ORG_URL)
 AZURE_DEVOPS_ORG=$org_name
 
 # Azure DevOps Organization URL (required)
@@ -129,15 +129,11 @@ EOF
     # Add remaining configuration
     cat >> .env << EOF
 
-# API Version to use (optional, defaults to latest)
-# AZURE_DEVOPS_API_VERSION=6.0
-
-# Server Configuration
-PORT=3000
-HOST=localhost
+# API Version to use (optional, defaults to 7.1)
+# AZURE_DEVOPS_API_VERSION=7.1
 
 # Logging Level (debug, info, warn, error)
-LOG_LEVEL=info
+AZURE_DEVOPS_LOG_LEVEL=info
 EOF
 
     echo -e "\n${GREEN}Environment setup completed successfully!${NC}"

@@ -5,12 +5,15 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { apiVersion, defaultProject } from '../../../utils/environment';
+import type { ToolContext } from '../../../shared/session/azure-devops-session';
 import { fetchRunArtifacts } from '../artifacts';
-import { coercePipelineId, resolvePipelineId } from '../helpers';
+import {
+  coercePipelineId,
+  resolvePipelineApiVersion,
+  resolvePipelineId,
+  resolvePipelineProjectId,
+} from '../helpers';
 import type { GetPipelineRunOptions, PipelineRunDetails } from '../types';
-
-const API_VERSION = apiVersion;
 
 function isPipelineRunDetails(value: unknown): value is PipelineRunDetails {
   return typeof value === 'object' && value !== null;
@@ -19,10 +22,14 @@ function isPipelineRunDetails(value: unknown): value is PipelineRunDetails {
 export async function getPipelineRun(
   connection: WebApi,
   options: GetPipelineRunOptions,
+  ctx?: ToolContext,
 ): Promise<PipelineRunDetails> {
   try {
     const pipelinesApi = await connection.getPipelinesApi();
-    const projectId = options.projectId ?? defaultProject;
+    const projectId = ctx
+      ? ctx.resolveProjectId(options.projectId)
+      : resolvePipelineProjectId(options.projectId);
+    const apiVersion = resolvePipelineApiVersion(ctx?.config.apiVersion);
     const runId = options.runId;
     const resolvedPipelineId = await resolvePipelineId(
       connection,
@@ -36,7 +43,7 @@ export async function getPipelineRun(
 
     const requestOptions = pipelinesApi.createRequestOptions(
       'application/json',
-      API_VERSION,
+      apiVersion,
     );
 
     const buildRunUrl = (pipelineId?: number) => {
@@ -45,7 +52,7 @@ export async function getPipelineRun(
           ? `${encodedProject}/_apis/pipelines/${pipelineId}/runs/${runId}`
           : `${encodedProject}/_apis/pipelines/runs/${runId}`;
       const url = new URL(`${route}`, `${baseUrl}/`);
-      url.searchParams.set('api-version', API_VERSION);
+      url.searchParams.set('api-version', apiVersion);
       return url;
     };
 
@@ -96,6 +103,7 @@ export async function getPipelineRun(
       projectId,
       runId,
       resolvedPipelineId,
+      ctx,
     );
 
     if (typeof options.pipelineId === 'number') {

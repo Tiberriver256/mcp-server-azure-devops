@@ -1,140 +1,69 @@
-# Testing Trophy Approach
+# Testing Strategy
 
 ## Overview
 
-This project follows the Testing Trophy approach advocated by Kent C. Dodds instead of the traditional Testing Pyramid. The Testing Trophy emphasizes tests that provide higher confidence with less maintenance cost, focusing on how users actually interact with our software.
+This project combines the **Testing Trophy** approach with **Property-Based Testing** (`fast-check`) and **Differential Testing** against independent reference oracles. Rather than writing brittle mock-mirroring unit tests or snapshots, we focus on behavioral tests, algebraic/security invariants, and wire-level verification.
 
-![Testing Trophy Diagram](https://res.cloudinary.com/kentcdodds-com/image/upload/f_auto,q_auto,w_1600/v1625032020/kentcdodds.com/blog/the-testing-trophy-and-testing-classifications/trophy_wx9aen.png)
+## Test Layers
 
-## Key Principles
+### 1. Static Analysis (The Base)
 
-1. **"The more your tests resemble the way your software is used, the more confidence they can give you."** - Kent C. Dodds
-2. Focus on testing behavior and interfaces rather than implementation details
-3. Maximize return on investment where "return" is confidence and "investment" is time
-4. Use arrange/act/assert pattern for all tests
-5. Co-locate tests with the code they test following Feature Sliced Design
+- **TypeScript (`npm run build`)**: Strict compile-time type checking (`tsconfig.json`)
+- **Oxlint (`npm run lint`)**: Type-aware linting (`oxlint.config.mts`), including `no-console` on `src/` to protect MCP stdio JSON-RPC framing
+- **Oxfmt (`npm run format:check`)**: Consistent formatting
+- **Zod v4**: Runtime schema validation and Draft-07 `input` JSON Schema generation
 
-## Test Types
+### 2. Unit Tests (`*.spec.unit.ts`)
 
-### Static Analysis (The Base)
+- Co-located with feature/shared code
+- Test focused business logic, error mapping, streaming I/O, and server dispatch seams without touching external networks
+- Run together with property & differential tests via `npm run test:unit`
 
-- TypeScript for type checking
-- Oxlint for code quality and consistency
-- Runtime type checking with Zod
-- Formatter (oxfmt)
+### 3. Property-Based Tests (`*.spec.prop.ts`)
 
-These tools catch many issues before tests are even run and provide immediate feedback during development.
+- Powered by [`fast-check`](https://fast-check.dev/)
+- Assert mathematical, structural, and security invariants over hundreds of generated inputs with automatic minimal counterexample shrinking:
+  - **Security invariants**: Fail-closed `--read-only` filtering (`tool-filter.spec.prop.ts`) and secret-redaction guarantees (`error-redaction.spec.prop.ts`)
+  - **Parser / round-trip laws**: `ado://` resource URI round-tripping (`ado-resource-uri.spec.prop.ts`), Azure DevOps Services/Server URL idempotence (`azure-devops-url.spec.prop.ts`), prototype-safe enum bijections (`enums/index.spec.prop.ts`), ZIP round-tripping & random-byte fuzzing (`zip-reader.spec.prop.ts`)
+  - **Domain & schema invariants**: Test Plans XML step encoding & strict Gregorian ISO dates (`test-plans/helpers.spec.prop.ts`), pipeline helpers (`pipelines.spec.prop.ts`), permutation-invariant tree formatting & literal search/replace (`tree-and-commit.spec.prop.ts`), and PR cross-field schema rules (`pull-requests.spec.prop.ts`)
+- Run individually via `npm run test:prop`
 
-### Unit Tests (Small Layer)
+### 4. Differential Tests (`*.spec.diff.ts`)
 
-- Located in `*.spec.unit.ts` files
-- Co-located with the code they test
-- Focus on testing complex business logic in isolation
-- Minimal mocking where necessary
-- Run with `npm run test:unit`
+- Compare production implementations against genuinely independent reference oracles:
+  - `zip-reader.spec.diff.ts`: Bidirectional byte-for-byte verification against Python's stdlib `zipfile`
+  - `http-client.spec.diff.ts`: Real loopback Node `http.Server` wire-level verification (Unicode query encoding, binary/text/JSON payloads, `maxResponseBytes` truncation, secret-free errors, HTTP status mapping)
+  - `glob.spec.diff.ts`: Independent glob-to-RegExp oracle over randomized patterns and repo names
+  - `tool-filter.spec.diff.ts`: Brute-force set-algebra oracle + Node's native `util.parseArgs` oracle
+  - `azure-devops-url.spec.diff.ts`: Independent RFC-3986 Azure DevOps URL grammar oracle
+  - `test-plans/helpers.spec.diff.ts`: Independent XML tag/entity parser round-trip oracle + Gregorian UTC epoch offset oracle
+  - `create-commit.spec.diff.ts`: `createCommit` literal search/replace fast path vs `diff` unified-patch path equivalence
+  - `tool-registry.spec.diff.ts`: All 60 registered Zod schemas vs emitted MCP `ListToolsResultSchema` Draft-07 JSON Schemas
+- Run individually via `npm run test:diff`
 
-Unit tests should be used sparingly for complex logic that requires isolated testing. We don't aim for 100% coverage with unit tests.
+### 5. Integration Tests (`*.spec.int.ts`)
 
-### Integration Tests (Main Focus)
-
-- Located in `*.spec.int.ts` files
-- Co-located with the features they test
-- Test how modules work together
-- Focus on testing behavior, not implementation
+- Co-located with features and run against a real Azure DevOps instance when credentials are configured in `.env`
 - Run with `npm run test:int`
 
-These provide the bulk of our test coverage and confidence. They verify that different parts of the system work together correctly.
+### 6. End-to-End Tests (`src/server.spec.e2e.ts`)
 
-### End-to-End Tests (Small Cap)
-
-- Located in `*.spec.e2e.ts` files
-- **Only exists at the server level** (e.g., `server.spec.e2e.ts`) where they use the MCP client
-- Test complete user flows across the entire application
-- Provide the highest confidence but are slower and more costly to maintain
+- Spawns the compiled MCP server over stdio and drives it through the official `@modelcontextprotocol/sdk` `Client`
 - Run with `npm run test:e2e`
 
-End-to-end tests should only be created for critical user journeys that span the entire application. They should use the MCP client from `@modelcontextprotocol/sdk` to test the server as a black box, similar to how real users would interact with it.
+## File Naming Conventions
 
-For testing interactions with external APIs like Azure DevOps, use integration tests (`*.spec.int.ts`) instead, which are co-located with the feature implementations.
+| Pattern | Layer | Credentials Required | Command |
+| ------- | ----- | -------------------- | ------- |
+| `*.spec.unit.ts` | Unit | No | `npm run test:unit` |
+| `*.spec.prop.ts` | Property-based (`fast-check`) | No | `npm run test:prop` (also included in `test:unit`) |
+| `*.spec.diff.ts` | Differential (independent oracles) | No | `npm run test:diff` (also included in `test:unit`) |
+| `*.spec.int.ts` | Integration | Yes (`.env`) | `npm run test:int` |
+| `*.spec.e2e.ts` | End-to-End (MCP stdio) | Yes (`.env`) | `npm run test:e2e` |
 
-## Test File Naming Convention
+## Guidelines
 
-- `*.spec.unit.ts` - For minimal unit tests (essential logic only)
-- `*.spec.int.ts` - For integration tests (main focus)
-- `*.spec.e2e.ts` - For end-to-end tests
-
-## Test Location
-
-We co-locate unit and integration tests with the code they're testing following Feature Sliced Design principles:
-
-```
-src/
-  features/
-    feature-name/
-      feature.ts
-      feature.spec.unit.ts   # Unit tests
-      feature.spec.int.ts    # Integration tests
-```
-
-E2E tests are only located at the server level since they test the full application:
-
-```
-src/
-  server.ts
-  server.spec.e2e.ts   # E2E tests using the MCP client
-```
-
-This way, tests stay close to the code they're testing, making it easier to:
-- Find tests when working on a feature
-- Understand the relationship between tests and code
-- Refactor code and tests together
-- Maintain consistency between implementations and tests
-
-## The Arrange/Act/Assert Pattern
-
-All tests should follow the Arrange/Act/Assert pattern:
-
-```typescript
-test('should do something', () => {
-  // Arrange - set up the test
-  const input = 'something';
-  
-  // Act - perform the action being tested
-  const result = doSomething(input);
-  
-  // Assert - check that the action had the expected result
-  expect(result).toBe('expected output');
-});
-```
-
-## Running Tests
-
-- Run all tests: `npm test`
-- Run unit tests: `npm run test:unit`
-- Run integration tests: `npm run test:int`
-- Run E2E tests: `npm run test:e2e`
-
-## CI/CD Integration
-
-Our CI/CD pipeline runs all test levels to ensure code quality:
-
-1. Static analysis with TypeScript and Oxlint
-2. Unit tests
-3. Integration tests
-4. End-to-end tests
-
-## Best Practices
-
-1. Focus on integration tests for the bulk of your test coverage
-2. Write unit tests only for complex business logic
-3. Avoid testing implementation details
-4. Use real dependencies when possible rather than mocks
-5. Keep E2E tests focused on critical user flows
-6. Use the arrange/act/assert pattern consistently
-7. Co-locate tests with the code they're testing
-
-## References
-
-- [The Testing Trophy and Testing Classifications](https://kentcdodds.com/blog/the-testing-trophy-and-testing-classifications) by Kent C. Dodds
-- [Testing of Microservices](https://engineering.atspotify.com/2018/01/testing-of-microservices/) (Testing Honeycomb approach) by Spotify Engineering
-- [Feature Sliced Design](https://feature-sliced.design/) for co-location of tests with feature implementations 
+1. **Test behavior and invariants, not mock plumbing.** Avoid snapshot tests of formatting output or tests that merely assert mock return values pass through unchanged.
+2. **Prefer property & differential tests for parsers, validators, encoders, and filters.** They cover orders of magnitude more edge cases than hand-picked examples.
+3. **Keep offline tests fast and hermetic.** Always clean up temporary directories in `finally` / `afterEach` blocks.
+4. **Co-locate tests with the modules they verify.**

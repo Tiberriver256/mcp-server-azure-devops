@@ -1,110 +1,60 @@
-import type { ApiErrorResponse } from './azure-devops-errors';
+import type { AzureDevOpsError } from './azure-devops-errors';
 import {
-  AzureDevOpsError,
-  AzureDevOpsValidationError,
-  AzureDevOpsResourceNotFoundError,
   AzureDevOpsAuthenticationError,
   AzureDevOpsPermissionError,
+  AzureDevOpsRateLimitError,
+  AzureDevOpsResourceNotFoundError,
+  AzureDevOpsValidationError,
   isAzureDevOpsError,
 } from './azure-devops-errors';
-import type { AxiosError } from 'axios';
-import axios from 'axios';
+import { mapHttpErrorToAzureDevOpsError } from '../http/http-client';
+import { logError } from '../logging';
 
-// Create a safe console logging function that won't interfere with MCP protocol
-function safeLog(message: string) {
-  process.stderr.write(`${message}\n`);
+/**
+ * Scrub Authorization header values and URL-embedded credentials from any
+ * error message or stack trace before emitting to stderr or MCP tool output.
+ */
+export function redactSecrets(input: string): string {
+  return input
+    .replace(
+      /(authorization["']?\s*[:=]\s*["']?(?:basic|bearer)\s+)[^\s"',;}\])]+/gi,
+      '$1[REDACTED]',
+    )
+    .replace(/\b(Basic|Bearer)\s+[A-Za-z0-9+/=._-]{16,}/gi, '$1 [REDACTED]')
+    .replace(/(https?:\/\/)[^/\s@]+@/gi, '$1[REDACTED]@');
 }
 
 /**
- * Format an Azure DevOps error for display
- *
- * @param error The error to format
- * @returns Formatted error message
+ * Format an Azure DevOps error into a consistent user-facing message.
  */
-function formatAzureDevOpsError(error: AzureDevOpsError): string {
-  let message = `Azure DevOps API Error: ${error.message}`;
+export function formatErrorForMcpResponse(error: AzureDevOpsError): string {
+  const safeMessage = redactSecrets(error.message);
 
   if (error instanceof AzureDevOpsValidationError) {
-    message = `Validation Error: ${error.message}`;
-  } else if (error instanceof AzureDevOpsResourceNotFoundError) {
-    message = `Not Found: ${error.message}`;
-  } else if (error instanceof AzureDevOpsAuthenticationError) {
-    message = `Authentication Failed: ${error.message}`;
-  } else if (error instanceof AzureDevOpsPermissionError) {
-    message = `Permission Denied: ${error.message}`;
+    return `Validation Error: ${safeMessage}`;
+  }
+  if (error instanceof AzureDevOpsResourceNotFoundError) {
+    return `Not Found: ${safeMessage}`;
+  }
+  if (error instanceof AzureDevOpsAuthenticationError) {
+    return `Authentication Failed: ${safeMessage}`;
+  }
+  if (error instanceof AzureDevOpsPermissionError) {
+    return `Permission Denied: ${safeMessage}`;
+  }
+  if (error instanceof AzureDevOpsRateLimitError) {
+    return `Rate Limit Exceeded: ${safeMessage} (resets at ${error.resetAt.toISOString()})`;
   }
 
-  return message;
+  return `Azure DevOps API Error: ${safeMessage}`;
 }
 
 /**
  * Centralized error handler for Azure DevOps API requests.
- * This function takes an error caught in a try-catch block and converts it
- * into an appropriate AzureDevOpsError subtype with a user-friendly message.
- *
- * @param error - The caught error to handle
- * @param context - Additional context about the operation being performed
- * @returns Never - This function always throws an error
- * @throws {AzureDevOpsError} - Always throws a subclass of AzureDevOpsError
- *
- * @example
- * try {
- *   // Some Azure DevOps API call
- * } catch (error) {
- *   handleRequestError(error, 'getting work item details');
- * }
+ * Converts HttpError and unknown errors into typed AzureDevOpsError subtypes.
  */
 export function handleRequestError(error: unknown, context: string): never {
-  // If it's already an AzureDevOpsError, rethrow it
-  if (error instanceof AzureDevOpsError) {
-    throw error;
-  }
-
-  // Handle Axios errors
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<ApiErrorResponse>;
-    const status = axiosError.response?.status;
-    const data = axiosError.response?.data;
-    const message = data?.message || axiosError.message;
-
-    switch (status) {
-      case 400:
-        throw new AzureDevOpsValidationError(
-          `Invalid request while ${context}: ${message}`,
-          data,
-          { cause: error },
-        );
-
-      case 401:
-        throw new AzureDevOpsAuthenticationError(
-          `Authentication failed while ${context}: ${message}`,
-          { cause: error },
-        );
-
-      case 403:
-        throw new AzureDevOpsPermissionError(
-          `Permission denied while ${context}: ${message}`,
-          { cause: error },
-        );
-
-      case 404:
-        throw new AzureDevOpsResourceNotFoundError(
-          `Resource not found while ${context}: ${message}`,
-          { cause: error },
-        );
-
-      default:
-        throw new AzureDevOpsError(`Failed while ${context}: ${message}`, {
-          cause: error,
-        });
-    }
-  }
-
-  // Handle all other errors
-  throw new AzureDevOpsError(
-    `Unexpected error while ${context}: ${error instanceof Error ? error.message : String(error)}`,
-    { cause: error },
-  );
+  throw mapHttpErrorToAzureDevOpsError(error, context);
 }
 
 const LOCATION_HINT =
@@ -118,39 +68,41 @@ function looksLikeLocationLookupFailure(text: string): boolean {
 }
 
 /**
- * Handles errors from feature request handlers and returns a formatted response
- * instead of throwing an error. This is used in the server's request handlers.
- *
- * @param error The error to handle
- * @returns A formatted error response with isError: true
+ * Handles errors from feature request handlers and returns a formatted MCP
+ * error response with secret redaction applied to both logs and response text.
  */
 export function handleResponseError(error: unknown): {
   content: Array<{ type: string; text: string }>;
   isError: true;
 } {
-  const message = error instanceof Error ? error.message : String(error);
-  const cause =
+  const rawMessage = error instanceof Error ? error.message : String(error);
+  const safeMessage = redactSecrets(rawMessage);
+  const rawCause =
     error instanceof Error && 'cause' in error && error.cause !== undefined
       ? error.cause instanceof Error
         ? error.cause.message
         : String(error.cause)
       : undefined;
-  const stack = error instanceof Error ? error.stack : undefined;
+  const safeCause = rawCause ? redactSecrets(rawCause) : undefined;
+  const safeStack =
+    error instanceof Error && error.stack
+      ? redactSecrets(error.stack)
+      : undefined;
 
-  safeLog(`Error handling request: ${message}`);
-  if (cause) {
-    safeLog(`Cause: ${cause}`);
+  logError(`Error handling request: ${safeMessage}`);
+  if (safeCause) {
+    logError(`Cause: ${safeCause}`);
   }
-  if (stack) {
-    safeLog(stack);
+  if (safeStack) {
+    logError(safeStack);
   }
 
   let errorMessage = isAzureDevOpsError(error)
-    ? formatAzureDevOpsError(error)
-    : `Error: ${message}`;
+    ? formatErrorForMcpResponse(error)
+    : `Error: ${safeMessage}`;
 
   if (
-    looksLikeLocationLookupFailure(message) ||
+    looksLikeLocationLookupFailure(safeMessage) ||
     looksLikeLocationLookupFailure(errorMessage)
   ) {
     errorMessage = `${errorMessage}\n${LOCATION_HINT}`;

@@ -1,12 +1,11 @@
 import { z } from 'zod';
-import { defaultProject } from '../../utils/environment';
 import { isValidIsoDateString, parseStrictIsoDate } from './helpers';
 
 const projectIdField = z
   .string()
   .optional()
   .describe(
-    `The ID or name of the project (Default: ${defaultProject}; required if AZURE_DEVOPS_DEFAULT_PROJECT is unset)`,
+    'The ID or name of the project (defaults to AZURE_DEVOPS_DEFAULT_PROJECT; required if unset)',
   );
 
 const positiveIntId = z.number().int().positive();

@@ -11,13 +11,17 @@ import {
 } from '../../../shared/errors';
 import type { ListWorkItemsOptions, WorkItem as WorkItemType } from '../types';
 
+function escapeWiqlString(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
 /**
  * Constructs the default WIQL query for listing work items
  */
 function constructDefaultWiql(projectId: string, teamId?: string): string {
-  let query = `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '${projectId}'`;
+  let query = `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '${escapeWiqlString(projectId)}'`;
   if (teamId) {
-    query += ` AND [System.TeamId] = '${teamId}'`;
+    query += ` AND [System.TeamId] = '${escapeWiqlString(teamId)}'`;
   }
   query += ' ORDER BY [System.Id]';
   return query;
@@ -83,18 +87,32 @@ export async function listWorkItems(
     const fields = options.fields
       ? [...new Set([...defaultFields, ...options.fields])]
       : defaultFields;
-    const workItems = await witApi.getWorkItems(
-      workItemIds,
-      fields,
-      undefined,
-      undefined,
-    );
 
-    if (!workItems) {
-      return [];
+    // Azure DevOps getWorkItems accepts at most 200 IDs per request
+    const MAX_BATCH_SIZE = 200;
+    const allWorkItems: WorkItem[] = [];
+    for (
+      let offset = 0;
+      offset < workItemIds.length;
+      offset += MAX_BATCH_SIZE
+    ) {
+      const batch = workItemIds.slice(offset, offset + MAX_BATCH_SIZE);
+      const workItems = await witApi.getWorkItems(
+        batch,
+        fields,
+        undefined,
+        undefined,
+      );
+      if (workItems) {
+        for (const wi of workItems) {
+          if (wi !== undefined) {
+            allWorkItems.push(wi);
+          }
+        }
+      }
     }
 
-    return workItems.filter((wi): wi is WorkItem => wi !== undefined);
+    return allWorkItems;
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
       throw error;

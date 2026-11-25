@@ -4,25 +4,31 @@ import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
-import { apiVersion, defaultProject } from '../../../utils/environment';
+import type { ToolContext } from '../../../shared/session/azure-devops-session';
+import {
+  resolvePipelineApiVersion,
+  resolvePipelineProjectId,
+} from '../helpers';
 import type { GetPipelineLogOptions, PipelineLogContent } from '../types';
-
-const API_VERSION = apiVersion;
 
 export async function getPipelineLog(
   connection: WebApi,
   options: GetPipelineLogOptions,
+  ctx?: ToolContext,
 ): Promise<PipelineLogContent> {
   try {
     const buildApi = await connection.getBuildApi();
-    const projectId = options.projectId ?? defaultProject;
+    const projectId = ctx
+      ? ctx.resolveProjectId(options.projectId)
+      : resolvePipelineProjectId(options.projectId);
+    const apiVersion = resolvePipelineApiVersion(ctx?.config.apiVersion);
     const { runId, logId, format, startLine, endLine } = options;
 
     if (format === 'json') {
       const route = `${encodeURIComponent(projectId)}/_apis/build/builds/${runId}/logs/${logId}`;
       const baseUrl = connection.serverUrl.replace(/\/+$/, '');
       const url = new URL(`${route}`, `${baseUrl}/`);
-      url.searchParams.set('api-version', API_VERSION);
+      url.searchParams.set('api-version', apiVersion);
       url.searchParams.set('format', 'json');
       if (typeof startLine === 'number') {
         url.searchParams.set('startLine', startLine.toString());
@@ -33,7 +39,7 @@ export async function getPipelineLog(
 
       const requestOptions = buildApi.createRequestOptions(
         'application/json',
-        API_VERSION,
+        apiVersion,
       );
 
       const response = await buildApi.rest.get<PipelineLogContent | null>(

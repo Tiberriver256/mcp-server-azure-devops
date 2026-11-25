@@ -6,8 +6,10 @@ import {
   VersionControlRecursionType,
   GitObjectType,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
-import { minimatch } from 'minimatch';
 import { AzureDevOpsError } from '../../../shared/errors';
+import { logError } from '../../../shared/logging';
+import { mapWithConcurrency } from '../../../shared/utils/concurrency';
+import { compileGlobMatcher } from '../../../shared/utils/glob';
 import type {
   GetAllRepositoriesTreeOptions,
   AllRepositoriesTreeResponse,
@@ -16,12 +18,10 @@ import type {
   GitRepository,
 } from '../types';
 
+const FOLDER_TRAVERSAL_CONCURRENCY = 6;
+
 /**
- * Get tree view of files/directories across multiple repositories
- *
- * @param connection The Azure DevOps WebApi connection
- * @param options Options for getting repository tree
- * @returns Tree structure for each repository
+ * Get tree view of files/directories across multiple repositories.
  */
 export async function getAllRepositoriesTree(
   connection: WebApi,
@@ -29,28 +29,27 @@ export async function getAllRepositoriesTree(
 ): Promise<AllRepositoriesTreeResponse> {
   try {
     const gitApi = await connection.getGitApi();
-    let repositories: GitRepository[] = [];
+    let repositories: GitRepository[] = await gitApi.getRepositories(
+      options.projectId,
+    );
 
-    // Get all repositories in the project
-    repositories = await gitApi.getRepositories(options.projectId);
-
-    // Filter repositories by name pattern if specified
     if (options.repositoryPattern) {
+      const repoMatcher = compileGlobMatcher(options.repositoryPattern);
       repositories = repositories.filter((repo) =>
-        minimatch(repo.name || '', options.repositoryPattern || '*'),
+        repoMatcher(repo.name || ''),
       );
     }
 
-    // Initialize results array
+    const fileMatcher = options.pattern
+      ? compileGlobMatcher(options.pattern)
+      : undefined;
+
     const results: RepositoryTreeResponse[] = [];
 
-    // Process each repository
     for (const repo of repositories) {
       try {
-        // Get default branch ref
         const defaultBranch = repo.defaultBranch;
         if (!defaultBranch) {
-          // Skip repositories with no default branch
           results.push({
             name: repo.name || 'Unknown',
             tree: [],
@@ -60,23 +59,17 @@ export async function getAllRepositoriesTree(
           continue;
         }
 
-        // Clean the branch name (remove refs/heads/ prefix)
         const branchRef = defaultBranch.replace('refs/heads/', '');
-
-        // Initialize tree items array and counters
         const treeItems: RepositoryTreeItem[] = [];
         const stats = { directories: 0, files: 0 };
-
-        // Determine the recursion level and processing approach
-        const depth = options.depth !== undefined ? options.depth : 0; // Default to 0 (max depth)
+        const depth = options.depth ?? 0;
 
         if (depth === 0) {
-          // For max depth (0), use server-side recursion for better performance
           const allItems = await gitApi.getItems(
             repo.id || '',
             options.projectId,
             '/',
-            VersionControlRecursionType.Full, // Use full recursion
+            VersionControlRecursionType.Full,
             true,
             false,
             false,
@@ -87,22 +80,18 @@ export async function getAllRepositoriesTree(
             },
           );
 
-          // Filter out the root item itself and bad items
           const itemsToProcess = allItems.filter(
             (item) =>
               item.path !== '/' && item.gitObjectType !== GitObjectType.Bad,
           );
 
-          // Process all items at once (they're already retrieved recursively)
           processItemsNonRecursive(
             itemsToProcess,
             treeItems,
             stats,
-            options.pattern,
+            fileMatcher,
           );
         } else {
-          // For limited depth, use the regular recursive approach
-          // Get items at the root level
           const rootItems = await gitApi.getItems(
             repo.id || '',
             options.projectId,
@@ -118,13 +107,11 @@ export async function getAllRepositoriesTree(
             },
           );
 
-          // Filter out the root item itself and bad items
           const itemsToProcess = rootItems.filter(
             (item) =>
               item.path !== '/' && item.gitObjectType !== GitObjectType.Bad,
           );
 
-          // Process the root items and their children (up to specified depth)
           await processItems(
             gitApi,
             repo.id || '',
@@ -135,18 +122,16 @@ export async function getAllRepositoriesTree(
             stats,
             1,
             depth,
-            options.pattern,
+            fileMatcher,
           );
         }
 
-        // Add repository tree to results
         results.push({
           name: repo.name || 'Unknown',
           tree: treeItems,
           stats,
         });
       } catch (repoError) {
-        // Handle errors for individual repositories
         results.push({
           name: repo.name || 'Unknown',
           tree: [],
@@ -167,66 +152,63 @@ export async function getAllRepositoriesTree(
   }
 }
 
+function compareGitItems(a: GitItem, b: GitItem): number {
+  if (Boolean(a.isFolder) === Boolean(b.isFolder)) {
+    return (a.path || '').localeCompare(b.path || '');
+  }
+  return a.isFolder ? -1 : 1;
+}
+
 /**
- * Process items non-recursively when they're already retrieved with VersionControlRecursionType.Full
+ * Process items non-recursively when already retrieved with VersionControlRecursionType.Full.
  */
 function processItemsNonRecursive(
   items: GitItem[],
   result: RepositoryTreeItem[],
   stats: { directories: number; files: number },
-  pattern?: string,
+  fileMatcher?: (name: string) => boolean,
 ): void {
-  // Sort items (folders first, then by path)
-  const sortedItems = [...items].sort((a, b) => {
-    if (a.isFolder === b.isFolder) {
-      return (a.path || '').localeCompare(b.path || '');
-    }
-    return a.isFolder ? -1 : 1;
-  });
+  const sortedItems = [...items].sort(compareGitItems);
 
   for (const item of sortedItems) {
-    const name = item.path?.split('/').pop() || '';
-    const path = item.path || '';
-    const isFolder = !!item.isFolder;
-
-    // Skip the root folder
-    if (path === '/') {
+    const itemPath = item.path || '';
+    if (itemPath === '/' || itemPath === '') {
       continue;
     }
 
-    // Calculate level from path segments
-    // Remove leading '/' then count segments
-    // For paths like:
-    // /README.md -> ["README.md"] -> length 1 -> level 1
-    // /src/index.ts -> ["src", "index.ts"] -> length 2 -> level 2
-    // /src/utils/helper.ts -> ["src", "utils", "helper.ts"] -> length 3 -> level 3
-    const pathSegments = path.replace(/^\//, '').split('/');
-    const level = pathSegments.length;
+    const lastSlash = itemPath.lastIndexOf('/');
+    const name = lastSlash === -1 ? itemPath : itemPath.slice(lastSlash + 1);
+    const isFolder = Boolean(item.isFolder);
 
-    // Filter files based on pattern (if specified)
-    if (!isFolder && pattern && !minimatch(name, pattern)) {
+    if (!isFolder && fileMatcher && !fileMatcher(name)) {
       continue;
     }
 
-    // Add item to results
+    let level = 1;
+    const startIdx = itemPath.startsWith('/') ? 1 : 0;
+    for (let i = startIdx; i < itemPath.length; i++) {
+      if (itemPath.charCodeAt(i) === 47) {
+        level += 1;
+      }
+    }
+
     result.push({
       name,
-      path,
+      path: itemPath,
       isFolder,
       level,
     });
 
-    // Update counters
     if (isFolder) {
-      stats.directories++;
+      stats.directories += 1;
     } else {
-      stats.files++;
+      stats.files += 1;
     }
   }
 }
 
 /**
- * Process items recursively up to the specified depth
+ * Process items recursively up to maxDepth using bounded concurrency for sibling folders.
  */
 async function processItems(
   gitApi: IGitApi,
@@ -238,48 +220,54 @@ async function processItems(
   stats: { directories: number; files: number },
   currentDepth: number,
   maxDepth: number,
-  pattern?: string,
+  fileMatcher?: (name: string) => boolean,
 ): Promise<void> {
-  // Sort items (directories first, then files)
-  const sortedItems = [...items].sort((a, b) => {
-    if (a.isFolder === b.isFolder) {
-      return (a.path || '').localeCompare(b.path || '');
-    }
-    return a.isFolder ? -1 : 1;
-  });
+  const sortedItems = [...items].sort(compareGitItems);
+  const foldersToExpand: Array<{
+    path: string;
+    children: RepositoryTreeItem[];
+  }> = [];
 
   for (const item of sortedItems) {
-    const name = item.path?.split('/').pop() || '';
-    const path = item.path || '';
-    const isFolder = !!item.isFolder;
+    const itemPath = item.path || '';
+    const lastSlash = itemPath.lastIndexOf('/');
+    const name = lastSlash === -1 ? itemPath : itemPath.slice(lastSlash + 1);
+    const isFolder = Boolean(item.isFolder);
 
-    // Filter files based on pattern (if specified)
-    if (!isFolder && pattern && !minimatch(name, pattern)) {
+    if (!isFolder && fileMatcher && !fileMatcher(name)) {
       continue;
     }
 
-    // Add item to results
     result.push({
       name,
-      path,
+      path: itemPath,
       isFolder,
       level: currentDepth,
     });
 
-    // Update counters
     if (isFolder) {
-      stats.directories++;
+      stats.directories += 1;
+      if (currentDepth < maxDepth) {
+        foldersToExpand.push({ path: itemPath, children: [] });
+      }
     } else {
-      stats.files++;
+      stats.files += 1;
     }
+  }
 
-    // Recursively process folders if not yet at max depth
-    if (isFolder && currentDepth < maxDepth) {
+  if (foldersToExpand.length === 0) {
+    return;
+  }
+
+  await mapWithConcurrency(
+    foldersToExpand,
+    FOLDER_TRAVERSAL_CONCURRENCY,
+    async (folder) => {
       try {
         const childItems = await gitApi.getItems(
           repoId,
           projectId,
-          path,
+          folder.path,
           VersionControlRecursionType.OneLevel,
           true,
           false,
@@ -291,40 +279,41 @@ async function processItems(
           },
         );
 
-        // Filter out the parent folder itself and bad items
         const itemsToProcess = childItems.filter(
           (child: GitItem) =>
-            child.path !== path && child.gitObjectType !== GitObjectType.Bad,
+            child.path !== folder.path &&
+            child.gitObjectType !== GitObjectType.Bad,
         );
 
-        // Process child items
         await processItems(
           gitApi,
           repoId,
           projectId,
           itemsToProcess,
           branchRef,
-          result,
+          folder.children,
           stats,
           currentDepth + 1,
           maxDepth,
-          pattern,
+          fileMatcher,
         );
       } catch (error) {
-        // Ignore errors in child items and continue with siblings
-        console.error(`Error processing folder ${path}: ${error}`);
+        logError(
+          `Error processing folder ${folder.path}: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
+    },
+  );
+
+  for (const folder of foldersToExpand) {
+    for (const child of folder.children) {
+      result.push(child);
     }
   }
 }
 
 /**
- * Convert the tree items to a formatted ASCII string representation
- *
- * @param repoName Repository name
- * @param items Tree items
- * @param stats Statistics about files and directories
- * @returns Formatted ASCII string
+ * Convert tree items to a formatted ASCII string representation.
  */
 export function formatRepositoryTree(
   repoName: string,
@@ -332,43 +321,21 @@ export function formatRepositoryTree(
   stats: { directories: number; files: number },
   error?: string,
 ): string {
-  let output = `${repoName}/\n`;
+  const lines: string[] = [`${repoName}/`];
 
   if (error) {
-    output += `  (${error})\n`;
+    lines.push(`  (${error})`);
   } else if (items.length === 0) {
-    output += '  (Repository is empty or default branch not found)\n';
+    lines.push('  (Repository is empty or default branch not found)');
   } else {
-    // Sort items by path to ensure proper sequence
-    const sortedItems = [...items].sort((a, b) => {
-      // Sort by level first
-      if (a.level !== b.level) {
-        return a.level - b.level;
-      }
-      // Then folders before files
-      if (a.isFolder !== b.isFolder) {
-        return a.isFolder ? -1 : 1;
-      }
-      // Then alphabetically
-      return a.path.localeCompare(b.path);
-    });
-
-    // Create a structured tree representation
-    const tree = createTreeStructure(sortedItems);
-
-    // Format the tree starting from the root
-    output += formatTree(tree, '  ');
+    const tree = createTreeStructure(items);
+    appendFormattedTree(tree, '  ', lines);
   }
 
-  // Add summary line
-  output += `${stats.directories} directories, ${stats.files} files\n`;
-
-  return output;
+  lines.push(`${stats.directories} directories, ${stats.files} files`);
+  return `${lines.join('\n')}\n`;
 }
 
-/**
- * Create a structured tree from the flat list of items
- */
 function createTreeStructure(items: RepositoryTreeItem[]): TreeNode {
   const root: TreeNode = {
     name: '',
@@ -377,53 +344,46 @@ function createTreeStructure(items: RepositoryTreeItem[]): TreeNode {
     children: [],
   };
 
-  // Map to track all nodes by path
-  const nodeMap: Record<string, TreeNode> = { '': root };
+  const nodeMap = new Map<string, TreeNode>([['', root]]);
 
-  // First create all nodes
   for (const item of items) {
-    nodeMap[item.path] = {
+    nodeMap.set(item.path, {
       name: item.name,
       path: item.path,
       isFolder: item.isFolder,
       children: [],
-    };
+    });
   }
 
-  // Then build the hierarchy
   for (const item of items) {
     if (item.path === '/') {
       continue;
     }
 
-    const node = nodeMap[item.path];
-    const lastSlashIndex = item.path.lastIndexOf('/');
+    const node = nodeMap.get(item.path);
+    if (!node) {
+      continue;
+    }
 
-    // For root level items, the parent path is empty
+    const lastSlashIndex = item.path.lastIndexOf('/');
     const parentPath =
       lastSlashIndex <= 0 ? '' : item.path.substring(0, lastSlashIndex);
-
-    // Get parent node (defaults to root if parent not found)
-    const parent = nodeMap[parentPath] || root;
-
-    // Add this node as a child of its parent
+    const parent = nodeMap.get(parentPath) ?? root;
     parent.children.push(node);
   }
 
   return root;
 }
 
-/**
- * Format a tree structure into an ASCII tree representation
- */
-function formatTree(node: TreeNode, indent: string): string {
-  if (!node.children.length) {
-    return '';
+function appendFormattedTree(
+  node: TreeNode,
+  indent: string,
+  lines: string[],
+): void {
+  if (node.children.length === 0) {
+    return;
   }
 
-  let output = '';
-
-  // Sort the children: folders first, then alphabetically
   const children = [...node.children].sort((a, b) => {
     if (a.isFolder !== b.isFolder) {
       return a.isFolder ? -1 : 1;
@@ -431,29 +391,21 @@ function formatTree(node: TreeNode, indent: string): string {
     return a.name.localeCompare(b.name);
   });
 
-  // Format each child node
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
     const isLast = i === children.length - 1;
     const connector = isLast ? '`-- ' : '|-- ';
     const childIndent = isLast ? '    ' : '|   ';
-
-    // Add the node itself
     const suffix = child.isFolder ? '/' : '';
-    output += `${indent}${connector}${child.name}${suffix}\n`;
 
-    // Recursively add its children
+    lines.push(`${indent}${connector}${child.name}${suffix}`);
+
     if (child.children.length > 0) {
-      output += formatTree(child, indent + childIndent);
+      appendFormattedTree(child, indent + childIndent, lines);
     }
   }
-
-  return output;
 }
 
-/**
- * Tree node interface for hierarchical representation
- */
 interface TreeNode {
   name: string;
   path: string;

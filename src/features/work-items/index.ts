@@ -1,116 +1,103 @@
-// Re-export schemas and types
 export * from './schemas';
 export * from './types';
+export { listWorkItems } from './list-work-items/feature';
+export { getWorkItem } from './get-work-item/feature';
+export { createWorkItem } from './create-work-item/feature';
+export { updateWorkItem } from './update-work-item/feature';
+export { manageWorkItemLink } from './manage-work-item-link/feature';
+export { getWorkItemComments } from './get-work-item-comments/feature';
+export { createWorkItemAttachment } from './create-work-item-attachment/feature';
+export { getWorkItemAttachment } from './get-work-item-attachment/feature';
+export { deleteWorkItemAttachment } from './delete-work-item-attachment/feature';
 
-// Re-export features
-export * from './list-work-items';
-export * from './get-work-item';
-export * from './create-work-item';
-export * from './update-work-item';
-export * from './manage-work-item-link';
-export * from './get-work-item-comments';
-export * from './create-work-item-attachment';
-export * from './get-work-item-attachment';
-export * from './delete-work-item-attachment';
-
-// Export tool definitions
-export * from './tool-definitions';
-
-// New exports for request handling
-import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import type { WebApi } from 'azure-devops-node-api';
-import type {
-  RequestIdentifier,
-  RequestHandler,
-} from '../../shared/types/request-handler';
-import { defaultProject } from '../../utils/environment';
+import { defineTool } from '../../shared/registry/tool-registry';
+import type { FeatureModule } from '../../shared/registry/tool-registry';
 import {
-  ListWorkItemsSchema,
-  GetWorkItemSchema,
-  CreateWorkItemSchema,
-  UpdateWorkItemSchema,
-  ManageWorkItemLinkSchema,
-  GetWorkItemCommentsSchema,
   CreateWorkItemAttachmentSchema,
-  GetWorkItemAttachmentSchema,
+  CreateWorkItemSchema,
   DeleteWorkItemAttachmentSchema,
+  GetWorkItemAttachmentSchema,
+  GetWorkItemCommentsSchema,
+  GetWorkItemSchema,
+  ListWorkItemsSchema,
+  ManageWorkItemLinkSchema,
+  UpdateWorkItemSchema,
 } from './schemas';
-import { listWorkItems } from './list-work-items';
-import { getWorkItem } from './get-work-item';
-import { createWorkItem } from './create-work-item';
-import { updateWorkItem } from './update-work-item';
-import { manageWorkItemLink } from './manage-work-item-link';
-import { getWorkItemComments } from './get-work-item-comments';
-import { createWorkItemAttachment } from './create-work-item-attachment';
-import { getWorkItemAttachment } from './get-work-item-attachment';
-import { deleteWorkItemAttachment } from './delete-work-item-attachment';
+import { listWorkItems } from './list-work-items/feature';
+import { getWorkItem } from './get-work-item/feature';
+import { createWorkItem } from './create-work-item/feature';
+import { updateWorkItem } from './update-work-item/feature';
+import { manageWorkItemLink } from './manage-work-item-link/feature';
+import { getWorkItemComments } from './get-work-item-comments/feature';
+import { createWorkItemAttachment } from './create-work-item-attachment/feature';
+import { getWorkItemAttachment } from './get-work-item-attachment/feature';
+import { deleteWorkItemAttachment } from './delete-work-item-attachment/feature';
 
-// Define the response type based on observed usage
-interface CallToolResponse {
-  content: Array<{ type: string; text: string }>;
-}
-
-/**
- * Checks if the request is for the work items feature
- */
-export const isWorkItemsRequest: RequestIdentifier = (
-  request: CallToolRequest,
-): boolean => {
-  const toolName = request.params.name;
-  return [
-    'get_work_item',
-    'list_work_items',
-    'create_work_item',
-    'update_work_item',
-    'manage_work_item_link',
-    'get_work_item_comments',
-    'create_work_item_attachment',
-    'get_work_item_attachment',
-    'delete_work_item_attachment',
-  ].includes(toolName);
-};
-
-/**
- * Handles work items feature requests
- */
-export const handleWorkItemsRequest: RequestHandler = async (
-  connection: WebApi,
-  request: CallToolRequest,
-): Promise<CallToolResponse> => {
-  switch (request.params.name) {
-    case 'get_work_item': {
-      const args = GetWorkItemSchema.parse(request.params.arguments);
-      const result = await getWorkItem(
-        connection,
-        args.workItemId,
-        args.expand,
-      );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'list_work_items': {
-      const args = ListWorkItemsSchema.parse(request.params.arguments);
-      const result = await listWorkItems(connection, {
-        projectId: args.projectId ?? defaultProject,
-        teamId: args.teamId,
-        queryId: args.queryId,
-        wiql: args.wiql,
-        top: args.top,
-        skip: args.skip,
-        fields: args.fields,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'create_work_item': {
-      const args = CreateWorkItemSchema.parse(request.params.arguments);
-      const result = await createWorkItem(
-        connection,
-        args.projectId ?? defaultProject,
-        args.workItemType,
-        {
+export const workItemsFeature: FeatureModule = {
+  toolset: 'work-items',
+  tools: [
+    defineTool({
+      name: 'list_work_items',
+      description: 'List work items in a project',
+      schema: ListWorkItemsSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await listWorkItems(connection, {
+          projectId: ctx.resolveProjectId(args.projectId),
+          teamId: args.teamId,
+          queryId: args.queryId,
+          wiql: args.wiql,
+          top: args.top,
+          skip: args.skip,
+          fields: args.fields,
+        });
+      },
+    }),
+    defineTool({
+      name: 'get_work_item',
+      description: 'Get details of a specific work item',
+      schema: GetWorkItemSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await getWorkItem(connection, args.workItemId, args.expand);
+      },
+    }),
+    defineTool({
+      name: 'create_work_item',
+      description: 'Create a new work item',
+      schema: CreateWorkItemSchema,
+      readOnly: false,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await createWorkItem(
+          connection,
+          ctx.resolveProjectId(args.projectId),
+          args.workItemType,
+          {
+            title: args.title,
+            description: args.description,
+            descriptionFormat: args.descriptionFormat,
+            assignedTo: args.assignedTo,
+            areaPath: args.areaPath,
+            iterationPath: args.iterationPath,
+            priority: args.priority,
+            parentId: args.parentId,
+            tags: args.tags,
+            additionalFields: args.additionalFields,
+          },
+        );
+      },
+    }),
+    defineTool({
+      name: 'update_work_item',
+      description: 'Update an existing work item',
+      schema: UpdateWorkItemSchema,
+      readOnly: false,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await updateWorkItem(connection, args.workItemId, {
           title: args.title,
           description: args.description,
           descriptionFormat: args.descriptionFormat,
@@ -118,109 +105,96 @@ export const handleWorkItemsRequest: RequestHandler = async (
           areaPath: args.areaPath,
           iterationPath: args.iterationPath,
           priority: args.priority,
-          parentId: args.parentId,
+          state: args.state,
           tags: args.tags,
+          tagsToAdd: args.tagsToAdd,
+          tagsToRemove: args.tagsToRemove,
           additionalFields: args.additionalFields,
-        },
-      );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'update_work_item': {
-      const args = UpdateWorkItemSchema.parse(request.params.arguments);
-      const result = await updateWorkItem(connection, args.workItemId, {
-        title: args.title,
-        description: args.description,
-        descriptionFormat: args.descriptionFormat,
-        assignedTo: args.assignedTo,
-        areaPath: args.areaPath,
-        iterationPath: args.iterationPath,
-        priority: args.priority,
-        state: args.state,
-        tags: args.tags,
-        tagsToAdd: args.tagsToAdd,
-        tagsToRemove: args.tagsToRemove,
-        additionalFields: args.additionalFields,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'manage_work_item_link': {
-      const args = ManageWorkItemLinkSchema.parse(request.params.arguments);
-      const result = await manageWorkItemLink(
-        connection,
-        args.projectId ?? defaultProject,
-        {
-          sourceWorkItemId: args.sourceWorkItemId,
-          targetWorkItemId: args.targetWorkItemId,
-          operation: args.operation,
-          relationType: args.relationType,
-          newRelationType: args.newRelationType,
-          comment: args.comment,
-        },
-      );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'get_work_item_comments': {
-      const args = GetWorkItemCommentsSchema.parse(request.params.arguments);
-      const result = await getWorkItemComments(connection, {
-        workItemId: args.workItemId,
-        projectId: args.projectId,
-        top: args.top,
-        continuationToken: args.continuationToken,
-        includeDeleted: args.includeDeleted,
-        expand: args.expand,
-        order: args.order,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-
-    case 'create_work_item_attachment': {
-      const args = CreateWorkItemAttachmentSchema.parse(
-        request.params.arguments,
-      );
-      const result = await createWorkItemAttachment(
-        connection,
-        args.workItemId,
-        {
+        });
+      },
+    }),
+    defineTool({
+      name: 'manage_work_item_link',
+      description: 'Add or remove links between work items',
+      schema: ManageWorkItemLinkSchema,
+      readOnly: false,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi(args.organizationId);
+        return await manageWorkItemLink(
+          connection,
+          ctx.resolveProjectId(args.projectId),
+          {
+            sourceWorkItemId: args.sourceWorkItemId,
+            targetWorkItemId: args.targetWorkItemId,
+            operation: args.operation,
+            relationType: args.relationType,
+            newRelationType: args.newRelationType,
+            comment: args.comment,
+          },
+        );
+      },
+    }),
+    defineTool({
+      name: 'get_work_item_comments',
+      description:
+        'Get comments and discussion history for a specific work item',
+      schema: GetWorkItemCommentsSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await getWorkItemComments(connection, {
+          workItemId: args.workItemId,
+          projectId: ctx.resolveOptionalProjectId(args.projectId),
+          top: args.top,
+          continuationToken: args.continuationToken,
+          includeDeleted: args.includeDeleted,
+          expand: args.expand,
+          order: args.order,
+        });
+      },
+    }),
+    defineTool({
+      name: 'create_work_item_attachment',
+      description:
+        'Upload a file and attach it to a work item. The file is read from the local filesystem, uploaded to Azure DevOps, and linked to the specified work item.',
+      schema: CreateWorkItemAttachmentSchema,
+      readOnly: false,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await createWorkItemAttachment(connection, args.workItemId, {
           filePath: args.filePath,
           fileName: args.fileName,
           comment: args.comment,
-        },
-      );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'get_work_item_attachment': {
-      const args = GetWorkItemAttachmentSchema.parse(request.params.arguments);
-      const result = await getWorkItemAttachment(connection, {
-        attachmentId: args.attachmentId,
-        outputPath: args.outputPath,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case 'delete_work_item_attachment': {
-      const args = DeleteWorkItemAttachmentSchema.parse(
-        request.params.arguments,
-      );
-      const result = await deleteWorkItemAttachment(connection, {
-        workItemId: args.workItemId,
-        attachmentId: args.attachmentId,
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    default:
-      throw new Error(`Unknown work items tool: ${request.params.name}`);
-  }
+        });
+      },
+    }),
+    defineTool({
+      name: 'get_work_item_attachment',
+      description:
+        'Download an attachment from Azure DevOps and save it to the local filesystem. The attachment ID can be obtained from the work item relations.',
+      schema: GetWorkItemAttachmentSchema,
+      readOnly: true,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await getWorkItemAttachment(connection, {
+          attachmentId: args.attachmentId,
+          outputPath: args.outputPath,
+        });
+      },
+    }),
+    defineTool({
+      name: 'delete_work_item_attachment',
+      description:
+        'Delete an attachment from a work item. The attachment ID can be obtained from the work item relations.',
+      schema: DeleteWorkItemAttachmentSchema,
+      readOnly: false,
+      handler: async (ctx, args) => {
+        const connection = await ctx.getWebApi();
+        return await deleteWorkItemAttachment(connection, {
+          workItemId: args.workItemId,
+          attachmentId: args.attachmentId,
+        });
+      },
+    }),
+  ],
 };
